@@ -91,12 +91,14 @@ class DataHandler:
         batch_size: int = 1,
         loops: int = 1,
         collate_fn: Optional[Callable] = None,
+        num_workers: int = 0,
     ):
         self._iter = None  # type: Iterator[Any]
         self._collate_fn = collate_fn
         self._batch_size = batch_size
         self._loops = loops
         self._init_impl(data_source, seed, batch_size, loops, collate_fn)
+        self._num_workers = num_workers
 
     def _init_impl(
         self,
@@ -115,10 +117,11 @@ class DataHandler:
                 batch_size=batch_size,
                 sampler=sampler,
                 collate_fn=collate_fn,
+                num_workers=0
             )
         else:
             self._data_loader = torch.utils.data.DataLoader(
-                data_source, batch_size=batch_size, sampler=sampler
+                data_source, batch_size=batch_size, sampler=sampler, num_workers=0
             )
         self._iter = iter(self._data_loader)
 
@@ -242,6 +245,7 @@ class ActiveMRIEnv(gym.Env):
             batch_size=self.num_parallel_episodes,
             loops=self._num_loops_train_data,
             collate_fn=_env_collate_fn,
+            num_workers=0
         )
         self._val_data_handler = DataHandler(
             val_data,
@@ -249,6 +253,7 @@ class ActiveMRIEnv(gym.Env):
             batch_size=self.num_parallel_episodes,
             loops=1,
             collate_fn=_env_collate_fn,
+            num_workers=0
         )
         self._test_data_handler = DataHandler(
             test_data,
@@ -256,6 +261,7 @@ class ActiveMRIEnv(gym.Env):
             batch_size=self.num_parallel_episodes,
             loops=1,
             collate_fn=_env_collate_fn,
+            num_workers=0
         )
         self._current_data_handler = self._train_data_handler
 

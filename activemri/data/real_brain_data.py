@@ -4,8 +4,10 @@
 # LICENSE file in the root directory of this source tree.
 
 # from activemri.baselines.loupe_codes.transforms import normalize
+import math
 import pathlib
-from typing import Callable, List, Optional, Tuple
+from typing import Callable, Collection, List, Optional, Sequence, Tuple
+
 
 import fastmri
 import h5py
@@ -13,6 +15,9 @@ import numpy as np
 import torch.utils.data
 import activemri
 import scipy.ndimage as ndimage
+
+ifft_2d_img = lambda x, dim=(-1, -2): np.fft.fftshift(np.fft.ifft2(np.fft.ifftshift(x, axes=dim), axes=dim, norm='ortho'), axes=dim)
+rss = lambda x, dim=1: np.sqrt(np.sum(np.power(np.abs(x), 2), axis=dim))
 
 class RealBrainData(torch.utils.data.Dataset):
     # This is the same as fastMRI singlecoil_knee, except we provide a custom test split
@@ -71,7 +76,7 @@ class RealBrainData(torch.utils.data.Dataset):
 
         for volume_i, fname in enumerate(sorted(files)):
             data = h5py.File(fname, "r")
-            # kspace = data["kspace"]
+            kspace = data["kspace"]
 
             if num_rand_slices is None:
                 num_slices = data['reconstruction_rss'].shape[0]
@@ -106,6 +111,7 @@ class RealBrainData(torch.utils.data.Dataset):
         """
         assert 0 < shape[0] <= data.shape[-2]
         assert 0 < shape[1] <= data.shape[-1]
+        data = data[:, ::2, :]
         w_from = (data.shape[-2] - shape[0]) // 2
         h_from = (data.shape[-1] - shape[1]) // 2
         w_to = w_from + shape[0]
@@ -117,43 +123,45 @@ class RealBrainData(torch.utils.data.Dataset):
 
     def __getitem__(self, i):
         fname, slice_id = self.examples[i]
-        with h5py.File(fname, 'r') as data:
+        try:
+            kspace = None
+            attr = {}
+            with h5py.File(fname, 'r') as data:
+                kspace = torch.from_numpy(data['kspace'][slice_id])
+                attr = dict(data.attrs)
+
+            kspace = self.center_crop(kspace, self.image_shape)
+
+            center_k = self.get_center_k_space(kspace)
+            norm_factor = np.max(rss(ifft_2d_img(center_k)))
             
-            # kspace = data["kspace"][slice_id]
-            # kspace = np.stack([kspace.real, kspace.imag], axis=-1)
-            # if self.random_rotate:
-            #   kspace = ndimage.rotate(kspace, self.random_angles[i], reshape=False, mode='nearest')
-
-            #kspace = torch.from_numpy(kspace).permute(2, 0, 1)
-            #kspace = self.center_crop(kspace, self.image_shape).permute(1, 2, 0)
+            kspace = kspace / norm_factor
             
-            #kspace = fastmri.ifftshift(kspace, dim=(0, 1))
-            target = torch.from_numpy(data['reconstruction_rss'][slice_id]).unsqueeze(-1)
-            target = torch.cat([target, torch.zeros_like(target)], dim=-1)
-            target = self.center_crop(target.permute(2, 0, 1), self.image_shape).permute(1, 2, 0)
-            
-            kspace = fastmri.ifftshift(target, dim=(0, 1)).fft(2, normalized=False)
+            target = rss(ifft_2d_img(kspace.numpy()), dim=0)
 
+            kspace = torch.view_as_real(kspace)
 
-            # target = torch.ifft(kspace, 2, normalized=False)
-            #target = fastmri.ifftshift(target, dim=(0, 1))
-            
-
-            # Normalize using mean of k-space in training data
-            # target /= 7.072103529760345e-07
-            # kspace /= 7.072103529760345e-07
-
-            kspace = kspace.numpy()
-            target = target.numpy()
 
             return self.transform(
                 kspace,
                 torch.zeros(kspace.shape[1]),
                 target,
-                dict(data.attrs),
+                attr,
                 fname.name,
                 slice_id
             )
+        except Exception:
+            print(repr(fname), slice_id, flush=True)
+            raise
+
+
+    # Get center cropped k-space (for computing normalization factor)
+    def get_center_k_space(self, kspace, center_size: Sequence[int] = [10, 10]):
+        assert len(center_size) == 2
+        mask = torch.zeros_like(kspace)
+        mask[..., self.image_shape[0]//2-center_size[0]//2:self.image_shape[0]//2+math.ceil(center_size[0]/2), self.image_shape[1]//2-center_size[1]//2:self.image_shape[1]//2+math.ceil(center_size[1]/2)] = 1
+        return kspace * mask
+
 
 """from activemri.envs.envs import ActiveMRIEnv
 data = RealBrainData(

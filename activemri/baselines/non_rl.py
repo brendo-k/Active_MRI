@@ -8,6 +8,7 @@ import os
 from torch.nn import functional as F
 from tensorboardX import SummaryWriter
 import time
+import matplotlib.pyplot as plt
 from .loupe_codes.evaluate import Metrics, METRIC_FUNCS
 from  .loupe_codes import transforms
 import activemri.envs.loupe_envs as loupe_envs
@@ -16,8 +17,8 @@ from .differential_sampler import SequentialUnet
 from .loupe import LOUPE
 import random
 import shutil
-import matplotlib.pyplot as plt
 from ..envs.util import compute_gaussian_nll_loss, compute_ssim_torch, compute_psnr_torch
+from activemri.baselines.sequential_sampling_codes.SensetivityModel_mc import SensetivityModel_mc
 
 def build_optimizer(lr, weight_decay, model_parameters, type='adam'):
     if type == 'adam':
@@ -73,7 +74,11 @@ def build_model(options):
             with_uncertainty=options.uncertainty_loss,
             detach_kspace=options.detach_kspace,
             fixed_input=options.fixed_input,
-            pretrained_recon=options.pretrained_recon if 'pretrained_recon' in options.__dict__ else False).to(options.device)
+            pretrained_recon=options.pretrained_recon if 'pretrained_recon' in options.__dict__ else False,
+            recon_type=options.recon_type if 'recon_type' in options.__dict__ else 'unet',
+            cg_iters=options.cg_iters if 'cg_iters' in options.__dict__ else 10,
+            cg_lamda=options.cg_lamda if 'cg_lamda' in options.__dict__ else 0.0,
+            sense_tikhonov_weight=options.sense_tikhonov_weight if 'sense_tikhonov_weight' in options.__dict__ else 0.0).to(options.device)
     else:
         raise NotImplementedError()
 
@@ -84,6 +89,37 @@ def get_mask_stats(masks):
 
     return np.mean(masks, axis=0), np.std(masks, axis=0)
 
+
+def _normalize_for_tb(tensor):
+    """Normalize a CHW tensor to [0, 1] for tensorboard."""
+    t = tensor.float()
+    t = t - t.min()
+    denom = t.max()
+    if denom > 0:
+        t = t / denom
+    return t
+
+
+def _log_images(writer, pred_dict, target, tag_prefix, global_step):
+    """Log ground truth, per-step reconstructions, and masks to tensorboard."""
+    output = pred_dict['intermediate_recons'] if 'intermediate_recons' in pred_dict else pred_dict['output']
+    writer.add_image(f'{tag_prefix}/target', _normalize_for_tb(target[0]), global_step)
+
+    step_masks = pred_dict.get('masks', None)
+    if step_masks is not None:
+        for i, mask in enumerate(step_masks):
+            writer.add_image(f'{tag_prefix}/mask_step_{i}', _normalize_for_tb(mask[0]), global_step)
+
+    if isinstance(output, list):
+        for i, recon in enumerate(output):
+            writer.add_image(f'{tag_prefix}/intermediate_recon_{i}', _normalize_for_tb(recon[0].abs()), global_step)
+
+    else:
+        writer.add_image(f'{tag_prefix}/reconstruction', _normalize_for_tb(output[0]), global_step)
+        if step_masks is None:
+            writer.add_image(f'{tag_prefix}/mask', _normalize_for_tb(pred_dict['mask'][0]), global_step)
+
+    writer.add_image(f'{tag_prefix}/output', _normalize_for_tb(pred_dict['output'][0].abs()), global_step)
 
 class NonRLTrainer:
     """Differentiabl Sampler Trainer for active MRI acquisition.
@@ -111,10 +147,10 @@ class NonRLTrainer:
 
         self.optimizer = build_optimizer(self.options.lr, self.options.weight_decay, self.model.parameters())
 
-        self.train_loader, self.dev_loader, self.display_loader, _ = self.env._setup_data_handlers()
+        self.train_loader, self.val_loader, self.display_loader, _ = self.env._setup_data_handlers()
 
         self.scheduler = build_lr_scheduler(self.options, self.optimizer)
-        self.best_dev_loss = np.inf
+        self.best_val_loss = np.inf
         self.epoch = 0
         self.start_epoch = 0
         self.end_epoch = options.num_epochs
@@ -146,19 +182,19 @@ class NonRLTrainer:
         start = time.perf_counter()
 
         with torch.no_grad():
-            for iter, data in enumerate(self.dev_loader):
+            for iter, data in enumerate(self.val_loader):
                 # input: [batch_size, num_channels, height, width] denoted as NCHW in other places
                 # label: label of the current image (0~9 for mnist/fashion-mnist) default: -1
                 # target: a copy of the input image for computing reconstruction loss in [NCHW]
                 kspace, _, input, label, *ignored = data
 
                 # adapt data to loupe
-                target = input.clone().detach()
-                target = transforms.complex_abs(target).unsqueeze(1)
+                target = input.float().unsqueeze(1)
 
                 input = input.to(self.options.device)
                 target = target.to(self.options.device)
                 kspace = kspace.to(self.options.device)
+
                 # label = label.to(self.options.device)
 
                 pred_dict = self.model(target, kspace)
@@ -166,6 +202,7 @@ class NonRLTrainer:
                 if (self.epoch == 0 or (self.epoch+1) % 1 == 0) and iter == 0:
                     data_for_vis_name = 'eval_epoch=' + str(self.epoch+1)
                     self.model.visualize_and_save(self.options, self.epoch, data_for_vis_name)
+                    _log_images(self.writer, pred_dict, target, 'eval', self.epoch)
 
                 output = pred_dict['output']
                 # only use the last reconstructed image to compute loss
@@ -191,14 +228,15 @@ class NonRLTrainer:
                     metrics.push(t, p)
 
             print(metrics)
-            self.writer.add_scalar('Dev_MSE', metrics.means()['MSE'], self.epoch)
-            self.writer.add_scalar('Dev_NMSE', metrics.means()['NMSE'], self.epoch)
-            self.writer.add_scalar('Dev_PSNR', metrics.means()['PSNR'], self.epoch)
-            self.writer.add_scalar('Dev_SSIM', metrics.means()['SSIM'], self.epoch)
+            metric_means = metrics.means()
+            self.writer.add_scalar('Val_MSE', metric_means['MSE'], self.epoch)
+            self.writer.add_scalar('Val_NMSE', metric_means['NMSE'], self.epoch)
+            self.writer.add_scalar('Val_PSNR', metric_means['PSNR'], self.epoch)
+            self.writer.add_scalar('Val_SSIM', metric_means['SSIM'], self.epoch)
 
-            self.writer.add_scalar('Dev_Loss', np.mean(losses), self.epoch)
+            self.writer.add_scalar('Val_Loss', np.mean(losses), self.epoch)
 
-        return np.mean(losses), np.mean(sparsity), time.perf_counter() - start
+        return np.mean(losses), np.mean(sparsity), time.perf_counter() - start, metric_means
 
     def train_epoch(self):
         self.model.train()
@@ -208,8 +246,12 @@ class NonRLTrainer:
         avg_loss = 0.
         start_epoch = start_iter = time.perf_counter()
         global_step = self.epoch * len(self.train_loader)
+        limit_batches = getattr(self.options, 'limit_batches', 1.0)
+        max_batches = max(1, int(limit_batches * len(self.train_loader)))
 
         for iter, data in enumerate(self.train_loader):
+            if iter >= max_batches:
+                break
             # self.scheduler.step()
             # input: [batch_size, num_channels, height, width] denoted as NCHW in other places
             # label: label of the current image (0~9 for mnist/fashion-mnist) default: -1
@@ -217,8 +259,7 @@ class NonRLTrainer:
             kspace, _, input, label, *ignored= data
 
             # adapt data to loupe
-            target = input.clone().detach()
-            target = transforms.complex_abs(target).unsqueeze(1)
+            target = input.float().unsqueeze(1)
 
             input = input.to(self.options.device)
             target = target.to(self.options.device)
@@ -234,6 +275,7 @@ class NonRLTrainer:
             if (self.epoch == 0 or (self.epoch+1) % 1 == 0) and iter ==  0:
                 data_for_vis_name = 'train_epoch={}_iter={}'.format(str(self.epoch+1), str(iter+1))
                 self.model.visualize_and_save(self.options, self.epoch, data_for_vis_name)
+                _log_images(self.writer, pred_dict, target, 'train', global_step)
 
             output = pred_dict['output']
             target_dict = {'target': target, 'label': label, 'kspace': kspace}
@@ -245,7 +287,7 @@ class NonRLTrainer:
 
             self.optimizer.zero_grad()
             loss.backward()
-            # torch.nn.utils.clip_grad_norm_(self.model.parameters(), 10)
+            torch.nn.utils.clip_grad_norm_(self.model.parameters(), 10)
 
             self.optimizer.step()
 
@@ -277,27 +319,53 @@ class NonRLTrainer:
                 metrics.push(t, p)
 
         print(metrics)
-        self.writer.add_scalar('Train_MSE', metrics.means()['MSE'], self.epoch)
-        self.writer.add_scalar('Train_NMSE', metrics.means()['NMSE'], self.epoch)
-        self.writer.add_scalar('Train_PSNR', metrics.means()['PSNR'], self.epoch)
-        self.writer.add_scalar('Train_SSIM', metrics.means()['SSIM'], self.epoch)
+        metric_means = metrics.means()
+        self.writer.add_scalar('Train_MSE', metric_means['MSE'], self.epoch)
+        self.writer.add_scalar('Train_NMSE', metric_means['NMSE'], self.epoch)
+        self.writer.add_scalar('Train_PSNR', metric_means['PSNR'], self.epoch)
+        self.writer.add_scalar('Train_SSIM', metric_means['SSIM'], self.epoch)
 
-        return np.mean(np.array(losses)), time.perf_counter() - start_epoch
+        return np.mean(np.array(losses)), time.perf_counter() - start_epoch, metric_means
+
+    def _plot_metrics(self, history):
+        epochs = list(range(1, len(history['train_ssim']) + 1))
+        fig, axes = plt.subplots(1, 3, figsize=(15, 4))
+
+        for ax, metric in zip(axes, ['ssim', 'nmse', 'psnr']):
+            ax.plot(epochs, history[f'train_{metric}'], label='Train')
+            ax.plot(epochs, history[f'val_{metric}'], label='Val')
+            ax.set_xlabel('Epoch')
+            ax.set_title(metric.upper())
+            ax.legend()
+
+        fig.tight_layout()
+        fig.savefig(self.options.visualization_dir / 'metrics.png', dpi=150)
+        plt.close(fig)
 
     def _train_loupe(self):
+        history = defaultdict(list)
+
         for epoch in range(self.start_epoch, self.end_epoch):
             self.epoch = epoch
-            train_loss, train_time = self.train_epoch()
+            train_loss, train_time, train_metrics = self.train_epoch()
             self.scheduler.step(epoch)
-            dev_loss, mean_sparsity, dev_time = self.evaluate()
+            val_loss, mean_sparsity, val_time, val_metrics = self.evaluate()
 
-            is_new_best = dev_loss < self.best_dev_loss
-            self.best_dev_loss = min(self.best_dev_loss, dev_loss)
+            history['train_ssim'].append(train_metrics['SSIM'])
+            history['train_nmse'].append(train_metrics['NMSE'])
+            history['train_psnr'].append(train_metrics['PSNR'])
+            history['val_ssim'].append(val_metrics['SSIM'])
+            history['val_nmse'].append(val_metrics['NMSE'])
+            history['val_psnr'].append(val_metrics['PSNR'])
+            self._plot_metrics(history)
+
+            is_new_best = val_loss < self.best_val_loss
+            self.best_val_loss = min(self.best_val_loss, val_loss)
             if self.options.save_model:
                 self.save_model(is_new_best)
             self.logger.info(
                 f'Epoch = [{1 + self.epoch:4d}/{self.options.num_epochs:4d}] TrainLoss = {train_loss:.4g} '
-                f'DevLoss = {dev_loss:.4g} MeanSparsity = {mean_sparsity:.4g} TrainTime = {train_time:.4f}s DevTime = {dev_time:.4f}s',
+                f'ValLoss = {val_loss:.4g} MeanSparsity = {mean_sparsity:.4g} TrainTime = {train_time:.4f}s ValTime = {val_time:.4f}s',
             )
         self.writer.close()
 
@@ -307,19 +375,18 @@ class NonRLTrainer:
 
     def save_model(self,is_new_best):
         exp_dir = self.options.exp_dir
-        torch.save(
-            {
-                'epoch': self.epoch,
-                'options': self.options,
-                'model': self.model.state_dict(),
-                'optimizer': self.optimizer.state_dict(),
-                'best_dev_loss': self.best_dev_loss,
-                'exp_dir': exp_dir
-            },
-            f = exp_dir / 'model.pt'
-        )
+        checkpoint = {
+            'epoch': self.epoch,
+            'options': self.options,
+            'model': self.model.state_dict(),
+            'optimizer': self.optimizer.state_dict(),
+            'best_val_loss': self.best_val_loss,
+            'exp_dir': exp_dir
+        }
+        epoch_path = exp_dir / f'model_epoch_{self.epoch:03d}.pt'
+        torch.save(checkpoint, f=epoch_path)
         if is_new_best:
-            shutil.copyfile(exp_dir / 'model.pt', exp_dir / 'best_model.pt')
+            shutil.copyfile(epoch_path, exp_dir / 'best_model.pt')
 
 
     def load(self):
@@ -328,14 +395,14 @@ class NonRLTrainer:
             self.model = torch.nn.DataParallel(self.model)
 
         checkpoint1 = torch.load(self.options.checkpoint1)
-        print("Load checkpoint {} with loss {}".format(checkpoint1['epoch'], checkpoint1['best_dev_loss']))
+        print("Load checkpoint {} with loss {}".format(checkpoint1['epoch'], checkpoint1['best_val_loss']))
 
         self.model.load_state_dict(checkpoint1['model'])
 
         self.optimizer = build_optimizer(self.options.lr, self.options.weight_decay, self.model.parameters())
         self.optimizer.load_state_dict(checkpoint1['optimizer'])
 
-        self.best_dev_loss = checkpoint1['best_dev_loss']
+        self.best_val_loss = checkpoint1['best_val_loss']
         self.start_epoch = checkpoint1['epoch'] + 1
         del checkpoint1
 
@@ -350,16 +417,19 @@ class NonRLTester:
     ):
         self.env = env
         # load options and model
-        self.load(os.path.join(exp_dir , 'best_model.pt'))
+        checkpoint_file = options.checkpoint1 if options.checkpoint1 else os.path.join(exp_dir, 'best_model.pt')
+        self.load(checkpoint_file)
         self.options.label_range = label_range
         self.options.exp_dir = exp_dir
         self.options.test_visual_frequency = options.test_visual_frequency
         self.options.visualization_dir = options.visualization_dir
         self.options.batch_size = 1
-        _, _, self.dev_loader, _  = self.env._setup_data_handlers()
+        _, _, self.val_loader, _  = self.env._setup_data_handlers()
 
         # setup saving and logging
         self.options.exp_dir.mkdir(parents=True, exist_ok=True)
+        self.options.visualization_dir.mkdir(parents=True, exist_ok=True)
+        self.writer = SummaryWriter(log_dir=self.options.exp_dir / 'summary')
 
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(__name__)
@@ -376,15 +446,14 @@ class NonRLTester:
         sample_image = dict()
 
         with torch.no_grad():
-            for iter, data in enumerate(self.dev_loader):
+            for iter, data in enumerate(self.val_loader):
                 # input: [batch_size, num_channels, height, width] denoted as NCHW in other places
                 # label: label of the current image (0~9 for mnist/fashion-mnist) default: -1
                 # target: a copy of the input image for computing reconstruction loss in [NCHW]
                 kspace, _, input, label, *ignored = data
 
                 # adapt data to loupe
-                target = input.clone().detach()
-                target = transforms.complex_abs(target).unsqueeze(1)
+                target = input.float().unsqueeze(1)
 
                 input = input.to(self.options.device)
                 target = target.to(self.options.device)
@@ -400,6 +469,7 @@ class NonRLTester:
                     data_for_vis_name = 'test_iter=' + str(iter+1)
                     print("visualize {}".format(data_for_vis_name))
                     self.model.visualize_and_save(self.options, iter, data_for_vis_name)
+                    _log_images(self.writer, pred_dict, target, 'test', iter)
 
                 output = pred_dict['output']
                 if isinstance(output, list):
@@ -443,22 +513,23 @@ class NonRLTester:
         return losses, np.mean(sparsity), metrics
 
     def __call__(self):
-        dev_loss, sparsity, metrics = self.evaluate()
+        val_loss, sparsity, metrics = self.evaluate()
 
-        print("L1 Loss {} STD {} Sparsity {}".format(np.mean(dev_loss), np.std(dev_loss), sparsity))
+        print("L1 Loss {} STD {} Sparsity {}".format(np.mean(val_loss), np.std(val_loss), sparsity))
 
         with open(os.path.join(self.options.exp_dir, 'statistics.txt'), 'w') as f:
-            f.write('L1 Loss {} +- {}\n'.format(np.mean(dev_loss), np.std(dev_loss)))
+            f.write('L1 Loss {} +- {}\n'.format(np.mean(val_loss), np.std(val_loss)))
             f.write(str(metrics))
 
         print(metrics)
 
         with open(os.path.join(self.options.exp_dir, 'loss.pkl'), 'wb') as f:
-            pickle.dump(dev_loss, f)
+            pickle.dump(val_loss, f)
+        self.writer.close()
 
     def load(self, checkpoint_file):
-        checkpoint = torch.load(checkpoint_file)
-        print("Load checkpoint {} with loss {}".format(checkpoint['epoch'], checkpoint['best_dev_loss']))
+        checkpoint = torch.load(checkpoint_file, weights_only=False)
+        print("Load checkpoint {} with loss {}".format(checkpoint['epoch'], checkpoint['best_val_loss']))
         self.options = checkpoint['options']
         random.seed(self.options.seed)
         np.random.seed(self.options.seed)

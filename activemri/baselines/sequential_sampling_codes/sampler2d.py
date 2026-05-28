@@ -89,7 +89,10 @@ class Sampler2D(nn.Module):
 
         out = F.softplus(out)
 
-        out = out / torch.max(out.reshape(out.shape[0], -1), dim=1)[0].reshape(-1, 1, 1, 1)
+        max_val = torch.max(out.reshape(out.shape[0], -1), dim=1)[0].reshape(-1, 1, 1, 1)
+        if torch.isnan(out).any() or torch.isinf(out).any() or torch.isnan(max_val).any() or torch.isinf(max_val).any():
+            print(f"sampler2d: out has nan={torch.isnan(out).any()}, inf={torch.isinf(out).any()}, max_val={max_val.max().item()}, x input range=[{x.min().item():.2f},{x.max().item():.2f}]")
+        out = out / max_val
 
         # Don't need to select an existed measurement
         new_mask = out * (1-mask)

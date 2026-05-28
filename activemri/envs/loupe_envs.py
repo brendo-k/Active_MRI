@@ -155,9 +155,9 @@ class LoupeBrainEnv(LOUPEDataEnv):
 
     def _create_datasets(self):
         root_path = pathlib.Path(self._data_location)
-        train_path = root_path / "train_no_kspace"
-        val_path = root_path / "val_no_kspace"
-        test_path = root_path / "test_no_kspace"
+        train_path = root_path / "train"
+        val_path = root_path / "val"
+        test_path = root_path / "test"
 
         train_data = RealBrainData(
             train_path,

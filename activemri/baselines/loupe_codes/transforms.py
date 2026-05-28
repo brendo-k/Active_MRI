@@ -7,7 +7,6 @@ LICENSE file in the root directory of this source tree.
 
 import numpy as np
 import torch
-from torch._C import FUSE_ADD_RELU
 
 
 def to_tensor(data):
@@ -49,7 +48,7 @@ def apply_mask(data, mask_func, seed=None):
     return torch.where(mask == 0, torch.Tensor([0]).to(data.device), data), mask
 
 
-def fft2(data):
+def fft2(data, dims):
     """
     Apply centered 2 dimensional Fast Fourier Transform.
 
@@ -62,11 +61,12 @@ def fft2(data):
         torch.Tensor: The FFT of the input.
     """
     assert data.size(-1) == 2
-    data = data.fft(2, normalized=False)
+    data = torch.view_as_complex(data)
+    data = torch.fft.fftshift(torch.fft.fft2(torch.fft.fftshift(data, dim=dims), dims=dims, norm='ortho'), dim=dims) 
     return data
 
 
-def ifft2(data):
+def ifft2(data, dims):
     """
     Apply centered 2-dimensional Inverse Fast Fourier Transform.
 
@@ -79,8 +79,9 @@ def ifft2(data):
         torch.Tensor: The IFFT of the input.
     """
     assert data.size(-1) == 2
-    data = torch.ifft(data, 2, normalized=False)
-    return data
+    data = torch.view_as_complex(data)
+    data = torch.fft.fftshift(torch.fft.ifft2(torch.fft.ifftshift(data, dim=dims), dim=dims, norm='ortho'), dim=dims)
+    return torch.view_as_real(data)
 
 
 def complex_abs(data):

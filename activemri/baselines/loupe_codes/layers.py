@@ -282,13 +282,11 @@ def RescaleProbMap(batch_x, sparsity):
 
 
 class ThresholdRandomMaskSigmoidV1(Function):
-    def __init__(self):
-        """
-            Straight through estimator.
-            The forward step stochastically binarizes the probability mask.
-            The backward step estimate the non differentiable > operator using sigmoid with large slope (10).
-        """
-        super(ThresholdRandomMaskSigmoidV1, self).__init__()
+    """
+        Straight through estimator.
+        The forward step stochastically binarizes the probability mask.
+        The backward step estimate the non differentiable > operator using sigmoid with large slope (10).
+    """
 
     @staticmethod
     def forward(ctx, input):
@@ -330,7 +328,7 @@ class ThresholdRandomMaskSigmoidV1(Function):
         # derivative of sigmoid function
         current_grad = slope * torch.exp(-slope * (input - prob)) / torch.pow((torch.exp(-slope*(input-prob))+1), 2)
 
-        return current_grad * grad_output
+        return current_grad * grad_output, None
 
 def MaximumBinarize(input):
     batch_size = len(input)

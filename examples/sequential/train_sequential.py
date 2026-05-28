@@ -9,13 +9,16 @@ import random
 import numpy as np
 import torch
 import os
+import sys
+os.environ['HDF5_USE_FILE_LOCKING'] = 'FALSE'
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
 import activemri.envs.loupe_envs as loupe_envs
 from activemri.baselines.non_rl import NonRLTrainer, NonRLTester
 import matplotlib
 matplotlib.use('Agg')
 
 
-if __name__ == "__main__":
+def build_arg_parser():
     parser = argparse.ArgumentParser(description='MRI Reconstruction Example')
     parser.add_argument('--num-pools', type=int, default=4, help='Number of U-Net pooling layers')
     parser.add_argument('--num-step', type=int, default=2, help='Number of LSTM iterations')
@@ -69,12 +72,12 @@ if __name__ == "__main__":
     parser.add_argument('--label_range', nargs='+', type=int, help='train using images of specific class', default=None)
     parser.add_argument('--model', type=str, help='name of the model to run', required=True)
     parser.add_argument('--input_chans', type=int, choices=[1, 2], required=True, help='number of input channels. One for real image, 2 for compelx image')
-    parser.add_argument('--output_chans', type=int, default=1, help='number of output channels. One for real image')
+    parser.add_argument('--output_chans', type=int, default=2, help='number of output channels. One for real image')
     parser.add_argument('--line-constrained', type=int, default=0)
     parser.add_argument('--unet', action='store_true')
     parser.add_argument('--preselect', type=int, default=0)
     parser.add_argument('--conjugate_mask', action='store_true', help='force loupe model to use conjugate symmetry.')
-    parser.add_argument('--loss_type', type=str, choices=['l1', 'ssim', 'psnr', 'xentropy'], default='l1')
+    parser.add_argument('--loss_type', type=str, choices=['l1', 'ssim', 'nmse', 'psnr', 'xentropy'], default='l1')
     parser.add_argument('--test_visual_frequency', type=int, default=1000)
     parser.add_argument('--test', action='store_true')
     parser.add_argument('--bi-dir', type=int, default=0)
@@ -88,8 +91,22 @@ if __name__ == "__main__":
     parser.add_argument('--random_rotate', type=int, default=0)
     parser.add_argument('--kspace_weight', type=float, default=0)
     parser.add_argument('--pretrained_recon', type=int, default=0)
+    parser.add_argument('--limit_batches', type=float, default=1.0,
+                        help='Fraction of training batches to use per epoch (0, 1]')
+    parser.add_argument('--recon_type', type=str, choices=['unet', 'lls'], default='unet',
+                        help="Reconstruction method: 'unet' for learned U-Net, 'lls' for CG-SENSE")
+    parser.add_argument('--cg_iters', type=int, default=10,
+                        help='Number of CG iterations (only used when --recon_type lls)')
+    parser.add_argument('--cg_lamda', type=float, default=0.0,
+                        help='Tikhonov regularisation for CG-SENSE (only used when --recon_type lls)')
+    parser.add_argument('--sense_tikhonov_weight', type=float, default=0.0,
+                        help='Weight for L2 spatial-gradient penalty on estimated sensitivity maps')
 
     args = parser.parse_args()
+    return args
+
+if __name__ == "__main__":
+    args = build_arg_parser()
 
     args.pretrained_recon = args.pretrained_recon >0 
     args.random_rotate = args.random_rotate > 0
@@ -116,7 +133,7 @@ if __name__ == "__main__":
         args.resume = False
 
     noise_str = ''
-    if args.noise_type is 'none':
+    if args.noise_type == 'none':
         noise_str = '_no_noise_'
     else:
         noise_str = '_' + args.noise_type + str(args.noise_level) + '_'
@@ -137,18 +154,14 @@ if __name__ == "__main__":
         args.bianry_sampler = False
 
 
-    import uuid; # uuid.uuid4().hex.upper()[0:6]
-
-    if str(args.exp_dir) is 'auto':
-        if os.name == 'nt':
-            args.exp_dir = pathlib.Path('checkpoints/'+uuid.uuid4().hex.upper()[0:6])
-        else:
-            args.exp_dir = ('checkpoints/'+args.dataset_name + '_' +
-                str(float(args.accelerations[0])) + 'x_' + args.model + '_bi_dir_{}'.format(args.bi_dir) + '_step_{}'.format(args.num_step)
-                + '_preselect_{}'.format(args.preselect) + noise_str + 'lr=' + str(args.lr)
-                + '_bs=' + str(args.batch_size) + '_loss_type='+args.loss_type + '_epochs=' + str(args.num_epochs))
-
-            args.exp_dir = pathlib.Path(args.exp_dir+'_uuid_'+uuid.uuid4().hex.upper()[0:6])
+    if str(args.exp_dir) == 'auto':
+        base_name = ('checkpoints/'+args.dataset_name + '_' +
+            str(float(args.accelerations[0])) + 'x_' + args.model + '_bi_dir_{}'.format(args.bi_dir) + '_step_{}'.format(args.num_step)
+            + '_preselect_{}'.format(args.preselect) + noise_str + 'lr=' + str(args.lr)
+            + '_bs=' + str(args.batch_size) + '_loss_type='+args.loss_type + '_epochs=' + str(args.num_epochs))
+        existing = sorted(pathlib.Path('checkpoints').glob(pathlib.Path(base_name).name + '_run_*')) if pathlib.Path('checkpoints').exists() else []
+        run_num = len(existing) + 1
+        args.exp_dir = pathlib.Path(base_name + f'_run_{run_num:03d}')
 
     print('save logs to {}'.format(args.exp_dir))
 
@@ -172,7 +185,7 @@ if __name__ == "__main__":
         # args.resolution = [128, 128]
         env = loupe_envs.LOUPEDICOMEnv(args)
     elif args.dataset_name == 'brain':
-        args.data_path = 'datasets/brain'
+        #args.data_path = 'datasets/brain'
         env = loupe_envs.LoupeBrainEnv(args)
     elif args.dataset_name == 'real-knee':
         args.data_path = 'datasets/knee'

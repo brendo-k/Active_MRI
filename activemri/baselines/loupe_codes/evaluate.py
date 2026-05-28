@@ -34,7 +34,7 @@ def psnr(gt, pred):
 def ssim(gt, pred):
     """ Compute Structural Similarity Index Metric (SSIM). """
     return structural_similarity(
-        gt.transpose(1, 2, 0), pred.transpose(1, 2, 0), multichannel=True, data_range=gt.max()
+        gt.transpose(1, 2, 0), pred.transpose(1, 2, 0), channel_axis=-1, data_range=gt.max()
     )
 
 

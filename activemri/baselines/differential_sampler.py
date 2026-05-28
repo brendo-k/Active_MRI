@@ -6,12 +6,14 @@ from torch import nn
 import numpy as np
 from torch.nn import functional as F
 from activemri.baselines.sequential_sampling_codes import ConvSamplerSmall, LineConstrainedSampler
-from activemri.baselines.loupe_codes.reconstructors import LOUPEUNet
+from activemri.baselines.loupe_codes.reconstructors import LOUPEUNet, CGSENSEReconstructor
 import matplotlib.pyplot as plt
-import fastmri
+import einops
 import activemri.baselines.loupe_codes.transforms as transforms
 from ..envs.util import compute_gaussian_nll_loss, compute_ssim_torch, compute_psnr_torch
 from activemri.baselines.loupe_codes.layers import RescaleProbMap, ThresholdRandomMaskSigmoidV1, MaximumBinarize
+from activemri.baselines.sequential_sampling_codes.SensetivityModel_mc import SensetivityModel_mc
+from activemri.baselines.sequential_sampling_codes.image_processing import ifft_2d_img as torch_ifft2, fft_2d_img as torch_fft2
 import os 
 
 class Sampler(nn.Module):
@@ -53,7 +55,7 @@ class Sampler(nn.Module):
         self.line_constrained = line_constrained
         self.with_uncertainty = with_uncertainty
 
-    def forward(self, full_kspace, observed_kspace, old_mask, budget, uncertainty_mask=None):
+    def forward(self, observed_kspace, old_mask, budget, uncertainty_mask=None):
         """
         Args:
             full_kspace (torch.Tensor): The ground truth kspace to sample measurements
@@ -69,25 +71,25 @@ class Sampler(nn.Module):
             observed_kspace = observed_kspace.detach()
 
         if self.with_uncertainty:
-            temp = torch.cat([observed_kspace, full_kspace*old_mask.permute(0, 2, 3, 1)], dim=-1)
-            mask = self.mask_net(temp, old_mask, uncertainty_mask)
+            temp = torch.cat([observed_kspace, observed_kspace*old_mask.permute(0, 2, 3, 1)], dim=-1)
+            samp_prob_unscaled = self.mask_net(temp, old_mask, uncertainty_mask)
         else:
-            temp = torch.cat([observed_kspace, full_kspace*old_mask.permute(0, 2, 3, 1)], dim=-1)
-            mask = self.mask_net(temp, old_mask)
+            temp = torch.cat([observed_kspace, observed_kspace*old_mask.permute(0, 2, 3, 1)], dim=-1)
+            samp_prob_unscaled = self.mask_net(temp, old_mask)
 
             # mask = self.mask_net(full_kspace*old_mask.permute(0, 2, 3, 1), old_mask)
             # temp = torch.cat([observed_kspace, full_kspace*old_mask.permute(0, 2, 3, 1)], dim=-1)
 
         sparsity = budget / (self.shape[0] * self.shape[1]) if not self.line_constrained else (budget / self.shape[0])
 
-        batch_size = mask.shape[0]
+        batch_size = samp_prob_unscaled.shape[0]
 
         if self.bidirection:
-            rescaled_mask = self.rescale(mask, sparsity/2)
+            samp_prob = self.rescale(samp_prob_unscaled, sparsity/2)
             if self.training:
-                binary_mask = self.binarize(rescaled_mask)
+                binary_mask = self.binarize(samp_prob)
             else:
-                binary_mask = self.binarize(rescaled_mask)
+                binary_mask = self.binarize(samp_prob)
 
             binarized_vertical_mask, binarized_horizontal_mask = torch.chunk(binary_mask, dim=-1, chunks=2)
 
@@ -97,17 +99,17 @@ class Sampler(nn.Module):
 
             if self.line_constrained:
                 # for visualization purpose
-                vertical_mask, horizontal_mask = torch.chunk(mask, dim=-1, chunks=2)
-                mask =vertical_mask.reshape(batch_size, 1, 1, -1)+horizontal_mask.reshape(batch_size, 1, -1, 1)
+                vertical_mask, horizontal_mask = torch.chunk(samp_prob_unscaled, dim=-1, chunks=2)
+                samp_prob_unscaled =vertical_mask.reshape(batch_size, 1, 1, -1)+horizontal_mask.reshape(batch_size, 1, -1, 1)
 
-                rescaled_vertical_mask, rescaled_horizontal_mask = torch.chunk(rescaled_mask, dim=-1, chunks=2)
-                rescaled_mask = rescaled_vertical_mask.reshape(batch_size, 1, 1, -1)+rescaled_horizontal_mask.reshape(batch_size, 1, -1, 1)
+                rescaled_vertical_mask, rescaled_horizontal_mask = torch.chunk(samp_prob, dim=-1, chunks=2)
+                samp_prob = rescaled_vertical_mask.reshape(batch_size, 1, 1, -1)+rescaled_horizontal_mask.reshape(batch_size, 1, -1, 1)
         else:
-            rescaled_mask = self.rescale(mask, sparsity)
+            samp_prob = self.rescale(samp_prob_unscaled, sparsity)
             if self.training:
-                binary_mask = self.binarize(rescaled_mask)
+                binary_mask = self.binarize(samp_prob)
             else:
-                binary_mask = self.binarize(rescaled_mask)
+                binary_mask = self.binarize(samp_prob)
                 # binary_mask = MaximumBinarize(rescaled_mask)
 
         binary_mask = old_mask + binary_mask
@@ -115,18 +117,15 @@ class Sampler(nn.Module):
         # double check to ensure the mask is within range
         binary_mask = torch.clamp(binary_mask, min=0, max=1)
 
-        # NCHW -> NHWC
-        binary_mask = binary_mask.permute(0, 2, 3, 1)
-        masked_kspace = binary_mask * full_kspace
 
         data_to_vis_sampler = {
-            'pred_kspace': transforms.complex_abs(transforms.fftshift(observed_kspace[0,:,:,:],dim=(0,1))).cpu().detach().numpy(),
-            'prob_mask': transforms.fftshift(mask[0,0,:,:],dim=(0,1)).cpu().detach().numpy(),
-            'rescaled_mask': transforms.fftshift(rescaled_mask[0,0,:,:],dim=(0,1)).cpu().detach().numpy(),
-            'binarized_mask': transforms.fftshift(binary_mask[0,:,:,0],dim=(0,1)).cpu().detach().numpy()}
+            'prob_mask':samp_prob_unscaled[0,0,:,:].detach(),
+            'rescaled_mask': samp_prob[0,0,:,:].detach(),
+            'binarized_mask': binary_mask[0,0,:,:].detach()
+        }
 
 
-        return masked_kspace, binary_mask.permute(0, -1, 1, 2), data_to_vis_sampler # NCHW
+        return binary_mask, data_to_vis_sampler # NCHW
 
 class SequentialUnet(nn.Module):
     """
@@ -141,7 +140,8 @@ class SequentialUnet(nn.Module):
     def __init__(self, in_chans, out_chans, chans, num_pool_layers, drop_prob, shape=[320, 320],
                  sparsity=0.25, line_constrained=False, num_step=4, preselect=True, preselect_num=2, conjugate_mask=False,
                  bi_direction=False, binary_sampler=False, clamp=100, old_recon=False, with_uncertainty=False,
-                 detach_kspace=False, fixed_input=False, pretrained_recon=False):
+                 detach_kspace=False, fixed_input=False, pretrained_recon=False, recon_type='unet',
+                 cg_iters=10, cg_lamda=0.0, sense_tikhonov_weight=0.0):
         """
         Args:
             in_chans (int): Number of channels in the input to the reconstructor (2 for complex image, 1 for real image).
@@ -157,15 +157,24 @@ class SequentialUnet(nn.Module):
                 (point reflection). Therefore, the information in the left half of the kspace image is the same as the
                 other half. To take advantage of this, we can force the model to only sample right half of the kspace
                 (when conjugate_mask is set to True)
+            recon_type (str): 'unet' for U-Net reconstructor, 'lls' for linear least squares (SENSE) reconstruction.
         """
         super().__init__()
 
         assert conjugate_mask is False
 
-        self.reconstructor = LOUPEUNet(in_chans, out_chans, chans, num_pool_layers, drop_prob,
-                bi_dir=bi_direction, old_recon=old_recon, with_uncertainty=with_uncertainty)
+        self.recon_type = recon_type
+        if recon_type == 'unet':
+            self.reconstructor = LOUPEUNet(in_chans, out_chans, chans, num_pool_layers, drop_prob,
+                    bi_dir=bi_direction, old_recon=old_recon, with_uncertainty=with_uncertainty)
+        elif recon_type == 'lls':
+            self.reconstructor = CGSENSEReconstructor(num_iters=cg_iters, lamda=cg_lamda)
+        else:
+            raise ValueError(f"Unknown recon_type '{recon_type}'. Choose 'unet' or 'lls'.")
         self.sampler = Sampler(shape, line_constrained, bi_direction=bi_direction, binary_sampler=binary_sampler,
             clamp=clamp, with_uncertainty=with_uncertainty, detach_kspace=detach_kspace, fixed_input=fixed_input)
+        self.sensetivity_net = SensetivityModel_mc(2, 2, 8)
+        self.sense_tikhonov_weight = sense_tikhonov_weight
 
         self.num_step = num_step
         self.shape = shape
@@ -211,7 +220,7 @@ class SequentialUnet(nn.Module):
 
 
 
-    def step_forward(self, full_kspace, pred_kspace, old_mask, old_recon, target, step, uncertainty_map=None):
+    def step_forward(self, full_kspace, pred_kspace, old_mask, old_recon, target, step, sense_maps, sense_mask, uncertainty_map=None):
         """
         Args:
             full_kspace (torch.Tensor): The ground truth kspace to sample measurements
@@ -229,24 +238,39 @@ class SequentialUnet(nn.Module):
         # evenly divide sampling budget across different iterations
         budget = self.budget / self.num_step
 
+        pred_single_coil_img = (torch_ifft2(torch.view_as_complex(pred_kspace)) * sense_maps).sum(dim=1)
+        pred_single_coil_k = torch.view_as_real(torch_fft2(pred_single_coil_img))
+        if torch.isnan(pred_single_coil_k).any():
+            print(f"NaN in pred_single_coil_k at step {step}: pred_kspace nan={torch.isnan(pred_kspace).any()}, sense_maps nan={torch.isnan(sense_maps).any()}")
         # to NHWC
-        masked_kspace, mask, data_to_vis_sampler = self.sampler(full_kspace, pred_kspace, old_mask, budget, uncertainty_map)
+        mask, data_to_vis_sampler = self.sampler(pred_single_coil_k, old_mask, budget, uncertainty_map)
+        masked_kspace = torch.view_as_real(mask * torch.view_as_complex(full_kspace))
         self.data_for_vis[step].update(data_to_vis_sampler)
 
-        # Inverse Fourier Transform to get zero filled solution NHWC -> NCHW
-        # zero_filled_recon = transforms.fftshift(transforms.ifft2(masked_kspace),dim=(1,2)).permute(0, -1, 1, 2)
-        zero_filled_recon = transforms.fftshift(transforms.ifft2(masked_kspace),dim=(1,2)).permute(0, -1, 1, 2)
-        zero_recon = torch.norm(zero_filled_recon, dim=1, keepdim=True)
+        # Inverse Fourier Transform to get zero filled solution; shape [B, 1, H, W] complex
+        zero_filled_complex = (torch_ifft2(torch.view_as_complex(masked_kspace)) * sense_maps.conj()).sum(dim=1, keepdim=True)
+        zero_filled_mag = zero_filled_complex.abs()  # [B, 1, H, W] real — used in loss
 
-        recon = self.reconstructor(zero_filled_recon)
+        if self.recon_type == 'lls':
+            masked_kspace_complex = torch.view_as_complex(masked_kspace.contiguous())
+            recon_mag = self.reconstructor(masked_kspace_complex, sense_maps, mask)
+            recon = recon_mag.to(torch.complex64)
+        else:
+            zero_filled_recon_2ch = torch.view_as_real(zero_filled_complex)
+            zero_filled_recon_2ch = einops.rearrange(zero_filled_recon_2ch, 'b c h w two -> b (c two) h w')
+            recon_2ch = self.reconstructor(zero_filled_recon_2ch)
+            two = 2
+            recon = torch.view_as_complex(einops.rearrange(recon_2ch, 'b (c two) h w -> b c h w two', two=two).contiguous())
 
         self.data_for_vis[step].update({'input': target[0,0,:,:].cpu().detach().numpy(),
-         'kspace': transforms.complex_abs(transforms.fftshift(full_kspace[0,:,:,:],dim=(0,1))).cpu().detach().numpy(),
-         'masked_kspace': transforms.complex_abs(transforms.fftshift(masked_kspace[0,:,:,:],dim=(0,1))).cpu().detach().numpy(),
-         'zero_filled_recon': zero_recon[0,0,:,:].cpu().detach().numpy(),
-         'recon': recon[0,0,:,:].cpu().detach().numpy(), 'uncertainty_map': uncertainty_map[0, 0].cpu().detach().numpy()})
+         'kspace': torch.view_as_complex(full_kspace[0,:,:,:]).cpu().detach().numpy(),
+         'masked_kspace': zero_filled_complex[0].cpu().detach().numpy(),
+         'zero_filled_recon': zero_filled_mag[0,0,:,:].cpu().detach().numpy(),
+         'recon': recon[0,0,:,:].abs().cpu().detach().numpy(),
+         'uncertainty_map': uncertainty_map[0, 0].cpu().detach().numpy(),
+         'sense_mask': sense_mask[0, 0, :, :].cpu().detach().numpy()})
 
-        pred_dict = {'output': recon, 'mask': mask, 'zero_recon': zero_recon, 'uncertainty_map': uncertainty_map}
+        pred_dict = {'output': recon, 'mask': mask, 'zero_recon': zero_filled_mag, 'uncertainty_map': uncertainty_map}
 
         return pred_dict
 
@@ -278,9 +302,9 @@ class SequentialUnet(nn.Module):
                 a[:, :, :, :self.preselect_num_one_side] = 1
                 a[:, :, :, -self.preselect_num_one_side:] = 1
 
-        return a
+        return torch.fft.fftshift(a, dim=(-1, -2))
 
-    def _init_kspace(self, data, mask):
+    def _init_kspace(self, data, mask, sense_maps):
         """
             data: NHWC (input image in kspace)
             mask: NCHW
@@ -288,24 +312,33 @@ class SequentialUnet(nn.Module):
 
         """
         kspace =  data * mask.permute(0, 2, 3, 1)
-        init_img = transforms.fftshift(transforms.ifft2(kspace),dim=(1,2)).permute(0, -1, 1, 2)
+        init_img = transforms.ifft2(kspace,dims=(1,2)).permute(0, -1, 1, 2)
         recon = self.reconstructor(init_img, None, mask.detach())
 
-        image = torch.cat([recon, torch.zeros_like(recon)], dim=1).permute(0, 2, 3, 1)
-        image_for_kspace = fastmri.ifftshift(image, dim=(1, 2))
-        pred_kspace = image_for_kspace.fft(2, normalized=False)
+        image = recon.permute(0, 2, 3, 1)
+        pred_kspace = transforms.fft2(2, dims=(1, 2))
 
-        return pred_kspace
+        return pred_kspace * sense_maps
 
     def forward(self, target, full_kspace, idx=None):
         """
         Args:
-            input (torch.Tensor): Input tensor of shape NHWC
+            target (torch.Tensor): Ground truth image NCHW
+            full_kspace (torch.Tensor): Multicoil kspace [B, C, H, W, 2] (real/imag last)
         Returns:
             (torch.Tensor): Output tensor of shape NCHW
         """
-        old_mask = self._init_mask(full_kspace)
-        pred_kspace = self._init_kspace(full_kspace, old_mask)
+        from activemri.baselines.sequential_sampling_codes.image_processing import ifft_2d_img as torch_ifft2, fft_2d_img as torch_fft2
+
+        # Convert multicoil kspace [B, C, H, W, 2] -> complex [B, C, H, W]
+        full_kspace_complex = torch.view_as_complex(full_kspace.contiguous())
+
+        # Estimate sensitivity maps from kspace center
+        sense_maps, sense_mask = self.sensetivity_net(
+            full_kspace_complex, mask_method='pre_network'
+        )  # sense_maps: [B, C, H, W] complex, sense_mask: [B, 1, H, W]
+        old_mask = self._init_mask(full_kspace)  # [B, 1, H, W]
+        pred_kspace = full_kspace * old_mask.permute(0, 2, 3, 1)  # [B, H, W, 2]
 
         old_recon = torch.zeros_like(target)
         uncertainty_map = torch.zeros_like(old_mask)
@@ -313,27 +346,35 @@ class SequentialUnet(nn.Module):
         reconstructions = []
         zero_filled = []
         uncertainty_maps = []
+        masks = []
 
+        image_for_kspace = None 
         for i in range(self.num_step):
-            pred_dict = self.step_forward(full_kspace, pred_kspace, old_mask, old_recon, target, i, uncertainty_map)
+            pred_dict = self.step_forward(full_kspace, pred_kspace, old_mask, old_recon, target, i, sense_maps, sense_mask, uncertainty_map)
 
-            new_img, old_recon, old_mask, uncertainty_map = (pred_dict['output'], pred_dict['output'],
-                pred_dict['mask'].detach(), pred_dict['uncertainty_map'])
+            new_img, old_mask, uncertainty_map = (pred_dict['output'], pred_dict['mask'].detach(), pred_dict['uncertainty_map'])
 
-            reconstructions.append(new_img)
+            reconstructions.append(new_img.detach())
             zero_filled.append(pred_dict['zero_recon'])
             uncertainty_maps.append(uncertainty_map)
+            masks.append(old_mask)
 
-            # transform back to kspace
-            # NCHW -> NHWC
-            image = torch.cat([new_img, torch.zeros_like(new_img)], dim=1).permute(0, 2, 3, 1)
-            image_for_kspace = fastmri.ifftshift(image, dim=(1, 2))
-            pred_kspace = image_for_kspace.fft(2, normalized=False)
+            image = new_img
+            image_for_kspace = image * sense_maps.conj()
+            pred_kspace = torch.view_as_real(torch_fft2(image_for_kspace))
 
-        pred_dict = {'output': reconstructions, 'mask': old_mask, 'zero_filled_recon': zero_filled,
-                    'uncertainty_maps': uncertainty_maps}
+        assert image_for_kspace is not None, "Image for k-space is None"
+        final_recon = torch_ifft2(torch.view_as_complex(pred_kspace)).abs().pow(2).sum(dim=1, keepdim=True).sqrt()
+        return {
+                        'output': final_recon,
+                        'intermediate_recons': reconstructions,
+                        'mask': old_mask,
+                        'masks': masks,
+                        'zero_filled_recon': zero_filled,
+                        'uncertainty_maps': uncertainty_maps,
+                        'sense_maps': sense_maps,
+                    }
 
-        return pred_dict
 
     def loss(self, pred_dict, target_dict, meta, loss_type):
         """
@@ -352,7 +393,7 @@ class SequentialUnet(nn.Module):
         """
         target = target_dict['target']
         label = target_dict['label']
-        pred = pred_dict['output'][-1]
+        pred = pred_dict['output']
         zero_filled = pred_dict['zero_filled_recon'][-1]
         gt_kspace = target_dict['kspace']
 
@@ -369,6 +410,9 @@ class SequentialUnet(nn.Module):
         elif loss_type == 'ssim':
             reconstruction_loss = -torch.mean(compute_ssim_torch(pred, target))
             zero_loss = -torch.mean(compute_ssim_torch(zero_filled, target))
+        elif loss_type == 'nmse':
+            reconstruction_loss = torch.norm(pred - target) ** 2 / torch.norm(target) ** 2
+            zero_loss = torch.norm(zero_filled - target) ** 2 / torch.norm(target) ** 2
         elif loss_type == 'psnr':
             reconstruction_loss = - torch.mean(compute_psnr_torch(pred, target))
             zero_loss = -torch.mean(compute_psnr_torch(zero_filled, target))
@@ -379,22 +423,35 @@ class SequentialUnet(nn.Module):
         else:
             raise NotImplementedError
 
-        # k-space loss 
-        image = torch.cat([pred, torch.zeros_like(pred)], dim=1).permute(0, 2, 3, 1)
-        image_for_kspace = fastmri.ifftshift(image, dim=(1, 2))
-        pred_kspace = image_for_kspace.fft(2, normalized=False)
+        # k-space loss (skipped when kspace_weight=0 since gt_kspace may be multicoil)
+        if meta['kspace_weight'] > 0:
+            image = torch.cat([pred, torch.zeros_like(pred)], dim=1).permute(0, 2, 3, 1)
+            image_complex = torch.view_as_complex(image.contiguous())
+            pred_kspace_c = torch.view_as_real(torch.fft.fft2(torch.fft.ifftshift(image_complex, dim=(1, 2))))
+            pred_kspace_c = torch.norm(pred_kspace_c, dim=-1, keepdim=True).permute(0, 3, 1, 2)
+            gt_kspace_c = torch.norm(gt_kspace, dim=-1, keepdim=True)
+            if gt_kspace_c.dim() == 5:  # multicoil [B, C, H, W, 1]
+                gt_kspace_c = gt_kspace_c.mean(dim=1)  # [B, H, W, 1]
+            gt_kspace_c = gt_kspace_c.permute(0, 3, 1, 2)
+            kspace_loss = -torch.mean(compute_ssim_torch(pred_kspace_c, gt_kspace_c))
+        else:
+            kspace_loss = torch.tensor(0.0, device=pred.device)
 
-        pred_kspace = torch.norm(pred_kspace, dim=-1, keepdim=True)
-        gt_kspace = torch.norm(gt_kspace, dim=-1, keepdim=True)
-        pred_kspace = pred_kspace.permute(0, 3, 1, 2)
-        gt_kspace = gt_kspace.permute(0, 3, 1, 2)
+        loss = reconstruction_loss * meta['recon_weight'] + kspace_loss * meta['kspace_weight']
 
-        kspace_loss = -torch.mean(compute_ssim_torch(pred_kspace, gt_kspace)) 
+        sense_maps = pred_dict.get('sense_maps')
+        if sense_maps is not None and self.sense_tikhonov_weight > 0:
+            sm = sense_maps.abs()  # [B, C, H, W]
+            grad_h = sm[:, :, 1:, :] - sm[:, :, :-1, :]
+            grad_w = sm[:, :, :, 1:] - sm[:, :, :, :-1]
+            tikhonov_loss = grad_h.pow(2).mean() + grad_w.pow(2).mean()
+            loss = loss + self.sense_tikhonov_weight * tikhonov_loss
+        else:
+            tikhonov_loss = torch.tensor(0.0, device=pred.device)
 
-        loss = reconstruction_loss * meta['recon_weight'] +  kspace_loss * meta['kspace_weight'] # + 10*zero_loss
-
-        log_dict = {'Total Loss': loss.item(), 'Zero Filled Loss': zero_loss.item(), 
-            'K-space Loss': kspace_loss.item(), 'Recon loss': reconstruction_loss.item()}
+        log_dict = {'Total Loss': loss.item(), 'Zero Filled Loss': zero_loss.item(),
+            'K-space Loss': kspace_loss.item(), 'Recon loss': reconstruction_loss.item(),
+            'Tikhonov Loss': tikhonov_loss.item()}
 
         if self.with_uncertainty:
             loss += nll_loss * meta['uncertainty_weight']
@@ -409,14 +466,16 @@ class SequentialUnet(nn.Module):
             cmap = "viridis" if options.resolution[1] == 32 else "gray"
 
             sp1 = ax[0, 0].imshow(self.data_for_vis[step]['input'], cmap=cmap)
-            sp2 = ax[0, 1].imshow(np.log(self.data_for_vis[step]['kspace']))
-            sp3 = ax[0, 2].imshow(np.log(self.data_for_vis[step]['masked_kspace']))
+            sp2 = ax[0, 1].imshow(np.log(np.abs(self.data_for_vis[step]['kspace'][0])))
+            masked_k = self.data_for_vis[step]['masked_kspace']
+            masked_k[masked_k==0] = 1
+            sp3 = ax[0, 2].imshow(np.log(np.abs(masked_k[0])))
             sp4 = ax[0, 3].imshow(self.data_for_vis[step]['zero_filled_recon'], cmap=cmap)
             sp5 = ax[0, 4].imshow(self.data_for_vis[step]['recon'], cmap=cmap)
-            sp6 = ax[1, 0].imshow(self.data_for_vis[step]['prob_mask'], aspect='auto')
-            sp7 = ax[1, 1].imshow(self.data_for_vis[step]['rescaled_mask'], aspect='auto')
-            sp8 = ax[1, 2].imshow(self.data_for_vis[step]['binarized_mask'], aspect='auto')
-            sp9 = ax[1, 3].imshow(np.log(self.data_for_vis[step]['pred_kspace']), aspect='auto')
+            sp6 = ax[1, 0].imshow(self.data_for_vis[step]['prob_mask'].cpu().detach(), aspect='auto')
+            sp7 = ax[1, 1].imshow(self.data_for_vis[step]['rescaled_mask'].cpu().detach(), aspect='auto')
+            sp8 = ax[1, 2].imshow(self.data_for_vis[step]['binarized_mask'].cpu().detach(), aspect='auto')
+            sp9  = ax[1, 3].imshow(self.data_for_vis[step]['sense_mask'], cmap='gray', vmin=0, vmax=1)
             sp10 = ax[1, 4].imshow(np.exp(self.data_for_vis[step]['uncertainty_map']), cmap=cmap)
 
             ax[0, 0].title.set_text('Input image')
@@ -426,7 +485,7 @@ class SequentialUnet(nn.Module):
             ax[1, 0].title.set_text('Probabilistic mask')
             ax[1, 1].title.set_text('Rescaled mask')
             ax[1, 2].title.set_text('Binary mask')
-            ax[1, 3].title.set_text('Log k-space of Predicted Kspace')
+            ax[1, 3].title.set_text('Sense body mask')
             ax[1, 4].title.set_text('Uncertainty of the reconstruction')
 
             fig.colorbar(sp1, ax=ax[0, 0])
@@ -437,7 +496,7 @@ class SequentialUnet(nn.Module):
             fig.colorbar(sp6, ax=ax[1, 0])
             fig.colorbar(sp7, ax=ax[1, 1])
             fig.colorbar(sp8, ax=ax[1, 2])
-            fig.colorbar(sp9, ax=ax[1, 3])
+            fig.colorbar(sp9,  ax=ax[1, 3])
             fig.colorbar(sp10, ax=ax[1, 4])
 
             plt.suptitle('Epoch = [{}/{}] Step = [{}/{}]'.format(1 + epoch, options.num_epochs, step+1, options.num_step), fontsize=20)
