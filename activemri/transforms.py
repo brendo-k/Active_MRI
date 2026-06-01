@@ -203,6 +203,20 @@ def ifftshift(x, dim=None):
         shift = [(x.shape[i] + 1) // 2 for i in dim]
     return roll(x, shift, dim)
 
+def ifft2(data):
+    assert data.size(-1) == 2
+    data_complex = torch.view_as_complex(data)
+    data_complex = torch.fft.ifft2(data_complex, norm='ortho')
+    return torch.view_as_real(data_complex)
+
+
+def fft2(data):
+    assert data.size(-1) == 2
+    data_complex = torch.view_as_complex(data)
+    data_complex = torch.fft.fft2(data_complex, norm='ortho')
+    return torch.view_as_real(data_complex)
+
+
 def rl_input_to_loupe_input(x, kspace):
     assert x.size(-1) == 2
     assert kspace.size(-1) == 2

@@ -9,8 +9,7 @@ Licensed under the MIT License.
 import torch
 from torch import nn
 from torch.nn import functional as F
-from activemri.baselines.loupe_codes.transforms import *
-from activemri.reconstructors.LearnedSampling import *
+from activemri.transforms import *
 from activemri.utils.image_processing import ifft_2d_img, fft_2d_img
 
 

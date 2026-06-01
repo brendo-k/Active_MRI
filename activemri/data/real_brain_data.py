@@ -123,12 +123,20 @@ class RealBrainData(torch.utils.data.Dataset):
 
             kspace = self.center_crop(kspace, self.image_shape)
 
+            num_coils = kspace.shape[0]
+            target_coils = 8
+            if num_coils > target_coils:
+                kspace = kspace[:target_coils]
+            elif num_coils < target_coils:
+                pad = torch.zeros(target_coils - num_coils, *kspace.shape[1:], dtype=kspace.dtype)
+                kspace = torch.cat([kspace, pad], dim=0)
+
             center_k = self.get_center_k_space(kspace)
             norm_factor = np.max(rss(ifft_2d_img(center_k)))
             
             kspace = kspace / norm_factor
             
-            target = rss(ifft_2d_img(kspace.numpy()), dim=0)
+            target = torch.from_numpy(rss(ifft_2d_img(kspace.numpy()), dim=0)).float()
 
             kspace = torch.view_as_real(kspace)
 

@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 from torch.nn import functional as F
-from activemri.baselines.loupe_codes import transforms
+import activemri.transforms as transforms
 
 # ResNet code is modified from https://github.com/kuangliu/pytorch-cifar/blob/master/models/resnet.py
 # Licensed under MIT License

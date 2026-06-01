@@ -118,6 +118,7 @@ def config_from_args(args) -> TrainConfig:
         checkpoint1=args.checkpoint1,
         resume=args.checkpoint1 is not None,
         dataset_name=args.dataset_name,
+        data_path=str(args.data_path) if args.data_path else None,
         sample_rate=args.sample_rate,
         resolution=args.resolution,
         label_range=args.label_range,
@@ -181,6 +182,8 @@ def build_env(config: TrainConfig):
         config.data_path = 'datasets/knee'
         return loupe_envs.LOUPEActiveMRIEnv(config)
     elif config.dataset_name == 'brain':
+        if config.data_path is None:
+            config.data_path = 'datasets/brain'
         return loupe_envs.LoupeBrainEnv(config)
     elif config.dataset_name == 'real-knee':
         config.data_path = 'datasets/knee'

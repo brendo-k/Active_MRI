@@ -16,12 +16,11 @@ import matplotlib.pyplot as plt
 
 import activemri.envs.envs as mri_envs
 from activemri.utils.evaluate import build_metrics
-from  .loupe_codes import transforms
 import activemri.envs.loupe_envs as loupe_envs
-from .differential_sampler import SequentialUnet
+from activemri.samplers.differential_sampler import SequentialUnet
 from .loupe import LOUPE
 from ..envs.util import compute_gaussian_nll_loss, compute_ssim_torch, compute_psnr_torch
-from activemri.baselines.sequential_sampling_codes.SensetivityModel_mc import SensetivityModel_mc
+from activemri.reconstructors.SensetivityModel_mc import SensetivityModel_mc
 from activemri.config import TrainConfig
 from activemri.reconstructors.CG_Sense import CGSENSEReconstructor
 from activemri.reconstructors.UNet import LOUPEUNet
@@ -189,7 +188,8 @@ class Sequential_Trainer :
                 'kspace_weight': self.options.kspace_weight,
                 'uncertainty_weight': self.options.uncertainty_weight if 'uncertainty_weight' in self.options.__dict__ else 0}
 
-            loss, log_dict = self.loss(pred_dict, target_dict, meta, self.options.loss_type)
+            loss_fn = self.model.loss if hasattr(self.model, 'loss') else self.loss
+            loss, log_dict = loss_fn(pred_dict, target_dict, meta, self.options.loss_type)
 
             # training loop
             self.optimizer.zero_grad()
@@ -199,10 +199,13 @@ class Sequential_Trainer :
 
             losses.append(loss.item())
 
-            data_range = target.detach().max()
+            target_for_metrics = target.detach()
+            if output.dim() != target_for_metrics.dim():
+                target_for_metrics = target_for_metrics.unsqueeze(1)
+            data_range = target_for_metrics.max()
             metrics["PSNR"].data_range = data_range
             metrics["SSIM"].data_range = data_range
-            metrics.update(output.detach(), target.detach())
+            metrics.update(output.detach(), target_for_metrics)
 
             if iter % self.options.report_interval == 0:
                 self.logger.info(
@@ -257,7 +260,8 @@ class Sequential_Trainer :
                 meta = {'entropy_weight': self.options.entropy_weight, 'recon_weight': self.options.recon_weight,
                 'uncertainty_weight': 0, 'kspace_weight': self.options.kspace_weight}
 
-                loss, log_dict = self.loss(pred_dict, target_dict, meta, self.options.loss_type)
+                loss_fn = self.model.loss if hasattr(self.model, 'loss') else self.loss
+                loss, log_dict = loss_fn(pred_dict, target_dict, meta, self.options.loss_type)
 
                 mask = pred_dict['mask']
                 sparsity.append(torch.mean(mask).item())
@@ -630,7 +634,8 @@ def _normalize_for_tb(tensor):
 def _log_images(writer, pred_dict, target, tag_prefix, global_step):
     """Log ground truth, per-step reconstructions, and masks to tensorboard."""
     output = pred_dict['intermediate_recons'] if 'intermediate_recons' in pred_dict else pred_dict['output']
-    writer.add_image(f'{tag_prefix}/target', _normalize_for_tb(target[0]), global_step)
+    target_img = target[0] if target.dim() == 4 else target[0].unsqueeze(0)
+    writer.add_image(f'{tag_prefix}/target', _normalize_for_tb(target_img), global_step)
 
     step_masks = pred_dict.get('masks', None)
     if step_masks is not None:

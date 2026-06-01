@@ -27,7 +27,15 @@ from typing import (
     Tuple,
     Union,
 )
-from activemri.envs.envs import ActiveMRIEnv, _env_collate_fn
+from activemri.envs.envs import ActiveMRIEnv
+
+
+def _loupe_collate_fn(batch):
+    kspaces, masks, targets, attrs, fnames, slice_ids = zip(*batch)
+    kspaces = torch.stack(kspaces)
+    masks = torch.stack(masks)
+    targets = torch.stack(targets)
+    return kspaces, masks, targets, list(attrs), list(fnames), list(slice_ids)
 
 def transform(
     kspace: torch.Tensor,
@@ -56,28 +64,32 @@ class LOUPEDataEnv():
             shuffle=True,
             num_workers=8,
             pin_memory=True,
-            drop_last=True
+            drop_last=True,
+            collate_fn=_loupe_collate_fn,
         )
         val_loader = DataLoader(
             dataset=val_data,
             batch_size=self.options.batch_size,
             num_workers=8,
             shuffle=False,
-            pin_memory=True
+            pin_memory=True,
+            collate_fn=_loupe_collate_fn,
         )
         test_loader = DataLoader(
             dataset=test_data,
             batch_size=self.options.batch_size,
             num_workers=8,
             shuffle=False,
-            pin_memory=True
+            pin_memory=True,
+            collate_fn=_loupe_collate_fn,
         )
         display_loader = DataLoader(
             dataset=display_data,
             batch_size=16,
             num_workers=8,
             shuffle=False,
-            pin_memory=True
+            pin_memory=True,
+            collate_fn=_loupe_collate_fn,
         )
         return train_loader, val_loader, test_loader, display_loader
 

@@ -8,7 +8,6 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
-from activemri.baselines.loupe_codes import transforms
 from activemri.reconstructors.SensetivityModel_mc import SensetivityModel_mc
 from activemri.samplers.conv_sampler import BiLineConstrainedSampler, KspaceLineConstrainedSampler
 from activemri.samplers.ConvProb2D import SampProb2D
@@ -232,7 +231,7 @@ class SequentialUnet(nn.Module):
 
         # Store visualization data
         self.data_for_vis[step].update({
-            'input': target[0, 0, :, :].cpu().detach().numpy(),
+            'input': target[0].cpu().detach().numpy() if target.dim() == 3 else target[0, 0].cpu().detach().numpy(),
             'kspace': torch.view_as_complex(full_kspace[0, :, :, :]).cpu().detach().numpy(),
             'masked_kspace': zero_filled_complex[0].cpu().detach().numpy(),
             'zero_filled_recon': zero_filled_mag[0, 0, :, :].cpu().detach().numpy(),
@@ -284,7 +283,7 @@ class SequentialUnet(nn.Module):
 
         sense_maps, sense_mask = self.sensetivity_net(full_kspace_complex, mask_method='pre_network')
         old_mask = self._init_mask(full_kspace)
-        pred_kspace = full_kspace * old_mask.permute(0, 2, 3, 1)
+        pred_kspace = full_kspace * old_mask.unsqueeze(-1)
 
         uncertainty_map = torch.zeros_like(old_mask)
 
@@ -339,6 +338,8 @@ class SequentialUnet(nn.Module):
         """
         target = target_dict['target']
         pred = pred_dict['output']
+        if pred.dim() != target.dim():
+            target = target.unsqueeze(1)
         zero_filled = pred_dict['zero_filled_recon'][-1]
         gt_kspace = target_dict['kspace']
 

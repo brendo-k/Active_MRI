@@ -9,7 +9,7 @@ from activemri.samplers.LearnedProb2D import (
     LineConstrainedProbMask, 
     BiLineConstrainedProbMask
 )
-from activemri.baselines.loupe_codes import transforms
+import activemri.transforms as transforms
 import sigpy.mri
 
 
