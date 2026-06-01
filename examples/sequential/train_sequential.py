@@ -6,205 +6,207 @@
 import argparse
 import pathlib
 import random
+
 import numpy as np
 import torch
 import os
 import sys
+
 os.environ['HDF5_USE_FILE_LOCKING'] = 'FALSE'
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
 import activemri.envs.loupe_envs as loupe_envs
-from activemri.baselines.non_rl import NonRLTrainer, NonRLTester
+from activemri.baselines.sequentail_trainer import Sequential_Trainer, NonRLTester
+from activemri.config import TrainConfig
 import matplotlib
 matplotlib.use('Agg')
 
 
 def build_arg_parser():
     parser = argparse.ArgumentParser(description='MRI Reconstruction Example')
-    parser.add_argument('--num-pools', type=int, default=4, help='Number of U-Net pooling layers')
-    parser.add_argument('--num-step', type=int, default=2, help='Number of LSTM iterations')
-    parser.add_argument('--drop-prob', type=float, default=0.0, help='Dropout probability')
-    parser.add_argument('--num-chans', type=int, default=64, help='Number of U-Net channels')
+    parser.add_argument('--num-pools', type=int, default=4)
+    parser.add_argument('--num-step', type=int, default=1)
+    parser.add_argument('--drop-prob', type=float, default=0.0)
+    parser.add_argument('--num-chans', type=int, default=64)
 
-    parser.add_argument('--batch-size', default=4, type=int, help='Mini batch size')
-    parser.add_argument('--num-epochs', type=int, default=50, help='Number of training epochs')
-    parser.add_argument('--noise-type', type=str, default='none', help='Type of additive noise to measurements')
-    parser.add_argument('--noise-level', type=float, default=5e-5, help='Noise level')
-    parser.add_argument('--lr', type=float, default=0.001, help='Learning rate')
-    parser.add_argument('--lr-step-size', type=int, default=40,
-                        help='Period of learning rate decay')
-    parser.add_argument('--lr-gamma', type=float, default=0.1,
-                        help='Multiplicative factor of learning rate decay')
-    parser.add_argument('--weight-decay', type=float, default=0.,
-                        help='Strength of weight decay regularization')
-    parser.add_argument('--report-interval', type=int, default=100, help='Period of loss reporting')
-    parser.add_argument('--data-parallel', action='store_true',
-                        help='If set, use multiple GPUs using data parallelism')
-    parser.add_argument('--device', type=str, default='cuda',
-                        help='Which device to train on. Set to "cuda" to use the GPU')
-    parser.add_argument('--exp-dir', type=pathlib.Path, required=True,
-                        help='Path where model and results should be saved')
-    parser.add_argument('--checkpoint1', type=str,
-                        help='Path to an existing checkpoint. Used along with "--resume"')
-    parser.add_argument('--entropy_weight', type=float, default=0.0,
-                        help='weight for the entropy/diversity loss')
-    parser.add_argument('--recon_weight', type=float, default=1.0,
-                        help='weight for the reconsturction loss')
-    parser.add_argument('--sparsity_weight', type=float, default=0.0,
-                        help='weight for the sparsity loss')
-    parser.add_argument('--save-model', type=bool, default=False, help='save model every iteration or not')
+    parser.add_argument('--batch-size', default=4, type=int)
+    parser.add_argument('--num-epochs', type=int, default=50)
+    parser.add_argument('--noise-type', type=str, default='none')
+    parser.add_argument('--noise-level', type=float, default=5e-5)
+    parser.add_argument('--lr', type=float, default=0.001)
+    parser.add_argument('--lr-step-size', type=int, default=40)
+    parser.add_argument('--lr-gamma', type=float, default=0.1)
+    parser.add_argument('--weight-decay', type=float, default=0.)
+    parser.add_argument('--report-interval', type=int, default=100)
+    parser.add_argument('--data-parallel', action='store_true')
+    parser.add_argument('--device', type=str, default='cuda')
+    parser.add_argument('--exp-dir', type=pathlib.Path, required=True)
+    parser.add_argument('--checkpoint1', type=str)
+    parser.add_argument('--entropy_weight', type=float, default=0.0)
+    parser.add_argument('--recon_weight', type=float, default=1.0)
+    parser.add_argument('--sparsity_weight', type=float, default=0.0)
+    parser.add_argument('--save-model', type=bool, default=False)
 
-    parser.add_argument('--seed', default=42, type=int, help='Seed for random number generators')
-    parser.add_argument('--resolution', default=[128,128], nargs='+', type=int, help='Resolution of images')
+    parser.add_argument('--seed', default=42, type=int)
+    parser.add_argument('--resolution', default=[128, 128], nargs='+', type=int)
 
-    # Data parameters
-    parser.add_argument('--data-path', type=pathlib.Path, required=False,
-                        help='Path to the dataset')
-    parser.add_argument('--dataset-name', type=str, choices=['fashion-mnist', 'dicom-knee', 'real-knee', 'brain'],
-        required=True, help='name of the dataset')
-    parser.add_argument('--sample-rate', type=float, default=1.,
-                        help='Fraction of total volumes to include')
+    parser.add_argument('--data-path', type=pathlib.Path, required=False)
+    parser.add_argument('--dataset-name', type=str,
+                        choices=['fashion-mnist', 'dicom-knee', 'real-knee', 'brain'], required=True)
+    parser.add_argument('--sample-rate', type=float, default=1.)
 
-    # Mask parameters
-    parser.add_argument('--accelerations', nargs='+', default=[4], type=float,
-                        help='Ratio of k-space columns to be sampled. If multiple values are '
-                            'provided, then one of those is chosen uniformly at random for '
-                            'each volume.')
-    parser.add_argument('--label_range', nargs='+', type=int, help='train using images of specific class', default=None)
-    parser.add_argument('--model', type=str, help='name of the model to run', required=True)
-    parser.add_argument('--input_chans', type=int, choices=[1, 2], required=True, help='number of input channels. One for real image, 2 for compelx image')
-    parser.add_argument('--output_chans', type=int, default=2, help='number of output channels. One for real image')
-    parser.add_argument('--line-constrained', type=int, default=0)
+    parser.add_argument('--accelerations', nargs='+', default=[4], type=float)
+    parser.add_argument('--label_range', nargs='+', type=int, default=None)
+    parser.add_argument('--model', type=str, required=True)
+    parser.add_argument('--input_chans', type=int, choices=[1, 2], required=True)
+    parser.add_argument('--output_chans', type=int, default=2)
+    parser.add_argument('--line-constrained', action='store_true')
     parser.add_argument('--unet', action='store_true')
-    parser.add_argument('--preselect', type=int, default=0)
-    parser.add_argument('--conjugate_mask', action='store_true', help='force loupe model to use conjugate symmetry.')
+    parser.add_argument('--preselect', action='store_true', default=True)
+    parser.add_argument('--conjugate_mask', action='store_true')
     parser.add_argument('--loss_type', type=str, choices=['l1', 'ssim', 'nmse', 'psnr', 'xentropy'], default='l1')
     parser.add_argument('--test_visual_frequency', type=int, default=1000)
     parser.add_argument('--test', action='store_true')
-    parser.add_argument('--bi-dir', type=int, default=0)
-    parser.add_argument('--preselect_num', type=int, default=2)
-    parser.add_argument('--binary_sampler', type=int, default=0)
+    parser.add_argument('--bi-dir', action='store_true')
+    parser.add_argument('--preselect_num', type=int, default=10)
+    parser.add_argument('--binary_sampler', action='store_true')
     parser.add_argument('--clamp', type=float, default=1e10)
-    parser.add_argument('--old_recon', type=int, default=0)
-    parser.add_argument('--uncertainty_loss', type=int, choices=[0, 1], default=0)
+    parser.add_argument('--old_recon', action='store_true')
+    parser.add_argument('--uncertainty_loss', action='store_true')
     parser.add_argument('--uncertainty_weight', type=float, default=0)
-    parser.add_argument('--detach_kspace', type=int, default=0)
-    parser.add_argument('--random_rotate', type=int, default=0)
+    parser.add_argument('--detach_kspace', action='store_true')
+    parser.add_argument('--random_rotate', action='store_true')
     parser.add_argument('--kspace_weight', type=float, default=0)
-    parser.add_argument('--pretrained_recon', type=int, default=0)
-    parser.add_argument('--limit_batches', type=float, default=1.0,
-                        help='Fraction of training batches to use per epoch (0, 1]')
-    parser.add_argument('--recon_type', type=str, choices=['unet', 'lls'], default='unet',
-                        help="Reconstruction method: 'unet' for learned U-Net, 'lls' for CG-SENSE")
-    parser.add_argument('--cg_iters', type=int, default=10,
-                        help='Number of CG iterations (only used when --recon_type lls)')
-    parser.add_argument('--cg_lamda', type=float, default=0.0,
-                        help='Tikhonov regularisation for CG-SENSE (only used when --recon_type lls)')
-    parser.add_argument('--sense_tikhonov_weight', type=float, default=0.0,
-                        help='Weight for L2 spatial-gradient penalty on estimated sensitivity maps')
+    parser.add_argument('--pretrained_recon', action='store_true')
+    parser.add_argument('--limit_batches', type=float, default=1.0)
+    parser.add_argument('--recon_type', type=str, choices=['unet', 'lls'], default='unet')
+    parser.add_argument('--cg_iters', type=int, default=10)
+    parser.add_argument('--cg_lamda', type=float, default=0.0)
+    parser.add_argument('--sense_tikhonov_weight', type=float, default=0.0)
 
-    args = parser.parse_args()
-    return args
+    return parser.parse_args()
+
+
+def config_from_args(args) -> TrainConfig:
+    config = TrainConfig(
+        num_pools=args.num_pools,
+        num_step=args.num_step,
+        drop_prob=args.drop_prob,
+        num_chans=args.num_chans,
+        model=args.model,
+        input_chans=args.input_chans,
+        output_chans=args.output_chans,
+        batch_size=args.batch_size,
+        num_epochs=args.num_epochs,
+        lr=args.lr,
+        lr_step_size=args.lr_step_size,
+        lr_gamma=args.lr_gamma,
+        weight_decay=args.weight_decay,
+        report_interval=args.report_interval,
+        limit_batches=args.limit_batches,
+        loss_type=args.loss_type,
+        recon_weight=args.recon_weight,
+        entropy_weight=args.entropy_weight,
+        sparsity_weight=args.sparsity_weight,
+        kspace_weight=args.kspace_weight,
+        uncertainty_loss=args.uncertainty_loss,
+        uncertainty_weight=args.uncertainty_weight,
+        noise_type=args.noise_type,
+        noise_level=args.noise_level,
+        device=args.device,
+        data_parallel=args.data_parallel,
+        exp_dir=args.exp_dir,
+        checkpoint1=args.checkpoint1,
+        resume=args.checkpoint1 is not None,
+        dataset_name=args.dataset_name,
+        sample_rate=args.sample_rate,
+        resolution=args.resolution,
+        label_range=args.label_range,
+        seed=args.seed,
+        accelerations=args.accelerations,
+        line_constrained=args.line_constrained,
+        conjugate_mask=args.conjugate_mask,
+        preselect=args.preselect,
+        preselect_num=args.preselect_num,
+        bi_dir=args.bi_dir,
+        binary_sampler=args.binary_sampler,
+        clamp=args.clamp,
+        unet=args.unet,
+        old_recon=args.old_recon,
+        detach_kspace=args.detach_kspace,
+        pretrained_recon=args.pretrained_recon,
+        recon_type=args.recon_type,
+        cg_iters=args.cg_iters,
+        cg_lamda=args.cg_lamda,
+        sense_tikhonov_weight=args.sense_tikhonov_weight,
+        random_rotate=args.random_rotate,
+        save_model=args.save_model,
+        test=args.test,
+        test_visual_frequency=args.test_visual_frequency,
+    )
+
+    if config.num_step == 0:
+        config.fixed_input = True
+        config.num_step = 1
+
+    if config.test:
+        config.batch_size = 1
+
+    return config
+
+
+def resolve_exp_dir(config: TrainConfig) -> None:
+    if str(config.exp_dir) == 'auto':
+        noise_str = '_no_noise_' if config.noise_type == 'none' else f'_{config.noise_type}{config.noise_level}_'
+        base_name = (
+            f'checkpoints/{config.dataset_name}_{float(config.accelerations[0])}x_{config.model}'
+            f'_bi_dir_{config.bi_dir}_step_{config.num_step}'
+            f'_preselect_{config.preselect}{noise_str}lr={config.lr}'
+            f'_bs={config.batch_size}_loss_type={config.loss_type}_epochs={config.num_epochs}'
+        )
+        existing = (
+            sorted(pathlib.Path('checkpoints').glob(pathlib.Path(base_name).name + '_run_*'))
+            if pathlib.Path('checkpoints').exists() else []
+        )
+        run_num = len(existing) + 1
+        config.exp_dir = pathlib.Path(base_name + f'_run_{run_num:03d}')
+
+    config.visualization_dir = config.exp_dir / 'visualizations'
+
+
+def build_env(config: TrainConfig):
+    if config.dataset_name == 'fashion-mnist':
+        config.data_path = 'datasets/fashion-mnist'
+        return loupe_envs.LOUPEFashionMNISTEnv(config)
+    elif config.dataset_name == 'dicom-knee':
+        config.data_path = 'datasets/knee'
+        return loupe_envs.LOUPEActiveMRIEnv(config)
+    elif config.dataset_name == 'brain':
+        return loupe_envs.LoupeBrainEnv(config)
+    elif config.dataset_name == 'real-knee':
+        config.data_path = 'datasets/knee'
+        return loupe_envs.LOUPERealKspaceEnv(config)
+    elif config.dataset_name == 'synthetic':
+        config.data_path = 'datasets/synthetic'
+        return loupe_envs.LOUPESyntheticEnv(config)
+    else:
+        raise NotImplementedError(f'Unknown dataset: {config.dataset_name}')
+
 
 if __name__ == "__main__":
     args = build_arg_parser()
+    config = config_from_args(args)
+    resolve_exp_dir(config)
 
-    args.pretrained_recon = args.pretrained_recon >0 
-    args.random_rotate = args.random_rotate > 0
-    args.line_constrained = args.line_constrained > 0
+    print(f'save logs to {config.exp_dir}')
 
-    if args.detach_kspace == 1:
-        args.detach_kspace = True
+    env = build_env(config)
+
+    random.seed(config.seed)
+    np.random.seed(config.seed)
+    torch.manual_seed(config.seed)
+
+    if config.test:
+        policy = NonRLTester(env, config.exp_dir, config, None)
     else:
-        args.detach_kspace = False
-
-    if args.uncertainty_loss ==1:
-        args.uncertainty_loss = True
-    else:
-        args.uncertainty_loss = False
-
-    if args.old_recon > 0:
-        args.old_recon = True
-    else:
-        args.old_recon = False
-
-    if args.checkpoint1 is not None:
-        args.resume = True
-    else:
-        args.resume = False
-
-    noise_str = ''
-    if args.noise_type == 'none':
-        noise_str = '_no_noise_'
-    else:
-        noise_str = '_' + args.noise_type + str(args.noise_level) + '_'
-
-    if args.preselect > 0:
-        args.preselect = True
-    else:
-        args.preselect = False
-
-    if args.bi_dir > 0 :
-        args.bi_dir = True
-    else:
-        args.bi_dir = False
-
-    if args.binary_sampler > 0:
-        args.binary_sampler = True
-    else:
-        args.bianry_sampler = False
-
-
-    if str(args.exp_dir) == 'auto':
-        base_name = ('checkpoints/'+args.dataset_name + '_' +
-            str(float(args.accelerations[0])) + 'x_' + args.model + '_bi_dir_{}'.format(args.bi_dir) + '_step_{}'.format(args.num_step)
-            + '_preselect_{}'.format(args.preselect) + noise_str + 'lr=' + str(args.lr)
-            + '_bs=' + str(args.batch_size) + '_loss_type='+args.loss_type + '_epochs=' + str(args.num_epochs))
-        existing = sorted(pathlib.Path('checkpoints').glob(pathlib.Path(base_name).name + '_run_*')) if pathlib.Path('checkpoints').exists() else []
-        run_num = len(existing) + 1
-        args.exp_dir = pathlib.Path(base_name + f'_run_{run_num:03d}')
-
-    print('save logs to {}'.format(args.exp_dir))
-
-    args.visualization_dir = args.exp_dir / 'visualizations'
-
-    if args.num_step == 0:
-        args.fixed_input = True
-        args.num_step = 1
-    else:
-        args.fixed_input = False
-
-    if args.test:
-        args.batch_size = 1
-
-    if args.dataset_name == 'fashion-mnist':
-        args.data_path = 'datasets/fashion-mnist'
-        # args.resolution = [64, 64]
-        env = loupe_envs.LOUPEFashionMNISTEnv(args)
-    elif args.dataset_name == 'dicom-knee':
-        args.data_path = 'datasets/knee'
-        # args.resolution = [128, 128]
-        env = loupe_envs.LOUPEDICOMEnv(args)
-    elif args.dataset_name == 'brain':
-        #args.data_path = 'datasets/brain'
-        env = loupe_envs.LoupeBrainEnv(args)
-    elif args.dataset_name == 'real-knee':
-        args.data_path = 'datasets/knee'
-        # args.resolution = [128, 128]
-        env = loupe_envs.LOUPERealKspaceEnv(args)
-
-    elif args.dataset_name == 'synthetic':
-        args.data_path = 'datasets/synthetic'
-        # args.resolution = [48, 48]
-        env = loupe_envs.LOUPESyntheticEnv(args)
-    else:
-        raise NotImplementedError
-    # set random seeds
-    random.seed(args.seed)
-    np.random.seed(args.seed)
-    torch.manual_seed(args.seed)
-
-    if args.test:
-        policy = NonRLTester(env, args.exp_dir, args, None)
-    else:
-        policy = NonRLTrainer(args, env, torch.device(args.device))
+        policy = Sequential_Trainer (config, env, torch.device(config.device))
     policy()

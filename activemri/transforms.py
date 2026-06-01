@@ -7,6 +7,7 @@ LICENSE file in the root directory of this source tree.
 
 import numpy as np
 import torch
+from activemri.utils.image_processing import ifft_2d_img, fft_2d_img
 
 
 def to_tensor(data):
@@ -46,43 +47,6 @@ def apply_mask(data, mask_func, seed=None):
     shape[:-3] = 1
     mask = mask_func(shape, seed).to(data.device)
     return torch.where(mask == 0, torch.Tensor([0]).to(data.device), data), mask
-
-
-def fft2(data, dims):
-    """
-    Apply centered 2 dimensional Fast Fourier Transform.
-
-    Args:
-        data (torch.Tensor): Complex valued input data containing at least 3 dimensions: dimensions
-            -3 & -2 are spatial dimensions and dimension -1 has size 2. All other dimensions are
-            assumed to be batch dimensions.
-
-    Returns:
-        torch.Tensor: The FFT of the input.
-    """
-    assert data.size(-1) == 2
-    data = torch.view_as_complex(data)
-    data = torch.fft.fftshift(torch.fft.fft2(torch.fft.fftshift(data, dim=dims), dims=dims, norm='ortho'), dim=dims) 
-    return data
-
-
-def ifft2(data, dims):
-    """
-    Apply centered 2-dimensional Inverse Fast Fourier Transform.
-
-    Args:
-        data (torch.Tensor): Complex valued input data containing at least 3 dimensions: dimensions
-            -3 & -2 are spatial dimensions and dimension -1 has size 2. All other dimensions are
-            assumed to be batch dimensions.
-
-    Returns:
-        torch.Tensor: The IFFT of the input.
-    """
-    assert data.size(-1) == 2
-    data = torch.view_as_complex(data)
-    data = torch.fft.fftshift(torch.fft.ifft2(torch.fft.ifftshift(data, dim=dims), dim=dims, norm='ortho'), dim=dims)
-    return torch.view_as_real(data)
-
 
 def complex_abs(data):
     """
@@ -239,19 +203,12 @@ def ifftshift(x, dim=None):
         shift = [(x.shape[i] + 1) // 2 for i in dim]
     return roll(x, shift, dim)
 
-
-def to_kspace(x):
-    image = torch.cat([x, torch.zeros_like(x)], dim=-1)
-    kspace = fft2(image)
-
-    return kspace
-
 def rl_input_to_loupe_input(x, kspace):
     assert x.size(-1) == 2
     assert kspace.size(-1) == 2
 
     x = x[...,0:1].permute((0,3,1,2))
-    kspace = fft2(fftshift(ifft2(kspace), dim=(1, 2)))
+    kspace = fft_2d_img(fftshift(ifft_2d_img(kspace), dim=(1, 2)))
 
     return x, kspace
 
@@ -263,8 +220,8 @@ def add_gaussian_noise(args, kspace, mean=0., std=1.):
 
 def data_consistency(recon, zero_filled_recon, mask):
     mask  = mask.permute(0, 2, 3, 1)
-    pred_kspace = ifftshift(recon.permute(0, 2, 3, 1), dim=(1, 2)).fft(2, normalized=False)
-    fuse_kspace = torch.where((1-mask).byte(), pred_kspace, torch.tensor(0.0).to(mask.device))
-    new_img = fftshift(fuse_kspace.ifft(2, normalized=False), dim=(1, 2)).permute(0, -1, 1, 2)
+    pred_kspace = ifft_2d_img(recon.permute(0, 2, 3, 1), axes=(1, 2))
 
-    return new_img + zero_filled_recon
+    final_k = (1 - mask) * pred_kspace + mask * ifft_2d_img(zero_filled_recon.permute(0, 2, 3, 1), axes=(1, 2))
+
+    return final_k

@@ -130,42 +130,6 @@ class LOUPE(nn.Module):
 
         return pred_dict
 
-    def loss(self, pred_dict, target_dict, meta, loss_type):
-        """
-        Args:
-            pred_dict:
-                output: reconstructed image from downsampled kspace measurement
-                energy: negative entropy of the probability mask
-                mask: the binazried sampling mask (used for visualization)
-
-            target_dict:
-                target: original fully sampled image
-
-            meta:
-                recon_weight: weight of reconstruction loss
-                entropy_weight: weight of the entropy loss (to encourage exploration)
-        """
-        target = target_dict['target']
-        pred = pred_dict['output']
-        energy = pred_dict['energy']
-        
-        if loss_type == 'l1':
-            reconstruction_loss = F.l1_loss(pred, target, size_average=True) 
-        elif loss_type == 'ssim':
-            reconstruction_loss = -torch.mean(compute_ssim_torch(pred, target))
-        elif loss_type == 'psnr':
-            reconstruction_loss = - torch.mean(compute_psnr_torch(pred, target))
-        else:
-            raise NotImplementedError
-
-        entropy_loss = torch.mean(energy)
-
-        loss = entropy_loss * meta['entropy_weight'] + reconstruction_loss * meta['recon_weight']
-
-        log_dict = {'Total Loss': loss.item(), 'Entropy': entropy_loss.item(), 'Reconstruction': reconstruction_loss.item()}
-
-        return loss, log_dict
-
     def show_mask(self):
         """
             Return:

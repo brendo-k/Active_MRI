@@ -1,65 +1,17 @@
-"""
-Portion of this code is from fastmri(https://github.com/facebookresearch/fastMRI)
-
-Copyright (c) Facebook, Inc. and its affiliates.
-
-Licensed under the MIT License.
-"""
-
 import torch
 from torch import nn
 from torch.nn import functional as F
 from torch.autograd import Function
 from activemri.baselines.loupe_codes import transforms
 
-class ConvBlock(nn.Module):
-    """
-    A Convolutional Block that consists of two convolution layers each followed by
-    instance normalization, relu activation and dropout.
-    """
-    def __init__(self, in_chans, out_chans, drop_prob):
-        """
-        Args:
-            in_chans (int): Number of channels in the input.
-            out_chans (int): Number of channels in the output.
-            drop_prob (float): Dropout probability.
-        """
-        super(ConvBlock, self).__init__()
 
-        self.in_chans = in_chans
-        self.out_chans = out_chans
-        self.drop_prob = drop_prob
-
-        self.layers = nn.Sequential(
-            nn.Conv2d(in_chans, out_chans, kernel_size=3, padding=1),
-            nn.InstanceNorm2d(out_chans),
-            nn.ReLU(),
-            nn.Dropout2d(drop_prob),
-            nn.Conv2d(out_chans, out_chans, kernel_size=3, padding=1),
-            nn.InstanceNorm2d(out_chans),
-            nn.ReLU(),
-            nn.Dropout2d(drop_prob)
-        )
-
-    def forward(self, input):
-        """
-        Args:
-            input (torch.Tensor): Input tensor of shape [batch_size, self.in_chans, height, width]
-
-        Returns:
-            (torch.Tensor): Output tensor of shape [batch_size, self.out_chans, height, width]
-        """
-        return self.layers(input)
-
-    def __repr__(self):
-        return f'ConvBlock(in_chans={self.in_chans}, out_chans={self.out_chans}, ' \
-            f'drop_prob={self.drop_prob})'
-
+"""
+    A 2D sampling probability model based on learnable parameters. Given current recon and previous mask, generate a new sampling probability in 2D.
+"""
 
 class ProbMask(nn.Module):
     """
-    A learnable probablistic mask with the same shape as the kspace measurement.
-    This learned mask samples measurements in the whole kspace
+    Weights are just cast to probabilities using sigmoid function. The mask is sampled from the probabilities.
     """
     def __init__(self, shape=[320, 320], slope=5, preselect=False, preselect_num=0):
         """
@@ -67,13 +19,13 @@ class ProbMask(nn.Module):
             slope (float): Slope for the Loupe probability mask. Larger slopes make the mask converge faster to
                            deterministic state.
         """
-        super(ProbMask, self).__init__()
+        super().__init__()
 
         self.slope = slope
         self.preselect = preselect 
         self.preselect_num_one_side = preselect_num // 2 
 
-        init_tensor = self._slope_random_uniform(shape)
+        init_tensor = self._init_mask_weights(shape)
         self.mask = nn.Parameter(init_tensor)
 
     def forward(self, input):
@@ -87,7 +39,7 @@ class ProbMask(nn.Module):
         logits = self.mask.view(1, input.shape[1], input.shape[2], 1)
         return torch.sigmoid(self.slope * logits)
 
-    def _slope_random_uniform(self, shape, eps=1e-2):
+    def _init_mask_weights(self, shape, eps=1e-2):
         """
             uniform random sampling mask
         """
@@ -98,60 +50,21 @@ class ProbMask(nn.Module):
 
         logits = logits.reshape(1, shape[0], shape[1], 1) 
 
-        logits[:, :self.preselect_num_one_side, :self.preselect_num_one_side] = -1e2
-        logits[:, :self.preselect_num_one_side, -self.preselect_num_one_side:] = -1e2 
-        logits[:, -self.preselect_num_one_side:, :self.preselect_num_one_side] = -1e2 
-        logits[:, -self.preselect_num_one_side:, -self.preselect_num_one_side:] = -1e2  
+        if self.preselect:
+            logits[:, :self.preselect_num_one_side, :self.preselect_num_one_side] = -1e2
+            logits[:, :self.preselect_num_one_side, -self.preselect_num_one_side:] = -1e2 
+            logits[:, -self.preselect_num_one_side:, :self.preselect_num_one_side] = -1e2 
+            logits[:, -self.preselect_num_one_side:, -self.preselect_num_one_side:] = -1e2  
 
         return logits 
 
-class HalfProbMask(nn.Module):
-    """
-    A learnable probablistic mask with the same shape as half of the kspace measurement (to force the model
-    to not take conjugate symmetry points)
-    """
-    def __init__(self, shape=[320, 320], slope=5):
-        """
-            shape ([int. int]): Shape of the reconstructed image
-            slope (float): Slope for the Loupe probability mask. Larger slopes make the mask converge faster to
-                           deterministic state.
-        """
-        super(HalfProbMask, self).__init__()
-
-        self.slope = slope
-        init_tensor = self._slope_random_uniform(shape)
-        self.mask = nn.Parameter(init_tensor)
-
-    def forward(self, input):
-        """
-        Args:
-            input (torch.Tensor): Input tensor of shape NHWC
-
-        Returns:
-            (torch.Tensor): Output tensor of shape NHWC
-        """
-        mask =  torch.sigmoid(self.slope * self.mask).to(input.device).view(1, input.shape[1], input.shape[2]//2, 1) # only half of the kspace
-
-        zero_mask = torch.zeros((1, input.shape[1], input.shape[2], 1))
-        zero_mask[:, :, :input.shape[2]//2] = mask
-
-        return zero_mask.to(input.device)
-
-    def _slope_random_uniform(self, shape, eps=1e-2):
-        """
-            uniform random sampling mask with the shape as half of the kspace measurement
-        """
-        temp = torch.zeros([shape[0], shape[1]//2]).uniform_(eps, 1-eps)
-
-        # logit with slope factor
-        return -torch.log(1./temp-1.) / self.slope
 
 class LineConstrainedProbMask(nn.Module):
     """
     A learnable probablistic mask with the same shape as the kspace measurement.
     The mask is constrinaed to include whole kspace lines in the readout direction
     """
-    def __init__(self, shape=[32], slope=5, preselect=False, preselect_num=2):
+    def __init__(self, shape=[320], slope=5, preselect=False, preselect_num=2):
         super(LineConstrainedProbMask, self).__init__()
 
         if preselect:
@@ -193,6 +106,8 @@ class LineConstrainedProbMask(nn.Module):
 
         # logit with slope factor
         return -torch.log(1./temp-1.) / self.slope
+
+
 
 class BiLineConstrainedProbMask(LineConstrainedProbMask):
     def __init__(self, shape, slope, preselect, preselect_num):
@@ -321,14 +236,21 @@ class ThresholdRandomMaskSigmoidV1(Function):
         return results  
 
     @staticmethod
-    def backward(ctx, grad_output):
+    def backward(ctx, *grad_outputs):
+        grad_output = grad_outputs[0]
+
         slope = 10
         input, prob = ctx.saved_tensors
 
-        # derivative of sigmoid function
-        current_grad = slope * torch.exp(-slope * (input - prob)) / torch.pow((torch.exp(-slope*(input-prob))+1), 2)
+        current_grad = (
+            slope
+            * torch.exp(-slope * (input - prob))
+            / (torch.exp(-slope * (input - prob)) + 1).pow(2)
+        )
 
-        return current_grad * grad_output, None
+        return current_grad * grad_output
+
+
 
 def MaximumBinarize(input):
     batch_size = len(input)
@@ -338,7 +260,7 @@ def MaximumBinarize(input):
         x = input[i:i+1]
         num = torch.sum(x).round().int()
 
-        indices = torch.topk(x.reshape(-1), k=num)[1]
+        indices = torch.topk(x.reshape(-1), k=int(num))[1]
 
         mask = torch.zeros_like(x).reshape(-1)
         

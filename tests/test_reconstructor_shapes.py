@@ -110,18 +110,23 @@ class TestCGSENSEShapes:
 
 def _make_sequential_unet(recon_type="lls", shape=(H, W), num_step=2):
     from activemri.baselines.differential_sampler import SequentialUnet
+    from activemri.reconstructors.CG_Sense import CGSENSEReconstructor
+    from activemri.reconstructors.UNet import LOUPEUNet
+
+    if recon_type == 'unet':
+        reconstructor = LOUPEUNet(2, 2, 8, 2, 0.0)
+    elif recon_type == 'lls':
+        reconstructor = CGSENSEReconstructor(num_iters=3, lamda=0.0)
+    else:
+        raise ValueError(f"Unknown recon_type: {recon_type}")
+
     return SequentialUnet(
-        in_chans=2,
-        out_chans=2,
-        chans=8,
-        num_pool_layers=2,
-        drop_prob=0.0,
+        reconstructor=reconstructor,
         shape=list(shape),
         sparsity=0.25,
         num_step=num_step,
         preselect=False,
         recon_type=recon_type,
-        cg_iters=3,
     ).eval()
 
 

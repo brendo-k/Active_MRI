@@ -3,9 +3,9 @@ import torch
 import math
 
 import torch.nn as nn
-from activemri.baselines.sequential_sampling_codes.image_processing import ifft_2d_img, root_sum_of_squares
+from activemri.utils.image_processing import ifft_2d_img, root_sum_of_squares
 from activemri.baselines.sequential_sampling_codes.UNet import Unet
-from activemri.baselines.sequential_sampling_codes.complex_conversion import real_to_complex, complex_to_real
+from activemri.utils.complex_conversion import real_to_complex, complex_to_real
 
 from typing import Optional, Tuple, Literal
 

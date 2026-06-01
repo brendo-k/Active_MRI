@@ -23,7 +23,7 @@ import matplotlib.pyplot as plt
 
 from activemri.data.real_brain_data import RealBrainData
 from activemri.envs.envs import ActiveMRIEnv
-from activemri.baselines.non_rl import build_model
+from activemri.baselines.sequentail_trainer import build_model
 
 
 def load_checkpoint(checkpoint_path, device):

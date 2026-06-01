@@ -10,7 +10,7 @@ import numpy as np
 import torch
 import uuid
 import activemri.envs.loupe_envs as loupe_envs
-from activemri.baselines.non_rl import NonRLTrainer, NonRLTester
+from activemri.baselines.sequentail_trainer import Sequential_Trainer , NonRLTester
 import matplotlib
 matplotlib.use('Agg')
 
@@ -147,5 +147,5 @@ if __name__ == "__main__":
     if args.test:
         policy = NonRLTester(env, args.exp_dir, args, None)
     else:
-        policy = NonRLTrainer(args, env, torch.device(args.device))
+        policy = Sequential_Trainer (args, env, torch.device(args.device))
     policy()

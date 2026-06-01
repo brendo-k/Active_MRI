@@ -2,15 +2,16 @@ from enum import auto
 import torch
 from torch import nn
 from torch.nn import functional as F
-from activemri.baselines.loupe_codes.layers import *
-
+from activemri.samplers.LearnedProb2D import (
+    RescaleProbMap, 
+    ThresholdRandomMaskSigmoidV1, 
+    ProbMask, 
+    LineConstrainedProbMask, 
+    BiLineConstrainedProbMask
+)
 from activemri.baselines.loupe_codes import transforms
+import sigpy.mri
 
-from torch.autograd import Function
-import matplotlib.pyplot as plt
-import numpy as np
-import sigpy 
-import sigpy.mri 
 
 class LOUPESampler(nn.Module):
     """
@@ -73,7 +74,7 @@ class LOUPESampler(nn.Module):
             self.equispaced_mask = nn.Parameter(mask, requires_grad=False)
 
     def _gen_poisson_mask(self):
-        mask = sigpy.mri.poisson((128, 128), self.acc, dtype='int32', crop_corner=False) 
+        mask = sigpy.mri.poisson((128, 128), self.acc, crop_corner=False) 
         mask = torch.tensor(mask).reshape(1, 128, 128, 1).float()
         return mask 
 
@@ -189,23 +190,21 @@ class BiLOUPESampler(nn.Module):
 
         batch_size = kspace.shape[0]
 
-        if not self.preselect:
-            assert 0 
+        rescaled_mask = self.rescale(prob_mask, sparsity/2)
+        if self.training:
+            binarized_mask = self.binarize(rescaled_mask)
         else:
-            rescaled_mask = self.rescale(prob_mask, sparsity/2)
-            if self.training:
-                binarized_mask = self.binarize(rescaled_mask)
-            else:
-                binarized_mask = self.binarize(rescaled_mask)
+            binarized_mask = self.binarize(rescaled_mask)
 
-            # always preselect vertical lines 
-            binarized_vertical_mask, binarized_horizontal_mask = torch.chunk(binarized_mask, dim=2, chunks=2)
+        # always preselect vertical lines 
+        binarized_vertical_mask, binarized_horizontal_mask = torch.chunk(binarized_mask, dim=2, chunks=2)
 
-            binarized_horizontal_mask = binarized_horizontal_mask.transpose(1, 2)
+        binarized_horizontal_mask = binarized_horizontal_mask.transpose(1, 2)
 
-            binarized_mask = torch.clamp(binarized_vertical_mask + binarized_horizontal_mask, max=1, min=0)
+        binarized_mask = torch.clamp(binarized_vertical_mask + binarized_horizontal_mask, max=1, min=0)
 
-            binarized_mask[..., :self.preselect_num, :] = 1  
+        binarized_mask[..., :self.preselect_num, :] = 1  
+    
 
         masked_kspace = binarized_mask * kspace
         neg_entropy = self._mask_neg_entropy(rescaled_mask)

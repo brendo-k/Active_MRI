@@ -61,15 +61,6 @@ class RealBrainData(torch.utils.data.Dataset):
 
         self.train_mode = False 
 
-        """if custom_split is not None:
-            split_info = []
-            with open(f"activemri/data/splits/knee_singlecoil/{custom_split}.txt") as f:
-                for line in f:
-                    split_info.append(line.rsplit("\n")[0])
-            files = [f for f in files if f.name in split_info]
-        else:
-            self.train_mode = True 
-        """
         if num_volumes is not None:
             self.rng.shuffle(files)
             files = files[:num_volumes]
