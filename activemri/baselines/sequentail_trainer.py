@@ -14,7 +14,6 @@ import numpy as np
 import time
 import matplotlib.pyplot as plt
 
-import activemri.envs.envs as mri_envs
 from activemri.utils.evaluate import build_metrics
 import activemri.envs.loupe_envs as loupe_envs
 from activemri.samplers.differential_sampler import SequentialUnet
@@ -35,7 +34,7 @@ class Sequential_Trainer :
     def __init__(
         self,
         options: TrainConfig,
-        env: loupe_envs.LOUPEDataEnv,
+        env: loupe_envs.BuildDataLoaders,
         device: torch.device
     ):
         self.options = options
@@ -370,7 +369,7 @@ class Sequential_Trainer :
 class NonRLTester:
     def __init__(
         self,
-        env: loupe_envs.LOUPEDataEnv,
+        env: loupe_envs.BuildDataLoaders,
         exp_dir: Path,
         options: TrainConfig,
         label_range: Optional[List[int]]

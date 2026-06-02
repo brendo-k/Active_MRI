@@ -20,23 +20,3 @@ class Policy:
 
     def __call__(self, obs: Dict[str, Any], **kwargs: Any) -> List[int]:
         return self.get_action(obs, **kwargs)
-
-
-from .simple_baselines import (
-    RandomPolicy,
-    RandomLowBiasPolicy,
-    LowestIndexPolicy,
-    OneStepGreedyOracle,
-)
-from .evaluation import evaluate
-
-__all__ = [
-    "RandomPolicy",
-    "RandomLowBiasPolicy",
-    "LowestIndexPolicy",
-    "OneStepGreedyOracle",
-    "CVPR19Evaluator",
-    "DDQN",
-    "DDQNTrainer",
-    "evaluate",
-]

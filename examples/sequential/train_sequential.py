@@ -175,25 +175,14 @@ def resolve_exp_dir(config: TrainConfig) -> None:
 
 
 def build_env(config: TrainConfig):
-    if config.dataset_name == 'fashion-mnist':
-        config.data_path = 'datasets/fashion-mnist'
-        return loupe_envs.LOUPEFashionMNISTEnv(config)
-    elif config.dataset_name == 'dicom-knee':
-        config.data_path = 'datasets/knee'
-        return loupe_envs.LOUPEActiveMRIEnv(config)
-    elif config.dataset_name == 'brain':
-        if config.data_path is None:
-            config.data_path = 'datasets/brain'
-        return loupe_envs.LoupeBrainEnv(config)
-    elif config.dataset_name == 'real-knee':
-        config.data_path = 'datasets/knee'
-        return loupe_envs.LOUPERealKspaceEnv(config)
-    elif config.dataset_name == 'synthetic':
-        config.data_path = 'datasets/synthetic'
-        return loupe_envs.LOUPESyntheticEnv(config)
-    else:
-        raise NotImplementedError(f'Unknown dataset: {config.dataset_name}')
-
+    if config.dataset_name == 'brain':
+        pass
+    elif config.dataset_name == 'knee':
+        pass
+    elif config.dataset_name == 'prostate':
+        pass
+    elif config.dataset_name == 'breast':
+        pass
 
 if __name__ == "__main__":
     args = build_arg_parser()

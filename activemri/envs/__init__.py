@@ -5,22 +5,6 @@
 
 __all__ = [
     "ActiveMRIEnv",
-    "MICCAI2020Env",
-    "FastMRIEnv",
-    "SingleCoilKneeEnv",
-    "MultiCoilKneeEnv",
-    "FashionMNISTEnv",
-    "DicomKneeEnv",
-    "RealKneeEnv"
 ]
 
-from .envs import (
-    ActiveMRIEnv,
-    FastMRIEnv,
-    MICCAI2020Env,
-    MultiCoilKneeEnv,
-    SingleCoilKneeEnv,
-    FashionMNISTEnv,
-    DicomKneeEnv,
-    RealKneeEnv
-)
+from .envs import ActiveMRIEnv
