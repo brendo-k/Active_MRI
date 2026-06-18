@@ -1,0 +1,4 @@
+recon_type: cg_sense
+cg_iters: 10
+cg_lamda: 0.0
+sense_tikhonov_weight: 0.0

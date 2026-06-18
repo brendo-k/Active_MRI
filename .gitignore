@@ -20,3 +20,5 @@ datasets
 *.png
 *.jpg
 *.pth
+*.log
+outputs

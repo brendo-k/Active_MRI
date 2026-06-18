@@ -13,7 +13,7 @@ from activemri.baselines.loupe_codes.samplers import *
 from activemri.baselines.loupe_codes.reconstructors import *
 from activemri.baselines.loupe_codes.layers import *
 from activemri.baselines.loupe_codes.transforms import *
-from ..envs.util import compute_ssim_torch, compute_psnr_torch
+from activemri.utils.util import compute_ssim_torch, compute_psnr_torch
 import os 
 from torch.autograd import Function
 import matplotlib.pyplot as plt

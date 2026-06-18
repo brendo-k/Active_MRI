@@ -1,0 +1,6 @@
+recon_type: unet
+num_pools: 4
+num_chans: 64
+drop_prob: 0.0
+in_chans: 2
+out_chans: 2

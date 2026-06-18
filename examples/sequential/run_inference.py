@@ -22,8 +22,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 from activemri.data.real_brain_data import RealBrainData
-from activemri.envs.envs import ActiveMRIEnv
-from activemri.baselines.sequentail_trainer import build_model
+from activemri.baselines.sequential_trainer import build_model
 
 
 def load_checkpoint(checkpoint_path, device):
@@ -109,7 +108,7 @@ def main():
     dataset = RealBrainData(
         pathlib.Path(args.data_path) / 'train',
         options.resolution,
-        ActiveMRIEnv._void_transform,
+        transform=None,
         noise_type='none',
         noise_level=0.0,
         random_rotate=False,

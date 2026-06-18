@@ -217,7 +217,7 @@ class SequentialUnet(nn.Module):
         zero_filled_mag = zero_filled_complex.abs()
 
         # Full reconstruction
-        if self.recon_type == 'lls':
+        if self.recon_type in ('lls', 'cg_sense'):
             masked_kspace_complex = torch.view_as_complex(masked_kspace.contiguous())
             recon_mag = self.reconstructor(masked_kspace_complex, sense_maps, mask)
             recon = recon_mag.to(torch.complex64)

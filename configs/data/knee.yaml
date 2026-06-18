@@ -1,0 +1,4 @@
+anatomy: [knee]
+data_root: /home/bkadota/data/fastmri
+num_coils: 15
+num_workers: 4

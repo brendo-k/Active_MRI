@@ -1,0 +1,4 @@
+anatomy: [prostate]
+data_root: /home/bkadota/data/fastmri
+num_coils: 8
+num_workers: 4
