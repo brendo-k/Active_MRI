@@ -7,7 +7,7 @@ import random
 
 import torch
 import torch.nn.functional as F
-from tensorboardX import SummaryWriter
+import wandb
 import numpy as np
 
 import time
@@ -56,7 +56,7 @@ class Sequential_Trainer:
         self.vis_dir = vis_dir
 
         run_name = self._build_run_name(options)
-        self.writer = SummaryWriter(log_dir=str(exp_dir / run_name))
+        wandb.init(project="SeqMRI", name=run_name, config=vars(options), dir=str(exp_dir))
 
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(__name__)
@@ -104,7 +104,7 @@ class Sequential_Trainer:
                 f'TrainTime = {train_time:.4f}s ValTime = {val_time:.4f}s',
             )
 
-        self.writer.close()
+        wandb.finish()
 
     def train_epoch(self):
         self.model.train()
@@ -133,7 +133,7 @@ class Sequential_Trainer:
             anatomy = batch['anatomy'][0]
             if anatomy not in logged_train_anatomies:
                 logged_train_anatomies.add(anatomy)
-                _log_images(self.writer, pred_dict, target, f'train/{anatomy}', global_step_offset)
+                _log_images(pred_dict, target, f'train/{anatomy}', global_step_offset)
 
             output = pred_dict['output']
             target_dict = {'target': target, 'kspace': kspace}
@@ -156,11 +156,11 @@ class Sequential_Trainer:
             metrics.update(output.detach(), target_for_metrics)
 
             start_iter = time.perf_counter()
-            self.writer.add_scalar('Train_Loss', loss.item(), global_step_offset + iter_idx)
+            wandb.log({'train/loss': loss.item()}, step=global_step_offset + iter_idx)
 
         metric_means = metrics.compute()
         for name, value in metric_means.items():
-            self.writer.add_scalar(f'Train_{name}', value.item(), self.epoch)
+            wandb.log({f'train/{name}': value.item(), 'epoch': self.epoch})
 
         return np.mean(losses), time.perf_counter() - epoch_start_time, metric_means
 
@@ -186,7 +186,7 @@ class Sequential_Trainer:
                 anatomy = batch['anatomy'][0]
                 if anatomy not in logged_anatomies:
                     logged_anatomies.add(anatomy)
-                    _log_images(self.writer, pred_dict, target, f'val/{anatomy}', self.epoch)
+                    _log_images(pred_dict, target, f'val/{anatomy}', self.epoch)
 
                 output = pred_dict['output']
                 if isinstance(output, list):
@@ -210,8 +210,8 @@ class Sequential_Trainer:
 
             metric_means = metrics.compute()
             for name, value in metric_means.items():
-                self.writer.add_scalar(f'Val_{name}', value.item(), self.epoch)
-            self.writer.add_scalar('Val_Loss', np.mean(losses), self.epoch)
+                wandb.log({f'val/{name}': value.item(), 'epoch': self.epoch})
+            wandb.log({'val/loss': np.mean(losses), 'epoch': self.epoch})
 
         return np.mean(losses), np.mean(sparsity), time.perf_counter() - start, metric_means
 
@@ -350,7 +350,8 @@ class NonRLTester:
         self.exp_dir.mkdir(parents=True, exist_ok=True)
         self.vis_dir.mkdir(parents=True, exist_ok=True)
 
-        self.writer = SummaryWriter(log_dir=str(self.exp_dir / self._build_run_name(self.options)))
+        run_name = Sequential_Trainer._build_run_name(self.options)
+        wandb.init(project="SeqMRI", name=f"test_{run_name}", config=vars(self.options), dir=str(self.exp_dir))
 
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(__name__)
@@ -409,7 +410,7 @@ class NonRLTester:
                 if iter_idx % 100 == 0:
                     data_for_vis_name = f'test_iter={iter_idx + 1}'
                     self._visualize_and_save(iter_idx, data_for_vis_name)
-                    _log_images(self.writer, pred_dict, target, 'test', iter_idx)
+                    _log_images(pred_dict, target, 'test', iter_idx)
 
                 output = pred_dict['output']
                 if isinstance(output, list):
@@ -440,7 +441,7 @@ class NonRLTester:
 
         self.logger.info(metrics_str)
         torch.save(val_loss, self.exp_dir / 'loss.pt')
-        self.writer.close()
+        wandb.finish()
 
 
 def build_optimizer(lr, weight_decay, model_parameters, optim_type='adam'):
@@ -505,22 +506,24 @@ def _normalize_for_tb(tensor):
     return t
 
 
-def _log_images(writer, pred_dict, target, tag_prefix, global_step):
+def _log_images(pred_dict, target, tag_prefix, global_step):
+    images = {}
     target_img = target[0] if target.dim() == 4 else target[0].unsqueeze(0)
-    writer.add_image(f'{tag_prefix}/target', _normalize_for_tb(target_img), global_step)
+    images[f'{tag_prefix}/target'] = wandb.Image(_normalize_for_tb(target_img).cpu())
 
     step_masks = pred_dict.get('masks', None)
     if step_masks is not None:
         for i, mask in enumerate(step_masks):
-            writer.add_image(f'{tag_prefix}/mask_step_{i}', _normalize_for_tb(mask[0]), global_step)
+            images[f'{tag_prefix}/mask_step_{i}'] = wandb.Image(_normalize_for_tb(mask[0]).cpu())
 
     output = pred_dict.get('intermediate_recons', pred_dict['output'])
     if isinstance(output, list):
         for i, recon in enumerate(output):
-            writer.add_image(f'{tag_prefix}/intermediate_recon_{i}', _normalize_for_tb(recon[0].abs()), global_step)
+            images[f'{tag_prefix}/intermediate_recon_{i}'] = wandb.Image(_normalize_for_tb(recon[0].abs()).cpu())
     else:
-        writer.add_image(f'{tag_prefix}/reconstruction', _normalize_for_tb(output[0]), global_step)
+        images[f'{tag_prefix}/reconstruction'] = wandb.Image(_normalize_for_tb(output[0]).cpu())
         if step_masks is None:
-            writer.add_image(f'{tag_prefix}/mask', _normalize_for_tb(pred_dict['mask'][0]), global_step)
+            images[f'{tag_prefix}/mask'] = wandb.Image(_normalize_for_tb(pred_dict['mask'][0]).cpu())
 
-    writer.add_image(f'{tag_prefix}/output', _normalize_for_tb(pred_dict['output'][0].abs()), global_step)
+    images[f'{tag_prefix}/output'] = wandb.Image(_normalize_for_tb(pred_dict['output'][0].abs()).cpu())
+    wandb.log(images, step=global_step)
