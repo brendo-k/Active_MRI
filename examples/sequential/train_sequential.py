@@ -13,7 +13,7 @@ from omegaconf import DictConfig, OmegaConf
 
 from activemri.baselines.sequential_trainer import Sequential_Trainer
 from activemri.config import TrainConfig
-from activemri.reconstructors.config import UNetReconConfig, CGSenseReconConfig
+from activemri.reconstructors.config import UNetReconConfig, CGSenseReconConfig, VarNetReconConfig
 from activemri.data.fastmri_data import build_fastmri_dataloaders
 
 def build_recon_config(cfg: DictConfig):
@@ -24,6 +24,12 @@ def build_recon_config(cfg: DictConfig):
             drop_prob=cfg.recon.drop_prob,
             in_chans=cfg.recon.in_chans,
             out_chans=cfg.recon.out_chans,
+        )
+    elif cfg.recon.recon_type == 'varnet':
+        return VarNetReconConfig(
+            num_cascades=cfg.recon.num_cascades,
+            chans=cfg.recon.chans,
+            pools=cfg.recon.pools,
         )
     elif cfg.recon.recon_type == 'cg_sense':
         return CGSenseReconConfig(

@@ -1,0 +1,4 @@
+recon_type: varnet
+num_cascades: 12
+chans: 18
+pools: 4

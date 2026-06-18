@@ -17,9 +17,10 @@ from activemri.utils.evaluate import build_metrics
 from activemri.samplers.differential_sampler import SequentialUnet
 from activemri.utils.util import compute_ssim_torch, compute_psnr_torch
 from activemri.config import TrainConfig
-from activemri.reconstructors.config import UNetReconConfig, CGSenseReconConfig
+from activemri.reconstructors.config import UNetReconConfig, CGSenseReconConfig, VarNetReconConfig
 from activemri.reconstructors.CG_Sense import CGSENSEReconstructor
 from activemri.reconstructors.UNet import LOUPEUNet
+from activemri.reconstructors.VarNet import VarNet
 
 
 class Sequential_Trainer:
@@ -465,6 +466,12 @@ def build_model(options: TrainConfig):
             recon_cfg.num_pools,
             recon_cfg.drop_prob,
             with_uncertainty=options.uncertainty_loss,
+        )
+    elif isinstance(recon_cfg, VarNetReconConfig):
+        reconstructor = VarNet(
+            num_cascades=recon_cfg.num_cascades,
+            chans=recon_cfg.chans,
+            pools=recon_cfg.pools,
         )
     elif isinstance(recon_cfg, CGSenseReconConfig):
         reconstructor = CGSENSEReconstructor(

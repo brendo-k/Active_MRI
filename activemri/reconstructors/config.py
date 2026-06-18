@@ -45,6 +45,14 @@ class UNetReconConfig(ReconConfig):
 
 
 @dataclass
+class VarNetReconConfig(ReconConfig):
+    recon_type: str = 'varnet'
+    num_cascades: int = 12
+    chans: int = 18
+    pools: int = 4
+
+
+@dataclass
 class CGSenseReconConfig(ReconConfig):
     recon_type: str = 'cg_sense'
     cg_iters: int = 10
