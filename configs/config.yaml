@@ -1,6 +1,6 @@
 defaults:
   - recon: unet
-  - data: brain
+  - datasets: brain
   - _self_
 
 training:
@@ -25,6 +25,10 @@ sampler:
   accelerations: [4.0]
   line_constrained: false
   preselect_num: 10
+  with_recon: false
+  with_gfactor: false
+  gfactor_replicas: 16
+  uncertainty_mode: none
 
 output:
   out_dir: checkpoints

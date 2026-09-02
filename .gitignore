@@ -16,7 +16,7 @@ docs/build*
 *egg-info*
 activemri/models/custom_*
 activemri/envs/custom_*
-datasets
+/datasets
 *.png
 *.jpg
 *.pth

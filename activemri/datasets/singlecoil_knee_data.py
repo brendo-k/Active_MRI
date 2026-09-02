@@ -11,6 +11,8 @@ import h5py
 import numpy as np
 import torch.utils.data
 
+SPLITS_DIR = pathlib.Path(__file__).parent / "splits" / "knee_singlecoil"
+
 
 # -----------------------------------------------------------------------------
 #                Single coil knee dataset (as used in MICCAI'20)
@@ -48,7 +50,7 @@ class MICCAI2020Data(torch.utils.data.Dataset):
 
         if custom_split is not None:
             split_info = []
-            with open(f"activemri/data/splits/knee_singlecoil/{custom_split}.txt") as f:
+            with open(SPLITS_DIR / f"{custom_split}.txt") as f:
                 for line in f:
                     split_info.append(line.rsplit("\n")[0])
             files = [f for f in files if f.name in split_info]

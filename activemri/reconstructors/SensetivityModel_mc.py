@@ -4,7 +4,7 @@ import math
 
 import torch.nn as nn
 from activemri.utils.image_processing import ifft_2d_img, root_sum_of_squares
-from activemri.baselines.sequential_sampling_codes.UNet import Unet
+from activemri.reconstructors.unet_backbone import Unet
 from activemri.utils.complex_conversion import real_to_complex, complex_to_real
 
 from typing import Optional, Tuple, Literal
@@ -53,7 +53,8 @@ class SensetivityModel_mc(nn.Module):
             mask_threshold: fraction of per-sample RSS max used as binary threshold
 
         Returns:
-            sense_maps: [B, C, H, W] complex, RSS-normalised
+            sense_maps: [B, C, H, W] complex, RSS-normalised. When mask_method is
+                set, maps are zeroed outside the signal region (sense_mask).
             sense_mask: [B, 1, H, W] float in {0, 1}, or None when mask_method is None
         """
         if torch.isnan(images).any():
@@ -79,6 +80,8 @@ class SensetivityModel_mc(nn.Module):
         images = real_to_complex(images)
         images = einops.rearrange(images, '(b c) 1 h w -> b c h w', c=number_of_coils)
 
+        images = self.lowpass_filter(images)
+
         rss_norm = root_sum_of_squares(images, coil_dim=1).unsqueeze(1)  # [B, 1, H, W]
 
         if mask_method == 'post_network':
@@ -89,7 +92,19 @@ class SensetivityModel_mc(nn.Module):
 
         if mask_method is None:
             return sense_maps, None
+
+        sense_maps = sense_maps * sense_mask
         return sense_maps, sense_mask
+
+    def lowpass_filter(self, images: torch.Tensor) -> torch.Tensor:
+        """Keep only the center 5x5 frequencies of each coil image."""
+        kspace = torch.fft.fftshift(torch.fft.fft2(images, norm='ortho'), dim=(-2, -1))
+        mask = torch.zeros_like(kspace)
+        h, w = kspace.shape[-2], kspace.shape[-1]
+        ch, cw = h // 2, w // 2
+        mask[..., ch - 2:ch + 3, cw - 2:cw + 3] = 1
+        kspace = kspace * mask
+        return torch.fft.ifft2(torch.fft.ifftshift(kspace, dim=(-2, -1)), norm='ortho')
 
     def mask_center(self, coil_k_spaces):
         mask = torch.zeros_like(coil_k_spaces)

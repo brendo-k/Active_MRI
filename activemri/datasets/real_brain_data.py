@@ -3,7 +3,6 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-# from activemri.baselines.loupe_codes.transforms import normalize
 import math
 import pathlib
 from typing import Callable, Collection, List, Optional, Sequence, Tuple
@@ -88,7 +87,7 @@ class RealBrainData(torch.utils.data.Dataset):
 
     def center_crop(self, data, shape):
         """
-        (Same as the one in activemri/baselines/policy_gradient_codes/helpers/transforms.py)
+        
         Apply a center crop to the input real image or batch of real images.
 
         Args:

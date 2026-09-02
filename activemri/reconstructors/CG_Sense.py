@@ -85,6 +85,49 @@ def conjugate_gradient_sense(
     return x
 
 
+def compute_gfactor(
+    sense_maps: torch.Tensor,
+    mask: torch.Tensor,
+    num_replicas: int = 4,
+    cg_iters: int = 5,
+) -> torch.Tensor:
+    """Compute a g-factor map via the batched pseudo-replica method.
+
+    Generates all noise replicas at once and reconstructs them in a single
+    batched CG-SENSE call for efficiency. Each sample in the input batch is
+    processed independently.
+
+    Args:
+        sense_maps: Coil sensitivity maps [B, C, H, W] complex.
+        mask: Binary sampling mask [B, 1, H, W].
+        num_replicas: Number of noise replicas (more = smoother, but 4 is fast).
+        cg_iters: CG iterations per replica (5 is sufficient for noise propagation).
+
+    Returns:
+        g-factor map [B, 1, H, W] real (>=1 inside object).
+    """
+    B, C, H, W = sense_maps.shape
+    g_maps = []
+
+    for b in range(B):
+        s = sense_maps[b:b+1].expand(num_replicas, -1, -1, -1)  # [N, C, H, W]
+        m = mask[b:b+1].expand(num_replicas, -1, -1, -1)        # [N, 1, H, W]
+
+        noise_k = torch.randn(num_replicas, C, H, W, 2, device=sense_maps.device) * (1.0 / (H * W) ** 0.5)
+        noise_k = torch.view_as_complex(noise_k.contiguous()) * m
+
+        recons = conjugate_gradient_sense(noise_k, s, m, num_iters=cg_iters, lamda=0.0)  # [N, H, W]
+        noise_std = recons.real.std(dim=0)  # [H, W]
+
+        rss_sense = sense_maps[b].abs().pow(2).sum(dim=0).sqrt().clamp(min=1e-8)
+        sigma_input = 1.0 / (H * W) ** 0.5
+        sigma_baseline = sigma_input / rss_sense
+
+        g_maps.append(noise_std / sigma_baseline.clamp(min=1e-8))
+
+    return torch.stack(g_maps, dim=0).unsqueeze(1)  # [B, 1, H, W]
+
+
 class CGSENSEReconstructor(nn.Module):
     """Wraps :func:`conjugate_gradient_sense` as a drop-in ``nn.Module``.
 

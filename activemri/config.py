@@ -38,6 +38,14 @@ class TrainConfig:
     accelerations: List[float] = field(default_factory=lambda: [4.0])
     line_constrained: bool = False
     preselect_num: int = 10
+    sense_mask_method: Optional[str] = 'pre_network'
+    with_recon: bool = False
+    with_gfactor: bool = False
+    gfactor_replicas: int = 16
+    uncertainty_mode: str = 'none'
+
+    # Data
+    min_energy_fraction: float = 0.2
 
     # Reconstruction
     recon: ReconConfig = field(default_factory=ReconConfig)

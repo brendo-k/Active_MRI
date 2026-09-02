@@ -27,7 +27,8 @@ class LOUPEUNet(nn.Module):
                  chans,
                  depth,
                  drop_prob,
-                 with_uncertainty=False):
+                 with_uncertainty=False,
+                 upsample_mode='conv'):
         """
         Args:
             in_chans (int): Number of channels in the input to the U-Net model.
@@ -60,7 +61,7 @@ class LOUPEUNet(nn.Module):
 
         self.up_sample_layers = nn.ModuleList()
         for _ in range(depth):
-            self.up_sample_layers.append(upsample_block(ch, ch // 2, drop_prob))
+            self.up_sample_layers.append(upsample_block(ch, ch // 2, drop_prob, upsample_mode=upsample_mode))
             ch //= 2
 
         self.final_conv = nn.Conv2d(ch, out_chans, kernel_size=1)
@@ -88,10 +89,16 @@ class LOUPEUNet(nn.Module):
         return x
     
 class upsample_block(nn.Module):
-    def __init__(self, in_chans, out_chans, drop_prob):
+    def __init__(self, in_chans, out_chans, drop_prob, upsample_mode='conv'):
         super().__init__()
 
-        self.upsample = nn.ConvTranspose2d(in_chans, in_chans // 2, kernel_size=2, stride=2)
+        if upsample_mode == 'bilinear':
+            self.upsample = nn.Sequential(
+                nn.Upsample(scale_factor=2, mode='bilinear', align_corners=False),
+                nn.Conv2d(in_chans, in_chans // 2, kernel_size=3, padding=1),
+            )
+        else:
+            self.upsample = nn.ConvTranspose2d(in_chans, in_chans // 2, kernel_size=2, stride=2)
         self.layers = ConvBlock(in_chans, out_chans, drop_prob)
 
     def forward(self, input, skip_features):

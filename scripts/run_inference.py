@@ -1,7 +1,7 @@
 """Single-volume inference script for SequentialSampling (LLS/CG-SENSE).
 
 Usage:
-    python examples/sequential/run_inference.py \
+    python scripts/run_inference.py \
         --checkpoint <path/to/model.pt> \
         --data-path  /home/bkadota/data/fastmri/multicoil_train/T2 \
         --volume-idx 0 \
@@ -12,7 +12,6 @@ import argparse
 import pathlib
 import sys
 import os
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
 os.environ['HDF5_USE_FILE_LOCKING'] = 'FALSE'
 
 import torch
@@ -21,8 +20,8 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
-from activemri.data.real_brain_data import RealBrainData
-from activemri.baselines.sequential_trainer import build_model
+from activemri.datasets.real_brain_data import RealBrainData
+from activemri.training.trainer import build_model
 
 
 def load_checkpoint(checkpoint_path, device):

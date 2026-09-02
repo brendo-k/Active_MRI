@@ -1,7 +1,6 @@
 import os
 import sys
 os.environ['HDF5_USE_FILE_LOCKING'] = 'FALSE'
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
 
 import random
 from pathlib import Path
@@ -11,34 +10,22 @@ import numpy as np
 import torch
 from omegaconf import DictConfig, OmegaConf
 
-from activemri.baselines.sequential_trainer import Sequential_Trainer
+from activemri.training.trainer import Sequential_Trainer
 from activemri.config import TrainConfig
 from activemri.reconstructors.config import UNetReconConfig, CGSenseReconConfig, VarNetReconConfig
-from activemri.data.fastmri_data import build_fastmri_dataloaders
+from activemri.datasets.fastmri_data import build_fastmri_dataloaders
+
+RECON_CONFIGS = {
+    'unet': UNetReconConfig,
+    'varnet': VarNetReconConfig,
+    'cg_sense': CGSenseReconConfig,
+}
 
 def build_recon_config(cfg: DictConfig):
-    if cfg.recon.recon_type == 'unet':
-        return UNetReconConfig(
-            num_pools=cfg.recon.num_pools,
-            num_chans=cfg.recon.num_chans,
-            drop_prob=cfg.recon.drop_prob,
-            in_chans=cfg.recon.in_chans,
-            out_chans=cfg.recon.out_chans,
-        )
-    elif cfg.recon.recon_type == 'varnet':
-        return VarNetReconConfig(
-            num_cascades=cfg.recon.num_cascades,
-            chans=cfg.recon.chans,
-            pools=cfg.recon.pools,
-        )
-    elif cfg.recon.recon_type == 'cg_sense':
-        return CGSenseReconConfig(
-            cg_iters=cfg.recon.cg_iters,
-            cg_lamda=cfg.recon.cg_lamda,
-            sense_tikhonov_weight=cfg.recon.sense_tikhonov_weight,
-        )
-    else:
-        raise ValueError(f"Unknown recon_type: {cfg.recon.recon_type}")
+    for config_name, config_class in RECON_CONFIGS.items():
+        if cfg.recon.recon_type == config_name:
+            return config_class(**cfg.recon)
+    raise ValueError(f"Unknown recon_type: {cfg.recon.recon_type}")
 
 
 def build_train_config(cfg: DictConfig) -> TrainConfig:
@@ -61,6 +48,12 @@ def build_train_config(cfg: DictConfig) -> TrainConfig:
         accelerations=list(cfg.sampler.accelerations),
         line_constrained=cfg.sampler.line_constrained,
         preselect_num=cfg.sampler.preselect_num,
+        sense_mask_method=cfg.sampler.get('sense_mask_method', 'pre_network'),
+        with_recon=cfg.sampler.get('with_recon', False),
+        with_gfactor=cfg.sampler.get('with_gfactor', False),
+        gfactor_replicas=cfg.sampler.get('gfactor_replicas', 16),
+        uncertainty_mode=cfg.sampler.get('uncertainty_mode', 'none'),
+        min_energy_fraction=cfg.datasets.get('min_energy_fraction', 0.2),
         recon=build_recon_config(cfg),
         resolution=list(cfg.misc.resolution),
         random_rotate=cfg.misc.random_rotate,
@@ -75,17 +68,19 @@ def build_train_config(cfg: DictConfig) -> TrainConfig:
 
 def build_dataloaders(cfg: DictConfig):
     return build_fastmri_dataloaders(
-        data_root=Path(cfg.data.data_root),
-        anatomies=list(cfg.data.anatomy),
+        data_root=Path(cfg.datasets.data_root),
+        anatomies=list(cfg.datasets.anatomy),
         image_shape=list(cfg.misc.resolution),
         batch_size=cfg.training.batch_size,
-        num_coils=cfg.data.num_coils,
-        num_workers=cfg.data.num_workers,
-        contrast=cfg.data.get('contrast', None),
+        num_coils=cfg.datasets.num_coils,
+        num_workers=cfg.datasets.num_workers,
+        contrast=cfg.datasets.get('contrast', None),
+        data_dir=cfg.datasets.get('data_dir', None),
+        min_energy_fraction=cfg.datasets.get('min_energy_fraction', 0.2),
     )
 
 
-@hydra.main(version_base=None, config_path="../../configs", config_name="config")
+@hydra.main(version_base=None, config_path="../configs", config_name="config")
 def main(cfg: DictConfig):
     print(OmegaConf.to_yaml(cfg))
 

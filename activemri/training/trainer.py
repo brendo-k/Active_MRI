@@ -112,6 +112,7 @@ class Sequential_Trainer:
         losses = []
         metrics = build_metrics(device=self.options.device)
         logged_train_anatomies = set()
+        anatomy_images = {}
 
         epoch_start_time = start_iter = time.perf_counter()
         global_step_offset = self.epoch * len(self.train_loader)
@@ -133,7 +134,7 @@ class Sequential_Trainer:
             anatomy = batch['anatomy'][0]
             if anatomy not in logged_train_anatomies:
                 logged_train_anatomies.add(anatomy)
-                _log_images(pred_dict, target, f'train/{anatomy}', global_step_offset)
+                anatomy_images.update(_build_image_log(pred_dict, target, f'train/{anatomy}', self.model.data_for_vis))
 
             output = pred_dict['output']
             target_dict = {'target': target, 'kspace': kspace}
@@ -153,14 +154,17 @@ class Sequential_Trainer:
             data_range = target_for_metrics.max()
             metrics["PSNR"].data_range = data_range
             metrics["SSIM"].data_range = data_range
-            metrics.update(output.detach(), target_for_metrics)
+            masked_output, masked_target = _apply_signal_mask(output.detach(), target_for_metrics)
+            metrics.update(masked_output, masked_target)
 
             start_iter = time.perf_counter()
-            wandb.log({'train/loss': loss.item()}, step=global_step_offset + iter_idx)
+            wandb.log({'train/loss': loss.item(), 'train/step': global_step_offset + iter_idx})
 
         metric_means = metrics.compute()
-        for name, value in metric_means.items():
-            wandb.log({f'train/{name}': value.item(), 'epoch': self.epoch})
+        epoch_log = {f'train/{name}': value.item() for name, value in metric_means.items()}
+        epoch_log['epoch'] = self.epoch
+        epoch_log.update(anatomy_images)
+        wandb.log(epoch_log)
 
         return np.mean(losses), time.perf_counter() - epoch_start_time, metric_means
 
@@ -171,6 +175,7 @@ class Sequential_Trainer:
         metrics = build_metrics(device=self.options.device)
         start = time.perf_counter()
         logged_anatomies = set()
+        anatomy_images = {}
 
         with torch.no_grad():
             for iter_idx, batch in enumerate(self.val_loader):
@@ -186,7 +191,7 @@ class Sequential_Trainer:
                 anatomy = batch['anatomy'][0]
                 if anatomy not in logged_anatomies:
                     logged_anatomies.add(anatomy)
-                    _log_images(pred_dict, target, f'val/{anatomy}', self.epoch)
+                    anatomy_images.update(_build_image_log(pred_dict, target, f'val/{anatomy}', self.model.data_for_vis))
 
                 output = pred_dict['output']
                 if isinstance(output, list):
@@ -206,12 +211,15 @@ class Sequential_Trainer:
                 data_range = target_for_metrics.max()
                 metrics["PSNR"].data_range = data_range
                 metrics["SSIM"].data_range = data_range
-                metrics.update(output, target_for_metrics)
+                masked_output, masked_target = _apply_signal_mask(output, target_for_metrics)
+                metrics.update(masked_output, masked_target)
 
             metric_means = metrics.compute()
-            for name, value in metric_means.items():
-                wandb.log({f'val/{name}': value.item(), 'epoch': self.epoch})
-            wandb.log({'val/loss': np.mean(losses), 'epoch': self.epoch})
+            epoch_log = {f'val/{name}': value.item() for name, value in metric_means.items()}
+            epoch_log['val/loss'] = np.mean(losses)
+            epoch_log['epoch'] = self.epoch
+            epoch_log.update(anatomy_images)
+            wandb.log(epoch_log)
 
         return np.mean(losses), np.mean(sparsity), time.perf_counter() - start, metric_means
 
@@ -287,18 +295,22 @@ class Sequential_Trainer:
         data_for_vis = self.model.data_for_vis
         assert data_for_vis is not None
         for step in range(self.options.num_step):
-            fig, ax = plt.subplots(nrows=2, ncols=5, figsize=[18, 6])
+            has_gfactor = data_for_vis[step].get('gfactor') is not None
+            has_sampler_unc = data_for_vis[step].get('sampler_uncertainty') is not None
+            ncols = 5 + int(has_gfactor) + int(has_sampler_unc)
+
+            fig, ax = plt.subplots(nrows=2, ncols=ncols, figsize=[3.6 * ncols, 6])
             cmap = "viridis" if self.options.resolution[1] == 32 else "gray"
 
             ax[0, 0].imshow(data_for_vis[step]['input'], cmap=cmap)
             ax[0, 1].imshow(np.log(np.abs(data_for_vis[step]['kspace'][0])))
-            masked_k = data_for_vis[step]['masked_kspace']
+            masked_k = data_for_vis[step]['masked_kspace'].copy()
             masked_k[masked_k == 0] = 1
             ax[0, 2].imshow(np.log(np.abs(masked_k[0])))
             ax[0, 3].imshow(data_for_vis[step]['zero_filled_recon'], cmap=cmap)
             ax[0, 4].imshow(data_for_vis[step]['recon'], cmap=cmap)
-            ax[1, 0].imshow(data_for_vis[step]['prob_mask'].cpu().detach(), aspect='auto')
-            ax[1, 1].imshow(data_for_vis[step]['rescaled_mask'].cpu().detach(), aspect='auto')
+            ax[1, 0].imshow(data_for_vis[step]['prob_mask'].cpu().detach(), cmap='inferno', aspect='auto')
+            ax[1, 1].imshow(data_for_vis[step]['rescaled_mask'].cpu().detach(), cmap='inferno', aspect='auto')
             ax[1, 2].imshow(data_for_vis[step]['binarized_mask'].cpu().detach(), aspect='auto')
             ax[1, 3].imshow(data_for_vis[step]['sense_mask'], cmap='gray', vmin=0, vmax=1)
             ax[1, 4].imshow(np.exp(data_for_vis[step]['uncertainty_map']), cmap=cmap)
@@ -312,6 +324,28 @@ class Sequential_Trainer:
             ax[1, 2].title.set_text('Binary mask')
             ax[1, 3].title.set_text('Sense body mask')
             ax[1, 4].title.set_text('Uncertainty of the reconstruction')
+
+            col = 5
+            if has_gfactor:
+                gf = data_for_vis[step]['gfactor']
+                im = ax[0, col].imshow(gf, cmap='inferno', vmin=0)
+                ax[0, col].title.set_text(f'G-factor (max={gf.max():.1f})')
+                fig.colorbar(im, ax=ax[0, col], fraction=0.046)
+                ax[1, col].imshow(data_for_vis[step]['prob_mask'].cpu().detach(), cmap='inferno', aspect='auto')
+                ax[1, col].title.set_text('Prob mask (inferno)')
+                col += 1
+
+            if has_sampler_unc:
+                unc = data_for_vis[step]['sampler_uncertainty']
+                unc_np = unc.cpu().numpy() if hasattr(unc, 'cpu') else unc
+                im = ax[0, col].imshow(unc_np, cmap='inferno')
+                ax[0, col].title.set_text('Sampler uncertainty')
+                fig.colorbar(im, ax=ax[0, col], fraction=0.046)
+                ax[1, col].axis('off')
+                col += 1
+
+            for a in ax.flat:
+                a.axis('off')
 
             plt.suptitle(
                 f'Epoch = [{1 + epoch}/{self.options.num_epochs}] Step = [{step + 1}/{self.options.num_step}]',
@@ -410,7 +444,7 @@ class NonRLTester:
                 if iter_idx % 100 == 0:
                     data_for_vis_name = f'test_iter={iter_idx + 1}'
                     self._visualize_and_save(iter_idx, data_for_vis_name)
-                    _log_images(pred_dict, target, 'test', iter_idx)
+                    wandb.log(_build_image_log(pred_dict, target, 'test', self.model.data_for_vis))
 
                 output = pred_dict['output']
                 if isinstance(output, list):
@@ -492,9 +526,27 @@ def build_model(options: TrainConfig):
         with_uncertainty=options.uncertainty_loss,
         fixed_input=options.fixed_input,
         recon_type=recon_cfg.recon_type,
+        sense_mask_method=options.sense_mask_method,
+        with_recon=getattr(options, 'with_recon', False),
+        with_gfactor=getattr(options, 'with_gfactor', False),
+        gfactor_replicas=getattr(options, 'gfactor_replicas', 16),
+        uncertainty_mode=getattr(options, 'uncertainty_mode', 'none'),
     )
 
     return model
+
+
+def _signal_mask(target, threshold=0.1):
+    """Body mask from the target RSS, zeroing background so metrics are computed
+    over the signal region only. Per-sample threshold as a fraction of max."""
+    flat = target.flatten(1)
+    max_val = flat.max(dim=1).values.view(-1, *([1] * (target.dim() - 1)))
+    return (target > threshold * max_val).to(target.dtype)
+
+
+def _apply_signal_mask(output, target):
+    mask = _signal_mask(target)
+    return output * mask, target * mask
 
 
 def _normalize_for_tb(tensor):
@@ -506,7 +558,7 @@ def _normalize_for_tb(tensor):
     return t
 
 
-def _log_images(pred_dict, target, tag_prefix, global_step):
+def _build_image_log(pred_dict, target, tag_prefix, data_for_vis=None):
     images = {}
     target_img = target[0] if target.dim() == 4 else target[0].unsqueeze(0)
     images[f'{tag_prefix}/target'] = wandb.Image(_normalize_for_tb(target_img).cpu())
@@ -526,4 +578,42 @@ def _log_images(pred_dict, target, tag_prefix, global_step):
             images[f'{tag_prefix}/mask'] = wandb.Image(_normalize_for_tb(pred_dict['mask'][0]).cpu())
 
     images[f'{tag_prefix}/output'] = wandb.Image(_normalize_for_tb(pred_dict['output'][0].abs()).cpu())
-    wandb.log(images, step=global_step)
+
+    if data_for_vis is not None:
+        step_data = data_for_vis[0]
+        gfactor = step_data.get('gfactor')
+        if gfactor is not None:
+            fig, ax = plt.subplots(1, 1, figsize=(5, 5))
+            im = ax.imshow(gfactor, cmap='inferno', vmin=0)
+            ax.axis('off')
+            ax.set_title(f'G-factor (max={gfactor.max():.1f})')
+            plt.colorbar(im, ax=ax, fraction=0.046)
+            plt.tight_layout()
+            images[f'{tag_prefix}/gfactor'] = wandb.Image(fig)
+            plt.close(fig)
+
+        sampler_unc = step_data.get('sampler_uncertainty')
+        if sampler_unc is not None:
+            unc_np = sampler_unc.cpu().numpy() if hasattr(sampler_unc, 'cpu') else sampler_unc
+            fig, ax = plt.subplots(1, 1, figsize=(5, 5))
+            im = ax.imshow(unc_np, cmap='inferno')
+            ax.axis('off')
+            ax.set_title('Sampler Uncertainty')
+            plt.colorbar(im, ax=ax, fraction=0.046)
+            plt.tight_layout()
+            images[f'{tag_prefix}/sampler_uncertainty'] = wandb.Image(fig)
+            plt.close(fig)
+
+        prob = step_data.get('prob_mask')
+        if prob is not None:
+            prob_np = prob.cpu().numpy() if hasattr(prob, 'cpu') else prob
+            fig, ax = plt.subplots(1, 1, figsize=(5, 5))
+            im = ax.imshow(prob_np, cmap='inferno')
+            ax.axis('off')
+            ax.set_title('Sampling Probability')
+            plt.colorbar(im, ax=ax, fraction=0.046)
+            plt.tight_layout()
+            images[f'{tag_prefix}/prob_mask'] = wandb.Image(fig)
+            plt.close(fig)
+
+    return images
