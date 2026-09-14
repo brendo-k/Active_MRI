@@ -24,6 +24,8 @@ class TrainConfig:
     loss_type: str = 'l1'
     uncertainty_loss: bool = False
     uncertainty_weight: float = 0.0
+    anatomy_weight: float = 0.0
+    anatomy_classes: List[str] = field(default_factory=list)
 
     # Device / parallelism
     device: str = 'cuda'
@@ -36,7 +38,8 @@ class TrainConfig:
 
     # Mask / sampler
     accelerations: List[float] = field(default_factory=lambda: [4.0])
-    line_constrained: bool = False
+    sampler_type: str = 'conv_2d'
+    slope: float = 5.0
     preselect_num: int = 10
     sense_mask_method: Optional[str] = 'pre_network'
     with_recon: bool = False

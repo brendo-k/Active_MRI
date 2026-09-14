@@ -1,3 +1,8 @@
+"""The sequential sampling model: acquire, reconstruct, repeat.
+
+Composes a `Sampler` with an injected reconstructor. The reconstructor is a
+constructor argument, so this model is independent of which one is used.
+"""
 import os
 import pickle
 
@@ -10,150 +15,13 @@ from torch import nn
 
 from activemri.reconstructors.CG_Sense import compute_gfactor
 from activemri.reconstructors.SensetivityModel_mc import SensetivityModel_mc
-from activemri.samplers.conv_sampler import BiLineConstrainedSampler, KspaceLineConstrainedSampler
-from activemri.samplers.ConvProb2D import SampProb2D
-from activemri.samplers.LearnedProb2D import RescaleProbMap, ThresholdRandomMaskSigmoidV1
+from activemri.samplers.sampler import Sampler, is_line_constrained
 from activemri.utils.image_processing import fft_2d_img as torch_fft2
 from activemri.utils.image_processing import ifft_2d_img as torch_ifft2
 from activemri.utils.util import compute_gaussian_nll_loss, compute_psnr_torch, compute_ssim_torch
 
 
-class Sampler(nn.Module):
-    """Generates sampling masks for sequential k-space acquisition.
-
-    Components:
-        mask_net: Predicts sampling probabilities from current observations
-        rescale: Normalizes probabilities to match target sparsity
-        binarize: Stochastic binarization via straight-through estimator
-    """
-
-    def __init__(
-        self,
-        shape=(320, 320),
-        line_constrained=False,
-        bi_direction=False,
-        binary_sampler=False,
-        with_uncertainty=False,
-        clamp=100,
-        detach_kspace=False,
-        fixed_input=False,
-        with_recon=False,
-        with_gfactor=False,
-        uncertainty_mode='none',
-        ):
-        super().__init__()
-        self.shape = shape
-        self.line_constrained = line_constrained
-        self.bidirection = bi_direction
-        self.detach_kspace = detach_kspace
-        self.with_uncertainty = with_uncertainty
-        self.with_recon = with_recon
-        self.uncertainty_mode = uncertainty_mode
-
-        self.with_gfactor = with_gfactor
-
-        if line_constrained:
-            if bi_direction:
-                if binary_sampler:
-                    raise NotImplementedError("Binary sampler not supported with bi-direction")
-                self.mask_net = BiLineConstrainedSampler(
-                    shape[0], clamp=clamp, with_uncertainty=with_uncertainty, fixed_input=fixed_input
-                )
-            else:
-                self.mask_net = KspaceLineConstrainedSampler(
-                    shape[0], shape[0], with_uncertainty=with_uncertainty, fixed_input=fixed_input
-                )
-        else:
-            self.mask_net = SampProb2D(
-                fixed_input=fixed_input,
-                with_recon=with_recon,
-                with_gfactor=with_gfactor,
-                uncertainty_mode=uncertainty_mode,
-            )
-
-        self.rescale = RescaleProbMap
-        self.binarize = ThresholdRandomMaskSigmoidV1.apply
-
-    def forward(self, observed_kspace, old_mask, budget, uncertainty_mask=None, valid_mask=None, recon_complex=None, gfactor=None):
-        """
-        Args:
-            observed_kspace: Already sampled measurements, shape NHWC
-            old_mask: Previous sampling trajectories, shape NCHW
-            budget: Number of sampling lines or pixels to acquire
-            uncertainty_mask: Optional uncertainty map for guided sampling
-            valid_mask: Optional mask of acquirable k-space locations (1 where the
-                original signal is non-zero), shape NCHW. Zero-filled locations are
-                never selected.
-            recon_complex: Optional reconstructed image [N, 2, H, W] (real+imag) for
-                sampler conditioning.
-            gfactor: Optional g-factor map [N, 1, H, W] for noise-aware sampling.
-
-        Returns:
-            binary_mask: Updated sampling mask (includes previous locations), shape NCHW
-            data_to_vis_sampler: Dict of intermediate results for visualization
-        """
-        if self.detach_kspace:
-            observed_kspace = observed_kspace.detach()
-
-        input_kspace = torch.cat([observed_kspace, observed_kspace * old_mask.permute(0, 2, 3, 1)], dim=-1)
-
-        sampler_uncertainty = None
-        if self.line_constrained:
-            if self.with_uncertainty:
-                samp_prob_unscaled = self.mask_net(input_kspace, old_mask, uncertainty_mask)
-            else:
-                samp_prob_unscaled = self.mask_net(input_kspace, old_mask)
-        else:
-            result = self.mask_net(input_kspace, old_mask, recon=recon_complex, gfactor=gfactor)
-            if isinstance(result, tuple):
-                samp_prob_unscaled, sampler_uncertainty = result
-            else:
-                samp_prob_unscaled = result
-
-        sparsity = budget / self.shape[0] if self.line_constrained else budget / (self.shape[0] * self.shape[1])
-        batch_size = samp_prob_unscaled.shape[0]
-
-        if self.bidirection:
-            samp_prob = self.rescale(samp_prob_unscaled, sparsity / 2)
-            binary_mask = self.binarize(samp_prob)
-
-            vert_mask, horiz_mask = torch.chunk(binary_mask, dim=-1, chunks=2)
-            vert_mask = vert_mask.reshape(batch_size, 1, 1, -1)
-            horiz_mask = horiz_mask.reshape(batch_size, 1, -1, 1)
-            binary_mask = torch.clamp(vert_mask + horiz_mask, max=1, min=0)
-
-            if self.line_constrained:
-                # Reshape for visualization
-                vert_raw, horiz_raw = torch.chunk(samp_prob_unscaled, dim=-1, chunks=2)
-                samp_prob_unscaled = vert_raw.reshape(batch_size, 1, 1, -1) + horiz_raw.reshape(batch_size, 1, -1, 1)
-
-                vert_scaled, horiz_scaled = torch.chunk(samp_prob, dim=-1, chunks=2)
-                samp_prob = vert_scaled.reshape(batch_size, 1, 1, -1) + horiz_scaled.reshape(batch_size, 1, -1, 1)
-        else:
-            samp_prob = self.rescale(samp_prob_unscaled, sparsity)
-            binary_mask = self.binarize(samp_prob)
-
-        if valid_mask is not None:
-            if self.line_constrained:
-                # A k-space line is acquirable if any location in that column is non-zero.
-                valid_mask = (valid_mask.sum(dim=2, keepdim=True) > 0).to(binary_mask.dtype)
-            binary_mask = binary_mask * valid_mask
-
-        binary_mask = torch.clamp(old_mask + binary_mask, min=0, max=1)
-
-        data_to_vis_sampler = {
-            'prob_mask': samp_prob_unscaled[0, 0, :, :].detach(),
-            'rescaled_mask': samp_prob[0, 0, :, :].detach(),
-            'binarized_mask': binary_mask[0, 0, :, :].detach(),
-        }
-
-        if sampler_uncertainty is not None:
-            data_to_vis_sampler['sampler_uncertainty'] = sampler_uncertainty[0, 0].detach()
-
-        return binary_mask, data_to_vis_sampler
-
-
-class SequentialUnet(nn.Module):
+class SequentialSampling(nn.Module):
     """Sequential MRI sampling and reconstruction model.
 
     Iteratively selects k-space measurements and reconstructs images. At each step,
@@ -168,13 +36,11 @@ class SequentialUnet(nn.Module):
             reconstructor: nn.Module,
             shape=(320, 320),
             sparsity=0.25,
-            line_constrained=False,
+            sampler_type='conv_2d',
+            slope=5,
             num_step=4,
             preselect=True,
             preselect_num=2,
-            bi_direction=False,
-            binary_sampler=False,
-            clamp=100,
             with_uncertainty=False,
             detach_kspace=False,
             fixed_input=False,
@@ -185,6 +51,7 @@ class SequentialUnet(nn.Module):
             with_gfactor=False,
             gfactor_replicas=16,
             uncertainty_mode='none',
+            num_anatomy_classes=0,
             ):
         super().__init__()
 
@@ -194,39 +61,43 @@ class SequentialUnet(nn.Module):
         self.shape = shape
         self.preselect = preselect
         self.preselect_num_one_side = preselect_num // 2
-        self.bidirection = bi_direction
-        self.line_constrained = line_constrained
+        self.sampler_type = sampler_type
+        self.line_constrained = is_line_constrained(sampler_type)
         self.with_uncertainty = with_uncertainty
         self.with_gfactor = with_gfactor
         self.gfactor_replicas = gfactor_replicas
         self.uncertainty_mode = uncertainty_mode
         self.sense_tikhonov_weight = sense_tikhonov_weight
+        self.num_anatomy_classes = num_anatomy_classes
         self.data_for_vis: list[dict] = [dict() for _ in range(num_step)]
 
         self.reconstructor = reconstructor
 
-        # Sampler
         self.sampler = Sampler(
-            shape, line_constrained, bi_direction=bi_direction,
-            binary_sampler=binary_sampler, clamp=clamp,
-            with_uncertainty=with_uncertainty, detach_kspace=detach_kspace,
+            sampler_type=sampler_type,
+            shape=shape,
+            slope=slope,
+            with_uncertainty=with_uncertainty,
+            detach_kspace=detach_kspace,
             fixed_input=fixed_input,
             with_recon=with_recon,
             with_gfactor=with_gfactor,
             uncertainty_mode=uncertainty_mode,
+            num_anatomy_classes=num_anatomy_classes,
         )
 
         # Sensitivity estimation
         self.sensetivity_net = SensetivityModel_mc(2, 2, 8)
 
         # Compute per-step sampling budget
-        if not line_constrained:
+        if not self.line_constrained:
             effective_sparsity = sparsity - (preselect_num ** 2) / (shape[0] * shape[1]) if preselect else sparsity
             self.budget = effective_sparsity * shape[0] * shape[1]
         else:
             effective_sparsity = (sparsity - preselect_num / shape[1]) if preselect else sparsity
             self.budget = effective_sparsity * shape[0]
 
+        print(f"Sampler: {sampler_type}")
         print(f"Number of sequential steps: {num_step}")
         print(f"Sparsity: {sparsity}")
 
@@ -280,8 +151,7 @@ class SequentialUnet(nn.Module):
             recon_2ch = torch.stack([pred_single_coil_img.real, pred_single_coil_img.imag], dim=1)
             recon_complex = recon_2ch.detach()
 
-        # Generate new sampling mask
-        mask, data_to_vis_sampler = self.sampler(
+        mask, data_to_vis_sampler, anatomy_logits = self.sampler(
             pred_single_coil_k, old_mask, budget, uncertainty_map, valid_mask,
             recon_complex, gfactor=prev_gfactor,
         )
@@ -323,7 +193,11 @@ class SequentialUnet(nn.Module):
             'gfactor': gfactor[0, 0].cpu().detach().numpy() if gfactor is not None else None,
         })
 
-        return {'output': recon, 'mask': mask, 'zero_recon': zero_filled_mag, 'uncertainty_map': uncertainty_map, 'gfactor': gfactor}
+        return {
+            'output': recon, 'mask': mask, 'zero_recon': zero_filled_mag,
+            'uncertainty_map': uncertainty_map, 'gfactor': gfactor,
+            'anatomy_logits': anatomy_logits,
+        }
 
     def _init_mask(self, data):
         """Initialize mask with pre-selected center k-space region.
@@ -376,6 +250,7 @@ class SequentialUnet(nn.Module):
         zero_filled = []
         uncertainty_maps = []
         masks = []
+        anatomy_logits_list = []
 
         for i in range(self.num_step):
             pred_dict = self.step_forward(
@@ -393,13 +268,15 @@ class SequentialUnet(nn.Module):
             zero_filled.append(pred_dict['zero_recon'])
             uncertainty_maps.append(uncertainty_map)
             masks.append(old_mask)
+            if pred_dict['anatomy_logits'] is not None:
+                anatomy_logits_list.append(pred_dict['anatomy_logits'])
 
-            # Predict next k-space from current reconstruction
             image_for_kspace = new_img * sense_maps.conj()
             pred_kspace = torch.view_as_real(torch_fft2(image_for_kspace))
 
-        # Final RSS reconstruction
         final_recon = torch_ifft2(torch.view_as_complex(pred_kspace)).abs().pow(2).sum(dim=1, keepdim=True).sqrt()
+
+        anatomy_logits = torch.stack(anatomy_logits_list).mean(dim=0) if anatomy_logits_list else None
 
         return {
             'output': final_recon,
@@ -409,6 +286,7 @@ class SequentialUnet(nn.Module):
             'zero_filled_recon': zero_filled,
             'uncertainty_maps': uncertainty_maps,
             'sense_maps': sense_maps,
+            'anatomy_logits': anatomy_logits,
         }
 
     def loss(self, pred_dict, target_dict, meta, loss_type):
@@ -485,12 +363,21 @@ class SequentialUnet(nn.Module):
         else:
             tikhonov_loss = torch.tensor(0.0, device=pred.device)
 
+        anatomy_loss = torch.tensor(0.0, device=pred.device)
+        anatomy_logits = pred_dict.get('anatomy_logits')
+        anatomy_labels = target_dict.get('anatomy_labels')
+        if anatomy_logits is not None and anatomy_labels is not None:
+            anatomy_loss = nn.CrossEntropyLoss()(anatomy_logits, anatomy_labels)
+            anatomy_weight = meta.get('anatomy_weight', 0.0)
+            loss = loss + anatomy_weight * anatomy_loss
+
         log_dict = {
             'Total Loss': loss.item(),
             'Zero Filled Loss': zero_loss.item(),
             'K-space Loss': kspace_loss.item(),
             'Recon loss': reconstruction_loss.item(),
             'Tikhonov Loss': tikhonov_loss.item(),
+            'Anatomy Loss': anatomy_loss.item(),
         }
 
         if self.with_uncertainty:

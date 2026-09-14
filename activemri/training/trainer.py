@@ -14,7 +14,7 @@ import time
 import matplotlib.pyplot as plt
 
 from activemri.utils.evaluate import build_metrics
-from activemri.samplers.differential_sampler import SequentialUnet
+from activemri.models.sequential_sampling import SequentialSampling
 from activemri.utils.util import compute_ssim_torch, compute_psnr_torch
 from activemri.config import TrainConfig
 from activemri.reconstructors.config import UNetReconConfig, CGSenseReconConfig, VarNetReconConfig
@@ -33,6 +33,7 @@ class Sequential_Trainer:
     ):
         self.options = options
         self.device = device
+        self.anatomy_to_idx = {name: i for i, name in enumerate(options.anatomy_classes)} if options.anatomy_classes else {}
         self.model = build_model(self.options).to(device)
         if options.data_parallel:
             self.model = torch.nn.DataParallel(self.model)
@@ -111,6 +112,7 @@ class Sequential_Trainer:
 
         losses = []
         metrics = build_metrics(device=self.options.device)
+        anatomy_stats = _AnatomyStats(self.options.device)
         logged_train_anatomies = set()
         anatomy_images = {}
 
@@ -131,14 +133,29 @@ class Sequential_Trainer:
                 data_for_vis_name = f'train_epoch={self.epoch + 1}_iter=1'
                 self._visualize_and_save(self.epoch, data_for_vis_name)
 
-            anatomy = batch['anatomy'][0]
-            if anatomy not in logged_train_anatomies:
+            anatomies = list(batch['anatomy'])
+            for anatomy in dict.fromkeys(anatomies):
+                if anatomy in logged_train_anatomies:
+                    continue
                 logged_train_anatomies.add(anatomy)
-                anatomy_images.update(_build_image_log(pred_dict, target, f'train/{anatomy}', self.model.data_for_vis))
+                index = anatomies.index(anatomy)
+                anatomy_images.update(_build_image_log(
+                    pred_dict, target, f'train/{anatomy}',
+                    self.model.data_for_vis if index == 0 else None,
+                    index=index,
+                ))
 
             output = pred_dict['output']
             target_dict = {'target': target, 'kspace': kspace}
-            meta = {'recon_weight': 1.0, 'kspace_weight': 0.0, 'uncertainty_weight': self.options.uncertainty_weight}
+            if self.anatomy_to_idx:
+                target_dict['anatomy_labels'] = torch.tensor(
+                    [self.anatomy_to_idx[a] for a in anatomies], device=self.device,
+                )
+            meta = {
+                'recon_weight': 1.0, 'kspace_weight': 0.0,
+                'uncertainty_weight': self.options.uncertainty_weight,
+                'anatomy_weight': self.options.anatomy_weight,
+            }
             loss, log_dict = self.model.loss(pred_dict, target_dict, meta, self.options.loss_type)
 
             self.optimizer.zero_grad()
@@ -156,14 +173,24 @@ class Sequential_Trainer:
             metrics["SSIM"].data_range = data_range
             masked_output, masked_target = _apply_signal_mask(output.detach(), target_for_metrics)
             metrics.update(masked_output, masked_target)
+            anatomy_stats.update(anatomies, masked_output, masked_target, pred_dict['mask'].detach())
+
+            step_log = {'train/loss': loss.item(), 'train/step': global_step_offset + iter_idx}
+            anatomy_logits = pred_dict.get('anatomy_logits')
+            if anatomy_logits is not None and 'anatomy_labels' in target_dict:
+                preds = anatomy_logits.argmax(dim=1)
+                acc = (preds == target_dict['anatomy_labels']).float().mean()
+                step_log['train/anatomy_acc'] = acc.item()
+                step_log['train/anatomy_loss'] = log_dict.get('Anatomy Loss', 0.0)
 
             start_iter = time.perf_counter()
-            wandb.log({'train/loss': loss.item(), 'train/step': global_step_offset + iter_idx})
+            wandb.log(step_log)
 
         metric_means = metrics.compute()
         epoch_log = {f'train/{name}': value.item() for name, value in metric_means.items()}
         epoch_log['epoch'] = self.epoch
         epoch_log.update(anatomy_images)
+        epoch_log.update(anatomy_stats.compute('train'))
         wandb.log(epoch_log)
 
         return np.mean(losses), time.perf_counter() - epoch_start_time, metric_means
@@ -173,6 +200,7 @@ class Sequential_Trainer:
         losses = []
         sparsity = []
         metrics = build_metrics(device=self.options.device)
+        anatomy_stats = _AnatomyStats(self.options.device)
         start = time.perf_counter()
         logged_anatomies = set()
         anatomy_images = {}
@@ -188,17 +216,32 @@ class Sequential_Trainer:
                     data_for_vis_name = f'val_epoch={self.epoch + 1}'
                     self._visualize_and_save(self.epoch, data_for_vis_name)
 
-                anatomy = batch['anatomy'][0]
-                if anatomy not in logged_anatomies:
+                anatomies = list(batch['anatomy'])
+                for anatomy in dict.fromkeys(anatomies):
+                    if anatomy in logged_anatomies:
+                        continue
                     logged_anatomies.add(anatomy)
-                    anatomy_images.update(_build_image_log(pred_dict, target, f'val/{anatomy}', self.model.data_for_vis))
+                    index = anatomies.index(anatomy)
+                    anatomy_images.update(_build_image_log(
+                        pred_dict, target, f'val/{anatomy}',
+                        self.model.data_for_vis if index == 0 else None,
+                        index=index,
+                    ))
 
                 output = pred_dict['output']
                 if isinstance(output, list):
                     output = output[-1]
 
                 target_dict = {'target': target, 'kspace': kspace}
-                meta = {'recon_weight': 1.0, 'kspace_weight': 0.0, 'uncertainty_weight': self.options.uncertainty_weight}
+                if self.anatomy_to_idx:
+                    target_dict['anatomy_labels'] = torch.tensor(
+                        [self.anatomy_to_idx[a] for a in anatomies], device=self.device,
+                    )
+                meta = {
+                    'recon_weight': 1.0, 'kspace_weight': 0.0,
+                    'uncertainty_weight': self.options.uncertainty_weight,
+                    'anatomy_weight': self.options.anatomy_weight,
+                }
                 loss, _ = self.model.loss(pred_dict, target_dict, meta, self.options.loss_type)
 
                 mask = pred_dict['mask']
@@ -213,13 +256,18 @@ class Sequential_Trainer:
                 metrics["SSIM"].data_range = data_range
                 masked_output, masked_target = _apply_signal_mask(output, target_for_metrics)
                 metrics.update(masked_output, masked_target)
+                anatomy_stats.update(anatomies, masked_output, masked_target, mask)
 
             metric_means = metrics.compute()
             epoch_log = {f'val/{name}': value.item() for name, value in metric_means.items()}
             epoch_log['val/loss'] = np.mean(losses)
             epoch_log['epoch'] = self.epoch
             epoch_log.update(anatomy_images)
+            epoch_log.update(anatomy_stats.compute('val'))
             wandb.log(epoch_log)
+
+            anatomy_stats.save_mean_masks(self.vis_dir, f'val_epoch={self.epoch + 1}')
+            self.logger.info(anatomy_stats.summary())
 
         return np.mean(losses), np.mean(sparsity), time.perf_counter() - start, metric_means
 
@@ -490,6 +538,15 @@ def build_lr_scheduler(options: TrainConfig, optimizer):
     return torch.optim.lr_scheduler.StepLR(optimizer, options.lr_step_size, options.lr_gamma)
 
 
+def _sampler_type(options: TrainConfig) -> str:
+    """Sampler family for these options, falling back to the pre-sampler_type
+    `line_constrained` flag so older checkpoints still load."""
+    sampler_type = getattr(options, 'sampler_type', None)
+    if sampler_type is not None:
+        return sampler_type
+    return 'conv_1d' if getattr(options, 'line_constrained', False) else 'conv_2d'
+
+
 def build_model(options: TrainConfig):
     recon_cfg = options.recon
 
@@ -516,13 +573,16 @@ def build_model(options: TrainConfig):
     else:
         raise ValueError(f"Unknown recon config type: {type(recon_cfg)}")
 
-    model = SequentialUnet(
+    num_anatomy_classes = len(options.anatomy_classes) if options.anatomy_classes else 0
+
+    model = SequentialSampling(
         reconstructor=reconstructor,
         sparsity=1.0 / options.accelerations[0],
         shape=options.resolution,
         num_step=options.num_step,
         preselect_num=options.preselect_num,
-        line_constrained=options.line_constrained,
+        sampler_type=_sampler_type(options),
+        slope=getattr(options, 'slope', 5.0),
         with_uncertainty=options.uncertainty_loss,
         fixed_input=options.fixed_input,
         recon_type=recon_cfg.recon_type,
@@ -531,9 +591,81 @@ def build_model(options: TrainConfig):
         with_gfactor=getattr(options, 'with_gfactor', False),
         gfactor_replicas=getattr(options, 'gfactor_replicas', 16),
         uncertainty_mode=getattr(options, 'uncertainty_mode', 'none'),
+        num_anatomy_classes=num_anatomy_classes,
     )
 
     return model
+
+
+class _AnatomyStats:
+    """Per-anatomy metrics and mean sampling mask, accumulated over mixed batches.
+
+    Batches from a ConcatDataset over several anatomies are split by the per-sample
+    `anatomy` field so knee and brain patterns can be compared within one run.
+    """
+
+    def __init__(self, device):
+        self.device = device
+        self.metrics = {}
+        self.mask_sums = {}
+        self.counts = {}
+
+    def update(self, anatomies, output, target, mask=None):
+        for anatomy in dict.fromkeys(anatomies):
+            indices = torch.tensor(
+                [i for i, name in enumerate(anatomies) if name == anatomy],
+                device=output.device,
+            )
+            output_a = output.index_select(0, indices)
+            target_a = target.index_select(0, indices)
+
+            if anatomy not in self.metrics:
+                self.metrics[anatomy] = build_metrics(device=self.device)
+            metrics = self.metrics[anatomy]
+            data_range = target_a.max()
+            metrics["PSNR"].data_range = data_range
+            metrics["SSIM"].data_range = data_range
+            metrics.update(output_a, target_a)
+
+            if mask is not None:
+                mask = mask.detach().float()
+                if mask.shape[0] == 1:
+                    mask_sum = mask[0] * len(indices)
+                else:
+                    mask_sum = mask.index_select(0, indices).sum(dim=0)
+                if anatomy in self.mask_sums:
+                    self.mask_sums[anatomy] = self.mask_sums[anatomy] + mask_sum
+                else:
+                    self.mask_sums[anatomy] = mask_sum
+                self.counts[anatomy] = self.counts.get(anatomy, 0) + len(indices)
+
+    def mean_masks(self):
+        return {
+            anatomy: (mask_sum / self.counts[anatomy]).cpu()
+            for anatomy, mask_sum in self.mask_sums.items()
+        }
+
+    def compute(self, prefix):
+        log = {}
+        for anatomy, metrics in self.metrics.items():
+            for name, value in metrics.compute().items():
+                log[f'{prefix}/{anatomy}/{name}'] = value.item()
+        for anatomy, mean_mask in self.mean_masks().items():
+            log[f'{prefix}/{anatomy}/sparsity'] = mean_mask.mean().item()
+            log[f'{prefix}/{anatomy}/mean_mask'] = wandb.Image(_normalize_for_tb(mean_mask))
+        return log
+
+    def save_mean_masks(self, out_dir, name):
+        for anatomy, mean_mask in self.mean_masks().items():
+            np.save(Path(out_dir) / f'{name}_{anatomy}_mean_mask.npy', mean_mask.numpy())
+
+    def summary(self):
+        parts = []
+        for anatomy, metrics in self.metrics.items():
+            values = ' '.join(f'{k}={v.item():.4g}' for k, v in metrics.compute().items())
+            sparsity = self.mask_sums[anatomy].mean().item() / self.counts[anatomy] if anatomy in self.mask_sums else float('nan')
+            parts.append(f'[{anatomy}] {values} Sparsity={sparsity:.4g} (n={self.counts.get(anatomy, 0)})')
+        return ' | '.join(parts)
 
 
 def _signal_mask(target, threshold=0.1):
@@ -558,26 +690,31 @@ def _normalize_for_tb(tensor):
     return t
 
 
-def _build_image_log(pred_dict, target, tag_prefix, data_for_vis=None):
+def _build_image_log(pred_dict, target, tag_prefix, data_for_vis=None, index=0):
+    """Log images for sample `index` of the batch, so a mixed-anatomy batch can be
+    logged once per anatomy. `data_for_vis` is only valid for index 0."""
     images = {}
-    target_img = target[0] if target.dim() == 4 else target[0].unsqueeze(0)
+    target_img = target[index] if target.dim() == 4 else target[index].unsqueeze(0)
     images[f'{tag_prefix}/target'] = wandb.Image(_normalize_for_tb(target_img).cpu())
+
+    def _pick(tensor):
+        return tensor[index] if tensor.shape[0] > index else tensor[0]
 
     step_masks = pred_dict.get('masks', None)
     if step_masks is not None:
         for i, mask in enumerate(step_masks):
-            images[f'{tag_prefix}/mask_step_{i}'] = wandb.Image(_normalize_for_tb(mask[0]).cpu())
+            images[f'{tag_prefix}/mask_step_{i}'] = wandb.Image(_normalize_for_tb(_pick(mask)).cpu())
 
     output = pred_dict.get('intermediate_recons', pred_dict['output'])
     if isinstance(output, list):
         for i, recon in enumerate(output):
-            images[f'{tag_prefix}/intermediate_recon_{i}'] = wandb.Image(_normalize_for_tb(recon[0].abs()).cpu())
+            images[f'{tag_prefix}/intermediate_recon_{i}'] = wandb.Image(_normalize_for_tb(_pick(recon).abs()).cpu())
     else:
-        images[f'{tag_prefix}/reconstruction'] = wandb.Image(_normalize_for_tb(output[0]).cpu())
+        images[f'{tag_prefix}/reconstruction'] = wandb.Image(_normalize_for_tb(_pick(output)).cpu())
         if step_masks is None:
-            images[f'{tag_prefix}/mask'] = wandb.Image(_normalize_for_tb(pred_dict['mask'][0]).cpu())
+            images[f'{tag_prefix}/mask'] = wandb.Image(_normalize_for_tb(_pick(pred_dict['mask'])).cpu())
 
-    images[f'{tag_prefix}/output'] = wandb.Image(_normalize_for_tb(pred_dict['output'][0].abs()).cpu())
+    images[f'{tag_prefix}/output'] = wandb.Image(_normalize_for_tb(_pick(pred_dict['output']).abs()).cpu())
 
     if data_for_vis is not None:
         step_data = data_for_vis[0]

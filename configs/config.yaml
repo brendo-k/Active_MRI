@@ -19,11 +19,13 @@ loss:
   loss_type: l1
   uncertainty_loss: false
   uncertainty_weight: 0.0
+  anatomy_weight: 0.0
 
 sampler:
   model: SequentialSampling
   accelerations: [4.0]
-  line_constrained: false
+  sampler_type: conv_2d  # conv_2d | conv_1d | loupe_2d | loupe_1d
+  slope: 5
   preselect_num: 10
   with_recon: false
   with_gfactor: false
