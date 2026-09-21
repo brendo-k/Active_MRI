@@ -43,6 +43,7 @@ def conjugate_gradient_sense(
     mask: torch.Tensor,
     num_iters: int = 10,
     lamda: float = 0.0,
+    rhs: torch.Tensor = None,
 ) -> torch.Tensor:
     """Solves the SENSE reconstruction via conjugate gradient.
 
@@ -55,11 +56,14 @@ def conjugate_gradient_sense(
         mask: Binary sampling mask [B, 1, H, W].
         num_iters: Number of CG iterations.
         lamda: Tikhonov regularisation weight.
+        rhs: Optional right-hand side [B, H, W] complex, used instead of
+            ``A^H y``. Lets callers solve against a vector that is not the
+            adjoint of any k-space data, as the leverage probes do.
 
     Returns:
         Reconstructed image [B, H, W] complex.
     """
-    b = _sense_adjoint(masked_kspace, sense_maps)  # [B, H, W]
+    b = _sense_adjoint(masked_kspace, sense_maps) if rhs is None else rhs  # [B, H, W]
 
     x = torch.zeros_like(b)
     r = b.clone()

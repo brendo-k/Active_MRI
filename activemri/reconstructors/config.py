@@ -50,6 +50,7 @@ class VarNetReconConfig(ReconConfig):
     num_cascades: int = 12
     chans: int = 18
     pools: int = 4
+    anatomy_conditioning: bool = False
 
 
 @dataclass

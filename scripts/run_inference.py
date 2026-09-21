@@ -36,12 +36,18 @@ def load_checkpoint(checkpoint_path, device):
     return model, options
 
 
-def run_inference(model, kspace, target, device):
+def run_inference(model, kspace, target, device, anatomy=None, anatomy_classes=()):
     kspace = kspace.unsqueeze(0).to(device)   # [1, C, H, W, 2]
     target = torch.from_numpy(target).float().unsqueeze(0).unsqueeze(0).to(device)  # [1, 1, H, W]
 
+    anatomy_labels = None
+    if anatomy is not None:
+        if anatomy not in anatomy_classes:
+            raise ValueError(f"Checkpoint was trained on {list(anatomy_classes)}, got --anatomy {anatomy}")
+        anatomy_labels = torch.tensor([list(anatomy_classes).index(anatomy)], device=device)
+
     with torch.no_grad():
-        pred_dict = model(target, kspace)
+        pred_dict = model(target, kspace, anatomy_labels=anatomy_labels)
 
     return pred_dict, target
 
@@ -98,6 +104,9 @@ def main():
     parser.add_argument('--volume-idx', type=int, default=0)
     parser.add_argument('--device',     type=str, default='cuda')
     parser.add_argument('--out-dir',    type=str, default='/tmp/inference_out')
+    parser.add_argument('--anatomy',    type=str, default=None,
+                        help='Anatomy to condition on, for checkpoints trained with anatomy '
+                             'conditioning. Defaults to the mean over anatomies.')
     args = parser.parse_args()
 
     device = torch.device(args.device)
@@ -117,7 +126,10 @@ def main():
     print(f"File: {fname}, slice: {slice_id}")
     print(f"Volume {args.volume_idx}: kspace {kspace.shape}, target {target.shape}")
 
-    pred_dict, target_t = run_inference(model, kspace, target, device)
+    pred_dict, target_t = run_inference(
+        model, kspace, target, device,
+        anatomy=args.anatomy, anatomy_classes=getattr(options, 'anatomy_classes', []) or [],
+    )
 
     # sense_mask is stored in data_for_vis by step_forward
     sense_mask_np = model.data_for_vis[0].get('sense_mask')

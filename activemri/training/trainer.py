@@ -4,6 +4,7 @@ from typing import List, Optional
 import logging
 import os
 import random
+import warnings
 
 import torch
 import torch.nn.functional as F
@@ -126,14 +127,24 @@ class Sequential_Trainer:
 
             kspace = batch['kspace'].to(self.device)
             target = batch['target'].to(self.device)
+            anatomies = list(batch['anatomy'])
 
-            pred_dict = self.model(target, kspace)
+            try:
+                pred_dict = self.model(target, kspace, anatomy_labels=self._anatomy_labels(anatomies))
+            except RuntimeError as err:
+                if 'Binarization failed to match target density' not in str(err):
+                    raise
+                self.logger.warning(
+                    "Skipping batch with NaN-driven binarization failure "
+                    f"(fnames={batch['fname']}, slice_ids={batch['slice_id'].tolist()}): {err}"
+                )
+                self.optimizer.zero_grad()
+                continue
 
             if iter_idx == 0:
                 data_for_vis_name = f'train_epoch={self.epoch + 1}_iter=1'
                 self._visualize_and_save(self.epoch, data_for_vis_name)
 
-            anatomies = list(batch['anatomy'])
             for anatomy in dict.fromkeys(anatomies):
                 if anatomy in logged_train_anatomies:
                     continue
@@ -147,10 +158,9 @@ class Sequential_Trainer:
 
             output = pred_dict['output']
             target_dict = {'target': target, 'kspace': kspace}
-            if self.anatomy_to_idx:
-                target_dict['anatomy_labels'] = torch.tensor(
-                    [self.anatomy_to_idx[a] for a in anatomies], device=self.device,
-                )
+            anatomy_labels = self._anatomy_labels(anatomies)
+            if anatomy_labels is not None:
+                target_dict['anatomy_labels'] = anatomy_labels
             meta = {
                 'recon_weight': 1.0, 'kspace_weight': 0.0,
                 'uncertainty_weight': self.options.uncertainty_weight,
@@ -209,14 +219,23 @@ class Sequential_Trainer:
             for iter_idx, batch in enumerate(self.val_loader):
                 kspace = batch['kspace'].to(self.device)
                 target = batch['target'].to(self.device)
+                anatomies = list(batch['anatomy'])
 
-                pred_dict = self.model(target, kspace)
+                try:
+                    pred_dict = self.model(target, kspace, anatomy_labels=self._anatomy_labels(anatomies))
+                except RuntimeError as err:
+                    if 'Binarization failed to match target density' not in str(err):
+                        raise
+                    self.logger.warning(
+                        "Skipping val batch with NaN-driven binarization failure "
+                        f"(fnames={batch['fname']}, slice_ids={batch['slice_id'].tolist()}): {err}"
+                    )
+                    continue
 
                 if iter_idx == 0:
                     data_for_vis_name = f'val_epoch={self.epoch + 1}'
                     self._visualize_and_save(self.epoch, data_for_vis_name)
 
-                anatomies = list(batch['anatomy'])
                 for anatomy in dict.fromkeys(anatomies):
                     if anatomy in logged_anatomies:
                         continue
@@ -233,10 +252,9 @@ class Sequential_Trainer:
                     output = output[-1]
 
                 target_dict = {'target': target, 'kspace': kspace}
-                if self.anatomy_to_idx:
-                    target_dict['anatomy_labels'] = torch.tensor(
-                        [self.anatomy_to_idx[a] for a in anatomies], device=self.device,
-                    )
+                anatomy_labels = self._anatomy_labels(anatomies)
+                if anatomy_labels is not None:
+                    target_dict['anatomy_labels'] = anatomy_labels
                 meta = {
                     'recon_weight': 1.0, 'kspace_weight': 0.0,
                     'uncertainty_weight': self.options.uncertainty_weight,
@@ -270,6 +288,12 @@ class Sequential_Trainer:
             self.logger.info(anatomy_stats.summary())
 
         return np.mean(losses), np.mean(sparsity), time.perf_counter() - start, metric_means
+
+    def _anatomy_labels(self, anatomies):
+        """Anatomy names to index tensor, or None when the run has no anatomy classes."""
+        if not self.anatomy_to_idx:
+            return None
+        return torch.tensor([self.anatomy_to_idx[a] for a in anatomies], device=self.device)
 
     def _plot_metrics(self, history):
         epochs = list(range(1, len(history['train_ssim']) + 1))
@@ -321,11 +345,13 @@ class Sequential_Trainer:
             'optimizer': self.optimizer.state_dict(),
             'best_val_loss': self.best_val_loss,
         }
-        epoch_path = self.exp_dir / f'model_epoch_{self.epoch:03d}.pt'
-        torch.save(checkpoint, f=epoch_path)
-        if is_new_best:
-            best_path = self.exp_dir / 'best_model.pt'
-            torch.save(checkpoint, f=best_path)
+        if not is_new_best:
+            return
+
+        best_path = self.exp_dir / 'best_model.pt'
+        torch.save(checkpoint, f=best_path)
+        for old_checkpoint in self.exp_dir.glob('model_epoch_*.pt'):
+            old_checkpoint.unlink()
 
     def load_checkpoint(self):
         checkpoint = torch.load(self.options.checkpoint, weights_only=False)
@@ -425,6 +451,8 @@ class NonRLTester:
         self.model.load_state_dict(checkpoint['model'])
         self.model.eval()
 
+        self.anatomy_classes = getattr(self.options, 'anatomy_classes', []) or []
+
         self.val_loader = val_loader
 
         self.exp_dir = self.options.out_dir[0]
@@ -487,7 +515,9 @@ class NonRLTester:
                 kspace = batch['kspace'].to(self.device)
                 target = batch['target'].to(self.device)
 
-                pred_dict = self.model(target, kspace)
+                anatomy_labels = anatomy_labels_from_batch(batch, self.anatomy_classes, self.device)
+
+                pred_dict = self.model(target, kspace, anatomy_labels=anatomy_labels)
 
                 if iter_idx % 100 == 0:
                     data_for_vis_name = f'test_iter={iter_idx + 1}'
@@ -526,6 +556,28 @@ class NonRLTester:
         wandb.finish()
 
 
+def anatomy_labels_from_batch(batch, anatomy_classes, device):
+    """Index tensor for a batch's anatomies, for conditioning at evaluation time.
+
+    Returns None — which makes a conditioned model fall back to the mean
+    embedding — when the run has no anatomy classes, the batch carries no
+    anatomy, or the data holds an anatomy the model never saw.
+    """
+    if not anatomy_classes or 'anatomy' not in batch:
+        return None
+
+    index = {name: i for i, name in enumerate(anatomy_classes)}
+    unknown = {a for a in batch['anatomy'] if a not in index}
+    if unknown:
+        warnings.warn(
+            f"Anatomies {sorted(unknown)} are not in the checkpoint's classes {list(anatomy_classes)}; "
+            "evaluating with the mean anatomy embedding instead."
+        )
+        return None
+
+    return torch.tensor([index[a] for a in batch['anatomy']], device=device)
+
+
 def build_optimizer(lr, weight_decay, model_parameters, optim_type='adam'):
     if optim_type == 'adam':
         return torch.optim.Adam(model_parameters, lr, weight_decay=weight_decay)
@@ -550,6 +602,15 @@ def _sampler_type(options: TrainConfig) -> str:
 def build_model(options: TrainConfig):
     recon_cfg = options.recon
 
+    anatomy_classes = getattr(options, 'anatomy_classes', []) or []
+    num_anatomy_classes = len(anatomy_classes) if options.anatomy_weight > 0 else 0
+    num_sampler_conditioning_classes = (
+        len(anatomy_classes) if getattr(options, 'anatomy_conditioning', False) else 0
+    )
+    num_recon_conditioning_classes = (
+        len(anatomy_classes) if getattr(recon_cfg, 'anatomy_conditioning', False) else 0
+    )
+
     if isinstance(recon_cfg, UNetReconConfig):
         reconstructor = LOUPEUNet(
             recon_cfg.in_chans,
@@ -564,6 +625,7 @@ def build_model(options: TrainConfig):
             num_cascades=recon_cfg.num_cascades,
             chans=recon_cfg.chans,
             pools=recon_cfg.pools,
+            num_conditioning_classes=num_recon_conditioning_classes,
         )
     elif isinstance(recon_cfg, CGSenseReconConfig):
         reconstructor = CGSENSEReconstructor(
@@ -573,8 +635,6 @@ def build_model(options: TrainConfig):
     else:
         raise ValueError(f"Unknown recon config type: {type(recon_cfg)}")
 
-    num_anatomy_classes = len(options.anatomy_classes) if options.anatomy_classes else 0
-
     model = SequentialSampling(
         reconstructor=reconstructor,
         sparsity=1.0 / options.accelerations[0],
@@ -582,7 +642,7 @@ def build_model(options: TrainConfig):
         num_step=options.num_step,
         preselect_num=options.preselect_num,
         sampler_type=_sampler_type(options),
-        slope=getattr(options, 'slope', 5.0),
+        slope=getattr(options, 'slope', 10.0),
         with_uncertainty=options.uncertainty_loss,
         fixed_input=options.fixed_input,
         recon_type=recon_cfg.recon_type,
@@ -592,6 +652,10 @@ def build_model(options: TrainConfig):
         gfactor_replicas=getattr(options, 'gfactor_replicas', 16),
         uncertainty_mode=getattr(options, 'uncertainty_mode', 'none'),
         num_anatomy_classes=num_anatomy_classes,
+        num_conditioning_classes=num_sampler_conditioning_classes,
+        condition_reconstructor=num_recon_conditioning_classes > 0,
+        mask_train_mode=getattr(options, 'mask_train_mode', 'straight_through'),
+        reinforce_weight=getattr(options, 'reinforce_weight', 1.0),
     )
 
     return model

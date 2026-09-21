@@ -5,7 +5,13 @@ set -euo pipefail
 
 export PYTHONPATH="${PYTHONPATH:-}:$(cd "$(dirname "$0")/.." && pwd)"
 
+# ANATOMY_CONDITIONING=true feeds the anatomy label to the sampler (and, for
+# VarNet, to every cascade) so the learned pattern can differ per anatomy.
+COND="${ANATOMY_CONDITIONING:-false}"
+
 COMMON="datasets=multi_anatomy training.num_step=0 loss.anatomy_weight=0.1"
+COMMON="$COMMON datasets.data_dir=/home/bkadota/data/fastmri/combined_14"
+COMMON="$COMMON sampler.anatomy_conditioning=$COND"
 
 echo "=== Launching U-Net on GPU 0 ==="
 CUDA_VISIBLE_DEVICES=0 python scripts/train_sequential.py recon=unet $COMMON \
@@ -15,6 +21,7 @@ PID_UNET=$!
 
 echo "=== Launching VarNet on GPU 1 ==="
 CUDA_VISIBLE_DEVICES=1 python scripts/train_sequential.py recon=varnet $COMMON \
+    recon.anatomy_conditioning=$COND \
     output.out_dir=checkpoints/multitask_varnet "$@" \
     > checkpoints/multitask_varnet.log 2>&1 &
 PID_VARNET=$!

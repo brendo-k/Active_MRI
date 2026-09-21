@@ -37,7 +37,7 @@ class SequentialSampling(nn.Module):
             shape=(320, 320),
             sparsity=0.25,
             sampler_type='conv_2d',
-            slope=5,
+            slope=10,
             num_step=4,
             preselect=True,
             preselect_num=2,
@@ -52,6 +52,10 @@ class SequentialSampling(nn.Module):
             gfactor_replicas=16,
             uncertainty_mode='none',
             num_anatomy_classes=0,
+            num_conditioning_classes=0,
+            condition_reconstructor=False,
+            mask_train_mode='straight_through',
+            reinforce_weight=1.0,
             ):
         super().__init__()
 
@@ -69,6 +73,10 @@ class SequentialSampling(nn.Module):
         self.uncertainty_mode = uncertainty_mode
         self.sense_tikhonov_weight = sense_tikhonov_weight
         self.num_anatomy_classes = num_anatomy_classes
+        self.num_conditioning_classes = num_conditioning_classes
+        self.condition_reconstructor = condition_reconstructor
+        self.mask_train_mode = mask_train_mode
+        self.reinforce_weight = reinforce_weight
         self.data_for_vis: list[dict] = [dict() for _ in range(num_step)]
 
         self.reconstructor = reconstructor
@@ -84,6 +92,8 @@ class SequentialSampling(nn.Module):
             with_gfactor=with_gfactor,
             uncertainty_mode=uncertainty_mode,
             num_anatomy_classes=num_anatomy_classes,
+            num_conditioning_classes=num_conditioning_classes,
+            mask_train_mode=mask_train_mode,
         )
 
         # Sensitivity estimation
@@ -118,7 +128,7 @@ class SequentialSampling(nn.Module):
 
     def step_forward(self, full_kspace, pred_kspace, old_mask, target, step,
                      sense_maps, sense_mask, uncertainty_map=None, valid_mask=None,
-                     prev_gfactor=None):
+                     prev_gfactor=None, anatomy_labels=None):
         """Execute one sampling + reconstruction step.
 
         Args:
@@ -132,6 +142,8 @@ class SequentialSampling(nn.Module):
             uncertainty_map: Optional uncertainty estimate
             prev_gfactor: G-factor map from previous step [B, 1, H, W] for
                 noise-aware sampling guidance.
+            anatomy_labels: Optional long tensor [B] of anatomy indices, used to
+                condition the sampler (and the reconstructor, if it supports it).
 
         Returns:
             Dict with keys: output, mask, zero_recon, uncertainty_map, gfactor
@@ -151,9 +163,9 @@ class SequentialSampling(nn.Module):
             recon_2ch = torch.stack([pred_single_coil_img.real, pred_single_coil_img.imag], dim=1)
             recon_complex = recon_2ch.detach()
 
-        mask, data_to_vis_sampler, anatomy_logits = self.sampler(
+        mask, data_to_vis_sampler, anatomy_logits, reinforce_logp = self.sampler(
             pred_single_coil_k, old_mask, budget, uncertainty_map, valid_mask,
-            recon_complex, gfactor=prev_gfactor,
+            recon_complex, gfactor=prev_gfactor, anatomy_labels=anatomy_labels,
         )
         masked_kspace = torch.view_as_real(mask * torch.view_as_complex(full_kspace))
         self.data_for_vis[step].update(data_to_vis_sampler)
@@ -165,7 +177,8 @@ class SequentialSampling(nn.Module):
         # Full reconstruction
         if self.recon_type in ('lls', 'cg_sense', 'varnet'):
             masked_kspace_complex = torch.view_as_complex(masked_kspace.contiguous())
-            recon_mag = self.reconstructor(masked_kspace_complex, sense_maps, mask)
+            recon_kwargs = {'anatomy_labels': anatomy_labels} if self.condition_reconstructor else {}
+            recon_mag = self.reconstructor(masked_kspace_complex, sense_maps, mask, **recon_kwargs)
             recon = recon_mag.to(torch.complex64)
         else:
             zero_filled_2ch = torch.view_as_real(zero_filled_complex)
@@ -196,7 +209,7 @@ class SequentialSampling(nn.Module):
         return {
             'output': recon, 'mask': mask, 'zero_recon': zero_filled_mag,
             'uncertainty_map': uncertainty_map, 'gfactor': gfactor,
-            'anatomy_logits': anatomy_logits,
+            'anatomy_logits': anatomy_logits, 'reinforce_logp': reinforce_logp,
         }
 
     def _init_mask(self, data):
@@ -226,12 +239,13 @@ class SequentialSampling(nn.Module):
 
         return torch.fft.fftshift(a, dim=(-1, -2))
 
-    def forward(self, target, full_kspace, idx=None):  # noqa: ARG002
+    def forward(self, target, full_kspace, idx=None, anatomy_labels=None):  # noqa: ARG002
         """Run full sequential sampling pipeline.
 
         Args:
             target: Ground truth image, shape [B, 1, H, W]
             full_kspace: Multicoil kspace, shape [B, C, H, W, 2]
+            anatomy_labels: Optional long tensor [B] of anatomy indices
 
         Returns:
             Dict with final reconstruction, intermediate results, masks, and sense maps.
@@ -251,12 +265,13 @@ class SequentialSampling(nn.Module):
         uncertainty_maps = []
         masks = []
         anatomy_logits_list = []
+        reinforce_logp = None  # [B], sum of every step's Plackett-Luce log-prob
 
         for i in range(self.num_step):
             pred_dict = self.step_forward(
                 full_kspace, pred_kspace, old_mask, target, i,
                 sense_maps, sense_mask, uncertainty_map, valid_mask,
-                prev_gfactor=gfactor,
+                prev_gfactor=gfactor, anatomy_labels=anatomy_labels,
             )
 
             new_img = pred_dict['output']
@@ -270,6 +285,9 @@ class SequentialSampling(nn.Module):
             masks.append(old_mask)
             if pred_dict['anatomy_logits'] is not None:
                 anatomy_logits_list.append(pred_dict['anatomy_logits'])
+            if pred_dict.get('reinforce_logp') is not None:
+                step_logp = pred_dict['reinforce_logp']
+                reinforce_logp = step_logp if reinforce_logp is None else reinforce_logp + step_logp
 
             image_for_kspace = new_img * sense_maps.conj()
             pred_kspace = torch.view_as_real(torch_fft2(image_for_kspace))
@@ -286,6 +304,7 @@ class SequentialSampling(nn.Module):
             'zero_filled_recon': zero_filled,
             'uncertainty_maps': uncertainty_maps,
             'sense_maps': sense_maps,
+            'reinforce_logp': reinforce_logp,
             'anatomy_logits': anatomy_logits,
         }
 
@@ -371,6 +390,37 @@ class SequentialSampling(nn.Module):
             anatomy_weight = meta.get('anatomy_weight', 0.0)
             loss = loss + anatomy_weight * anatomy_loss
 
+        # REINFORCE term for mask_train_mode='reinforce': the mask itself carries
+        # no gradient (sampling it is non-differentiable, unlike the straight-through
+        # path), so this is the only path any gradient reaches self.sampler.mask_net
+        # through. Reward is a clean per-example NMSE independent of loss_type, so the
+        # policy always optimizes the same quantity regardless of what the reconstructor
+        # is trained against. Each batch item is one Monte Carlo draw of the (input-
+        # independent) LOUPE mask -- exactly the role a training minibatch already
+        # plays, so this needs no extra forward passes -- and the batch-mean reward is
+        # the REINFORCE baseline, following scripts/loupe_vs_greedy_oracle.py and
+        # scripts/reinforce2d_vs_greedy_loupe.py, where the same estimator was
+        # validated against an oracle reconstructor.
+        reinforce_loss = torch.tensor(0.0, device=pred.device)
+        reinforce_reward = torch.tensor(0.0, device=pred.device)
+        reinforce_logp = pred_dict.get('reinforce_logp')
+        if reinforce_logp is not None:
+            if pred.shape[0] < 2:
+                raise RuntimeError(
+                    "mask_train_mode='reinforce' needs batch_size >= 2: each batch item is "
+                    "one Monte Carlo draw of the mask, and the REINFORCE baseline is their "
+                    "mean reward -- with one item there is nothing to compare it to.")
+            per_example_nmse = (
+                (pred - target).pow(2).flatten(1).sum(dim=1)
+                / target.pow(2).flatten(1).sum(dim=1).clamp(min=1e-12)
+            )
+            reward = -per_example_nmse.detach()
+            baseline = reward.mean().detach()
+            advantage = reward - baseline
+            reinforce_loss = -(advantage * reinforce_logp).mean()
+            reinforce_reward = reward.mean()
+            loss = loss + self.reinforce_weight * reinforce_loss
+
         log_dict = {
             'Total Loss': loss.item(),
             'Zero Filled Loss': zero_loss.item(),
@@ -378,6 +428,8 @@ class SequentialSampling(nn.Module):
             'Recon loss': reconstruction_loss.item(),
             'Tikhonov Loss': tikhonov_loss.item(),
             'Anatomy Loss': anatomy_loss.item(),
+            'Reinforce Loss': reinforce_loss.item(),
+            'Reinforce Reward': reinforce_reward.item(),
         }
 
         if self.with_uncertainty:

@@ -8,13 +8,13 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from activemri.training.trainer import build_model, _apply_signal_mask
+from activemri.training.trainer import build_model, _apply_signal_mask, anatomy_labels_from_batch
 from activemri.utils.evaluate import build_metrics
 from activemri.datasets.fastmri_data import build_fastmri_dataloaders
 from activemri.config import TrainConfig
 
 
-def evaluate_checkpoint(checkpoint_path, device='cuda'):
+def evaluate_checkpoint(checkpoint_path, device='cuda', anatomies=('brain',)):
     checkpoint = torch.load(checkpoint_path, weights_only=False, map_location=device)
     options: TrainConfig = checkpoint['options']
 
@@ -50,7 +50,7 @@ def evaluate_checkpoint(checkpoint_path, device='cuda'):
 
     _, val_loader = build_fastmri_dataloaders(
         data_root=Path('/home/bkadota/data/fastmri'),
-        anatomies=['brain'],
+        anatomies=list(anatomies),
         image_shape=options.resolution,
         batch_size=4,
         num_coils=16,
@@ -67,7 +67,11 @@ def evaluate_checkpoint(checkpoint_path, device='cuda'):
             kspace = batch['kspace'].to(device)
             target = batch['target'].to(device)
 
-            pred_dict = model(target, kspace)
+            anatomy_labels = anatomy_labels_from_batch(
+                batch, getattr(options, 'anatomy_classes', []) or [], device,
+            )
+
+            pred_dict = model(target, kspace, anatomy_labels=anatomy_labels)
             output = pred_dict['output']
 
             target_for_metrics = target

@@ -8,10 +8,12 @@ from torch import nn
 
 from activemri.samplers.conv import KspaceLineConstrainedSampler, SampProb2D
 from activemri.samplers.loupe import LineConstrainedProbMask, ProbMask
+from activemri.samplers.oracle import plackett_luce_sample_and_logprob
 from activemri.utils.mask_binarization import RescaleProbMap, ThresholdRandomMaskSigmoidV1
 
 
 SAMPLER_TYPES = ("conv_2d", "conv_1d", "loupe_2d", "loupe_1d")
+MASK_TRAIN_MODES = ("straight_through", "reinforce")
 
 
 def is_line_constrained(sampler_type):
@@ -30,15 +32,30 @@ class Sampler(nn.Module):
         loupe_1d  learned mask, one weight per column          (input-independent)
 
     The LOUPE families ignore the observed k-space; their mask is a free
-    parameter shared across the dataset. All four are put through the same
-    rescale-to-sparsity and straight-through binarization steps.
+    parameter shared across the dataset. By default all four are put through
+    the same rescale-to-sparsity and straight-through binarization steps
+    (`mask_train_mode='straight_through'`); LOUPE families can instead be
+    trained with `mask_train_mode='reinforce'`, which samples an exact-budget
+    binary mask via Gumbel-top-k (Plackett-Luce) from the mask's raw logits
+    and hands back its log-probability instead of a biased gradient estimator
+    -- see :func:`activemri.samplers.oracle.plackett_luce_sample_and_logprob`
+    and the oracle-only experiments this was validated against
+    (`scripts/loupe_vs_greedy_oracle.py`, `scripts/reinforce2d_vs_greedy_loupe.py`).
+    The conv families are input-adaptive and don't fit this framing (their
+    score depends on a partial reconstruction that would itself need to be
+    resampled per Monte-Carlo draw), so `reinforce` is LOUPE-only for now.
+
+    With `num_conditioning_classes > 0` every family is additionally given the
+    anatomy of each sample: the conv families take a learned embedding as extra
+    network input, and the LOUPE families keep one free mask per anatomy. Without
+    it a mixed-anatomy run collapses to a single dataset-average pattern.
     """
 
     def __init__(
         self,
         sampler_type="conv_2d",
         shape=(320, 320),
-        slope=5,
+        slope=10,
         with_uncertainty=False,
         detach_kspace=False,
         fixed_input=False,
@@ -46,15 +63,22 @@ class Sampler(nn.Module):
         with_gfactor=False,
         uncertainty_mode='none',
         num_anatomy_classes=0,
+        num_conditioning_classes=0,
+        mask_train_mode='straight_through',
         ):
         super().__init__()
 
         if sampler_type not in SAMPLER_TYPES:
             raise ValueError(f"Unknown sampler_type {sampler_type!r}; expected one of {SAMPLER_TYPES}")
+        if mask_train_mode not in MASK_TRAIN_MODES:
+            raise ValueError(f"Unknown mask_train_mode {mask_train_mode!r}; expected one of {MASK_TRAIN_MODES}")
 
         self.sampler_type = sampler_type
         self.line_constrained = is_line_constrained(sampler_type)
         self.is_loupe = sampler_type.startswith("loupe")
+        self.mask_train_mode = mask_train_mode
+        if mask_train_mode == 'reinforce' and not self.is_loupe:
+            raise ValueError("mask_train_mode='reinforce' is only implemented for loupe_2d/loupe_1d")
         self.shape = shape
         self.detach_kspace = detach_kspace
         self.with_uncertainty = with_uncertainty
@@ -62,6 +86,7 @@ class Sampler(nn.Module):
         self.uncertainty_mode = uncertainty_mode
         self.with_gfactor = with_gfactor
         self.num_anatomy_classes = num_anatomy_classes
+        self.num_conditioning_classes = num_conditioning_classes
 
         if sampler_type == "conv_2d":
             self.mask_net = SampProb2D(
@@ -70,6 +95,8 @@ class Sampler(nn.Module):
                 with_gfactor=with_gfactor,
                 uncertainty_mode=uncertainty_mode,
                 num_anatomy_classes=num_anatomy_classes,
+                shape=shape,
+                num_conditioning_classes=num_conditioning_classes,
             )
         elif sampler_type == "conv_1d":
             if with_uncertainty:
@@ -77,47 +104,114 @@ class Sampler(nn.Module):
             self.mask_net = KspaceLineConstrainedSampler(
                 shape[0], fixed_input=fixed_input,
                 num_anatomy_classes=num_anatomy_classes,
+                num_conditioning_classes=num_conditioning_classes,
             )
         elif sampler_type == "loupe_2d":
-            self.mask_net = ProbMask(shape, slope)
+            self.mask_net = ProbMask(shape, slope, num_conditioning_classes=num_conditioning_classes)
         else:
-            self.mask_net = LineConstrainedProbMask(shape, slope)
+            self.mask_net = LineConstrainedProbMask(shape, slope, num_conditioning_classes=num_conditioning_classes)
 
         self.rescale = RescaleProbMap
         self.binarize = ThresholdRandomMaskSigmoidV1.apply
 
-    def _predict_probabilities(self, input_kspace, old_mask, recon_complex, gfactor):
+    def _predict_probabilities(self, input_kspace, old_mask, recon_complex, gfactor, anatomy_labels):
         """Run the mask network, returning (scores NCHW, uncertainty or None, anatomy_logits or None)."""
         if self.is_loupe:
-            prob = self.mask_net(input_kspace).permute(0, 3, 1, 2)
+            prob = self.mask_net(input_kspace, anatomy_labels).permute(0, 3, 1, 2)
             prob = prob.expand(input_kspace.shape[0], -1, -1, -1)
             already = (old_mask.sum(dim=-2, keepdim=True) == self.shape[0]).to(prob.dtype) \
                 if self.line_constrained else old_mask
             return prob * (1 - already), None, None
 
         if self.line_constrained:
-            prob, anatomy_logits = self.mask_net(input_kspace, old_mask)
+            prob, anatomy_logits = self.mask_net(input_kspace, old_mask, anatomy_labels=anatomy_labels)
             return prob, None, anatomy_logits
 
         prob, uncertainty, anatomy_logits = self.mask_net(
             input_kspace, old_mask, recon=recon_complex, gfactor=gfactor,
+            anatomy_labels=anatomy_labels,
         )
         return prob, uncertainty, anatomy_logits
 
-    def forward(self, observed_kspace, old_mask, budget, uncertainty_mask=None, valid_mask=None, recon_complex=None, gfactor=None):  # noqa: ARG002
+    def _reinforce_forward(self, old_mask, budget, valid_mask, anatomy_labels):
+        """Exact-budget Plackett-Luce sampling from the LOUPE mask's raw logits.
+
+        Args:
+            old_mask: [B, 1, H, W] locations already sampled in earlier steps.
+            budget: Target number of *new* locations/columns this step.
+            valid_mask: Optional [B, 1, H, W] mask of in-bounds k-space.
+            anatomy_labels: Optional [B] long tensor.
+
+        Returns:
+            binary_mask: [B, 1, H, W], old_mask union this step's draw.
+            data_to_vis_sampler: dict, for visualization only.
+            logp: [B] log-probability of this step's draw, differentiable in
+                the mask logits -- what the REINFORCE loss term needs.
+        """
+        B = old_mask.shape[0]
+        raw = self.mask_net.raw_logits(anatomy_labels)  # [1 or B, ...]
+        if raw.shape[0] == 1:
+            raw = raw.expand(B, *raw.shape[1:])
+
+        if self.line_constrained:
+            logits = raw.reshape(B, self.shape[1])
+            taken = (old_mask.sum(dim=-2, keepdim=True) == self.shape[0]).view(B, -1)
+            if valid_mask is not None:
+                taken = taken | ((valid_mask.sum(dim=2, keepdim=True) <= 0).view(B, -1))
+        else:
+            logits = raw.reshape(B, -1)
+            taken = old_mask.reshape(B, -1) > 0
+            if valid_mask is not None:
+                taken = taken | (valid_mask.reshape(B, -1) <= 0)
+
+        logits = logits.masked_fill(taken, float('-inf'))
+        # A single Plackett-Luce call needs one shared k across the batch; if
+        # per-example valid regions differ (e.g. padded mixed-anatomy data),
+        # cap k at the tightest example rather than crash or silently pick a
+        # different budget per row.
+        k = min(int(round(float(budget))), int((~taken).sum(dim=1).min().item()))
+        order, logp = plackett_luce_sample_and_logprob(logits, k)
+
+        delta = torch.zeros_like(logits)
+        delta.scatter_(1, order, 1.0)  # delta has no grad history -- safe in-place
+
+        if self.line_constrained:
+            delta_mask = delta.view(B, 1, 1, self.shape[1]).expand(-1, -1, self.shape[0], -1)
+        else:
+            delta_mask = delta.view(B, 1, self.shape[0], self.shape[1])
+
+        binary_mask = torch.clamp(old_mask + delta_mask.detach(), min=0, max=1)
+
+        vis_logits = logits[0].detach().clone()
+        vis_logits[torch.isinf(vis_logits)] = 0.0
+        data_to_vis_sampler = {
+            'prob_mask': vis_logits.view(1, -1) if self.line_constrained else vis_logits.view(*self.shape),
+            'rescaled_mask': delta_mask[0, 0].detach(),
+            'binarized_mask': binary_mask[0, 0].detach(),
+        }
+        return binary_mask, data_to_vis_sampler, logp
+
+    def forward(self, observed_kspace, old_mask, budget, uncertainty_mask=None, valid_mask=None, recon_complex=None, gfactor=None, anatomy_labels=None):  # noqa: ARG002
         """
         Returns:
             binary_mask: Updated sampling mask (includes previous locations), shape NCHW
             data_to_vis_sampler: Dict of intermediate results for visualization
             anatomy_logits: [N, num_classes] or None
+            logp: [B] Plackett-Luce log-probability of this step's draw, or
+                None outside `mask_train_mode='reinforce'`.
         """
         if self.detach_kspace:
             observed_kspace = observed_kspace.detach()
 
+        if self.mask_train_mode == 'reinforce':
+            binary_mask, data_to_vis_sampler, logp = self._reinforce_forward(
+                old_mask, budget, valid_mask, anatomy_labels)
+            return binary_mask, data_to_vis_sampler, None, logp
+
         input_kspace = torch.cat([observed_kspace, observed_kspace * old_mask.permute(0, 2, 3, 1)], dim=-1)
 
         samp_prob_unscaled, sampler_uncertainty, anatomy_logits = self._predict_probabilities(
-            input_kspace, old_mask, recon_complex, gfactor
+            input_kspace, old_mask, recon_complex, gfactor, anatomy_labels
         )
 
         if self.line_constrained:
@@ -144,4 +238,4 @@ class Sampler(nn.Module):
         if sampler_uncertainty is not None:
             data_to_vis_sampler['sampler_uncertainty'] = sampler_uncertainty[0, 0].detach()
 
-        return binary_mask, data_to_vis_sampler, anatomy_logits
+        return binary_mask, data_to_vis_sampler, anatomy_logits, None

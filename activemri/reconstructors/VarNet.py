@@ -14,6 +14,7 @@ import torch.nn.functional as F
 from fastmri.models import Unet
 
 from activemri.utils.complex_conversion import complex_to_real, real_to_complex
+from activemri.utils.conditioning import DEFAULT_EMBED_DIM, AnatomyEmbedding, broadcast_channels
 from activemri.utils.image_processing import fft_2d_img, ifft_2d_img
 
 
@@ -23,6 +24,10 @@ class NormUnet(nn.Module):
     The complex input [B, C, H, W] is mapped to a 2C-channel real tensor,
     group-normalized (real and imaginary parts separately), padded to a
     multiple of 16, passed through the U-Net, and then mapped back to complex.
+
+    When `conditioning_chans > 0` an anatomy embedding is appended as constant
+    extra channels after normalization, so the regularizer can learn priors that
+    differ between anatomies.
     """
 
     def __init__(
@@ -32,10 +37,12 @@ class NormUnet(nn.Module):
         in_chans: int = 2,
         out_chans: int = 2,
         drop_prob: float = 0.0,
+        conditioning_chans: int = 0,
     ):
         super().__init__()
+        self.conditioning_chans = conditioning_chans
         self.unet = Unet(
-            in_chans=in_chans,
+            in_chans=in_chans + conditioning_chans,
             out_chans=out_chans,
             chans=chans,
             num_pool_layers=num_pools,
@@ -65,10 +72,16 @@ class NormUnet(nn.Module):
     def unpad(self, x, h_pad, w_pad, h_mult, w_mult):
         return x[..., h_pad[0]:h_mult - h_pad[1], w_pad[0]:w_mult - w_pad[1]]
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, anatomy_embedding: torch.Tensor = None) -> torch.Tensor:
         x = complex_to_real(x)
         x, mean, std = self.norm(x)
         x, pad_sizes = self.pad(x)
+        if self.conditioning_chans > 0:
+            if anatomy_embedding is None:
+                raise ValueError("NormUnet is anatomy-conditioned but no embedding was provided")
+            x = torch.cat(
+                [x, broadcast_channels(anatomy_embedding, x.shape[-2], x.shape[-1])], dim=1
+            )
         x = self.unet(x)
         x = self.unpad(x, *pad_sizes)
         x = self.unnorm(x, mean, std)
@@ -95,11 +108,12 @@ class VarNetBlock(nn.Module):
         ref_kspace: torch.Tensor,
         mask: torch.Tensor,
         sense_maps: torch.Tensor,
+        anatomy_embedding: torch.Tensor = None,
     ) -> torch.Tensor:
         zero = torch.zeros(1, device=current_kspace.device, dtype=current_kspace.dtype)
         soft_dc = torch.where(mask.bool(), current_kspace - ref_kspace, zero) * self.dc_weight
         model_term = self.sens_expand(
-            self.model(self.sens_reduce(current_kspace, sense_maps)), sense_maps
+            self.model(self.sens_reduce(current_kspace, sense_maps), anatomy_embedding), sense_maps
         )
         return current_kspace - soft_dc - model_term
 
@@ -110,6 +124,10 @@ class VarNet(nn.Module):
     Shares the k-space reconstructor interface of :class:`CGSENSEReconstructor`:
     takes masked multi-coil k-space, externally estimated sensitivity maps, and
     the sampling mask, and returns a coil-combined complex image.
+
+    Args:
+        num_conditioning_classes: If > 0, every cascade is conditioned on a
+            learned per-anatomy embedding shared across cascades.
     """
 
     def __init__(
@@ -117,10 +135,18 @@ class VarNet(nn.Module):
         num_cascades: int = 12,
         chans: int = 18,
         pools: int = 4,
+        num_conditioning_classes: int = 0,
+        anatomy_embed_dim: int = DEFAULT_EMBED_DIM,
     ):
         super().__init__()
+        self.anatomy_embedding = (
+            AnatomyEmbedding(num_conditioning_classes, anatomy_embed_dim)
+            if num_conditioning_classes > 0 else None
+        )
+        conditioning_chans = anatomy_embed_dim if self.anatomy_embedding is not None else 0
         self.cascades = nn.ModuleList(
-            [VarNetBlock(NormUnet(chans, pools)) for _ in range(num_cascades)]
+            [VarNetBlock(NormUnet(chans, pools, conditioning_chans=conditioning_chans))
+             for _ in range(num_cascades)]
         )
 
     def forward(
@@ -128,17 +154,24 @@ class VarNet(nn.Module):
         masked_kspace: torch.Tensor,
         sense_maps: torch.Tensor,
         mask: torch.Tensor,
+        anatomy_labels: torch.Tensor = None,
     ) -> torch.Tensor:
         """
         Args:
             masked_kspace: [B, C, H, W] complex.
             sense_maps: [B, C, H, W] complex.
             mask: [B, 1, H, W] binary float.
+            anatomy_labels: Optional long tensor [B] of anatomy indices.
 
         Returns:
             Coil-combined reconstruction [B, 1, H, W] complex.
         """
+        anatomy_embedding = (
+            self.anatomy_embedding(anatomy_labels, masked_kspace.shape[0])
+            if self.anatomy_embedding is not None else None
+        )
+
         kspace_pred = masked_kspace.clone()
         for cascade in self.cascades:
-            kspace_pred = cascade(kspace_pred, masked_kspace, mask, sense_maps)
+            kspace_pred = cascade(kspace_pred, masked_kspace, mask, sense_maps, anatomy_embedding)
         return (ifft_2d_img(kspace_pred) * sense_maps.conj()).sum(dim=1, keepdim=True)

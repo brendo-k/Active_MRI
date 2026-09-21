@@ -10,9 +10,30 @@ Both zero out already-acquired locations so no budget is spent re-selecting.
 """
 import torch
 from torch import nn
-from torch.nn import functional as F
 
 from activemri.reconstructors.UNet import LOUPEUNet, upsample_block
+from activemri.utils.conditioning import DEFAULT_EMBED_DIM, AnatomyEmbedding, FiLM, broadcast_channels
+
+
+LOGIT_LIMIT = 6.0
+LOGIT_LEAK = 0.01
+
+
+def scores_to_prob(logits):
+    """Squash raw network scores to a per-location probability in (0, 1).
+
+    The logit is soft-clamped to +/-LOGIT_LIMIT before the sigmoid. Left
+    unbounded, a location pushed far enough negative receives a vanishing
+    gradient and can never be selected again, so the sampler ratchets whole
+    regions of k-space to zero and never recovers them; outside the clamp the
+    LOGIT_LEAK slope keeps that gradient finite.
+
+    The result is already bounded, so `RescaleProbMap` alone sets the sparsity
+    and no max-normalisation is needed. This matches the LOUPE samplers, which
+    expose their weights through a plain sigmoid.
+    """
+    clamped = logits.clamp(-LOGIT_LIMIT, LOGIT_LIMIT)
+    return torch.sigmoid(clamped + LOGIT_LEAK * (logits - clamped))
 
 
 class SampProb2D(nn.Module):
@@ -32,19 +53,34 @@ class SampProb2D(nn.Module):
             - 'channel': Extra output channel on the same UNet (out_chans=2).
             - 'head': Separate decoder head sharing the encoder.
         num_anatomy_classes: If > 0, add a classification head on the bottleneck.
+        num_conditioning_classes: If > 0, condition the network on the anatomy by
+            appending its learned embedding as constant input channels, so the
+            predicted pattern can differ between anatomies.
+        anatomy_embed_dim: Width of that embedding.
     """
 
     BOTTLENECK_CHANS = 64 * (2 ** 4)  # 1024
 
     def __init__(self, fixed_input=False, with_recon=False, with_gfactor=False,
-                 uncertainty_mode='none', num_anatomy_classes=0):
+                 uncertainty_mode='none', num_anatomy_classes=0, shape=(128, 128),
+                 num_conditioning_classes=0, anatomy_embed_dim=DEFAULT_EMBED_DIM):
         super().__init__()
 
         self.with_recon = with_recon
         self.with_gfactor = with_gfactor
         self.uncertainty_mode = uncertainty_mode
         self.num_anatomy_classes = num_anatomy_classes
-        in_chans = 5 + (2 if with_recon else 0) + (1 if with_gfactor else 0)
+        self.num_conditioning_classes = num_conditioning_classes
+        self.shape = shape
+
+        self.anatomy_embedding = (
+            AnatomyEmbedding(num_conditioning_classes, anatomy_embed_dim)
+            if num_conditioning_classes > 0 else None
+        )
+        conditioning_chans = anatomy_embed_dim if self.anatomy_embedding is not None else 0
+
+        self.observation_chans = 5 + (2 if with_recon else 0) + (1 if with_gfactor else 0)
+        in_chans = self.observation_chans + conditioning_chans
         out_chans = 2 if uncertainty_mode == 'channel' else 1
 
         self.unet = LOUPEUNet(
@@ -75,16 +111,19 @@ class SampProb2D(nn.Module):
 
         self.fixed_input = fixed_input
         if fixed_input:
-            fixed_input_tensor = torch.randn(size=[1, in_chans, 128, 128])
+            # Only the observation channels are replaced; the anatomy embedding is
+            # still appended, so a fixed-input run stays conditioned.
+            fixed_input_tensor = torch.randn(size=[1, self.observation_chans, shape[0], shape[1]])
             self.fixed_input_tensor = nn.Parameter(fixed_input_tensor, requires_grad=False)
 
-    def forward(self, x, mask, recon=None, gfactor=None):
+    def forward(self, x, mask, recon=None, gfactor=None, anatomy_labels=None):
         """
         Args:
             x: Observed kspace data, shape NHWC (4 channels: full + masked, real+imag)
             mask: Previous sampling mask, shape N1HW
             recon: Optional reconstructed image, shape [N, 2, H, W] (real+imag)
             gfactor: Optional g-factor map, shape [N, 1, H, W]
+            anatomy_labels: Optional long tensor [N] of anatomy indices
 
         Returns:
             prob_mask: Sampling probability [N, 1, H, W]
@@ -103,16 +142,23 @@ class SampProb2D(nn.Module):
                 gfactor = torch.zeros(x.shape[0], 1, x.shape[2], x.shape[3], device=x.device)
             channels.append(gfactor)
         channels.append(mask)
-        x = torch.cat(channels, dim=1)
+        batch_size = x.shape[0]
+        height, width = x.shape[2], x.shape[3]
 
-        if self.fixed_input:
-            x = self.fixed_input_tensor
+        observation = self.fixed_input_tensor.expand(batch_size, -1, -1, -1) if self.fixed_input \
+            else torch.cat(channels, dim=1)
+
+        if self.anatomy_embedding is not None:
+            embedding = self.anatomy_embedding(anatomy_labels, batch_size)
+            x = torch.cat([observation, broadcast_channels(embedding, height, width)], dim=1)
+        else:
+            x = observation
 
         use_encoder_path = self.uncertainty_mode == 'head' or self.num_anatomy_classes > 0
 
         if use_encoder_path:
             out, skips, bottleneck = self._forward_encoder(x)
-            prob = F.softplus(out[:, :1])
+            prob = scores_to_prob(out[:, :1])
 
             if self.uncertainty_mode == 'head':
                 unc_x = bottleneck
@@ -124,21 +170,23 @@ class SampProb2D(nn.Module):
             else:
                 uncertainty = None
 
-            anatomy_logits = self.anatomy_head(bottleneck) if self.num_anatomy_classes > 0 else None
+            if self.num_anatomy_classes > 0:
+                anatomy_logits = self.anatomy_head(bottleneck)
+                if anatomy_logits.shape[0] != batch_size:
+                    anatomy_logits = anatomy_logits.expand(batch_size, -1)
+            else:
+                anatomy_logits = None
         else:
             out = self.unet(x)
 
             if self.uncertainty_mode == 'channel':
-                prob = F.softplus(out[:, :1])
+                prob = scores_to_prob(out[:, :1])
                 uncertainty = out[:, 1:2]
             else:
-                prob = F.softplus(out)
+                prob = scores_to_prob(out)
                 uncertainty = None
 
             anatomy_logits = None
-
-        max_val = prob.flatten(1).max(dim=1)[0].reshape(-1, 1, 1, 1)
-        prob = prob / max_val
 
         prob = prob * (1 - mask)
 
@@ -174,14 +222,19 @@ class KspaceLineConstrainedSampler(nn.Module):
     Args:
         num_lines: Number of k-space columns, i.e. the image side length.
         fixed_input: If True, use a fixed random input tensor (debugging).
+        num_conditioning_classes: If > 0, modulate the hidden state with the
+            anatomy embedding so the predicted lines can differ between anatomies.
+        anatomy_embed_dim: Width of that embedding.
     """
 
     HIDDEN_DIM = 512
 
-    def __init__(self, num_lines, fixed_input=False, num_anatomy_classes=0):
+    def __init__(self, num_lines, fixed_input=False, num_anatomy_classes=0,
+                 num_conditioning_classes=0, anatomy_embed_dim=DEFAULT_EMBED_DIM):
         super().__init__()
 
         self.num_anatomy_classes = num_anatomy_classes
+        self.num_conditioning_classes = num_conditioning_classes
         self.flatten_size = num_lines ** 2 * 5
 
         self.encoder = nn.Sequential(
@@ -196,6 +249,12 @@ class KspaceLineConstrainedSampler(nn.Module):
         )
         self.mask_head = nn.Linear(self.HIDDEN_DIM, num_lines)
 
+        if num_conditioning_classes > 0:
+            self.anatomy_embedding = AnatomyEmbedding(num_conditioning_classes, anatomy_embed_dim)
+            self.anatomy_film = FiLM(anatomy_embed_dim, self.HIDDEN_DIM)
+        else:
+            self.anatomy_embedding = None
+
         if num_anatomy_classes > 0:
             self.anatomy_head = nn.Sequential(
                 nn.Linear(self.HIDDEN_DIM, 256),
@@ -208,11 +267,12 @@ class KspaceLineConstrainedSampler(nn.Module):
             fixed_input_tensor = torch.randn(size=[1, 5, num_lines, num_lines])
             self.fixed_input_tensor = nn.Parameter(fixed_input_tensor, requires_grad=False)
 
-    def forward(self, kspace, mask):
+    def forward(self, kspace, mask, anatomy_labels=None):
         """
         Args:
             kspace: Already sampled measurements, shape NHWC
             mask: Previous sampling trajectories, shape N1HW
+            anatomy_labels: Optional long tensor [N] of anatomy indices
 
         Returns:
             prob_mask: [N, 1, 1, W]
@@ -225,9 +285,9 @@ class KspaceLineConstrainedSampler(nn.Module):
             feat_map = self.fixed_input_tensor.repeat(N, 1, 1, 1).to(kspace.device)
 
         hidden = self.encoder(feat_map.flatten(start_dim=1))
-        out = self.mask_head(hidden)
-        out = F.softplus(out)
-        out = out / out.max(dim=1, keepdim=True)[0]
+        if self.anatomy_embedding is not None:
+            hidden = self.anatomy_film(hidden, self.anatomy_embedding(anatomy_labels, hidden.shape[0]))
+        out = scores_to_prob(self.mask_head(hidden))
 
         already_sampled = (mask.sum(dim=-2) == H).float().reshape(N, -1)
         new_mask = out * (1 - already_sampled)

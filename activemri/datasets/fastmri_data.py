@@ -33,6 +33,8 @@ class FastMRIDataset(torch.utils.data.Dataset):
         num_coils: int = 8,
         num_volumes: Optional[int] = None,
         min_energy_fraction: float = 0.2,
+        file_names: Optional[Sequence[str]] = None,
+        slice_ids: Optional[Sequence[int]] = None,
     ):
         self.root = pathlib.Path(root)
         self.anatomy = anatomy
@@ -62,9 +64,20 @@ class FastMRIDataset(torch.utils.data.Dataset):
             exclude = set(anatomy_file_markers.values())
             files = [f for f in files if not any(m in f.name for m in exclude)]
 
+        if file_names is not None:
+            wanted = set(file_names)
+            files = [f for f in files if f.name in wanted]
+            missing = wanted - {f.name for f in files}
+            if missing:
+                raise FileNotFoundError(f"Requested files not found under {self.root}: {sorted(missing)}")
+
         if num_volumes is not None:
             rng.shuffle(files)
             files = sorted(files[:num_volumes])
+
+        if slice_ids is not None:
+            self.examples = [(f, sid) for f in files for sid in slice_ids]
+            return
 
         for fname in files:
             try:
@@ -165,11 +178,12 @@ class FastMRIDataset(torch.utils.data.Dataset):
                 kspace = torch.from_numpy(data['kspace'][slice_id])
             attrs = dict(data.attrs)
 
-            # Load precomputed ESPIRiT sense maps if available
+            # Load precomputed ESPIRiT sense maps if available. Brain files also carry a
+            # 'sense_maps' key, but it is degenerate (support over a third to a half as many
+            # rows as 'sense' in the same file) -- 'sense' is the only key actually used.
             espirit_maps = None
-            sense_key = 'sense_maps' if 'sense_maps' in data else ('sense' if 'sense' in data else None)
-            if sense_key is not None:
-                raw = data[sense_key]
+            if 'sense' in data:
+                raw = data['sense']
                 if self.anatomy == 'prostate':
                     # (averages, slices, coils, H, W) — average across the averages axis
                     espirit_maps = torch.from_numpy(raw[:, slice_id].mean(axis=0))
@@ -260,6 +274,18 @@ def _resolve_anatomy_dirs(
         return train_dir, val_dir
 
     return anatomy_dir, anatomy_dir
+
+
+def _collate_fastmri_batch(samples: List[Dict]) -> Dict:
+    """Like default_collate, but keeps 'espirit_maps' as a plain list.
+
+    Not every file ships precomputed ESPIRiT maps, so this field is None for
+    some samples and a tensor for others — default_collate can't stack that.
+    """
+    espirit_maps = [s.pop('espirit_maps') for s in samples]
+    batch = torch.utils.data.default_collate(samples)
+    batch['espirit_maps'] = espirit_maps
+    return batch
 
 
 def build_fastmri_dataloaders(
@@ -372,6 +398,7 @@ def build_fastmri_dataloaders(
         pin_memory=True,
         persistent_workers=num_workers > 0,
         prefetch_factor=4 if num_workers > 0 else None,
+        collate_fn=_collate_fastmri_batch,
     )
     train_loader = torch.utils.data.DataLoader(
         torch.utils.data.ConcatDataset(train_datasets),

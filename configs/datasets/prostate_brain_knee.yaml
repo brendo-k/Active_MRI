@@ -1,5 +1,6 @@
 anatomy: [prostate, brain, knee]
 data_root: /home/bkadota/data/fastmri
+data_dir: null
 contrast: T2
 num_coils: 16
 num_workers: 16

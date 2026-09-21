@@ -11,17 +11,21 @@ from argparse import ArgumentParser
 
 import h5py
 import torch
-from torchmetrics import MetricCollection, MeanSquaredError
-from torchmetrics.image import (
-    PeakSignalNoiseRatio,
-    StructuralSimilarityIndexMeasure,
-)
-from torchvision.transforms.functional import center_crop
 
 from activemri.utils.metrics import NMSE
 
+# Imported lazily inside build_metrics/evaluate, not at module scope:
+# torchmetrics.image eagerly imports its whole metric zoo (including arniqa,
+# which needs torchvision) as soon as the submodule is touched, so importing
+# this module -- which happens transitively through activemri.training.trainer
+# for any script that just wants build_model -- would otherwise require a
+# working torchvision even when nothing here is ever called.
 
-def build_metrics(device="cpu") -> MetricCollection:
+
+def build_metrics(device="cpu") -> "MetricCollection":
+    from torchmetrics import MetricCollection, MeanSquaredError
+    from torchmetrics.image import PeakSignalNoiseRatio, StructuralSimilarityIndexMeasure
+
     return MetricCollection(
         {
             "MSE": MeanSquaredError(),
@@ -33,6 +37,8 @@ def build_metrics(device="cpu") -> MetricCollection:
 
 
 def evaluate(args, recons_key):
+    from torchvision.transforms.functional import center_crop
+
     metrics = build_metrics()
 
     for tgt_file in args.target_path.iterdir():

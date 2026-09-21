@@ -1,4 +1,5 @@
 anatomy: [breast]
 data_root: /home/bkadota/data/fastmri
+data_dir: null
 num_coils: 8
 num_workers: 4

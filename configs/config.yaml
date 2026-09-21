@@ -25,12 +25,13 @@ sampler:
   model: SequentialSampling
   accelerations: [4.0]
   sampler_type: conv_2d  # conv_2d | conv_1d | loupe_2d | loupe_1d
-  slope: 5
+  slope: 10
   preselect_num: 10
   with_recon: false
   with_gfactor: false
   gfactor_replicas: 16
   uncertainty_mode: none
+  anatomy_conditioning: false  # feed the anatomy label to the sampler
 
 output:
   out_dir: checkpoints
@@ -38,7 +39,7 @@ output:
 
 misc:
   random_rotate: false
-  resolution: [128, 128]
+  resolution: [256, 256]
 
 hydra:
   run:

@@ -26,6 +26,7 @@ class TrainConfig:
     uncertainty_weight: float = 0.0
     anatomy_weight: float = 0.0
     anatomy_classes: List[str] = field(default_factory=list)
+    anatomy_conditioning: bool = False
 
     # Device / parallelism
     device: str = 'cuda'
@@ -39,8 +40,10 @@ class TrainConfig:
     # Mask / sampler
     accelerations: List[float] = field(default_factory=lambda: [4.0])
     sampler_type: str = 'conv_2d'
-    slope: float = 5.0
+    slope: float = 10.0
     preselect_num: int = 10
+    mask_train_mode: str = 'straight_through'  # or 'reinforce' (loupe_2d/loupe_1d only)
+    reinforce_weight: float = 1.0
     sense_mask_method: Optional[str] = 'pre_network'
     with_recon: bool = False
     with_gfactor: bool = False
@@ -54,7 +57,7 @@ class TrainConfig:
     recon: ReconConfig = field(default_factory=ReconConfig)
 
     # Misc
-    resolution: List[int] = field(default_factory=lambda: [128, 128])
+    resolution: List[int] = field(default_factory=lambda: [256, 256])
     random_rotate: bool = False
     fixed_input: bool = False
     seed: int | None = None
