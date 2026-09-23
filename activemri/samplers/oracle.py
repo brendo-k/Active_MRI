@@ -1096,6 +1096,9 @@ def reinforce_2d(
     support: Optional[torch.Tensor] = None,
     verbose: bool = True,
     log_prefix: str = '',
+    entropy_weight: float = 0.0,
+    clip_grad_norm: Optional[float] = None,
+    normalize_advantages: bool = False,
 ) -> Dict:
     """Batched macro-round REINFORCE over 2D k-space locations.
 
@@ -1151,6 +1154,15 @@ def reinforce_2d(
         reference: [H, W] complex fully sampled reconstruction; computed if omitted.
         support: [H, W] object mask.
         verbose: Print progress.
+        entropy_weight: Coefficient for entropy regularization. Larger values
+            encourage exploration. Default 0 (no regularization); try 0.01-0.1
+            for improved convergence stability.
+        clip_grad_norm: If set, gradient norm is clipped to this value before
+            optimizer step. Prevents large gradient spikes. Default None (no clipping);
+            try 1.0 for better stability.
+        normalize_advantages: If True, advantages are normalized per round
+            (zero-meaned and std-normalized). Reduces impact of scale differences
+            across rounds. Default False for backward compatibility.
 
     Returns:
         ``mask`` [H, W] (the deterministic top-batch-per-round rollout under
@@ -1240,10 +1252,20 @@ def reinforce_2d(
             baselines[t] = returns[t].mean().detach() if baselines[t] is None else (
                 baseline_momentum * baselines[t] + (1 - baseline_momentum) * returns[t].mean().detach())
             advantage = returns[t] - baselines[t]
+            if normalize_advantages:
+                advantage = (advantage - advantage.mean()) / (advantage.std() + 1e-8)
             loss = loss - (advantage.detach() * round_logps[t]).mean()
+
+        if entropy_weight > 0:
+            logits = theta.unsqueeze(0).expand(E, -1).masked_fill(~preselect_mask.view(-1).bool().unsqueeze(0), float('-inf'))
+            probs = torch.softmax(logits, dim=1)
+            entropy = -(probs * torch.log(probs + 1e-8)).sum(dim=1).mean()
+            loss = loss - entropy_weight * entropy
 
         optimizer.zero_grad()
         loss.backward()
+        if clip_grad_norm is not None:
+            torch.nn.utils.clip_grad_norm_([theta], max_norm=clip_grad_norm)
         optimizer.step()
 
         history.append(prev_err.mean().item())
