@@ -67,12 +67,42 @@ class Sequential_Trainer:
 
     @staticmethod
     def _build_run_name(options: TrainConfig) -> str:
+        parts = []
+
+        if options.model:
+            parts.append(options.model)
+
         recon_type = options.recon.recon_type
+        parts.append(recon_type)
+
+        if options.loss_type != 'l1':
+            parts.append(f"loss-{options.loss_type}")
+
+        if options.sampler_type != 'conv_2d':
+            parts.append(f"sampler-{options.sampler_type}")
+
+        if options.uncertainty_loss:
+            parts.append("unc")
+
+        if options.anatomy_weight > 0:
+            parts.append(f"anat{options.anatomy_weight:.1f}")
+
+        if options.anatomy_conditioning:
+            parts.append("cond-anat")
+
+        if options.mask_train_mode != 'straight_through':
+            parts.append(f"mask-{options.mask_train_mode}")
+
         res = f"{options.resolution[0]}x{options.resolution[1]}"
+        parts.append(res)
+
         accel = 'x'.join(str(int(a)) if a == int(a) else str(a) for a in options.accelerations)
-        steps = options.num_step
-        bs = options.batch_size
-        return f"{recon_type}_{res}_{accel}acc_step{steps}_bs{bs}"
+        parts.append(f"{accel}acc")
+
+        parts.append(f"step{options.num_step}")
+        parts.append(f"bs{options.batch_size}")
+
+        return "_".join(parts)
 
     def __call__(self):
         if self.options.checkpoint is not None:
@@ -747,6 +777,8 @@ def _apply_signal_mask(output, target):
 
 def _normalize_for_tb(tensor):
     t = tensor.float()
+    if not torch.isfinite(t).all():
+        t = torch.nan_to_num(t, nan=0.0, posinf=0.0, neginf=0.0)
     t = t - t.min()
     denom = t.max()
     if denom > 0:
