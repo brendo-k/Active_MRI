@@ -33,11 +33,12 @@ from pathlib import Path
 
 os.environ.setdefault('HDF5_USE_FILE_LOCKING', 'FALSE')
 
+import _path  # noqa: F401
 import torch
 
 from activemri.datasets.fastmri_data import FastMRIDataset, _resolve_anatomy_dirs
 from activemri.samplers.oracle import (
-    LineOracle, MeanLineOracle, center_lines, estimate_sense_maps, greedy_lines, relaxed_design,
+    LineOracle, MeanLineOracle, center_lines, estimate_sense_maps, greedy_lines, relaxed_design, swap_refine, icd_refine,
 )
 
 
@@ -190,6 +191,20 @@ def main():
     print(f'greedy:     {args.objective}={greedy_score:.6g}  '
           f'(gap to true optimum: {greedy_gap:+.4%})', flush=True)
 
+    refined_small = swap_refine(small_oracle, greedy_small['mask'], objective=args.objective,
+                                preselect=args.small_preselect, chunk=args.eval_batch, verbose=False)
+    refined_score = refined_small['history'][-1]
+    refined_gap = (refined_score - exact_score) / abs(exact_score) if exact_score else float('nan')
+    print(f'greedy+swap: {args.objective}={refined_score:.6g}  '
+          f'(gap to true optimum: {refined_gap:+.4%}, {refined_small["num_swaps"]} swaps)', flush=True)
+
+    icd_small = icd_refine(small_oracle, greedy_small['mask'], objective=args.objective,
+                           preselect=args.small_preselect, chunk=args.eval_batch, verbose=False)
+    icd_score = icd_small['history'][-1]
+    icd_gap = (icd_score - exact_score) / abs(exact_score) if exact_score else float('nan')
+    print(f'greedy+icd:  {args.objective}={icd_score:.6g}  '
+          f'(gap to true optimum: {icd_gap:+.4%}, {icd_small["num_moves"]} moves)', flush=True)
+
     small_relaxed = {}
     if args.objective in ('trace', 'logdet'):
         relaxed = relaxed_design(small_oracle, args.small_budget, objective=args.objective,
@@ -234,6 +249,12 @@ def main():
             'exact_score': exact_score,
             'greedy_score': greedy_score,
             'greedy_gap_to_true_optimum': greedy_gap,
+            'swap_refined_score': refined_score,
+            'swap_refined_gap_to_true_optimum': refined_gap,
+            'num_swaps': refined_small['num_swaps'],
+            'icd_refined_score': icd_score,
+            'icd_refined_gap_to_true_optimum': icd_gap,
+            'num_icd_moves': icd_small['num_moves'],
             'relaxed': small_relaxed,
         },
         'full': {

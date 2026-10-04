@@ -6,14 +6,16 @@ raw score map into a binary acquisition mask.
 import torch
 from torch import nn
 
+from activemri.samplers.caipi import caipi_mask
 from activemri.samplers.conv import KspaceLineConstrainedSampler, SampProb2D
 from activemri.samplers.loupe import LineConstrainedProbMask, ProbMask
 from activemri.samplers.oracle import plackett_luce_sample_and_logprob
+from activemri.utils.image_processing import ifft_2d_img
 from activemri.utils.mask_binarization import RescaleProbMap, ThresholdRandomMaskSigmoidV1
 
 
-SAMPLER_TYPES = ("conv_2d", "conv_1d", "loupe_2d", "loupe_1d")
-MASK_TRAIN_MODES = ("straight_through", "reinforce")
+SAMPLER_TYPES = ("conv_2d", "conv_1d", "loupe_2d", "loupe_1d", "caipi_2d")
+MASK_TRAIN_MODES = ("straight_through", "reinforce", "random")
 
 
 def is_line_constrained(sampler_type):
@@ -24,12 +26,13 @@ def is_line_constrained(sampler_type):
 class Sampler(nn.Module):
     """Generates sampling masks for sequential k-space acquisition.
 
-    Four sampler families are available, selected by `sampler_type`:
+    Five sampler families are available, selected by `sampler_type`:
 
         conv_2d   U-Net over k-space, one score per location   (input-adaptive)
         conv_1d   MLP over k-space, one score per column       (input-adaptive)
         loupe_2d  learned mask, one weight per location        (input-independent)
         loupe_1d  learned mask, one weight per column          (input-independent)
+        caipi_2d  fixed 2x2 CAIPI lattice, no parameters       (input-independent)
 
     The LOUPE families ignore the observed k-space; their mask is a free
     parameter shared across the dataset. By default all four are put through
@@ -65,6 +68,11 @@ class Sampler(nn.Module):
         num_anatomy_classes=0,
         num_conditioning_classes=0,
         mask_train_mode='straight_through',
+        sampler_chans=64,
+        sampler_depth=4,
+        image_domain_input=False,
+        reinforce_vd_power=0.0,
+        caipi_keep_fraction=1.0,
         ):
         super().__init__()
 
@@ -76,9 +84,12 @@ class Sampler(nn.Module):
         self.sampler_type = sampler_type
         self.line_constrained = is_line_constrained(sampler_type)
         self.is_loupe = sampler_type.startswith("loupe")
+        if image_domain_input and sampler_type != 'conv_2d':
+            raise ValueError("image_domain_input is only implemented for conv_2d")
+        self.image_domain_input = image_domain_input
         self.mask_train_mode = mask_train_mode
-        if mask_train_mode == 'reinforce' and not self.is_loupe:
-            raise ValueError("mask_train_mode='reinforce' is only implemented for loupe_2d/loupe_1d")
+        if mask_train_mode in ('reinforce', 'random') and not self.is_loupe:
+            raise ValueError(f"mask_train_mode={mask_train_mode!r} is only implemented for loupe_2d/loupe_1d")
         self.shape = shape
         self.detach_kspace = detach_kspace
         self.with_uncertainty = with_uncertainty
@@ -88,7 +99,9 @@ class Sampler(nn.Module):
         self.num_anatomy_classes = num_anatomy_classes
         self.num_conditioning_classes = num_conditioning_classes
 
-        if sampler_type == "conv_2d":
+        if sampler_type == "caipi_2d":
+            self.register_buffer("caipi_pattern", caipi_mask(shape, keep_fraction=caipi_keep_fraction)[None, None])
+        elif sampler_type == "conv_2d":
             self.mask_net = SampProb2D(
                 fixed_input=fixed_input,
                 with_recon=with_recon,
@@ -97,6 +110,8 @@ class Sampler(nn.Module):
                 num_anatomy_classes=num_anatomy_classes,
                 shape=shape,
                 num_conditioning_classes=num_conditioning_classes,
+                chans=sampler_chans,
+                depth=sampler_depth,
             )
         elif sampler_type == "conv_1d":
             if with_uncertainty:
@@ -111,8 +126,18 @@ class Sampler(nn.Module):
         else:
             self.mask_net = LineConstrainedProbMask(shape, slope, num_conditioning_classes=num_conditioning_classes)
 
+        if mask_train_mode == 'reinforce' and reinforce_vd_power > 0:
+            self.mask_net.init_variable_density(reinforce_vd_power)
+
         self.rescale = RescaleProbMap
         self.binarize = ThresholdRandomMaskSigmoidV1.apply
+
+    @staticmethod
+    def _to_image_domain(kspace_channels):
+        """IFFT each (real, imag) pair of a NHWC k-space stack, keeping the layout."""
+        pairs = kspace_channels.reshape(*kspace_channels.shape[:-1], -1, 2)
+        images = ifft_2d_img(torch.view_as_complex(pairs.contiguous()), axes=[1, 2])
+        return torch.view_as_real(images).reshape(kspace_channels.shape)
 
     def _predict_probabilities(self, input_kspace, old_mask, recon_complex, gfactor, anatomy_labels):
         """Run the mask network, returning (scores NCHW, uncertainty or None, anatomy_logits or None)."""
@@ -133,7 +158,7 @@ class Sampler(nn.Module):
         )
         return prob, uncertainty, anatomy_logits
 
-    def _reinforce_forward(self, old_mask, budget, valid_mask, anatomy_labels):
+    def _reinforce_forward(self, old_mask, budget, valid_mask, anatomy_labels, uniform=False):
         """Exact-budget Plackett-Luce sampling from the LOUPE mask's raw logits.
 
         Args:
@@ -141,17 +166,27 @@ class Sampler(nn.Module):
             budget: Target number of *new* locations/columns this step.
             valid_mask: Optional [B, 1, H, W] mask of in-bounds k-space.
             anatomy_labels: Optional [B] long tensor.
+            uniform: If True, sample uniformly at random instead of from the
+                mask's learned logits, and don't touch mask_net's parameters
+                (used by `mask_train_mode='random'` to pretrain a reconstructor
+                against an arbitrary mask distribution, not the policy's own).
 
         Returns:
             binary_mask: [B, 1, H, W], old_mask union this step's draw.
             data_to_vis_sampler: dict, for visualization only.
             logp: [B] log-probability of this step's draw, differentiable in
-                the mask logits -- what the REINFORCE loss term needs.
+                the mask logits -- what the REINFORCE loss term needs. None
+                when `uniform=True` (no policy to credit) and in eval mode,
+                where the mask is the deterministic top-k of the logits.
         """
         B = old_mask.shape[0]
-        raw = self.mask_net.raw_logits(anatomy_labels)  # [1 or B, ...]
-        if raw.shape[0] == 1:
-            raw = raw.expand(B, *raw.shape[1:])
+        if uniform:
+            flat = self.shape[1] if self.line_constrained else self.shape[0] * self.shape[1]
+            raw = torch.zeros(B, flat, device=old_mask.device)
+        else:
+            raw = self.mask_net.raw_logits(anatomy_labels)  # [1 or B, ...]
+            if raw.shape[0] == 1:
+                raw = raw.expand(B, *raw.shape[1:])
 
         if self.line_constrained:
             logits = raw.reshape(B, self.shape[1])
@@ -165,12 +200,29 @@ class Sampler(nn.Module):
                 taken = taken | (valid_mask.reshape(B, -1) <= 0)
 
         logits = logits.masked_fill(taken, float('-inf'))
+
+        # Entropy of the first-pick categorical over remaining positions --
+        # an exploration signal for `mask_train_mode='reinforce'`: high when
+        # the policy still spreads mass broadly, collapsing toward 0 as it
+        # commits to one pattern. Differentiable in the logits, so an
+        # `entropy_weight` term in the loss can discourage premature collapse.
+        probs = torch.softmax(logits, dim=1)
+        entropy = -(probs * torch.log(probs + 1e-8)).sum(dim=1)
+
         # A single Plackett-Luce call needs one shared k across the batch; if
         # per-example valid regions differ (e.g. padded mixed-anatomy data),
         # cap k at the tightest example rather than crash or silently pick a
         # different budget per row.
         k = min(int(round(float(budget))), int((~taken).sum(dim=1).min().item()))
-        order, logp = plackett_luce_sample_and_logprob(logits, k)
+        # In eval the policy is what would be deployed: the k highest-scoring
+        # locations, not a random draw. There is nothing to credit, so no
+        # log-prob -- which also keeps the REINFORCE term out of the validation
+        # loss that picks the best checkpoint.
+        deterministic = not self.training and not uniform
+        if deterministic:
+            order, logp = torch.topk(logits, k, dim=1).indices, None
+        else:
+            order, logp = plackett_luce_sample_and_logprob(logits, k)
 
         delta = torch.zeros_like(logits)
         delta.scatter_(1, order, 1.0)  # delta has no grad history -- safe in-place
@@ -189,7 +241,8 @@ class Sampler(nn.Module):
             'rescaled_mask': delta_mask[0, 0].detach(),
             'binarized_mask': binary_mask[0, 0].detach(),
         }
-        return binary_mask, data_to_vis_sampler, logp
+        draws_policy = not (uniform or deterministic)
+        return binary_mask, data_to_vis_sampler, (logp if draws_policy else None), (entropy if draws_policy else None)
 
     def forward(self, observed_kspace, old_mask, budget, uncertainty_mask=None, valid_mask=None, recon_complex=None, gfactor=None, anatomy_labels=None):  # noqa: ARG002
         """
@@ -199,19 +252,37 @@ class Sampler(nn.Module):
             anatomy_logits: [N, num_classes] or None
             logp: [B] Plackett-Luce log-probability of this step's draw, or
                 None outside `mask_train_mode='reinforce'`.
+            entropy: [B] entropy of this step's draw distribution, or None
+                outside `mask_train_mode='reinforce'`.
         """
         if self.detach_kspace:
             observed_kspace = observed_kspace.detach()
 
-        if self.mask_train_mode == 'reinforce':
-            binary_mask, data_to_vis_sampler, logp = self._reinforce_forward(
-                old_mask, budget, valid_mask, anatomy_labels)
-            return binary_mask, data_to_vis_sampler, None, logp
+        if self.sampler_type == "caipi_2d":
+            binary_mask = torch.clamp(old_mask + self.caipi_pattern.to(old_mask.dtype), max=1)
+            data_to_vis_sampler = {
+                'prob_mask': self.caipi_pattern[0, 0],
+                'rescaled_mask': self.caipi_pattern[0, 0],
+                'binarized_mask': binary_mask[0, 0].detach(),
+            }
+            return binary_mask, data_to_vis_sampler, None, None, None
 
-        input_kspace = torch.cat([observed_kspace, observed_kspace * old_mask.permute(0, 2, 3, 1)], dim=-1)
+        if self.mask_train_mode == 'reinforce':
+            binary_mask, data_to_vis_sampler, logp, entropy = self._reinforce_forward(
+                old_mask, budget, valid_mask, anatomy_labels)
+            return binary_mask, data_to_vis_sampler, None, logp, entropy
+
+        if self.mask_train_mode == 'random':
+            binary_mask, data_to_vis_sampler, _, _ = self._reinforce_forward(
+                old_mask, budget, valid_mask, anatomy_labels, uniform=True)
+            return binary_mask, data_to_vis_sampler, None, None, None
+
+        sampler_input = torch.cat([observed_kspace, observed_kspace * old_mask.permute(0, 2, 3, 1)], dim=-1)
+        if self.image_domain_input:
+            sampler_input = self._to_image_domain(sampler_input)
 
         samp_prob_unscaled, sampler_uncertainty, anatomy_logits = self._predict_probabilities(
-            input_kspace, old_mask, recon_complex, gfactor, anatomy_labels
+            sampler_input, old_mask, recon_complex, gfactor, anatomy_labels
         )
 
         if self.line_constrained:
@@ -238,4 +309,4 @@ class Sampler(nn.Module):
         if sampler_uncertainty is not None:
             data_to_vis_sampler['sampler_uncertainty'] = sampler_uncertainty[0, 0].detach()
 
-        return binary_mask, data_to_vis_sampler, anatomy_logits, None
+        return binary_mask, data_to_vis_sampler, anatomy_logits, None, None

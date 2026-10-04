@@ -57,14 +57,17 @@ class SampProb2D(nn.Module):
             appending its learned embedding as constant input channels, so the
             predicted pattern can differ between anatomies.
         anatomy_embed_dim: Width of that embedding.
+        chans: Output channels of the U-Net's first convolution; doubles at each depth.
+        depth: Number of down-/up-sampling stages in the U-Net.
     """
-
-    BOTTLENECK_CHANS = 64 * (2 ** 4)  # 1024
 
     def __init__(self, fixed_input=False, with_recon=False, with_gfactor=False,
                  uncertainty_mode='none', num_anatomy_classes=0, shape=(128, 128),
-                 num_conditioning_classes=0, anatomy_embed_dim=DEFAULT_EMBED_DIM):
+                 num_conditioning_classes=0, anatomy_embed_dim=DEFAULT_EMBED_DIM,
+                 chans=64, depth=4):
         super().__init__()
+
+        self.bottleneck_chans = chans * 2 ** depth
 
         self.with_recon = with_recon
         self.with_gfactor = with_gfactor
@@ -86,16 +89,16 @@ class SampProb2D(nn.Module):
         self.unet = LOUPEUNet(
             in_chans=in_chans,
             out_chans=out_chans,
-            chans=64,
-            depth=4,
+            chans=chans,
+            depth=depth,
             drop_prob=0,
             upsample_mode='bilinear',
         )
 
         if uncertainty_mode == 'head':
             self.uncertainty_decoder = nn.ModuleList()
-            ch = self.BOTTLENECK_CHANS
-            for _ in range(4):
+            ch = self.bottleneck_chans
+            for _ in range(depth):
                 self.uncertainty_decoder.append(upsample_block(ch, ch // 2, drop_prob=0))
                 ch //= 2
             self.uncertainty_conv = nn.Conv2d(ch, 1, kernel_size=1)
@@ -104,7 +107,7 @@ class SampProb2D(nn.Module):
             self.anatomy_head = nn.Sequential(
                 nn.AdaptiveAvgPool2d(1),
                 nn.Flatten(),
-                nn.Linear(self.BOTTLENECK_CHANS, 256),
+                nn.Linear(self.bottleneck_chans, 256),
                 nn.ReLU(inplace=True),
                 nn.Linear(256, num_anatomy_classes),
             )

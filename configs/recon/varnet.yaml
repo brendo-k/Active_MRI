@@ -3,3 +3,4 @@ num_cascades: 12
 chans: 18
 pools: 4
 anatomy_conditioning: false  # feed the anatomy label to every cascade
+film_conditioning: false  # FiLM on each cascade bottleneck, driven by condition_classes

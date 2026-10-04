@@ -51,6 +51,7 @@ class VarNetReconConfig(ReconConfig):
     chans: int = 18
     pools: int = 4
     anatomy_conditioning: bool = False
+    film_conditioning: bool = False
 
 
 @dataclass

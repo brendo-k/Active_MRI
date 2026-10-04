@@ -23,6 +23,36 @@ ANATOMY_DIR_MAP = {
 DEFAULT_BRAIN_CONTRAST = 'T2'
 
 
+def condition_name(anatomy: str, attrs: Dict) -> str:
+    """Conditioning label: the anatomy, split by knee fat saturation (PD vs PDFS)."""
+    if anatomy != 'knee':
+        return anatomy
+    acquisition = attrs.get('acquisition', '')
+    return 'knee-PDFS' if 'PDFS' in str(acquisition) else 'knee-PD'
+
+
+ANATOMY_FILE_MARKERS = {
+    'brain': 'brain',
+    'prostate': 'prostate',
+    'breast': 'breast',
+}
+
+
+def list_anatomy_files(root: pathlib.Path, anatomy: str) -> List[pathlib.Path]:
+    """HDF5 files under `root` belonging to `anatomy`, sorted by name.
+
+    Knee files carry no marker, so knee is whatever is left after excluding the
+    other anatomies.
+    """
+    root = pathlib.Path(root)
+    entries = [*root.iterdir(), *(f for d in root.iterdir() if d.is_dir() and d.name.endswith('_h5') for f in d.iterdir())]
+    files = sorted(f for f in entries if f.suffix in ('.h5', '.hdf5'))
+    marker = ANATOMY_FILE_MARKERS.get(anatomy)
+    if marker is not None:
+        return [f for f in files if marker in f.name]
+    return [f for f in files if not any(m in f.name for m in ANATOMY_FILE_MARKERS.values())]
+
+
 class FastMRIDataset(torch.utils.data.Dataset):
     def __init__(
         self,
@@ -46,23 +76,7 @@ class FastMRIDataset(torch.utils.data.Dataset):
         self.examples: List[Tuple[pathlib.Path, int]] = []
         rng = np.random.RandomState(1234)
 
-        anatomy_file_markers = {
-            'brain': 'brain',
-            'prostate': 'prostate',
-            'breast': 'breast',
-        }
-
-        files = sorted(
-            f for f in self.root.iterdir()
-            if f.suffix in ('.h5', '.hdf5')
-        )
-
-        marker = anatomy_file_markers.get(self.anatomy)
-        if marker is not None:
-            files = [f for f in files if marker in f.name]
-        else:
-            exclude = set(anatomy_file_markers.values())
-            files = [f for f in files if not any(m in f.name for m in exclude)]
+        files = list_anatomy_files(self.root, self.anatomy)
 
         if file_names is not None:
             wanted = set(file_names)
@@ -223,6 +237,7 @@ class FastMRIDataset(torch.utils.data.Dataset):
             'kspace': kspace,
             'target': target,
             'anatomy': self.anatomy,
+            'condition': condition_name(self.anatomy, attrs),
             'attrs': attrs,
             'fname': fname.name,
             'slice_id': slice_id,
@@ -276,6 +291,92 @@ def _resolve_anatomy_dirs(
     return anatomy_dir, anatomy_dir
 
 
+def _slice_count(fname: pathlib.Path, anatomy: str) -> int:
+    with h5py.File(fname, 'r') as data:
+        return data['kspace'].shape[1 if anatomy == 'prostate' else 0]
+
+
+def _split_volumes(files: List[pathlib.Path], val_fraction: float, seed: int):
+    """Split whole volumes (not slices) so val slices never share a scan with train slices."""
+    shuffled = list(files)
+    np.random.RandomState(seed).shuffle(shuffled)
+    n_val = int(round(len(shuffled) * val_fraction))
+    return sorted(shuffled[n_val:]), sorted(shuffled[:n_val])
+
+
+def _pick_volumes(files: List[pathlib.Path], anatomy: str, target_slices: int, seed: int) -> List[str]:
+    """Random volumes of `files` until their raw slice count first reaches `target_slices`."""
+    shuffled = list(files)
+    np.random.RandomState(seed).shuffle(shuffled)
+    picked, total = [], 0
+    for fname in shuffled:
+        if total >= target_slices:
+            break
+        picked.append(fname.name)
+        total += _slice_count(fname, anatomy)
+    return picked
+
+
+def _trim_examples(dataset: FastMRIDataset, num_examples: int, seed: int) -> None:
+    """Keep `num_examples` slices, dropping whole randomly-chosen volumes first."""
+    by_volume: Dict[pathlib.Path, list] = {}
+    for example in dataset.examples:
+        by_volume.setdefault(example[0], []).append(example)
+    volumes = list(by_volume)
+    np.random.RandomState(seed).shuffle(volumes)
+    dataset.examples = [ex for v in volumes for ex in by_volume[v]][:num_examples]
+
+
+def _build_balanced_datasets(
+    data_root: pathlib.Path,
+    anatomies: List[str],
+    contrast: Optional[str],
+    val_fraction: float,
+    seed: int = 1234,
+    **dataset_kwargs,
+) -> Tuple[List[FastMRIDataset], List[FastMRIDataset]]:
+    """Per-anatomy train/val datasets with an equal number of slices per anatomy.
+
+    Volumes are pre-selected from HDF5 shape metadata so the (slow) energy filter
+    only scans volumes that are kept, then the larger anatomies are trimmed to the
+    exact slice count of the smallest. Anatomies without a train/val split are
+    split by volume.
+    """
+    files = {'train': {}, 'val': {}}
+    for anatomy in anatomies:
+        train_dir, val_dir = _resolve_anatomy_dirs(data_root, anatomy, contrast)
+        if train_dir == val_dir:
+            train_files, val_files = _split_volumes(list_anatomy_files(train_dir, anatomy), val_fraction, seed)
+            roots = {'train': train_dir, 'val': train_dir}
+        else:
+            train_files, val_files = list_anatomy_files(train_dir, anatomy), list_anatomy_files(val_dir, anatomy)
+            roots = {'train': train_dir, 'val': val_dir}
+        files['train'][anatomy] = (roots['train'], train_files)
+        files['val'][anatomy] = (roots['val'], val_files)
+
+    datasets = {}
+    for split in ('train', 'val'):
+        raw_totals = {
+            a: sum(_slice_count(f, a) for f in split_files)
+            for a, (_, split_files) in files[split].items()
+        }
+        target = min(raw_totals.values())
+        built = {}
+        for anatomy, (root, split_files) in files[split].items():
+            names = _pick_volumes(split_files, anatomy, target, seed)
+            built[anatomy] = FastMRIDataset(
+                root=root, anatomy=anatomy, file_names=names, **dataset_kwargs,
+            )
+        num_examples = min(len(ds) for ds in built.values())
+        for ds in built.values():
+            _trim_examples(ds, num_examples, seed)
+        counts = {a: (len({e[0] for e in ds.examples}), len(ds)) for a, ds in built.items()}
+        print(f"Balanced {split} set (volumes, slices): {counts}")
+        datasets[split] = list(built.values())
+
+    return datasets['train'], datasets['val']
+
+
 def _collate_fastmri_batch(samples: List[Dict]) -> Dict:
     """Like default_collate, but keeps 'espirit_maps' as a plain list.
 
@@ -300,6 +401,8 @@ def build_fastmri_dataloaders(
     contrast: Optional[str] = None,
     data_dir: Optional[str] = None,
     min_energy_fraction: float = 0.2,
+    balance: bool = False,
+    train_anatomies: Optional[List[str]] = None,
 ) -> Tuple[torch.utils.data.DataLoader, torch.utils.data.DataLoader]:
     """Build train and val dataloaders from one or more anatomies.
 
@@ -315,11 +418,28 @@ def build_fastmri_dataloaders(
         contrast: Brain contrast to use (T2, Flair, T1POST). Defaults to T2.
         data_dir: If provided, use this directory directly (expects train/val subdirs).
             Bypasses anatomy-based directory resolution.
+        balance: If True, give every anatomy the same number of train slices (and
+            of val slices) by dropping volumes from the larger ones. Anatomies with
+            no train/val split are split by volume rather than by slice.
+        train_anatomies: If given, train only on these anatomies while still
+            validating on all of `anatomies`. Splits are built over all of
+            `anatomies` first, so the kept train slices match a run that trains
+            on every anatomy.
     """
     train_datasets = []
     val_datasets = []
 
-    if data_dir is not None:
+    if balance:
+        if data_dir is not None:
+            raise ValueError("balance=True is only supported when data_dir is None")
+        train_datasets, val_datasets = _build_balanced_datasets(
+            data_root, anatomies, contrast, val_fraction,
+            image_shape=image_shape,
+            transform=transform,
+            num_coils=num_coils,
+            min_energy_fraction=min_energy_fraction,
+        )
+    elif data_dir is not None:
         data_path = pathlib.Path(data_dir)
         train_dir = data_path / 'train'
         val_dir = data_path / 'val'
@@ -391,6 +511,14 @@ def build_fastmri_dataloaders(
                         min_energy_fraction=min_energy_fraction,
                     )
                 )
+
+    if train_anatomies:
+        unknown = set(train_anatomies) - set(anatomies)
+        if unknown:
+            raise ValueError(f"train_anatomies {sorted(unknown)} are not in anatomies {anatomies}")
+        train_datasets = [
+            ds for ds, anatomy in zip(train_datasets, anatomies) if anatomy in train_anatomies
+        ]
 
     loader_kwargs = dict(
         batch_size=batch_size,

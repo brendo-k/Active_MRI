@@ -1,0 +1,9 @@
+anatomy: [brain, knee]
+data_root: /home/bkadota/data/fastmri
+data_dir: null
+contrast: T2
+num_coils: 16
+num_workers: 16
+balance: true  # equal train/val slices per anatomy; knee is split by volume
+condition_classes: []  # per-sample conditioning labels, e.g. [brain, knee-PD, knee-PDFS]; empty = use anatomy
+train_anatomies: []  # train on this subset only, still validating on every anatomy; empty = all

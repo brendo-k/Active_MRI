@@ -24,6 +24,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 
+import _path  # noqa: F401
 from activemri.config import TrainConfig
 from activemri.datasets.fastmri_data import FastMRIDataset, _resolve_anatomy_dirs
 from activemri.reconstructors.config import UNetReconConfig, VarNetReconConfig, CGSenseReconConfig

@@ -1,0 +1,6 @@
+anatomy: [brain, knee]
+data_root: /home/bkadota/data/fastmri
+data_dir: /home/bkadota/data/fastmri/combined_14
+contrast: T2
+num_coils: 14
+num_workers: 4

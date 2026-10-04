@@ -1,8 +1,8 @@
 """Train CG-SENSE knee model with recon input, g-factor conditioning, and channel uncertainty."""
 import os
-import sys
 os.environ['HDF5_USE_FILE_LOCKING'] = 'FALSE'
 
+import _path  # noqa: F401
 import random
 from pathlib import Path
 

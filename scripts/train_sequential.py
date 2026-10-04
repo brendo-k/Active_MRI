@@ -1,7 +1,7 @@
 import os
-import sys
 os.environ['HDF5_USE_FILE_LOCKING'] = 'FALSE'
 
+import _path  # noqa: F401
 import random
 from pathlib import Path
 
@@ -45,13 +45,28 @@ def build_train_config(cfg: DictConfig) -> TrainConfig:
         uncertainty_weight=cfg.loss.uncertainty_weight,
         anatomy_weight=cfg.loss.get('anatomy_weight', 0.0),
         anatomy_classes=list(cfg.datasets.anatomy),
+        condition_classes=list(cfg.datasets.get('condition_classes', [])),
+        train_anatomies=list(cfg.datasets.get('train_anatomies', [])),
         anatomy_conditioning=cfg.sampler.get('anatomy_conditioning', False),
         out_dir=[Path(cfg.output.out_dir)],
         checkpoint=cfg.output.checkpoint,
+        pretrained_recon=cfg.output.get('pretrained_recon', None),
         accelerations=list(cfg.sampler.accelerations),
         sampler_type=cfg.sampler.sampler_type,
         slope=cfg.sampler.get('slope', 10.0),
+        sampler_chans=cfg.sampler.get('chans', 64),
+        sampler_depth=cfg.sampler.get('depth', 4),
+        sampler_image_input=cfg.sampler.get('image_input', False),
+        caipi_keep_fraction=cfg.sampler.get('caipi_keep_fraction', 1.0),
         preselect_num=cfg.sampler.preselect_num,
+        mask_train_mode=cfg.sampler.get('mask_train_mode', 'straight_through'),
+        reinforce_weight=cfg.sampler.get('reinforce_weight', 1.0),
+        reinforce_entropy_weight=cfg.sampler.get('reinforce_entropy_weight', 0.0),
+        reinforce_normalize_advantages=cfg.sampler.get('reinforce_normalize_advantages', False),
+        reinforce_group_size=cfg.sampler.get('reinforce_group_size', 0),
+        reinforce_vd_power=cfg.sampler.get('reinforce_vd_power', 0.0),
+        reinforce_lr=cfg.sampler.get('reinforce_lr', None),
+        freeze_recon=cfg.sampler.get('freeze_recon', False),
         sense_mask_method=cfg.sampler.get('sense_mask_method', 'pre_network'),
         with_recon=cfg.sampler.get('with_recon', False),
         with_gfactor=cfg.sampler.get('with_gfactor', False),
@@ -81,6 +96,8 @@ def build_dataloaders(cfg: DictConfig):
         contrast=cfg.datasets.get('contrast', None),
         data_dir=cfg.datasets.get('data_dir', None),
         min_energy_fraction=cfg.datasets.get('min_energy_fraction', 0.2),
+        balance=cfg.datasets.get('balance', False),
+        train_anatomies=list(cfg.datasets.get('train_anatomies', [])),
     )
 
 

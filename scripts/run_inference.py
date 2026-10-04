@@ -10,7 +10,6 @@ Usage:
 """
 import argparse
 import pathlib
-import sys
 import os
 os.environ['HDF5_USE_FILE_LOCKING'] = 'FALSE'
 
@@ -20,6 +19,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
+import _path  # noqa: F401
 from activemri.datasets.real_brain_data import RealBrainData
 from activemri.training.trainer import build_model
 

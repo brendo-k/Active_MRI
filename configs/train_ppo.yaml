@@ -1,0 +1,76 @@
+defaults:
+  - recon: varnet
+  - datasets: multi_anatomy
+  - _self_
+
+training:
+  batch_size: 4
+  num_workers: 32
+  seed: 42
+
+env:
+  resolution: [256, 256]
+  acceleration: 4.0
+  preselect_num: 10
+  sense_mask_method: pre_network
+  # sparse = L2SR: reconstructor only runs at episode start/end, reward is the
+  # whole episode's NMSE improvement paid at the last step, and the observation
+  # holds the zero-filled image instead of the current reconstruction.
+  # dense = per-step NMSE improvement.
+  reward_mode: sparse
+  # point = each action is one 2D k-space point (H*W actions) and the preselected
+  # region is a center_block x center_block square. line = each action is one
+  # column and the preselected region is the center preselect_num columns.
+  action_space: point
+  # Actions acquired per step (drawn without replacement). R=4 in point mode is
+  # (256*256/4 - 16*16) / 128 = 126 steps.
+  points_per_step: 128
+  center_block: 16
+
+ppo:
+  # Alternation: PPO phase -> reconstructor phase, repeated num_rounds times (as in L2SR).
+  num_rounds: 3
+  steps_per_round: 100000  # env.step() calls in round 0
+  later_round_step_fraction: 0.2
+  round_lr_decay: 0.5  # per-round multiplier on the policy and reconstructor lrs
+  episodes_per_update: 2  # each episode is `training.batch_size` slices acquired in lockstep
+  ppo_epochs: 4
+  minibatch_size: 32
+  clip_range: 0.2
+  per_point_ratio: true  # clip the per-point (geometric mean) ratio, not the K-point sequence ratio
+  vf_coef: 0.5
+  ent_coef: 0.01
+  max_grad_norm: 0.5
+  target_kl: 0.03
+  # Finite-horizon, terminal-reward task: gamma=1 is the faithful choice. L2SR's
+  # gamma=0.5 was tuned for a 16-step horizon; at >100 steps here it would leave
+  # early acquisitions with essentially no credit.
+  gamma: 1.0
+  gae_lambda: 0.95
+  learning_rate: 0.0001
+  normalize_rewards: true
+  # Reconstructor phase (0 disables it: policy-only PPO against the checkpoint's reconstructor).
+  recon_steps_per_round: 500
+  recon_learning_rate: 0.0001
+  recon_max_grad_norm: 1.0
+  recon_policy_deterministic: true
+  val_update_freq: 10
+  num_val_episodes: 10
+  checkpoint_freq: 10
+  # chans/num_pools must match the VarNet checkpoint's recon config for
+  # load_pretrained_backbone to transfer weights.
+  chans: ${recon.chans}
+  num_pools: ${recon.pools}
+  critic_hidden: 256
+  backbone_cascade_idx: -1
+  pretrained_checkpoint: checkpoints/varnet_caipi2d_r4_brain_knee/best_model.pt
+  resume: false
+
+output:
+  out_dir: checkpoints/ppo
+
+device: cuda
+
+hydra:
+  run:
+    dir: ${output.out_dir}

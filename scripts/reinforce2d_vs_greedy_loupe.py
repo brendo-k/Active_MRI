@@ -44,6 +44,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 
+import _path  # noqa: F401
 from activemri.datasets.fastmri_data import FastMRIDataset, _resolve_anatomy_dirs
 from activemri.samplers.oracle import (
     _cg_solve_batch, estimate_sense_maps, greedy_2d, kspace_residual_scores, loupe_style_design_2d,

@@ -1,0 +1,58 @@
+defaults:
+  - recon: varnet
+  - datasets: multi_anatomy
+  - _self_
+
+training:
+  batch_size: 4
+  num_workers: 32
+  seed: 42
+
+env:
+  resolution: [256, 256]
+  acceleration: 4.0
+  preselect_num: 10
+  sense_mask_method: pre_network
+
+ema_dqn:
+  # DDQN training hyperparameters
+  num_train_steps: 200000
+  mem_capacity: 100000
+  dqn_batch_size: 32
+  dqn_burn_in: 1000
+  dqn_normalize: false
+  dqn_learning_rate: 0.0001
+  gamma: 0.99
+  target_net_update_freq: 1000
+  epsilon_start: 1.0
+  epsilon_end: 0.05
+  epsilon_decay: 50000.0
+  val_episode_freq: 50
+  num_val_episodes: 20
+  checkpoint_freq: 50
+  # chans/num_pools must match the VarNet checkpoint's recon config for
+  # load_pretrained_backbone to transfer weights.
+  chans: ${recon.chans}
+  num_pools: ${recon.pools}
+  backbone_cascade_idx: -1
+  pretrained_checkpoint: checkpoints/mt_varnet_256_1s/best_model.pt
+
+  # EMA reconstructor training hyperparameters
+  recon_learning_rate: 0.0001
+  # EMA decay: closer to 1.0 means slower updates to the EMA reconstructor
+  # Used to keep the reward approximately stationary from the replay buffer's perspective
+  recon_ema_decay: 0.999
+  # Number of gradient steps on the online reconstructor per environment step
+  # >1 allows the reconstructor to keep pace with a fast-moving policy early in training
+  recon_updates_per_step: 1
+
+  resume: false
+
+output:
+  out_dir: checkpoints/ema_ddqn
+
+device: cuda
+
+hydra:
+  run:
+    dir: ${output.out_dir}

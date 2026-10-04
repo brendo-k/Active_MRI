@@ -1,7 +1,7 @@
 import os
-import sys
 os.environ['HDF5_USE_FILE_LOCKING'] = 'FALSE'
 
+import _path  # noqa: F401
 import random
 from pathlib import Path
 
@@ -68,7 +68,7 @@ def evaluate_checkpoint(checkpoint_path, device='cuda', anatomies=('brain',)):
             target = batch['target'].to(device)
 
             anatomy_labels = anatomy_labels_from_batch(
-                batch, getattr(options, 'anatomy_classes', []) or [], device,
+                batch, options.label_classes, device, options.label_key,
             )
 
             pred_dict = model(target, kspace, anatomy_labels=anatomy_labels)

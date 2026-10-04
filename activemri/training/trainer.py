@@ -1,5 +1,4 @@
 from collections import defaultdict
-from pathlib import Path
 from typing import List, Optional
 import logging
 import os
@@ -15,7 +14,7 @@ import time
 import matplotlib.pyplot as plt
 
 from activemri.utils.evaluate import build_metrics
-from activemri.models.sequential_sampling import SequentialSampling
+from activemri.models.sequential_sampling import SequentialSampling, reinforce_group_size
 from activemri.utils.util import compute_ssim_torch, compute_psnr_torch
 from activemri.config import TrainConfig
 from activemri.reconstructors.config import UNetReconConfig, CGSenseReconConfig, VarNetReconConfig
@@ -34,14 +33,23 @@ class Sequential_Trainer:
     ):
         self.options = options
         self.device = device
-        self.anatomy_to_idx = {name: i for i, name in enumerate(options.anatomy_classes)} if options.anatomy_classes else {}
+        logging.basicConfig(level=logging.INFO)
+        self.logger = logging.getLogger(__name__)
+        self.anatomy_to_idx = {name: i for i, name in enumerate(options.label_classes)}
         self.model = build_model(self.options).to(device)
+
+        if options.pretrained_recon is not None:
+            self._load_pretrained_recon(options.pretrained_recon)
+        if options.freeze_recon:
+            self._freeze_recon()
+
         if options.data_parallel:
             self.model = torch.nn.DataParallel(self.model)
 
-        self.optimizer = build_optimizer(options.lr, options.weight_decay, self.model.parameters())
+        self.optimizer = build_optimizer(options.lr, options.weight_decay, self._param_groups())
         self.train_loader = train_loader
         self.val_loader = val_loader if val_loader is not None else train_loader
+        self.visual_examples = select_visual_examples(self.val_loader.dataset)
 
         self.scheduler = build_lr_scheduler(options, self.optimizer)
         self.best_val_loss = np.inf
@@ -60,16 +68,89 @@ class Sequential_Trainer:
         run_name = self._build_run_name(options)
         wandb.init(project="SeqMRI", name=run_name, config=vars(options), dir=str(exp_dir))
 
-        logging.basicConfig(level=logging.INFO)
-        self.logger = logging.getLogger(__name__)
         self.logger.info(self.options)
         self.logger.info(self.model)
+
+    def _load_pretrained_recon(self, checkpoint_path: str):
+        """Load only the `reconstructor`/`sensetivity_net` weights from a prior
+        run's checkpoint, leaving the sampler at its fresh initialization."""
+        checkpoint = torch.load(checkpoint_path, map_location=self.device, weights_only=False)
+        state_dict = {k.removeprefix('module.'): v for k, v in checkpoint['model'].items()}
+        recon_state = {
+            k: v for k, v in state_dict.items()
+            if k.startswith('reconstructor.') or k.startswith('sensetivity_net.')
+        }
+        missing, unexpected = self.model.load_state_dict(recon_state, strict=False)
+        missing = [k for k in missing if not k.startswith('sampler.')]
+        if missing or unexpected:
+            raise RuntimeError(
+                f"Pretrained recon checkpoint {checkpoint_path} did not match the model's "
+                f"reconstructor/sensetivity_net: missing={missing}, unexpected={unexpected}"
+            )
+        self.logger.info(f"Loaded pretrained reconstructor weights from {checkpoint_path}")
+
+    def _param_groups(self):
+        """Trainable parameters, with the mask logits split out when REINFORCE has its own lr.
+
+        Under Adam each logit moves about `lr` per step whatever its gradient's
+        scale, so the policy's pace is set by this lr, not by the reconstructor's.
+        """
+        trainable = [p for p in self.model.parameters() if p.requires_grad]
+        policy_lr = self.options.reinforce_lr
+        if self.options.mask_train_mode != 'reinforce' or policy_lr is None:
+            return trainable
+        model = self.model.module if isinstance(self.model, torch.nn.DataParallel) else self.model
+        policy = [p for p in model.sampler.mask_net.parameters() if p.requires_grad]
+        policy_ids = {id(p) for p in policy}
+        rest = [p for p in trainable if id(p) not in policy_ids]
+        return [group for group in ({'params': rest}, {'params': policy, 'lr': policy_lr})
+                if group['params']]
+
+    @staticmethod
+    def _replicate_for_reinforce(batch, group_size=0):
+        """Replace a batch of distinct slices with `group_size` copies of each of its first few slices.
+
+        REINFORCE's baseline is the mean reward over the draws that share a
+        slice, and every batch item draws its own independent mask. If a group
+        held different slices, the advantage (reward - baseline) would be
+        dominated by per-slice difficulty rather than mask quality -- the policy
+        gradient drowns in noise it can't act on. Replicating a slice across its
+        group, as `train_single_slice_loupe.py` already does, makes every item
+        in it an independent Monte Carlo draw of the *same* reconstruction
+        target, so the baseline actually isolates mask quality.
+
+        With `group_size=0` the whole batch is one group (a single slice per
+        step). A smaller group spends the same batch on several slices, so each
+        policy update averages over slices instead of chasing one.
+        """
+        n = batch['kspace'].shape[0]
+        group = reinforce_group_size(n, group_size)
+        slices = n // group
+        out = {}
+        for key, value in batch.items():
+            if torch.is_tensor(value):
+                out[key] = value[:slices].repeat_interleave(group, dim=0)
+            elif isinstance(value, list):
+                out[key] = [item for item in value[:slices] for _ in range(group)]
+            else:
+                out[key] = value
+        return out
+
+    def _recon_modules(self):
+        model = self.model.module if isinstance(self.model, torch.nn.DataParallel) else self.model
+        return model.reconstructor, model.sensetivity_net
+
+    def _freeze_recon(self):
+        for module in self._recon_modules():
+            module.requires_grad_(False)
+            module.eval()
+        self.logger.info("Froze reconstructor and sensetivity_net; training sampler only")
 
     @staticmethod
     def _build_run_name(options: TrainConfig) -> str:
         parts = []
 
-        if options.model:
+        if options.model and options.model != 'SequentialSampling':
             parts.append(options.model)
 
         recon_type = options.recon.recon_type
@@ -78,8 +159,23 @@ class Sequential_Trainer:
         if options.loss_type != 'l1':
             parts.append(f"loss-{options.loss_type}")
 
+        if options.anatomy_classes:
+            parts.append("-".join(options.anatomy_classes))
+
+        if options.train_anatomies:
+            parts.append("train-" + "-".join(options.train_anatomies))
+
         if options.sampler_type != 'conv_2d':
             parts.append(f"sampler-{options.sampler_type}")
+
+        if getattr(options, 'caipi_keep_fraction', 1.0) != 1.0:
+            parts.append(f"pf{options.caipi_keep_fraction:g}")
+
+        if (options.sampler_chans, options.sampler_depth) != (64, 4):
+            parts.append(f"samp-c{options.sampler_chans}d{options.sampler_depth}")
+
+        if getattr(options, 'sampler_image_input', False):
+            parts.append("samp-img")
 
         if options.uncertainty_loss:
             parts.append("unc")
@@ -93,13 +189,25 @@ class Sequential_Trainer:
         if options.mask_train_mode != 'straight_through':
             parts.append(f"mask-{options.mask_train_mode}")
 
+        if options.freeze_recon:
+            parts.append("frozen-recon")
+
         res = f"{options.resolution[0]}x{options.resolution[1]}"
         parts.append(res)
 
         accel = 'x'.join(str(int(a)) if a == int(a) else str(a) for a in options.accelerations)
         parts.append(f"{accel}acc")
 
-        parts.append(f"step{options.num_step}")
+        is_loupe = 'loupe' in (options.model or '').lower() or 'loupe' in options.sampler_type.lower()
+        is_static = options.sampler_type == 'oracle'
+
+        if is_static:
+            parts.append("static")
+        elif is_loupe:
+            parts.append("zero_step")
+        else:
+            parts.append(f"{options.num_step}step")
+
         parts.append(f"bs{options.batch_size}")
 
         return "_".join(parts)
@@ -140,6 +248,9 @@ class Sequential_Trainer:
 
     def train_epoch(self):
         self.model.train()
+        if self.options.freeze_recon:
+            for module in self._recon_modules():
+                module.eval()
 
         losses = []
         metrics = build_metrics(device=self.options.device)
@@ -155,12 +266,15 @@ class Sequential_Trainer:
             if iter_idx >= max_batches:
                 break
 
+            if self.options.mask_train_mode == 'reinforce':
+                batch = self._replicate_for_reinforce(batch, self.options.reinforce_group_size)
+
             kspace = batch['kspace'].to(self.device)
             target = batch['target'].to(self.device)
             anatomies = list(batch['anatomy'])
 
             try:
-                pred_dict = self.model(target, kspace, anatomy_labels=self._anatomy_labels(anatomies))
+                pred_dict = self.model(target, kspace, anatomy_labels=self._anatomy_labels(batch))
             except RuntimeError as err:
                 if 'Binarization failed to match target density' not in str(err):
                     raise
@@ -188,7 +302,7 @@ class Sequential_Trainer:
 
             output = pred_dict['output']
             target_dict = {'target': target, 'kspace': kspace}
-            anatomy_labels = self._anatomy_labels(anatomies)
+            anatomy_labels = self._anatomy_labels(batch)
             if anatomy_labels is not None:
                 target_dict['anatomy_labels'] = anatomy_labels
             meta = {
@@ -200,7 +314,22 @@ class Sequential_Trainer:
 
             self.optimizer.zero_grad()
             loss.backward()
-            torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1)
+            grad_log = gradient_stats(self.model, GRAD_CLIP_NORM)
+            bad_params = nonfinite_gradient_params(self.model) if grad_log['grad/nonfinite'] else []
+            grad_norm = torch.nn.utils.clip_grad_norm_(self.model.parameters(), GRAD_CLIP_NORM)
+            grad_log['data/zero_coil_frac'] = zero_coil_fraction(kspace)
+            grad_log['train/lr'] = self.optimizer.param_groups[0]['lr']
+            if self.options.mask_train_mode == 'reinforce':
+                grad_log['train/policy_lr'] = self.optimizer.param_groups[-1]['lr']
+            if grad_log['grad/nonfinite']:
+                self.logger.warning(
+                    "Skipping optimizer step with non-finite gradient norm "
+                    f"(loss={loss.item():.4g}, fnames={batch['fname']}, slice_ids={batch['slice_id'].tolist()}, "
+                    f"non-finite params={bad_params})"
+                )
+                wandb.log({**grad_log, 'train/skipped_step': 1.0, 'train/step': global_step_offset + iter_idx})
+                self.optimizer.zero_grad()
+                continue
             self.optimizer.step()
 
             losses.append(loss.item())
@@ -215,7 +344,15 @@ class Sequential_Trainer:
             metrics.update(masked_output, masked_target)
             anatomy_stats.update(anatomies, masked_output, masked_target, pred_dict['mask'].detach())
 
-            step_log = {'train/loss': loss.item(), 'train/step': global_step_offset + iter_idx}
+            step_log = {'train/loss': loss.item(), 'train/step': global_step_offset + iter_idx, **grad_log}
+            if self.options.mask_train_mode == 'reinforce':
+                step_log['train/reinforce_reward'] = log_dict.get('Reinforce Reward', 0.0)
+                step_log['train/reinforce_loss'] = log_dict.get('Reinforce Loss', 0.0)
+                for key, name in (('Reinforce Entropy', 'reinforce_entropy'),
+                                  ('Reinforce PG Grad Norm', 'reinforce_pg_grad_norm'),
+                                  ('Reinforce Entropy Grad Norm', 'reinforce_entropy_grad_norm')):
+                    if key in log_dict:
+                        step_log[f'train/{name}'] = log_dict[key]
             anatomy_logits = pred_dict.get('anatomy_logits')
             if anatomy_logits is not None and 'anatomy_labels' in target_dict:
                 preds = anatomy_logits.argmax(dim=1)
@@ -228,6 +365,7 @@ class Sequential_Trainer:
 
         metric_means = metrics.compute()
         epoch_log = {f'train/{name}': value.item() for name, value in metric_means.items()}
+        epoch_log['train/loss'] = np.mean(losses)
         epoch_log['epoch'] = self.epoch
         epoch_log.update(anatomy_images)
         epoch_log.update(anatomy_stats.compute('train'))
@@ -252,7 +390,7 @@ class Sequential_Trainer:
                 anatomies = list(batch['anatomy'])
 
                 try:
-                    pred_dict = self.model(target, kspace, anatomy_labels=self._anatomy_labels(anatomies))
+                    pred_dict = self.model(target, kspace, anatomy_labels=self._anatomy_labels(batch))
                 except RuntimeError as err:
                     if 'Binarization failed to match target density' not in str(err):
                         raise
@@ -267,7 +405,7 @@ class Sequential_Trainer:
                     self._visualize_and_save(self.epoch, data_for_vis_name)
 
                 for anatomy in dict.fromkeys(anatomies):
-                    if anatomy in logged_anatomies:
+                    if anatomy in logged_anatomies or anatomy in self.visual_examples:
                         continue
                     logged_anatomies.add(anatomy)
                     index = anatomies.index(anatomy)
@@ -282,7 +420,7 @@ class Sequential_Trainer:
                     output = output[-1]
 
                 target_dict = {'target': target, 'kspace': kspace}
-                anatomy_labels = self._anatomy_labels(anatomies)
+                anatomy_labels = self._anatomy_labels(batch)
                 if anatomy_labels is not None:
                     target_dict['anatomy_labels'] = anatomy_labels
                 meta = {
@@ -306,6 +444,8 @@ class Sequential_Trainer:
                 metrics.update(masked_output, masked_target)
                 anatomy_stats.update(anatomies, masked_output, masked_target, mask)
 
+            anatomy_images.update(self._fixed_example_images())
+
             metric_means = metrics.compute()
             epoch_log = {f'val/{name}': value.item() for name, value in metric_means.items()}
             epoch_log['val/loss'] = np.mean(losses)
@@ -314,16 +454,33 @@ class Sequential_Trainer:
             epoch_log.update(anatomy_stats.compute('val'))
             wandb.log(epoch_log)
 
-            anatomy_stats.save_mean_masks(self.vis_dir, f'val_epoch={self.epoch + 1}')
             self.logger.info(anatomy_stats.summary())
 
         return np.mean(losses), np.mean(sparsity), time.perf_counter() - start, metric_means
 
-    def _anatomy_labels(self, anatomies):
-        """Anatomy names to index tensor, or None when the run has no anatomy classes."""
+    def _fixed_example_images(self):
+        """Image logs for the same mid-volume val slice of each anatomy every epoch."""
+        images = {}
+        dataset = self.val_loader.dataset
+        for anatomy, index in self.visual_examples.items():
+            batch = self.val_loader.collate_fn([dataset[index]])
+            kspace = batch['kspace'].to(self.device)
+            target = batch['target'].to(self.device)
+            try:
+                pred_dict = self.model(target, kspace, anatomy_labels=self._anatomy_labels(batch))
+            except RuntimeError as err:
+                if 'Binarization failed to match target density' not in str(err):
+                    raise
+                self.logger.warning(f"Skipping fixed {anatomy} val example: {err}")
+                continue
+            images.update(_build_image_log(pred_dict, target, f'val/{anatomy}', self.model.data_for_vis))
+        return images
+
+    def _anatomy_labels(self, batch):
+        """Conditioning-class index tensor for a batch, or None when the run has no classes."""
         if not self.anatomy_to_idx:
             return None
-        return torch.tensor([self.anatomy_to_idx[a] for a in anatomies], device=self.device)
+        return torch.tensor([self.anatomy_to_idx[n] for n in batch[self.options.label_key]], device=self.device)
 
     def _plot_metrics(self, history):
         epochs = list(range(1, len(history['train_ssim']) + 1))
@@ -395,7 +552,6 @@ class Sequential_Trainer:
 
 
     def _visualize_and_save(self, epoch, data_for_vis_name):
-        import pickle
         data_for_vis = self.model.data_for_vis
         assert data_for_vis is not None
         for step in range(self.options.num_step):
@@ -458,9 +614,6 @@ class Sequential_Trainer:
             plt.savefig(self.vis_dir / f'{data_for_vis_name}_step{step}.png')
             plt.close()
 
-            with open(self.vis_dir / f'{data_for_vis_name}_step{step}.pkl', 'wb') as f:
-                pickle.dump(data_for_vis[step], f)
-
 
 class NonRLTester:
     def __init__(
@@ -481,7 +634,7 @@ class NonRLTester:
         self.model.load_state_dict(checkpoint['model'])
         self.model.eval()
 
-        self.anatomy_classes = getattr(self.options, 'anatomy_classes', []) or []
+        self.anatomy_classes = self.options.label_classes
 
         self.val_loader = val_loader
 
@@ -498,7 +651,6 @@ class NonRLTester:
         self.logger.info(self.options)
 
     def _visualize_and_save(self, iter_idx, data_for_vis_name):
-        import pickle
         data_for_vis = self.model.data_for_vis
         for step in range(self.options.num_step):
             fig, ax = plt.subplots(nrows=2, ncols=5, figsize=[18, 6])
@@ -531,9 +683,6 @@ class NonRLTester:
             plt.savefig(self.vis_dir / f'{data_for_vis_name}_step{step}.png')
             plt.close()
 
-            with open(self.vis_dir / f'{data_for_vis_name}_step{step}.pkl', 'wb') as f:
-                pickle.dump(data_for_vis[step], f)
-
     def evaluate(self):
         self.model.eval()
         losses = []
@@ -545,7 +694,7 @@ class NonRLTester:
                 kspace = batch['kspace'].to(self.device)
                 target = batch['target'].to(self.device)
 
-                anatomy_labels = anatomy_labels_from_batch(batch, self.anatomy_classes, self.device)
+                anatomy_labels = anatomy_labels_from_batch(batch, self.anatomy_classes, self.device, self.options.label_key)
 
                 pred_dict = self.model(target, kspace, anatomy_labels=anatomy_labels)
 
@@ -586,18 +735,37 @@ class NonRLTester:
         wandb.finish()
 
 
-def anatomy_labels_from_batch(batch, anatomy_classes, device):
+def select_visual_examples(dataset):
+    """Dataset index of a mid-volume slice for each anatomy of a ConcatDataset of
+    FastMRIDatasets, so the logged val images are the same representative slice
+    every epoch instead of whatever slice happens to lead the first batch.
+    Returns {} for any other dataset type."""
+    if not isinstance(dataset, torch.utils.data.ConcatDataset):
+        return {}
+    offsets = [0] + list(dataset.cumulative_sizes[:-1])
+    examples = {}
+    for offset, sub in zip(offsets, dataset.datasets):
+        if not getattr(sub, 'examples', None):
+            continue
+        volumes = list(dict.fromkeys(fname for fname, _ in sub.examples))
+        middle_volume = volumes[len(volumes) // 2]
+        slices = [i for i, (fname, _) in enumerate(sub.examples) if fname == middle_volume]
+        examples[sub.anatomy] = offset + slices[len(slices) // 2]
+    return examples
+
+
+def anatomy_labels_from_batch(batch, anatomy_classes, device, key='anatomy'):
     """Index tensor for a batch's anatomies, for conditioning at evaluation time.
 
     Returns None — which makes a conditioned model fall back to the mean
     embedding — when the run has no anatomy classes, the batch carries no
     anatomy, or the data holds an anatomy the model never saw.
     """
-    if not anatomy_classes or 'anatomy' not in batch:
+    if not anatomy_classes or key not in batch:
         return None
 
     index = {name: i for i, name in enumerate(anatomy_classes)}
-    unknown = {a for a in batch['anatomy'] if a not in index}
+    unknown = {a for a in batch[key] if a not in index}
     if unknown:
         warnings.warn(
             f"Anatomies {sorted(unknown)} are not in the checkpoint's classes {list(anatomy_classes)}; "
@@ -605,7 +773,7 @@ def anatomy_labels_from_batch(batch, anatomy_classes, device):
         )
         return None
 
-    return torch.tensor([index[a] for a in batch['anatomy']], device=device)
+    return torch.tensor([index[a] for a in batch[key]], device=device)
 
 
 def build_optimizer(lr, weight_decay, model_parameters, optim_type='adam'):
@@ -629,16 +797,68 @@ def _sampler_type(options: TrainConfig) -> str:
     return 'conv_1d' if getattr(options, 'line_constrained', False) else 'conv_2d'
 
 
+GRAD_CLIP_NORM = 1.0
+GRADIENT_GROUPS = ('sampler', 'reconstructor', 'sensetivity_net')
+
+
+def _unwrapped(model):
+    return model.module if isinstance(model, torch.nn.DataParallel) else model
+
+
+def gradient_stats(model, max_norm):
+    """Per-step gradient diagnostics, keyed for wandb. Call before clipping.
+
+    Reports the global norm, whether clipping will fire, whether any gradient is
+    non-finite, and for each of the sampler, reconstructor and sensitivity net:
+    the group's gradient norm, its largest absolute entry, and how many
+    parameter tensors hold a non-finite gradient. Together these show which
+    component blows up first.
+    """
+    model = _unwrapped(model)
+    all_grads = [p.grad for p in model.parameters() if p.grad is not None]
+    total_norm = torch.stack(torch._foreach_norm(all_grads)).norm()
+    names = ['grad/total_norm', 'grad/clipped', 'grad/nonfinite']
+    values = [total_norm, (total_norm > max_norm).float(), (~torch.isfinite(total_norm)).float()]
+    for group in GRADIENT_GROUPS:
+        grads = [p.grad for p in getattr(model, group).parameters() if p.grad is not None]
+        if not grads:
+            continue
+        per_tensor_norm = torch.stack(torch._foreach_norm(grads))
+        names += [f'grad/{group}_norm', f'grad/{group}_max_abs', f'grad/{group}_nonfinite_tensors']
+        values += [
+            per_tensor_norm.norm(),
+            torch.stack([g.abs().max() for g in grads]).max(),
+            (~torch.isfinite(per_tensor_norm)).sum().float(),
+        ]
+    return dict(zip(names, torch.stack([v.float() for v in values]).tolist()))
+
+
+def nonfinite_gradient_params(model, limit=5):
+    """Names of the first few parameters whose gradient is not finite."""
+    bad = [
+        name for name, p in _unwrapped(model).named_parameters()
+        if p.grad is not None and not torch.isfinite(p.grad).all()
+    ]
+    return bad[:limit] + ([f'... +{len(bad) - limit} more'] if len(bad) > limit else [])
+
+
+def zero_coil_fraction(kspace):
+    """Fraction of coil channels in the batch that are entirely zero (padding)."""
+    return (kspace.abs().sum(dim=(2, 3, 4)) == 0).float().mean().item()
+
+
 def build_model(options: TrainConfig):
     recon_cfg = options.recon
 
-    anatomy_classes = getattr(options, 'anatomy_classes', []) or []
+    anatomy_classes = options.label_classes
     num_anatomy_classes = len(anatomy_classes) if options.anatomy_weight > 0 else 0
     num_sampler_conditioning_classes = (
         len(anatomy_classes) if getattr(options, 'anatomy_conditioning', False) else 0
     )
     num_recon_conditioning_classes = (
-        len(anatomy_classes) if getattr(recon_cfg, 'anatomy_conditioning', False) else 0
+        len(anatomy_classes)
+        if getattr(recon_cfg, 'anatomy_conditioning', False) or getattr(recon_cfg, 'film_conditioning', False)
+        else 0
     )
 
     if isinstance(recon_cfg, UNetReconConfig):
@@ -656,6 +876,7 @@ def build_model(options: TrainConfig):
             chans=recon_cfg.chans,
             pools=recon_cfg.pools,
             num_conditioning_classes=num_recon_conditioning_classes,
+            film=getattr(recon_cfg, 'film_conditioning', False),
         )
     elif isinstance(recon_cfg, CGSenseReconConfig):
         reconstructor = CGSENSEReconstructor(
@@ -686,6 +907,14 @@ def build_model(options: TrainConfig):
         condition_reconstructor=num_recon_conditioning_classes > 0,
         mask_train_mode=getattr(options, 'mask_train_mode', 'straight_through'),
         reinforce_weight=getattr(options, 'reinforce_weight', 1.0),
+        reinforce_entropy_weight=getattr(options, 'reinforce_entropy_weight', 0.0),
+        reinforce_normalize_advantages=getattr(options, 'reinforce_normalize_advantages', False),
+        reinforce_group_size=getattr(options, 'reinforce_group_size', 0),
+        reinforce_vd_power=getattr(options, 'reinforce_vd_power', 0.0),
+        sampler_chans=getattr(options, 'sampler_chans', 64),
+        sampler_depth=getattr(options, 'sampler_depth', 4),
+        sampler_image_input=getattr(options, 'sampler_image_input', False),
+        caipi_keep_fraction=getattr(options, 'caipi_keep_fraction', 1.0),
     )
 
     return model
@@ -746,12 +975,8 @@ class _AnatomyStats:
                 log[f'{prefix}/{anatomy}/{name}'] = value.item()
         for anatomy, mean_mask in self.mean_masks().items():
             log[f'{prefix}/{anatomy}/sparsity'] = mean_mask.mean().item()
-            log[f'{prefix}/{anatomy}/mean_mask'] = wandb.Image(_normalize_for_tb(mean_mask))
+            log[f'{prefix}/{anatomy}/mean_mask'] = wandb.Image(_normalize_for_wandb(mean_mask))
         return log
-
-    def save_mean_masks(self, out_dir, name):
-        for anatomy, mean_mask in self.mean_masks().items():
-            np.save(Path(out_dir) / f'{name}_{anatomy}_mean_mask.npy', mean_mask.numpy())
 
     def summary(self):
         parts = []
@@ -775,7 +1000,7 @@ def _apply_signal_mask(output, target):
     return output * mask, target * mask
 
 
-def _normalize_for_tb(tensor):
+def _normalize_for_wandb(tensor):
     t = tensor.float()
     if not torch.isfinite(t).all():
         t = torch.nan_to_num(t, nan=0.0, posinf=0.0, neginf=0.0)
@@ -783,7 +1008,7 @@ def _normalize_for_tb(tensor):
     denom = t.max()
     if denom > 0:
         t = t / denom
-    return t
+    return t * 255  # wandb.Image casts tensors straight to uint8, so [0, 1] would truncate to black
 
 
 def _build_image_log(pred_dict, target, tag_prefix, data_for_vis=None, index=0):
@@ -791,7 +1016,7 @@ def _build_image_log(pred_dict, target, tag_prefix, data_for_vis=None, index=0):
     logged once per anatomy. `data_for_vis` is only valid for index 0."""
     images = {}
     target_img = target[index] if target.dim() == 4 else target[index].unsqueeze(0)
-    images[f'{tag_prefix}/target'] = wandb.Image(_normalize_for_tb(target_img).cpu())
+    images[f'{tag_prefix}/target'] = wandb.Image(_normalize_for_wandb(target_img).cpu())
 
     def _pick(tensor):
         return tensor[index] if tensor.shape[0] > index else tensor[0]
@@ -799,18 +1024,18 @@ def _build_image_log(pred_dict, target, tag_prefix, data_for_vis=None, index=0):
     step_masks = pred_dict.get('masks', None)
     if step_masks is not None:
         for i, mask in enumerate(step_masks):
-            images[f'{tag_prefix}/mask_step_{i}'] = wandb.Image(_normalize_for_tb(_pick(mask)).cpu())
+            images[f'{tag_prefix}/mask_step_{i}'] = wandb.Image(_normalize_for_wandb(_pick(mask)).cpu())
 
     output = pred_dict.get('intermediate_recons', pred_dict['output'])
     if isinstance(output, list):
         for i, recon in enumerate(output):
-            images[f'{tag_prefix}/intermediate_recon_{i}'] = wandb.Image(_normalize_for_tb(_pick(recon).abs()).cpu())
+            images[f'{tag_prefix}/intermediate_recon_{i}'] = wandb.Image(_normalize_for_wandb(_pick(recon).abs()).cpu())
     else:
-        images[f'{tag_prefix}/reconstruction'] = wandb.Image(_normalize_for_tb(_pick(output)).cpu())
+        images[f'{tag_prefix}/reconstruction'] = wandb.Image(_normalize_for_wandb(_pick(output)).cpu())
         if step_masks is None:
-            images[f'{tag_prefix}/mask'] = wandb.Image(_normalize_for_tb(_pick(pred_dict['mask'])).cpu())
+            images[f'{tag_prefix}/mask'] = wandb.Image(_normalize_for_wandb(_pick(pred_dict['mask'])).cpu())
 
-    images[f'{tag_prefix}/output'] = wandb.Image(_normalize_for_tb(_pick(pred_dict['output']).abs()).cpu())
+    images[f'{tag_prefix}/output'] = wandb.Image(_normalize_for_wandb(_pick(pred_dict['output']).abs()).cpu())
 
     if data_for_vis is not None:
         step_data = data_for_vis[0]

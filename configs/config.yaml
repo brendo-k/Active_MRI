@@ -7,7 +7,7 @@ training:
   num_step: 1
   batch_size: 4
   num_epochs: 50
-  lr: 0.001
+  lr: 0.0003
   lr_step_size: 40
   lr_gamma: 0.1
   weight_decay: 0.0
@@ -26,7 +26,19 @@ sampler:
   accelerations: [4.0]
   sampler_type: conv_2d  # conv_2d | conv_1d | loupe_2d | loupe_1d
   slope: 10
+  chans: 64  # first-conv width of the conv_2d sampler U-Net (doubles per depth)
+  depth: 4  # down/up-sampling stages of the conv_2d sampler U-Net
+  image_input: false  # conv_2d only: feed the IFFT of the under-sampled k-space to the sampler instead of k-space
+  caipi_keep_fraction: 1.0  # caipi_2d only: keep the leftmost fraction of columns (0.75 = 6/8 partial Fourier)
   preselect_num: 10
+  mask_train_mode: straight_through  # or 'reinforce'/'random' (loupe_2d/loupe_1d only)
+  reinforce_weight: 1.0
+  reinforce_entropy_weight: 0.0  # bonus for keeping the mask distribution spread out (discourages premature collapse)
+  reinforce_normalize_advantages: false  # normalize advantage to unit std per group, for more consistent update scale
+  reinforce_group_size: 0  # mask draws per slice, each group with its own baseline (batch_size = slices * group_size); 0 = whole batch is one slice
+  reinforce_vd_power: 0.0  # >0 starts the REINFORCE policy from a variable-density prior (log p = -power*log(r+0.05)); 0 = near-uniform random init
+  reinforce_lr: null  # learning rate for the mask logits alone; null = training.lr
+  freeze_recon: false  # freeze reconstructor+sensetivity_net, train only the sampler
   with_recon: false
   with_gfactor: false
   gfactor_replicas: 16
@@ -36,6 +48,7 @@ sampler:
 output:
   out_dir: checkpoints
   checkpoint: null
+  pretrained_recon: null  # load reconstructor+sensetivity_net weights from this checkpoint, sampler stays fresh
 
 misc:
   random_rotate: false

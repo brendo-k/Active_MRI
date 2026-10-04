@@ -343,6 +343,120 @@ def greedy_lines(
     return {'mask': mask, 'order': order, 'history': history}
 
 
+def swap_refine(
+    oracle,
+    mask: torch.Tensor,
+    objective: str = 'mse',
+    preselect: int = 0,
+    max_passes: int = 20,
+    chunk: int = 32,
+    verbose: bool = True,
+) -> Dict:
+    """Local search: swap one chosen line for one unchosen line while that helps.
+
+    Greedy never revisits a pick, so an early line can turn redundant once later
+    lines arrive. Each pass scores every single swap exactly, applies the best one
+    if it lowers the score, and stops when none does. The result is never worse
+    than the input and is a local optimum under single swaps.
+
+    Args:
+        oracle: A :class:`LineOracle` or :class:`MeanLineOracle`.
+        mask: [W] starting mask, e.g. from :func:`greedy_lines`.
+        objective: Passed to ``oracle.score``.
+        preselect: Number of centre lines that stay fixed.
+        max_passes: Cap on improving swaps.
+        chunk: Candidate masks scored per batched solve.
+        verbose: Print progress.
+
+    Returns:
+        ``mask`` [W], ``num_swaps`` applied, and the score ``history`` per pass.
+    """
+    mask = mask.clone()
+    fixed = center_lines(oracle.W, preselect, oracle.device) > 0
+    score = oracle.score(mask.unsqueeze(0), objective).item()
+    history = [score]
+
+    for _ in range(max_passes):
+        chosen = ((mask > 0) & ~fixed).nonzero(as_tuple=False).flatten()
+        unchosen = (mask == 0).nonzero(as_tuple=False).flatten()
+        drop = chosen.repeat_interleave(unchosen.numel())
+        add = unchosen.repeat(chosen.numel())
+
+        trial = mask.unsqueeze(0).repeat(drop.numel(), 1)
+        rows = torch.arange(drop.numel(), device=mask.device)
+        trial[rows, drop] = 0.0
+        trial[rows, add] = 1.0
+
+        scores = oracle.score_chunked(trial, objective, chunk)
+        best = int(torch.argmin(scores).item())
+        if scores[best].item() >= score:
+            break
+
+        mask = trial[best].clone()
+        score = scores[best].item()
+        history.append(score)
+        if verbose:
+            print(f'  swap {int(drop[best])} -> {int(add[best])}  {objective}={score:.6g}', flush=True)
+
+    return {'mask': mask, 'num_swaps': len(history) - 1, 'history': history}
+
+
+def icd_refine(
+    oracle,
+    mask: torch.Tensor,
+    objective: str = 'mse',
+    preselect: int = 0,
+    max_sweeps: int = 3,
+    chunk: int = 32,
+    verbose: bool = True,
+) -> Dict:
+    """Iterative coordinate descent over the chosen lines (SUNO's Algorithm 1).
+
+    Sweeps over the movable lines in order. Each one is lifted out and put back at
+    whichever free position scores best, committed at once, so a sweep can apply
+    many moves where :func:`swap_refine` applies one per pass. The line's own old
+    position is among the candidates, so the score never increases.
+
+    Args:
+        oracle: A :class:`LineOracle` or :class:`MeanLineOracle`.
+        mask: [W] starting mask, e.g. from :func:`greedy_lines`.
+        objective: Passed to ``oracle.score``.
+        preselect: Number of centre lines that stay fixed.
+        max_sweeps: Cap on full cycles over the movable lines.
+        chunk: Candidate masks scored per batched solve.
+        verbose: Print progress.
+
+    Returns:
+        ``mask`` [W], ``num_moves`` lines that changed position, and the score
+        ``history`` per sweep.
+    """
+    mask = mask.clone()
+    fixed = center_lines(oracle.W, preselect, oracle.device) > 0
+    history = [oracle.score(mask.unsqueeze(0), objective).item()]
+    total_moves = 0
+
+    for sweep in range(max_sweeps):
+        moves = 0
+        for line in ((mask > 0) & ~fixed).nonzero(as_tuple=False).flatten().tolist():
+            mask[line] = 0.0
+            candidates = (mask == 0).nonzero(as_tuple=False).flatten()
+            trial = mask.unsqueeze(0).repeat(candidates.numel(), 1)
+            trial[torch.arange(candidates.numel(), device=mask.device), candidates] = 1.0
+
+            best = int(torch.argmin(oracle.score_chunked(trial, objective, chunk)).item())
+            mask[candidates[best]] = 1.0
+            moves += int(candidates[best].item() != line)
+
+        history.append(oracle.score(mask.unsqueeze(0), objective).item())
+        total_moves += moves
+        if verbose:
+            print(f'  sweep {sweep + 1}: {moves} moves  {objective}={history[-1]:.6g}', flush=True)
+        if moves == 0:
+            break
+
+    return {'mask': mask, 'num_moves': total_moves, 'history': history}
+
+
 def plackett_luce_sample_and_logprob(logits: torch.Tensor, k: int):
     """Gumbel-top-k sampling from a Plackett-Luce policy, with its log-probability.
 
@@ -373,17 +487,17 @@ def plackett_luce_sample_and_logprob(logits: torch.Tensor, k: int):
     order = torch.topk(logits + gumbel, k, dim=1).indices  # [B, k]
 
     selected_logits = torch.gather(logits, 1, order)  # [B, k], in selection order
-    # logsumexp over "not yet taken" at step t: mask out items taken at steps < t.
-    # Since order lists items in the order they were taken, an out-of-place OR
-    # with each step's one-hot reproduces exactly that shrinking candidate set --
-    # in-place accumulation would mutate the mask a later backward pass needs to
-    # replay masked_fill's forward at each earlier step.
-    taken = torch.zeros(B, N, dtype=torch.bool, device=logits.device)
-    logp = torch.zeros(B, device=logits.device)
-    for t in range(k):
-        masked = logits.masked_fill(taken, float('-inf'))
-        logp = logp + selected_logits[:, t] - torch.logsumexp(masked, dim=1)
-        taken = taken | torch.nn.functional.one_hot(order[:, t], N).bool()
+    # The candidates still available at step t are the never-selected items plus
+    # the selected items t..k-1, so the step-t normaliser is
+    # logaddexp(LSE(never selected), LSE(selected[t:])). A reversed logcumsumexp
+    # gives every suffix LSE at once -- O(B*N) memory instead of keeping a
+    # masked [B, N] copy per step for backward, which is infeasible for 2D masks
+    # (k ~ 8k draws over N = 65k positions at R=8, 256x256).
+    selected = torch.zeros(B, N, dtype=torch.bool, device=logits.device).scatter_(1, order, True)
+    unselected_lse = torch.logsumexp(logits.masked_fill(selected, float('-inf')), dim=1, keepdim=True)
+    suffix_lse = torch.logcumsumexp(selected_logits.flip(1), dim=1).flip(1)  # [B, k]
+    normalisers = torch.logaddexp(suffix_lse, unselected_lse.expand_as(suffix_lse))
+    logp = (selected_logits - normalisers).sum(dim=1)
     return order, logp
 
 

@@ -26,6 +26,8 @@ class TrainConfig:
     uncertainty_weight: float = 0.0
     anatomy_weight: float = 0.0
     anatomy_classes: List[str] = field(default_factory=list)
+    condition_classes: List[str] = field(default_factory=list)  # finer than anatomy, e.g. knee-PD / knee-PDFS
+    train_anatomies: List[str] = field(default_factory=list)  # subset of anatomy_classes to train on; empty = all
     anatomy_conditioning: bool = False
 
     # Device / parallelism
@@ -36,14 +38,25 @@ class TrainConfig:
     out_dir: List[pathlib.Path] = field(default_factory=lambda: [pathlib.Path('checkpoints')])
     visualization_dir: Optional[pathlib.Path] = None
     checkpoint: Optional[str] = None
+    pretrained_recon: Optional[str] = None
 
     # Mask / sampler
     accelerations: List[float] = field(default_factory=lambda: [4.0])
     sampler_type: str = 'conv_2d'
     slope: float = 10.0
+    sampler_chans: int = 64
+    sampler_depth: int = 4
+    sampler_image_input: bool = False
+    caipi_keep_fraction: float = 1.0
     preselect_num: int = 10
-    mask_train_mode: str = 'straight_through'  # or 'reinforce' (loupe_2d/loupe_1d only)
+    mask_train_mode: str = 'straight_through'  # or 'reinforce'/'random' (loupe_2d/loupe_1d only)
     reinforce_weight: float = 1.0
+    reinforce_entropy_weight: float = 0.0
+    reinforce_normalize_advantages: bool = False
+    reinforce_group_size: int = 0  # mask draws per slice; 0 = the whole batch is one slice
+    reinforce_vd_power: float = 0.0  # >0: start the REINFORCE policy from a radial variable-density prior, log p = -power*log(r+0.05)
+    reinforce_lr: Optional[float] = None  # policy (mask logits) lr; None = same as `lr`
+    freeze_recon: bool = False
     sense_mask_method: Optional[str] = 'pre_network'
     with_recon: bool = False
     with_gfactor: bool = False
@@ -61,3 +74,13 @@ class TrainConfig:
     random_rotate: bool = False
     fixed_input: bool = False
     seed: int | None = None
+
+    @property
+    def label_classes(self) -> List[str]:
+        """Class names the conditioning labels index into."""
+        return self.condition_classes or self.anatomy_classes
+
+    @property
+    def label_key(self) -> str:
+        """Batch field holding the name of each sample's conditioning class."""
+        return 'condition' if self.condition_classes else 'anatomy'

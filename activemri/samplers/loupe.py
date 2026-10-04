@@ -16,6 +16,14 @@ import torch
 from torch import nn
 
 
+VD_CENTER_OFFSET = 0.05  # radius (as a fraction of the k-space half-extent) below which the prior stops growing
+
+
+def _variable_density_logits(radius, power):
+    """log p(r) = -power * log(r + offset): density falling off as a power of the radius."""
+    return -power * torch.log(radius + VD_CENTER_OFFSET)
+
+
 class ProbMask(nn.Module):
     """A learned probability for every k-space location.
 
@@ -47,6 +55,20 @@ class ProbMask(nn.Module):
         sigmoid probabilities used by the straight-through path."""
         logits = _select_mask(self.mask, anatomy_labels, self.num_conditioning_classes)
         return logits.squeeze(-1)
+
+    def init_variable_density(self, power):
+        """Overwrite every anatomy's logits with a radial variable-density prior.
+
+        Radius is measured from the fft-shifted k-space centre in units of the
+        half-extent, so it is 1 along the axes at the edge of k-space. Only
+        meaningful for the REINFORCE path, which samples from the raw logits.
+        """
+        height, width = self.mask.shape[1:3]
+        ky = (torch.arange(height) - height // 2) / (height / 2)
+        kx = (torch.arange(width) - width // 2) / (width / 2)
+        radius = torch.hypot(ky[:, None], kx[None, :])
+        with torch.no_grad():
+            self.mask.copy_(_variable_density_logits(radius, power).view(1, height, width, 1))
 
     def _init_mask_weights(self, shape, eps=1e-2):
         """Logits whose sigmoid is uniform on (eps, 1-eps)."""
@@ -85,6 +107,17 @@ class LineConstrainedProbMask(nn.Module):
         field a REINFORCE policy samples columns from."""
         logits = _select_mask(self.mask, anatomy_labels, self.num_conditioning_classes)
         return logits.view(-1, self.mask.shape[-1])
+
+    def init_variable_density(self, power):
+        """Overwrite every anatomy's logits with a variable-density prior over columns.
+
+        Radius is the distance from the fft-shifted centre column in units of
+        the half-width. Only meaningful for the REINFORCE path.
+        """
+        width = self.mask.shape[-1]
+        radius = (torch.arange(width) - width // 2).abs() / (width / 2)
+        with torch.no_grad():
+            self.mask.copy_(_variable_density_logits(radius, power).expand_as(self.mask))
 
     def _init_mask_weights(self, length, eps=1e-2):
         """Logits whose sigmoid is uniform on (eps, 1-eps)."""

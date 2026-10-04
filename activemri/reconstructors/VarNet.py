@@ -14,8 +14,21 @@ import torch.nn.functional as F
 from fastmri.models import Unet
 
 from activemri.utils.complex_conversion import complex_to_real, real_to_complex
-from activemri.utils.conditioning import DEFAULT_EMBED_DIM, AnatomyEmbedding, broadcast_channels
+from activemri.utils.conditioning import DEFAULT_EMBED_DIM, AnatomyEmbedding, FiLM, broadcast_channels
 from activemri.utils.image_processing import fft_2d_img, ifft_2d_img
+
+
+class FiLMBottleneck(nn.Module):
+    """U-Net bottleneck block followed by FiLM from `self.embedding`, set before each forward."""
+
+    def __init__(self, block: nn.Module, num_features: int, embed_dim: int):
+        super().__init__()
+        self.block = block
+        self.film = FiLM(embed_dim, num_features)
+        self.embedding = None
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.film(self.block(x), self.embedding)
 
 
 class NormUnet(nn.Module):
@@ -24,6 +37,9 @@ class NormUnet(nn.Module):
     The complex input [B, C, H, W] is mapped to a 2C-channel real tensor,
     group-normalized (real and imaginary parts separately), padded to a
     multiple of 16, passed through the U-Net, and then mapped back to complex.
+
+    When `film_embed_dim > 0` the embedding instead modulates the U-Net bottleneck
+    features through FiLM.
 
     When `conditioning_chans > 0` an anatomy embedding is appended as constant
     extra channels after normalization, so the regularizer can learn priors that
@@ -38,6 +54,7 @@ class NormUnet(nn.Module):
         out_chans: int = 2,
         drop_prob: float = 0.0,
         conditioning_chans: int = 0,
+        film_embed_dim: int = 0,
     ):
         super().__init__()
         self.conditioning_chans = conditioning_chans
@@ -48,6 +65,10 @@ class NormUnet(nn.Module):
             num_pool_layers=num_pools,
             drop_prob=drop_prob,
         )
+        self.film = None
+        if film_embed_dim > 0:
+            self.film = FiLMBottleneck(self.unet.conv, chans * 2 ** num_pools, film_embed_dim)
+            self.unet.conv = self.film
 
     def norm(self, x):
         b, c, h, w = x.shape
@@ -82,6 +103,10 @@ class NormUnet(nn.Module):
             x = torch.cat(
                 [x, broadcast_channels(anatomy_embedding, x.shape[-2], x.shape[-1])], dim=1
             )
+        if self.film is not None:
+            if anatomy_embedding is None:
+                raise ValueError("NormUnet is FiLM-conditioned but no embedding was provided")
+            self.film.embedding = anatomy_embedding
         x = self.unet(x)
         x = self.unpad(x, *pad_sizes)
         x = self.unnorm(x, mean, std)
@@ -94,7 +119,7 @@ class VarNetBlock(nn.Module):
     def __init__(self, model: nn.Module):
         super().__init__()
         self.model = model
-        self.dc_weight = nn.Parameter(torch.ones(1))
+        self.dc_weight = nn.Parameter(torch.tensor(0.0))
 
     def sens_expand(self, image: torch.Tensor, sense_maps: torch.Tensor) -> torch.Tensor:
         return fft_2d_img(image * sense_maps)
@@ -111,7 +136,8 @@ class VarNetBlock(nn.Module):
         anatomy_embedding: torch.Tensor = None,
     ) -> torch.Tensor:
         zero = torch.zeros(1, device=current_kspace.device, dtype=current_kspace.dtype)
-        soft_dc = torch.where(mask.bool(), current_kspace - ref_kspace, zero) * self.dc_weight
+        dc_weight = torch.sigmoid(self.dc_weight)
+        soft_dc = torch.where(mask.bool(), current_kspace - ref_kspace, zero) * dc_weight
         model_term = self.sens_expand(
             self.model(self.sens_reduce(current_kspace, sense_maps), anatomy_embedding), sense_maps
         )
@@ -127,7 +153,9 @@ class VarNet(nn.Module):
 
     Args:
         num_conditioning_classes: If > 0, every cascade is conditioned on a
-            learned per-anatomy embedding shared across cascades.
+            learned per-class embedding shared across cascades.
+        film: Inject the embedding by FiLM on each cascade's bottleneck instead
+            of as constant input channels.
     """
 
     def __init__(
@@ -137,15 +165,18 @@ class VarNet(nn.Module):
         pools: int = 4,
         num_conditioning_classes: int = 0,
         anatomy_embed_dim: int = DEFAULT_EMBED_DIM,
+        film: bool = False,
     ):
         super().__init__()
         self.anatomy_embedding = (
             AnatomyEmbedding(num_conditioning_classes, anatomy_embed_dim)
             if num_conditioning_classes > 0 else None
         )
-        conditioning_chans = anatomy_embed_dim if self.anatomy_embedding is not None else 0
+        has_embedding = self.anatomy_embedding is not None
+        conditioning_chans = anatomy_embed_dim if has_embedding and not film else 0
+        film_embed_dim = anatomy_embed_dim if has_embedding and film else 0
         self.cascades = nn.ModuleList(
-            [VarNetBlock(NormUnet(chans, pools, conditioning_chans=conditioning_chans))
+            [VarNetBlock(NormUnet(chans, pools, conditioning_chans=conditioning_chans, film_embed_dim=film_embed_dim))
              for _ in range(num_cascades)]
         )
 

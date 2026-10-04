@@ -4,7 +4,6 @@ Composes a `Sampler` with an injected reconstructor. The reconstructor is a
 constructor argument, so this model is independent of which one is used.
 """
 import os
-import pickle
 
 import einops
 import matplotlib.pyplot as plt
@@ -19,6 +18,17 @@ from activemri.samplers.sampler import Sampler, is_line_constrained
 from activemri.utils.image_processing import fft_2d_img as torch_fft2
 from activemri.utils.image_processing import ifft_2d_img as torch_ifft2
 from activemri.utils.util import compute_gaussian_nll_loss, compute_psnr_torch, compute_ssim_torch
+
+
+RSS_EPSILON = 1e-12
+
+
+def reinforce_group_size(batch_size, configured):
+    """Mask draws per slice in a REINFORCE batch: `configured`, or the whole batch if 0.
+
+    Capped at the batch size so a short final batch still forms one group.
+    """
+    return min(configured or batch_size, batch_size)
 
 
 class SequentialSampling(nn.Module):
@@ -56,6 +66,14 @@ class SequentialSampling(nn.Module):
             condition_reconstructor=False,
             mask_train_mode='straight_through',
             reinforce_weight=1.0,
+            reinforce_entropy_weight=0.0,
+            reinforce_normalize_advantages=False,
+            reinforce_group_size=0,
+            reinforce_vd_power=0.0,
+            sampler_chans=64,
+            sampler_depth=4,
+            sampler_image_input=False,
+            caipi_keep_fraction=1.0,
             ):
         super().__init__()
 
@@ -77,6 +95,9 @@ class SequentialSampling(nn.Module):
         self.condition_reconstructor = condition_reconstructor
         self.mask_train_mode = mask_train_mode
         self.reinforce_weight = reinforce_weight
+        self.reinforce_entropy_weight = reinforce_entropy_weight
+        self.reinforce_normalize_advantages = reinforce_normalize_advantages
+        self.reinforce_group_size = reinforce_group_size
         self.data_for_vis: list[dict] = [dict() for _ in range(num_step)]
 
         self.reconstructor = reconstructor
@@ -94,6 +115,11 @@ class SequentialSampling(nn.Module):
             num_anatomy_classes=num_anatomy_classes,
             num_conditioning_classes=num_conditioning_classes,
             mask_train_mode=mask_train_mode,
+            sampler_chans=sampler_chans,
+            sampler_depth=sampler_depth,
+            image_domain_input=sampler_image_input,
+            reinforce_vd_power=reinforce_vd_power,
+            caipi_keep_fraction=caipi_keep_fraction,
         )
 
         # Sensitivity estimation
@@ -163,30 +189,42 @@ class SequentialSampling(nn.Module):
             recon_2ch = torch.stack([pred_single_coil_img.real, pred_single_coil_img.imag], dim=1)
             recon_complex = recon_2ch.detach()
 
-        mask, data_to_vis_sampler, anatomy_logits, reinforce_logp = self.sampler(
+        mask, data_to_vis_sampler, anatomy_logits, reinforce_logp, reinforce_entropy = self.sampler(
             pred_single_coil_k, old_mask, budget, uncertainty_map, valid_mask,
             recon_complex, gfactor=prev_gfactor, anatomy_labels=anatomy_labels,
         )
         masked_kspace = torch.view_as_real(mask * torch.view_as_complex(full_kspace))
         self.data_for_vis[step].update(data_to_vis_sampler)
 
-        # Zero-filled reconstruction (coil-combined)
-        zero_filled_complex = (torch_ifft2(torch.view_as_complex(masked_kspace)) * sense_maps.conj()).sum(dim=1, keepdim=True)
-        zero_filled_mag = zero_filled_complex.abs()
+        # In `straight_through` mode the mask is differentiable, so gradients must
+        # flow through the reconstructor's *operations* to reach it, even if the
+        # reconstructor's own weights are frozen. In `reinforce`/`random` mode the
+        # mask draw is non-differentiable (credit flows through the REINFORCE
+        # log-prob term instead), so tracking this forward pass is only needed if
+        # the reconstructor's own weights are still being trained -- skipping it
+        # otherwise avoids building a multi-cascade autograd graph nothing uses.
+        recon_needs_grad = torch.is_grad_enabled() and (
+            self.mask_train_mode == 'straight_through'
+            or any(p.requires_grad for p in self.reconstructor.parameters())
+        )
+        with torch.set_grad_enabled(recon_needs_grad):
+            # Zero-filled reconstruction (coil-combined)
+            zero_filled_complex = (torch_ifft2(torch.view_as_complex(masked_kspace)) * sense_maps.conj()).sum(dim=1, keepdim=True)
+            zero_filled_mag = zero_filled_complex.abs()
 
-        # Full reconstruction
-        if self.recon_type in ('lls', 'cg_sense', 'varnet'):
-            masked_kspace_complex = torch.view_as_complex(masked_kspace.contiguous())
-            recon_kwargs = {'anatomy_labels': anatomy_labels} if self.condition_reconstructor else {}
-            recon_mag = self.reconstructor(masked_kspace_complex, sense_maps, mask, **recon_kwargs)
-            recon = recon_mag.to(torch.complex64)
-        else:
-            zero_filled_2ch = torch.view_as_real(zero_filled_complex)
-            zero_filled_2ch = einops.rearrange(zero_filled_2ch, 'b c h w two -> b (c two) h w')
-            recon_2ch = self.reconstructor(zero_filled_2ch)
-            recon = torch.view_as_complex(
-                einops.rearrange(recon_2ch, 'b (c two) h w -> b c h w two', two=2).contiguous()
-            )
+            # Full reconstruction
+            if self.recon_type in ('lls', 'cg_sense', 'varnet'):
+                masked_kspace_complex = torch.view_as_complex(masked_kspace.contiguous())
+                recon_kwargs = {'anatomy_labels': anatomy_labels} if self.condition_reconstructor else {}
+                recon_mag = self.reconstructor(masked_kspace_complex, sense_maps, mask, **recon_kwargs)
+                recon = recon_mag.to(torch.complex64)
+            else:
+                zero_filled_2ch = torch.view_as_real(zero_filled_complex)
+                zero_filled_2ch = einops.rearrange(zero_filled_2ch, 'b c h w two -> b (c two) h w')
+                recon_2ch = self.reconstructor(zero_filled_2ch)
+                recon = torch.view_as_complex(
+                    einops.rearrange(recon_2ch, 'b (c two) h w -> b c h w two', two=2).contiguous()
+                )
 
         # Compute g-factor map for SENSE-based reconstructors (detached — not differentiable)
         gfactor = None
@@ -210,6 +248,7 @@ class SequentialSampling(nn.Module):
             'output': recon, 'mask': mask, 'zero_recon': zero_filled_mag,
             'uncertainty_map': uncertainty_map, 'gfactor': gfactor,
             'anatomy_logits': anatomy_logits, 'reinforce_logp': reinforce_logp,
+            'reinforce_entropy': reinforce_entropy,
         }
 
     def _init_mask(self, data):
@@ -252,7 +291,15 @@ class SequentialSampling(nn.Module):
         """
         full_kspace_complex = torch.view_as_complex(full_kspace.contiguous())
 
-        sense_maps, sense_mask = self.sensetivity_net(full_kspace_complex, mask_method=self.sense_mask_method)
+        # Sensitivity maps depend only on the ground-truth k-space, never the
+        # mask, so tracking their forward pass is only needed if the sensitivity
+        # network's own weights are still being trained. Never re-enable grad
+        # inside a caller's no_grad (e.g. validation).
+        sens_needs_grad = torch.is_grad_enabled() and any(
+            p.requires_grad for p in self.sensetivity_net.parameters()
+        )
+        with torch.set_grad_enabled(sens_needs_grad):
+            sense_maps, sense_mask = self.sensetivity_net(full_kspace_complex, mask_method=self.sense_mask_method)
         old_mask = self._init_mask(full_kspace)
         valid_mask = self._valid_kspace_mask(full_kspace)
         pred_kspace = full_kspace * old_mask.unsqueeze(-1)
@@ -266,6 +313,7 @@ class SequentialSampling(nn.Module):
         masks = []
         anatomy_logits_list = []
         reinforce_logp = None  # [B], sum of every step's Plackett-Luce log-prob
+        reinforce_entropy = None  # [B], sum of every step's draw entropy
 
         for i in range(self.num_step):
             pred_dict = self.step_forward(
@@ -288,11 +336,17 @@ class SequentialSampling(nn.Module):
             if pred_dict.get('reinforce_logp') is not None:
                 step_logp = pred_dict['reinforce_logp']
                 reinforce_logp = step_logp if reinforce_logp is None else reinforce_logp + step_logp
+            if pred_dict.get('reinforce_entropy') is not None:
+                step_entropy = pred_dict['reinforce_entropy']
+                reinforce_entropy = step_entropy if reinforce_entropy is None else reinforce_entropy + step_entropy
 
             image_for_kspace = new_img * sense_maps.conj()
             pred_kspace = torch.view_as_real(torch_fft2(image_for_kspace))
 
-        final_recon = torch_ifft2(torch.view_as_complex(pred_kspace)).abs().pow(2).sum(dim=1, keepdim=True).sqrt()
+        # The epsilon keeps sqrt's gradient finite at pixels that are exactly zero in every
+        # coil (masked-out background); there sqrt' is inf and pow(2)' is 0, giving NaN.
+        coil_power = torch_ifft2(torch.view_as_complex(pred_kspace)).abs().pow(2).sum(dim=1, keepdim=True)
+        final_recon = (coil_power + RSS_EPSILON).sqrt()
 
         anatomy_logits = torch.stack(anatomy_logits_list).mean(dim=0) if anatomy_logits_list else None
 
@@ -305,6 +359,7 @@ class SequentialSampling(nn.Module):
             'uncertainty_maps': uncertainty_maps,
             'sense_maps': sense_maps,
             'reinforce_logp': reinforce_logp,
+            'reinforce_entropy': reinforce_entropy,
             'anatomy_logits': anatomy_logits,
         }
 
@@ -397,13 +452,16 @@ class SequentialSampling(nn.Module):
         # policy always optimizes the same quantity regardless of what the reconstructor
         # is trained against. Each batch item is one Monte Carlo draw of the (input-
         # independent) LOUPE mask -- exactly the role a training minibatch already
-        # plays, so this needs no extra forward passes -- and the batch-mean reward is
-        # the REINFORCE baseline, following scripts/loupe_vs_greedy_oracle.py and
+        # plays, so this needs no extra forward passes -- and the mean reward over the
+        # draws sharing a slice is the REINFORCE baseline (the whole batch by default;
+        # `reinforce_group_size` splits it into several slices' worth of groups, each
+        # with its own baseline), following scripts/loupe_vs_greedy_oracle.py and
         # scripts/reinforce2d_vs_greedy_loupe.py, where the same estimator was
         # validated against an oracle reconstructor.
         reinforce_loss = torch.tensor(0.0, device=pred.device)
         reinforce_reward = torch.tensor(0.0, device=pred.device)
         reinforce_logp = pred_dict.get('reinforce_logp')
+        pg_grad_norm = entropy_grad_norm = None
         if reinforce_logp is not None:
             if pred.shape[0] < 2:
                 raise RuntimeError(
@@ -415,11 +473,29 @@ class SequentialSampling(nn.Module):
                 / target.pow(2).flatten(1).sum(dim=1).clamp(min=1e-12)
             )
             reward = -per_example_nmse.detach()
-            baseline = reward.mean().detach()
-            advantage = reward - baseline
-            reinforce_loss = -(advantage * reinforce_logp).mean()
+            group = reinforce_group_size(reward.shape[0], self.reinforce_group_size)
+            if group < 2 or reward.shape[0] % group:
+                raise RuntimeError(
+                    f"batch of {reward.shape[0]} must be a multiple of reinforce_group_size={group} "
+                    "and each group needs >= 2 draws to have a baseline")
+            grouped_reward = reward.view(-1, group)
+            advantage = grouped_reward - grouped_reward.mean(dim=1, keepdim=True)
+            if self.reinforce_normalize_advantages:
+                advantage = (advantage - advantage.mean(dim=1, keepdim=True)) / (
+                    advantage.std(dim=1, keepdim=True) + 1e-8)
+            reinforce_loss = -(advantage.reshape(-1) * reinforce_logp).mean()
             reinforce_reward = reward.mean()
             loss = loss + self.reinforce_weight * reinforce_loss
+            pg_grad_norm = self._policy_grad_norm(reinforce_loss)
+
+            # Entropy bonus: encourages the policy to keep spreading probability
+            # mass across positions instead of collapsing to one pattern before
+            # it has sampled enough to know that pattern is actually good.
+            reinforce_entropy = pred_dict.get('reinforce_entropy')
+            if reinforce_entropy is not None:
+                entropy_grad_norm = self._policy_grad_norm(reinforce_entropy.mean())
+                if self.reinforce_entropy_weight > 0:
+                    loss = loss - self.reinforce_entropy_weight * reinforce_entropy.mean()
 
         log_dict = {
             'Total Loss': loss.item(),
@@ -431,12 +507,34 @@ class SequentialSampling(nn.Module):
             'Reinforce Loss': reinforce_loss.item(),
             'Reinforce Reward': reinforce_reward.item(),
         }
+        if reinforce_logp is not None and reinforce_entropy is not None:
+            log_dict['Reinforce Entropy'] = reinforce_entropy.mean().item()
+        if pg_grad_norm is not None:
+            # Norms on the mask logits alone, of each term as it enters the update. The
+            # entropy norm is per unit weight: multiply by reinforce_entropy_weight for
+            # what it actually contributes, or divide the PG norm by this to read off
+            # the weight at which the two terms are comparable.
+            log_dict['Reinforce PG Grad Norm'] = pg_grad_norm * self.reinforce_weight
+            if entropy_grad_norm is not None:
+                log_dict['Reinforce Entropy Grad Norm'] = entropy_grad_norm
 
         if self.with_uncertainty:
             loss = loss + nll_loss * meta['uncertainty_weight']
             log_dict['Uncertainty Loss'] = nll_loss.item()
 
         return loss, log_dict
+
+    def _policy_grad_norm(self, term):
+        """Gradient norm of `term` w.r.t. the mask logits, or None when nothing is being differentiated.
+
+        The REINFORCE log-prob and entropy graphs run only through the mask
+        logits (the drawn mask is detached), so this is a cheap extra backward.
+        """
+        if not term.requires_grad:
+            return None
+        params = [p for p in self.sampler.mask_net.parameters() if p.requires_grad]
+        grads = torch.autograd.grad(term, params, retain_graph=True, allow_unused=True)
+        return torch.sqrt(sum(g.pow(2).sum() for g in grads if g is not None)).item()
 
     def visualize_and_save(self, options, epoch, data_for_vis_name):
         """Save visualization plots for each sampling step."""
@@ -475,7 +573,3 @@ class SequentialSampling(nn.Module):
 
             plt.savefig(os.path.join(options.visualization_dir, f'{data_for_vis_name}_step{step}.png'))
             plt.close()
-
-            pkl_path = os.path.join(options.visualization_dir, f'{data_for_vis_name}_step{step}.pkl')
-            with open(pkl_path, 'wb') as f:
-                pickle.dump(self.data_for_vis[step], f)

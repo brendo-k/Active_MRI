@@ -22,3 +22,8 @@ activemri/envs/custom_*
 *.pth
 *.log
 outputs
+runs/
+reports/
+probe_conjugate_symmetry_out/
+wandb/
+activemri/envs/

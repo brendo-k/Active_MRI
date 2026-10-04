@@ -8,6 +8,7 @@ import torch
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
 
+import _path  # noqa: F401
 from activemri.reconstructors.CG_Sense import CGSENSEReconstructor
 from activemri.reconstructors.SensetivityModel_mc import SensetivityModel_mc
 from activemri.utils.image_processing import ifft_2d_img, fft_2d_img, root_sum_of_squares
