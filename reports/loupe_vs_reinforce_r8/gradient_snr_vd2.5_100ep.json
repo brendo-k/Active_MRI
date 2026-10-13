@@ -1,0 +1,111 @@
+{
+  "run": "checkpoints/reinforce2d_varnet_r8_brain_knee_vd2.5_100ep",
+  "draws_total": 1536,
+  "step_draws": 16,
+  "rings": [
+    {
+      "ring": "0-0.05",
+      "n_positions": 34,
+      "pixel_frac_abs_z_gt_3": 0.0,
+      "pixel_frac_abs_z_gt_3_null": 0.0036764706019312143,
+      "pixel_snr_per_step_est": 0.0,
+      "pixel_steps_for_drift_to_beat_diffusion": Infinity,
+      "ring_z": 0.6668320298194885,
+      "ring_z_null_rms": 0.8809978812703549,
+      "ring_snr_per_step": 0.06805825905008848,
+      "ring_steps_for_drift_to_beat_diffusion": 215.89288453275938
+    },
+    {
+      "ring": "0.05-0.1",
+      "n_positions": 375,
+      "pixel_frac_abs_z_gt_3": 0.005333333276212215,
+      "pixel_frac_abs_z_gt_3_null": 0.001999999862164259,
+      "pixel_snr_per_step_est": 0.013688259298204183,
+      "pixel_steps_for_drift_to_beat_diffusion": 5337.078037497762,
+      "ring_z": -0.24603858590126038,
+      "ring_z_null_rms": 0.42380588335721375,
+      "ring_snr_per_step": 0.025111208020583968,
+      "ring_steps_for_drift_to_beat_diffusion": 1585.859793423101
+    },
+    {
+      "ring": "0.1-0.2",
+      "n_positions": 1552,
+      "pixel_frac_abs_z_gt_3": 0.0019329896895214915,
+      "pixel_frac_abs_z_gt_3_null": 0.002577319275587797,
+      "pixel_snr_per_step_est": 0.014531538013625674,
+      "pixel_steps_for_drift_to_beat_diffusion": 4735.61988321288,
+      "ring_z": 0.9312637448310852,
+      "ring_z_null_rms": 0.9359185764917441,
+      "ring_snr_per_step": 0.09504670794956643,
+      "ring_steps_for_drift_to_beat_diffusion": 110.69444869443497
+    },
+    {
+      "ring": "0.2-0.3",
+      "n_positions": 2576,
+      "pixel_frac_abs_z_gt_3": 0.003105590119957924,
+      "pixel_frac_abs_z_gt_3_null": 0.0018924690084531903,
+      "pixel_snr_per_step_est": 0.010236695392990259,
+      "pixel_steps_for_drift_to_beat_diffusion": 9542.901455183202,
+      "ring_z": 1.9314996004104614,
+      "ring_z_null_rms": 1.030424288975737,
+      "ring_snr_per_step": 0.19713285247480136,
+      "ring_steps_for_drift_to_beat_diffusion": 25.732500374710266
+    },
+    {
+      "ring": "0.3-0.5",
+      "n_positions": 8206,
+      "pixel_frac_abs_z_gt_3": 0.0014623446622863412,
+      "pixel_frac_abs_z_gt_3_null": 0.0019193273037672043,
+      "pixel_snr_per_step_est": 0.0,
+      "pixel_steps_for_drift_to_beat_diffusion": Infinity,
+      "ring_z": -1.0928175449371338,
+      "ring_z_null_rms": 0.8559323271128253,
+      "ring_snr_per_step": 0.11153522362737518,
+      "ring_steps_for_drift_to_beat_diffusion": 80.3851664277696
+    },
+    {
+      "ring": "0.5-0.7",
+      "n_positions": 12339,
+      "pixel_frac_abs_z_gt_3": 0.001701920758932829,
+      "pixel_frac_abs_z_gt_3_null": 0.0014891806058585644,
+      "pixel_snr_per_step_est": 0.0,
+      "pixel_steps_for_drift_to_beat_diffusion": Infinity,
+      "ring_z": -1.7251231670379639,
+      "ring_z_null_rms": 0.7518830847171726,
+      "ring_snr_per_step": 0.1760696459457135,
+      "ring_steps_for_drift_to_beat_diffusion": 32.25752318967849
+    },
+    {
+      "ring": "0.7-1",
+      "n_positions": 25726,
+      "pixel_frac_abs_z_gt_3": 0.0009717795182950795,
+      "pixel_frac_abs_z_gt_3_null": 0.0012876078253611922,
+      "pixel_snr_per_step_est": 0.0,
+      "pixel_steps_for_drift_to_beat_diffusion": Infinity,
+      "ring_z": 1.6078271865844727,
+      "ring_z_null_rms": 1.4588120418840134,
+      "ring_snr_per_step": 0.16409817507110838,
+      "ring_steps_for_drift_to_beat_diffusion": 37.13577547761736
+    },
+    {
+      "ring": "1-2",
+      "n_positions": 13497,
+      "pixel_frac_abs_z_gt_3": 0.0009631770080886781,
+      "pixel_frac_abs_z_gt_3_null": 0.0009539157035760581,
+      "pixel_snr_per_step_est": 0.0,
+      "pixel_steps_for_drift_to_beat_diffusion": Infinity,
+      "ring_z": -1.515862226486206,
+      "ring_z_null_rms": 1.0725602079908623,
+      "ring_snr_per_step": 0.1547120406354347,
+      "ring_steps_for_drift_to_beat_diffusion": 41.778396865798
+    }
+  ],
+  "directions": {
+    "kx_left_minus_right": {
+      "z": 2.039322853088379,
+      "z_null_rms": 1.036214357496266,
+      "snr_per_step": 0.20813751711930462,
+      "steps_for_drift_to_beat_diffusion": 23.08337255385478
+    }
+  }
+}

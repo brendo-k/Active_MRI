@@ -23,7 +23,6 @@ activemri/envs/custom_*
 *.log
 outputs
 runs/
-reports/
 probe_conjugate_symmetry_out/
 wandb/
-activemri/envs/
+*.pt

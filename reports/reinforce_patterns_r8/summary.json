@@ -1,0 +1,38 @@
+{
+  "LOUPE, 50 ep": {
+    "checkpoint": "checkpoints/loupe2d_varnet_r8_brain_knee",
+    "epoch": 50,
+    "budget": 8092,
+    "kx_negative_share": 0.6144485473632812,
+    "ky_vs_kx_extent": 0.8972268256668389,
+    "corner_share_r_gt_1": 0.0037840711884200573,
+    "residual_smoothed_abs_max": 0.17802783679767298
+  },
+  "REINFORCE uniform init, 100 ep": {
+    "checkpoint": "checkpoints/reinforce2d_varnet_r8_brain_knee_v2_100ep",
+    "epoch": 99,
+    "budget": 8092,
+    "kx_negative_share": 0.526641845703125,
+    "ky_vs_kx_extent": 0.9814034236215922,
+    "corner_share_r_gt_1": 0.11649131774902344,
+    "residual_smoothed_abs_max": 0.08017309136501084
+  },
+  "REINFORCE vd2.5 init, 100 ep": {
+    "checkpoint": "checkpoints/reinforce2d_varnet_r8_brain_knee_vd2.5_100ep",
+    "epoch": 100,
+    "budget": 8092,
+    "kx_negative_share": 0.5338916778564453,
+    "ky_vs_kx_extent": 0.9770153794508454,
+    "corner_share_r_gt_1": 0.06477737426757812,
+    "residual_smoothed_abs_max": 0.09026940258608229
+  },
+  "REINFORCE vd2.5, policy lr 0.002": {
+    "checkpoint": "checkpoints/reinforce2d_varnet_r8_brain_knee_vd2.5_plr0.002_100ep",
+    "epoch": 99,
+    "budget": 8092,
+    "kx_negative_share": 0.5002250671386719,
+    "ky_vs_kx_extent": 0.9851394071230904,
+    "corner_share_r_gt_1": 0.043560028076171875,
+    "residual_smoothed_abs_max": 0.03983446895503231
+  }
+}

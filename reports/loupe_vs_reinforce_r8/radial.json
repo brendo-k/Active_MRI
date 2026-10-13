@@ -1,0 +1,54 @@
+[
+  {
+    "recon": "loupe",
+    "density": "loupe_prob",
+    "seed": 0,
+    "brain_MSE": 0.0017551613273099065,
+    "brain_NMSE": 0.014582613483071327,
+    "brain_PSNR": 35.88730239868164,
+    "brain_SSIM": 0.9284422397613525,
+    "knee_MSE": 0.0014881903771311045,
+    "knee_NMSE": 0.013660646975040436,
+    "knee_PSNR": 33.817726135253906,
+    "knee_SSIM": 0.948239803314209
+  },
+  {
+    "recon": "loupe",
+    "density": "loupe_prob",
+    "seed": 1,
+    "brain_MSE": 0.0017519614193588495,
+    "brain_NMSE": 0.014565658755600452,
+    "brain_PSNR": 35.89522933959961,
+    "brain_SSIM": 0.9284780621528625,
+    "knee_MSE": 0.0014882569666951895,
+    "knee_NMSE": 0.013662160374224186,
+    "knee_PSNR": 33.81753158569336,
+    "knee_SSIM": 0.9482452273368835
+  },
+  {
+    "recon": "reinforce",
+    "density": "reinforce_inclusion",
+    "seed": 0,
+    "brain_MSE": 0.0019694396760314703,
+    "brain_NMSE": 0.015678711235523224,
+    "brain_PSNR": 35.38704299926758,
+    "brain_SSIM": 0.9235679507255554,
+    "knee_MSE": 0.0015336250653490424,
+    "knee_NMSE": 0.01402878388762474,
+    "knee_PSNR": 33.68711853027344,
+    "knee_SSIM": 0.9465768337249756
+  },
+  {
+    "recon": "reinforce",
+    "density": "reinforce_topk",
+    "seed": 0,
+    "brain_MSE": 0.0019151902524754405,
+    "brain_NMSE": 0.0153903653845191,
+    "brain_PSNR": 35.508358001708984,
+    "brain_SSIM": 0.9247131943702698,
+    "knee_MSE": 0.0015166082885116339,
+    "knee_NMSE": 0.013886204920709133,
+    "knee_PSNR": 33.73557662963867,
+    "knee_SSIM": 0.9471002817153931
+  }
+]

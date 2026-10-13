@@ -1,0 +1,304 @@
+{
+  "checkpoints/reinforce2d_radial32_varnet_r8_brain_knee_vd2.5_100ep": {
+    "epochs_done": 94,
+    "epochs_total": 100,
+    "best_val_loss": {
+      "epoch": 36,
+      "total": 100,
+      "train_loss": 0.1609,
+      "val_loss": 0.05878,
+      "brain": {
+        "nmse": 0.01953,
+        "psnr": 34.12,
+        "ssim": 0.9169
+      },
+      "knee": {
+        "nmse": 0.01794,
+        "psnr": 32.66,
+        "ssim": 0.9323
+      }
+    },
+    "best_brain_psnr": {
+      "epoch": 36,
+      "total": 100,
+      "train_loss": 0.1609,
+      "val_loss": 0.05878,
+      "brain": {
+        "nmse": 0.01953,
+        "psnr": 34.12,
+        "ssim": 0.9169
+      },
+      "knee": {
+        "nmse": 0.01794,
+        "psnr": 32.66,
+        "ssim": 0.9323
+      }
+    },
+    "last": {
+      "epoch": 94,
+      "total": 100,
+      "train_loss": -0.4175,
+      "val_loss": 0.06153,
+      "brain": {
+        "nmse": 0.02438,
+        "psnr": 32.87,
+        "ssim": 0.9065
+      },
+      "knee": {
+        "nmse": 0.02056,
+        "psnr": 32.05,
+        "ssim": 0.9245
+      }
+    },
+    "at_epoch": {
+      "epoch": 36,
+      "total": 100,
+      "train_loss": 0.1609,
+      "val_loss": 0.05878,
+      "brain": {
+        "nmse": 0.01953,
+        "psnr": 34.12,
+        "ssim": 0.9169
+      },
+      "knee": {
+        "nmse": 0.01794,
+        "psnr": 32.66,
+        "ssim": 0.9323
+      }
+    },
+    "brain_psnr_window": {
+      "epochs": [
+        61,
+        90
+      ],
+      "mean": 33.28933333333333,
+      "sd": 0.25922874113393574,
+      "min": 32.64,
+      "max": 33.58
+    }
+  },
+  "checkpoints/reinforce2d_varnet_r8_brain_knee_vd2.5_100ep": {
+    "epochs_done": 100,
+    "epochs_total": 100,
+    "best_val_loss": {
+      "epoch": 100,
+      "total": 100,
+      "train_loss": -3.86,
+      "val_loss": 0.0535,
+      "brain": {
+        "nmse": 0.0135,
+        "psnr": 36.4,
+        "ssim": 0.9315
+      },
+      "knee": {
+        "nmse": 0.01238,
+        "psnr": 34.24,
+        "ssim": 0.9524
+      }
+    },
+    "best_brain_psnr": {
+      "epoch": 95,
+      "total": 100,
+      "train_loss": -3.771,
+      "val_loss": 0.05353,
+      "brain": {
+        "nmse": 0.01351,
+        "psnr": 36.4,
+        "ssim": 0.9315
+      },
+      "knee": {
+        "nmse": 0.01238,
+        "psnr": 34.24,
+        "ssim": 0.9524
+      }
+    },
+    "last": {
+      "epoch": 100,
+      "total": 100,
+      "train_loss": -3.86,
+      "val_loss": 0.0535,
+      "brain": {
+        "nmse": 0.0135,
+        "psnr": 36.4,
+        "ssim": 0.9315
+      },
+      "knee": {
+        "nmse": 0.01238,
+        "psnr": 34.24,
+        "ssim": 0.9524
+      }
+    },
+    "at_epoch": {
+      "epoch": 36,
+      "total": 100,
+      "train_loss": -2.27,
+      "val_loss": 0.05557,
+      "brain": {
+        "nmse": 0.01476,
+        "psnr": 35.82,
+        "ssim": 0.928
+      },
+      "knee": {
+        "nmse": 0.01362,
+        "psnr": 33.83,
+        "ssim": 0.9481
+      }
+    },
+    "brain_psnr_window": {
+      "epochs": [
+        61,
+        90
+      ],
+      "mean": 36.272333333333336,
+      "sd": 0.05899639575977237,
+      "min": 36.14,
+      "max": 36.37
+    }
+  },
+  "checkpoints/reinforce2d_varnet_r8_brain_knee_vd2.5_plr0.002_100ep": {
+    "epochs_done": 100,
+    "epochs_total": 100,
+    "best_val_loss": {
+      "epoch": 99,
+      "total": 100,
+      "train_loss": 9.341,
+      "val_loss": 0.05873,
+      "brain": {
+        "nmse": 0.01875,
+        "psnr": 34.35,
+        "ssim": 0.9211
+      },
+      "knee": {
+        "nmse": 0.01779,
+        "psnr": 32.65,
+        "ssim": 0.9349
+      }
+    },
+    "best_brain_psnr": {
+      "epoch": 89,
+      "total": 100,
+      "train_loss": 5.93,
+      "val_loss": 0.05893,
+      "brain": {
+        "nmse": 0.01869,
+        "psnr": 34.38,
+        "ssim": 0.9211
+      },
+      "knee": {
+        "nmse": 0.01797,
+        "psnr": 32.61,
+        "ssim": 0.9347
+      }
+    },
+    "last": {
+      "epoch": 100,
+      "total": 100,
+      "train_loss": 11.07,
+      "val_loss": 0.05883,
+      "brain": {
+        "nmse": 0.0188,
+        "psnr": 34.34,
+        "ssim": 0.921
+      },
+      "knee": {
+        "nmse": 0.0179,
+        "psnr": 32.62,
+        "ssim": 0.9347
+      }
+    },
+    "at_epoch": {
+      "epoch": 36,
+      "total": 100,
+      "train_loss": 6.034,
+      "val_loss": 0.06068,
+      "brain": {
+        "nmse": 0.0202,
+        "psnr": 33.91,
+        "ssim": 0.9168
+      },
+      "knee": {
+        "nmse": 0.01979,
+        "psnr": 32.17,
+        "ssim": 0.9292
+      }
+    },
+    "brain_psnr_window": {
+      "epochs": [
+        61,
+        90
+      ],
+      "mean": 34.169666666666664,
+      "sd": 0.10943375679577556,
+      "min": 33.93,
+      "max": 34.38
+    }
+  },
+  "checkpoints/loupe2d_varnet_r8_brain_knee": {
+    "epochs_done": 50,
+    "epochs_total": 50,
+    "best_val_loss": {
+      "epoch": 50,
+      "total": 50,
+      "train_loss": 0.05162,
+      "val_loss": 0.05472,
+      "brain": {
+        "nmse": 0.01417,
+        "psnr": 36.08,
+        "ssim": 0.9299
+      },
+      "knee": {
+        "nmse": 0.01343,
+        "psnr": 33.9,
+        "ssim": 0.9493
+      }
+    },
+    "best_brain_psnr": {
+      "epoch": 50,
+      "total": 50,
+      "train_loss": 0.05162,
+      "val_loss": 0.05472,
+      "brain": {
+        "nmse": 0.01417,
+        "psnr": 36.08,
+        "ssim": 0.9299
+      },
+      "knee": {
+        "nmse": 0.01343,
+        "psnr": 33.9,
+        "ssim": 0.9493
+      }
+    },
+    "last": {
+      "epoch": 50,
+      "total": 50,
+      "train_loss": 0.05162,
+      "val_loss": 0.05472,
+      "brain": {
+        "nmse": 0.01417,
+        "psnr": 36.08,
+        "ssim": 0.9299
+      },
+      "knee": {
+        "nmse": 0.01343,
+        "psnr": 33.9,
+        "ssim": 0.9493
+      }
+    },
+    "at_epoch": {
+      "epoch": 36,
+      "total": 50,
+      "train_loss": 0.0522,
+      "val_loss": 0.0551,
+      "brain": {
+        "nmse": 0.01444,
+        "psnr": 35.95,
+        "ssim": 0.929
+      },
+      "knee": {
+        "nmse": 0.01381,
+        "psnr": 33.78,
+        "ssim": 0.9482
+      }
+    }
+  }
+}
