@@ -333,9 +333,14 @@ def _build_balanced_datasets(
     contrast: Optional[str],
     val_fraction: float,
     seed: int = 1234,
+    train_slices: Optional[Dict[str, int]] = None,
     **dataset_kwargs,
 ) -> Tuple[List[FastMRIDataset], List[FastMRIDataset]]:
     """Per-anatomy train/val datasets with an equal number of slices per anatomy.
+
+    `train_slices` overrides the train slice count of the named anatomies, so a
+    single-anatomy run can use as many slices as the full multi-anatomy train set.
+    Val sets stay balanced.
 
     Volumes are pre-selected from HDF5 shape metadata so the (slow) energy filter
     only scans volumes that are kept, then the larger anatomies are trimmed to the
@@ -354,6 +359,7 @@ def _build_balanced_datasets(
         files['train'][anatomy] = (roots['train'], train_files)
         files['val'][anatomy] = (roots['val'], val_files)
 
+    train_slices = train_slices or {}
     datasets = {}
     for split in ('train', 'val'):
         raw_totals = {
@@ -362,14 +368,22 @@ def _build_balanced_datasets(
         }
         target = min(raw_totals.values())
         built = {}
+        overridden = {a: n for a, n in train_slices.items() if split == 'train' and a in files[split]}
         for anatomy, (root, split_files) in files[split].items():
-            names = _pick_volumes(split_files, anatomy, target, seed)
+            # The energy filter drops slices, so an overridden anatomy starts from all its volumes and is trimmed after.
+            names = _pick_volumes(split_files, anatomy, raw_totals[anatomy] if anatomy in overridden else target, seed)
             built[anatomy] = FastMRIDataset(
                 root=root, anatomy=anatomy, file_names=names, **dataset_kwargs,
             )
-        num_examples = min(len(ds) for ds in built.values())
-        for ds in built.values():
-            _trim_examples(ds, num_examples, seed)
+        for anatomy, ds in built.items():
+            if anatomy in overridden and len(ds) < overridden[anatomy]:
+                raise ValueError(
+                    f"{anatomy} train has {len(ds)} slices after filtering, fewer than the {overridden[anatomy]} requested"
+                )
+        balanced = [ds for a, ds in built.items() if a not in overridden]
+        num_examples = min(len(ds) for ds in balanced)
+        for anatomy, ds in built.items():
+            _trim_examples(ds, overridden.get(anatomy, num_examples), seed)
         counts = {a: (len({e[0] for e in ds.examples}), len(ds)) for a, ds in built.items()}
         print(f"Balanced {split} set (volumes, slices): {counts}")
         datasets[split] = list(built.values())
@@ -403,6 +417,7 @@ def build_fastmri_dataloaders(
     min_energy_fraction: float = 0.2,
     balance: bool = False,
     train_anatomies: Optional[List[str]] = None,
+    train_slices: Optional[int] = None,
 ) -> Tuple[torch.utils.data.DataLoader, torch.utils.data.DataLoader]:
     """Build train and val dataloaders from one or more anatomies.
 
@@ -425,6 +440,8 @@ def build_fastmri_dataloaders(
             validating on all of `anatomies`. Splits are built over all of
             `anatomies` first, so the kept train slices match a run that trains
             on every anatomy.
+        train_slices: With balance and train_anatomies, the number of train slices per
+            trained anatomy instead of the balanced count. Val sets are unchanged.
     """
     train_datasets = []
     val_datasets = []
@@ -434,6 +451,7 @@ def build_fastmri_dataloaders(
             raise ValueError("balance=True is only supported when data_dir is None")
         train_datasets, val_datasets = _build_balanced_datasets(
             data_root, anatomies, contrast, val_fraction,
+            train_slices={a: train_slices for a in train_anatomies or []} if train_slices else None,
             image_shape=image_shape,
             transform=transform,
             num_coils=num_coils,

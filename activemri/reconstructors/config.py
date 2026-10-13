@@ -52,6 +52,7 @@ class VarNetReconConfig(ReconConfig):
     pools: int = 4
     anatomy_conditioning: bool = False
     film_conditioning: bool = False
+    dc_mode: str = 'where'
 
 
 @dataclass

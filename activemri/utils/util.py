@@ -158,8 +158,82 @@ def compute_psnr_torch(xs: torch.Tensor, ys: torch.Tensor) -> torch.Tensor:
     mse = compute_mse_torch(xs, ys)
     data_range = [y.max() for y in ys]
     data_range = torch.stack(data_range, dim=0)
-    
+
     return 10 * torch.log10((data_range ** 2) / mse)
+
+def compute_psnr_torch_masked(xs: torch.Tensor, ys: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
+    """PSNR computed only over masked (foreground) voxels.
+
+    Args:
+        xs: Predicted tensor [B, C, H, W] or [B, H, W]
+        ys: Target tensor [B, C, H, W] or [B, H, W]
+        mask: Binary mask [B, 1, H, W] or [B, H, W] with 1 for foreground
+
+    Returns:
+        PSNR per sample in batch
+    """
+    diff = (ys - xs) ** 2
+
+    if mask.dim() == ys.dim() - 1:
+        mask = mask.unsqueeze(1)
+
+    masked_diff = diff * mask
+    masked_count = mask.sum(dim=tuple(range(1, mask.dim())))
+    masked_count = torch.clamp(masked_count, min=1.0)
+
+    mse = masked_diff.sum(dim=tuple(range(1, masked_diff.dim()))) / masked_count
+
+    data_range = [y.max() for y in ys]
+    data_range = torch.stack(data_range, dim=0)
+
+    return 10 * torch.log10((data_range ** 2) / mse)
+
+def compute_ssim_torch_masked(xs: torch.Tensor, ys: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
+    """SSIM computed only over masked (foreground) voxels using per-sample calculation.
+
+    Args:
+        xs: Predicted tensor [B, C, H, W] or [B, H, W]
+        ys: Target tensor [B, C, H, W] or [B, H, W]
+        mask: Binary mask [B, 1, H, W] or [B, H, W] with 1 for foreground
+
+    Returns:
+        SSIM per sample in batch
+    """
+    if xs.dim() == 3:
+        xs = xs.unsqueeze(1)
+    if ys.dim() == 3:
+        ys = ys.unsqueeze(1)
+    if mask.dim() == 3:
+        mask = mask.unsqueeze(1)
+
+    batch_size = xs.shape[0]
+    ssims = []
+
+    for i in range(batch_size):
+        x_i = xs[i].cpu().numpy()
+        y_i = ys[i].cpu().numpy()
+        m_i = mask[i].cpu().numpy()
+
+        if x_i.ndim == 3:
+            x_i = x_i.squeeze(0)
+        if y_i.ndim == 3:
+            y_i = y_i.squeeze(0)
+        if m_i.ndim == 3:
+            m_i = m_i.squeeze(0)
+
+        data_range_i = y_i.max()
+
+        if m_i.sum() == 0:
+            ssims.append(0.0)
+        else:
+            ssim = skimage.metrics.structural_similarity(
+                x_i, y_i,
+                data_range=data_range_i,
+                mask=m_i > 0.5,
+            )
+            ssims.append(ssim)
+
+    return torch.tensor(ssims, dtype=xs.dtype, device=xs.device)
 
 def compute_gaussian_nll_loss(reconstruction, target, logvar):
     l2 = F.mse_loss(reconstruction, target, reduce=False)

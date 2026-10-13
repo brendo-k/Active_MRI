@@ -22,18 +22,29 @@ from activemri.utils.metrics import NMSE
 # working torchvision even when nothing here is ever called.
 
 
-def build_metrics(device="cpu") -> "MetricCollection":
+def build_metrics(device="cpu", masked=False) -> "MetricCollection":
     from torchmetrics import MetricCollection, MeanSquaredError
     from torchmetrics.image import PeakSignalNoiseRatio, StructuralSimilarityIndexMeasure
+    from activemri.utils.metrics import MaskedPSNR, MaskedSSIM
 
-    return MetricCollection(
-        {
-            "MSE": MeanSquaredError(),
-            "NMSE": NMSE(),
-            "PSNR": PeakSignalNoiseRatio(data_range=1.0),
-            "SSIM": StructuralSimilarityIndexMeasure(data_range=1.0),
-        }
-    ).to(device)
+    if masked:
+        return MetricCollection(
+            {
+                "MSE": MeanSquaredError(),
+                "NMSE": NMSE(),
+                "PSNR": MaskedPSNR(data_range=1.0),
+                "SSIM": MaskedSSIM(data_range=1.0),
+            }
+        ).to(device)
+    else:
+        return MetricCollection(
+            {
+                "MSE": MeanSquaredError(),
+                "NMSE": NMSE(),
+                "PSNR": PeakSignalNoiseRatio(data_range=1.0),
+                "SSIM": StructuralSimilarityIndexMeasure(data_range=1.0),
+            }
+        ).to(device)
 
 
 def evaluate(args, recons_key):

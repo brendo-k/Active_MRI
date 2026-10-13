@@ -7,9 +7,11 @@ training:
   num_step: 1
   batch_size: 4
   num_epochs: 50
-  lr: 0.0003
+  lr: 0.001
   lr_step_size: 40
   lr_gamma: 0.1
+  lr_scheduler: step  # step | constant | cosine | warmup_cosine
+  lr_warmup_epochs: 2  # warmup_cosine only
   weight_decay: 0.0
   limit_batches: 1.0
   data_parallel: false
@@ -24,7 +26,7 @@ loss:
 sampler:
   model: SequentialSampling
   accelerations: [4.0]
-  sampler_type: conv_2d  # conv_2d | conv_1d | loupe_2d | loupe_1d
+  sampler_type: conv_2d  # conv_2d | conv_1d | loupe_2d | loupe_1d | caipi_2d | autosamp_2d
   slope: 10
   chans: 64  # first-conv width of the conv_2d sampler U-Net (doubles per depth)
   depth: 4  # down/up-sampling stages of the conv_2d sampler U-Net
@@ -37,8 +39,16 @@ sampler:
   reinforce_normalize_advantages: false  # normalize advantage to unit std per group, for more consistent update scale
   reinforce_group_size: 0  # mask draws per slice, each group with its own baseline (batch_size = slices * group_size); 0 = whole batch is one slice
   reinforce_vd_power: 0.0  # >0 starts the REINFORCE policy from a variable-density prior (log p = -power*log(r+0.05)); 0 = near-uniform random init
+  reinforce_eval: sample  # reinforce only: val mask = seeded draw from the policy (sample, matches training) | top-k logits (topk)
   reinforce_lr: null  # learning rate for the mask logits alone; null = training.lr
+  autosamp_init: uniform  # autosamp_2d only: starting positions, uniform | normal (variable density, AutoSamp's truncated normal)
+  autosamp_lr: 0.01  # autosamp_2d only: learning rate of the sample positions alone, in grid cells per step (AutoSamp's lr_enc)
+  autosamp_kernel_sigma_start: 0.0  # autosamp_2d only: >0 takes the positions' gradient from a Gaussian surrogate of this width (cells), annealed to the end width; 0 = bilinear surrogate. The forward mask is always hard
+  autosamp_kernel_sigma_end: 1.0  # autosamp_2d only: width the surrogate anneals to geometrically; below ~1 the boundary trap returns (start ~4 removes it)
+  autosamp_anneal_fraction: 0.8  # autosamp_2d only: fraction of training spent annealing, after which the positions freeze and the recon fine-tunes on the fixed mask
+  ppo_policy: null  # PPOTrainer checkpoint: its frozen deterministic policy picks every mask (use with loupe_2d as the placeholder sampler)
   freeze_recon: false  # freeze reconstructor+sensetivity_net, train only the sampler
+  fixed_mask_checkpoints: null  # {brain: ckpt, knee: ckpt}: copy each loupe_2d checkpoint's mask into that anatomy's slot and freeze it (with anatomy_conditioning: true)
   with_recon: false
   with_gfactor: false
   gfactor_replicas: 16
@@ -52,6 +62,8 @@ output:
 
 misc:
   random_rotate: false
+  phase_scramble_std: 0.0  # >0: random smooth phase (radians) on every coil image, fresh per train batch, fixed-seed for val
+  phase_scramble_band: [6.0, 16.0]  # cycles/FOV; above the sensitivity net's +-5 centre bandwidth
   resolution: [256, 256]
 
 hydra:

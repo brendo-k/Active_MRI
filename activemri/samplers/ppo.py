@@ -23,7 +23,10 @@ import torch.nn.functional as F
 from fastmri.models import Unet
 from torch import nn
 
+from activemri.envs.mri_env import center_block_mask, coil_combined_kspace, encode_observation
+from activemri.reconstructors.SensetivityModel_mc import SensetivityModel_mc
 from activemri.samplers.dqn import VarNetQNetwork, load_pretrained_backbone
+from activemri.utils.image_processing import ifft_2d_img
 
 MASKED_LOGIT = -1e10  # large finite value rather than -inf: keeps `p * log p` NaN-free
 
@@ -66,6 +69,10 @@ class ActorCriticNetwork(nn.Module):
         chans, num_pools, in_chans: As in `VarNetQNetwork`. `chans` and
             `num_pools` must match the pretrained VarNet for weights to transfer.
         hidden: Width of the value head's hidden layer.
+        normalize_obs: Standardise the observation's data channels (everything but the
+            mask) to zero mean and unit std per sample, as `NormUnet` does to the images
+            the pretrained trunk was trained on. Computed from the observation alone, so
+            it is available when the policy is deployed.
 
     Already-acquired actions get logit `MASKED_LOGIT`.
     """
@@ -78,8 +85,10 @@ class ActorCriticNetwork(nn.Module):
         num_pools: int = 4,
         in_chans: int = 5,
         hidden: int = 256,
+        normalize_obs: bool = False,
     ):
         super().__init__()
+        self.normalize_obs = normalize_obs
         self.action_space = action_space
         self.target_fraction = target_fraction
         self.unet = _SharedUnet(in_chans, 1, chans=chans, num_pool_layers=num_pools, drop_prob=0.0)
@@ -91,6 +100,11 @@ class ActorCriticNetwork(nn.Module):
 
     def forward(self, obs: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         mask = obs[:, -1:]  # [B, 1, H, W]
+        if self.normalize_obs:
+            data = obs[:, :-1]
+            mean = data.mean(dim=(1, 2, 3), keepdim=True)
+            std = data.std(dim=(1, 2, 3), keepdim=True).clamp(min=1e-12)
+            obs = torch.cat([(data - mean) / std, mask], dim=1)
         x, pad_sizes = VarNetQNetwork._pad(obs)
         score_map, bottleneck = self.unet(x)
         score_map = VarNetQNetwork._unpad(score_map, *pad_sizes)  # [B, 1, H, W]
@@ -148,11 +162,14 @@ class PPOPolicy(nn.Module):
         critic_hidden: int = 256,
         pretrained_checkpoint: str | None = None,
         backbone_cascade_idx: int = -1,
+        in_chans: int = 5,
+        normalize_obs: bool = False,
     ):
         super().__init__()
         self.points_per_step = points_per_step
         self.net = ActorCriticNetwork(
-            action_space, target_fraction, chans=chans, num_pools=num_pools, hidden=critic_hidden
+            action_space, target_fraction, chans=chans, num_pools=num_pools, hidden=critic_hidden,
+            in_chans=in_chans, normalize_obs=normalize_obs,
         )
         if pretrained_checkpoint is not None:
             load_pretrained_backbone(self.net, pretrained_checkpoint, backbone_cascade_idx)
@@ -179,3 +196,57 @@ class PPOPolicy(nn.Module):
         log_p = F.log_softmax(logits.float(), dim=1)
         entropy = -(log_p.exp() * log_p).sum(dim=1)
         return sequence_log_prob(logits, actions), entropy, value
+
+
+class PPOMaskPolicy(nn.Module):
+    """Frozen PPO policy that turns fully-sampled k-space into an acquisition mask.
+
+    Replays a `PPOTrainer` episode (sparse-reward observations, deterministic
+    actions) so the masks it yields can be used by a trainer that has no notion
+    of environment steps, e.g. `SequentialSampling`. Built from a `PPOTrainer`
+    checkpoint, which carries the policy, the env geometry and the sensitivity
+    net the policy was trained against.
+    """
+
+    def __init__(self, checkpoint_path: str, sense_mask_method: str = "pre_network"):
+        super().__init__()
+        checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
+        env = checkpoint["env_config"]
+        options = checkpoint["options"]
+        if env.get("observation", "kspace") != "kspace":
+            raise NotImplementedError(
+                f"PPOMaskPolicy only replays the 'kspace' observation, not {env['observation']!r}")
+        self.resolution = env["resolution"]
+        self.center_block = env["center_block"]
+        self.num_steps = env["budget"]
+        self.sense_mask_method = sense_mask_method
+        self.policy = PPOPolicy(
+            env["action_space"], env["points_per_step"], env["target_fraction"], torch.device("cpu"),
+            chans=options.chans, num_pools=options.num_pools, critic_hidden=options.critic_hidden,
+            normalize_obs=getattr(options, "normalize_obs", False),
+        )
+        self.policy.load_state_dict(checkpoint["policy"])
+        self.sensetivity_net = SensetivityModel_mc(2, 2, 8)
+        self.sensetivity_net.load_state_dict(checkpoint["sensetivity_net"])
+        for parameter in self.parameters():
+            parameter.requires_grad_(False)
+        self.eval()
+
+    def train(self, mode: bool = True):
+        return super().train(False)
+
+    @torch.no_grad()
+    def forward(self, full_kspace: torch.Tensor) -> torch.Tensor:
+        """`[B, C, H, W, 2]` -> centered mask `[B, 1, H, W]` after `num_steps` greedy acquisitions."""
+        device = full_kspace.device
+        self.policy.device = device
+        full_complex = torch.view_as_complex(full_kspace.contiguous())
+        sense_maps, _ = self.sensetivity_net(full_complex, mask_method=self.sense_mask_method)
+        single_coil_k = coil_combined_kspace(full_complex, sense_maps)
+        mask = center_block_mask(full_kspace.shape[0], self.resolution, self.center_block, device)
+        for _ in range(self.num_steps):
+            second = ifft_2d_img(mask.squeeze(1) * single_coil_k)
+            actions, _, _ = self.policy.act(encode_observation(mask, single_coil_k, second), deterministic=True)
+            mask = mask.clone()
+            mask.view(mask.shape[0], -1).scatter_(1, actions, 1.0)
+        return mask

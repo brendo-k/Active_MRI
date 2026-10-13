@@ -14,6 +14,7 @@ from torch import nn
 
 from activemri.reconstructors.CG_Sense import compute_gfactor
 from activemri.reconstructors.SensetivityModel_mc import SensetivityModel_mc
+from activemri.samplers.ppo import PPOMaskPolicy
 from activemri.samplers.sampler import Sampler, is_line_constrained
 from activemri.utils.image_processing import fft_2d_img as torch_fft2
 from activemri.utils.image_processing import ifft_2d_img as torch_ifft2
@@ -70,10 +71,13 @@ class SequentialSampling(nn.Module):
             reinforce_normalize_advantages=False,
             reinforce_group_size=0,
             reinforce_vd_power=0.0,
+            reinforce_eval='sample',
             sampler_chans=64,
             sampler_depth=4,
             sampler_image_input=False,
             caipi_keep_fraction=1.0,
+            autosamp_init='uniform',
+            ppo_policy=None,
             ):
         super().__init__()
 
@@ -102,6 +106,17 @@ class SequentialSampling(nn.Module):
 
         self.reconstructor = reconstructor
 
+        # Compute per-step sampling budget
+        if not self.line_constrained:
+            effective_sparsity = sparsity - (preselect_num ** 2) / (shape[0] * shape[1]) if preselect else sparsity
+            self.budget = effective_sparsity * shape[0] * shape[1]
+        else:
+            effective_sparsity = (sparsity - preselect_num / shape[1]) if preselect else sparsity
+            self.budget = effective_sparsity * shape[0]
+
+        if sampler_type == 'autosamp_2d' and num_step != 1:
+            raise ValueError(f"autosamp_2d learns one fixed set of positions, so it needs num_step=1, got {num_step}")
+
         self.sampler = Sampler(
             sampler_type=sampler_type,
             shape=shape,
@@ -119,19 +134,19 @@ class SequentialSampling(nn.Module):
             sampler_depth=sampler_depth,
             image_domain_input=sampler_image_input,
             reinforce_vd_power=reinforce_vd_power,
+            reinforce_eval=reinforce_eval,
             caipi_keep_fraction=caipi_keep_fraction,
+            autosamp_num_points=round(self.budget),
+            autosamp_init=autosamp_init,
         )
 
         # Sensitivity estimation
         self.sensetivity_net = SensetivityModel_mc(2, 2, 8)
 
-        # Compute per-step sampling budget
-        if not self.line_constrained:
-            effective_sparsity = sparsity - (preselect_num ** 2) / (shape[0] * shape[1]) if preselect else sparsity
-            self.budget = effective_sparsity * shape[0] * shape[1]
-        else:
-            effective_sparsity = (sparsity - preselect_num / shape[1]) if preselect else sparsity
-            self.budget = effective_sparsity * shape[0]
+        # A frozen PPO policy replaces the sampler's mask (the sampler stays only as a placeholder).
+        self.mask_policy = PPOMaskPolicy(ppo_policy, sense_mask_method) if ppo_policy else None
+        if self.mask_policy is not None and num_step != 1:
+            raise ValueError(f"ppo_policy produces the whole mask at once, so it needs num_step=1, got {num_step}")
 
         print(f"Sampler: {sampler_type}")
         print(f"Number of sequential steps: {num_step}")
@@ -154,7 +169,7 @@ class SequentialSampling(nn.Module):
 
     def step_forward(self, full_kspace, pred_kspace, old_mask, target, step,
                      sense_maps, sense_mask, uncertainty_map=None, valid_mask=None,
-                     prev_gfactor=None, anatomy_labels=None):
+                     prev_gfactor=None, anatomy_labels=None, fixed_mask=None):
         """Execute one sampling + reconstruction step.
 
         Args:
@@ -170,6 +185,7 @@ class SequentialSampling(nn.Module):
                 noise-aware sampling guidance.
             anatomy_labels: Optional long tensor [B] of anatomy indices, used to
                 condition the sampler (and the reconstructor, if it supports it).
+            fixed_mask: Optional mask [B, 1, H, W] used instead of the sampler's.
 
         Returns:
             Dict with keys: output, mask, zero_recon, uncertainty_map, gfactor
@@ -189,10 +205,15 @@ class SequentialSampling(nn.Module):
             recon_2ch = torch.stack([pred_single_coil_img.real, pred_single_coil_img.imag], dim=1)
             recon_complex = recon_2ch.detach()
 
-        mask, data_to_vis_sampler, anatomy_logits, reinforce_logp, reinforce_entropy = self.sampler(
-            pred_single_coil_k, old_mask, budget, uncertainty_map, valid_mask,
-            recon_complex, gfactor=prev_gfactor, anatomy_labels=anatomy_labels,
-        )
+        if fixed_mask is not None:
+            mask = fixed_mask
+            data_to_vis_sampler = dict.fromkeys(('prob_mask', 'rescaled_mask', 'binarized_mask'), fixed_mask[0, 0])
+            anatomy_logits = reinforce_logp = reinforce_entropy = None
+        else:
+            mask, data_to_vis_sampler, anatomy_logits, reinforce_logp, reinforce_entropy = self.sampler(
+                pred_single_coil_k, old_mask, budget, uncertainty_map, valid_mask,
+                recon_complex, gfactor=prev_gfactor, anatomy_labels=anatomy_labels,
+            )
         masked_kspace = torch.view_as_real(mask * torch.view_as_complex(full_kspace))
         self.data_for_vis[step].update(data_to_vis_sampler)
 
@@ -216,6 +237,8 @@ class SequentialSampling(nn.Module):
             if self.recon_type in ('lls', 'cg_sense', 'varnet'):
                 masked_kspace_complex = torch.view_as_complex(masked_kspace.contiguous())
                 recon_kwargs = {'anatomy_labels': anatomy_labels} if self.condition_reconstructor else {}
+                if getattr(self.reconstructor, 'dc_mode', None) == 'multiply':
+                    recon_kwargs['full_kspace'] = torch.view_as_complex(full_kspace.contiguous())
                 recon_mag = self.reconstructor(masked_kspace_complex, sense_maps, mask, **recon_kwargs)
                 recon = recon_mag.to(torch.complex64)
             else:
@@ -314,12 +337,13 @@ class SequentialSampling(nn.Module):
         anatomy_logits_list = []
         reinforce_logp = None  # [B], sum of every step's Plackett-Luce log-prob
         reinforce_entropy = None  # [B], sum of every step's draw entropy
+        fixed_mask = self.mask_policy(full_kspace) if self.mask_policy is not None else None
 
         for i in range(self.num_step):
             pred_dict = self.step_forward(
                 full_kspace, pred_kspace, old_mask, target, i,
                 sense_maps, sense_mask, uncertainty_map, valid_mask,
-                prev_gfactor=gfactor, anatomy_labels=anatomy_labels,
+                prev_gfactor=gfactor, anatomy_labels=anatomy_labels, fixed_mask=fixed_mask,
             )
 
             new_img = pred_dict['output']

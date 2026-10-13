@@ -9,6 +9,7 @@ import hydra
 import numpy as np
 import torch
 from omegaconf import DictConfig, OmegaConf
+from torch.utils.data import DataLoader, Subset
 
 from activemri.datasets.fastmri_data import build_fastmri_dataloaders
 from activemri.envs.mri_env import MRIEnv
@@ -25,6 +26,21 @@ def episode_steps(cfg: DictConfig) -> int:
     return int(round((total / cfg.env.acceleration - preselected) / cfg.env.points_per_step))
 
 
+def evenly_spaced_val_loader(loader: DataLoader, num_slices: int) -> DataLoader:
+    """A fixed, shuffle-free val loader over `num_slices` slices spread across the whole val set.
+
+    The val set is brain slices followed by knee slices, so taking the first batches would only score brain.
+    """
+    indices = np.linspace(0, len(loader.dataset) - 1, num_slices).round().astype(int).tolist()
+    return DataLoader(
+        Subset(loader.dataset, indices),
+        batch_size=loader.batch_size,
+        shuffle=False,
+        num_workers=min(loader.num_workers, 4),
+        collate_fn=loader.collate_fn,
+    )
+
+
 def build_envs(cfg: DictConfig) -> tuple[MRIEnv, MRIEnv]:
     train_loader, val_loader = build_fastmri_dataloaders(
         data_root=Path(cfg.datasets.data_root),
@@ -35,7 +51,11 @@ def build_envs(cfg: DictConfig) -> tuple[MRIEnv, MRIEnv]:
         num_workers=cfg.datasets.num_workers,
         contrast=cfg.datasets.get('contrast', None),
         data_dir=cfg.datasets.get('data_dir', None),
+        min_energy_fraction=cfg.datasets.get('min_energy_fraction', 0.2),
+        balance=cfg.datasets.get('balance', False),
+        train_anatomies=list(cfg.datasets.get('train_anatomies', [])),
     )
+    val_loader = evenly_spaced_val_loader(val_loader, cfg.ppo.num_val_episodes * cfg.training.batch_size)
 
     budget = episode_steps(cfg)
 
@@ -55,6 +75,7 @@ def build_envs(cfg: DictConfig) -> tuple[MRIEnv, MRIEnv]:
             action_space=cfg.env.action_space,
             points_per_step=cfg.env.points_per_step,
             center_block=cfg.env.center_block,
+            observation=cfg.env.get('observation', 'kspace'),
         )
 
     return _make_env(train_loader), _make_env(val_loader)

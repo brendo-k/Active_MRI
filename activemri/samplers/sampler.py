@@ -1,4 +1,4 @@
-"""Selects and runs one of the four sampling families.
+"""Selects and runs one of the sampling families.
 
 `Sampler` owns the choice of family and the shared post-processing that turns a
 raw score map into a binary acquisition mask.
@@ -6,6 +6,7 @@ raw score map into a binary acquisition mask.
 import torch
 from torch import nn
 
+from activemri.samplers.autosamp import AutoSampCoordinates
 from activemri.samplers.caipi import caipi_mask
 from activemri.samplers.conv import KspaceLineConstrainedSampler, SampProb2D
 from activemri.samplers.loupe import LineConstrainedProbMask, ProbMask
@@ -14,8 +15,9 @@ from activemri.utils.image_processing import ifft_2d_img
 from activemri.utils.mask_binarization import RescaleProbMap, ThresholdRandomMaskSigmoidV1
 
 
-SAMPLER_TYPES = ("conv_2d", "conv_1d", "loupe_2d", "loupe_1d", "caipi_2d")
+SAMPLER_TYPES = ("conv_2d", "conv_1d", "loupe_2d", "loupe_1d", "caipi_2d", "autosamp_2d")
 MASK_TRAIN_MODES = ("straight_through", "reinforce", "random")
+REINFORCE_EVAL_MODES = ("sample", "topk")
 
 
 def is_line_constrained(sampler_type):
@@ -26,13 +28,19 @@ def is_line_constrained(sampler_type):
 class Sampler(nn.Module):
     """Generates sampling masks for sequential k-space acquisition.
 
-    Five sampler families are available, selected by `sampler_type`:
+    Six sampler families are available, selected by `sampler_type`:
 
-        conv_2d   U-Net over k-space, one score per location   (input-adaptive)
-        conv_1d   MLP over k-space, one score per column       (input-adaptive)
-        loupe_2d  learned mask, one weight per location        (input-independent)
-        loupe_1d  learned mask, one weight per column          (input-independent)
-        caipi_2d  fixed 2x2 CAIPI lattice, no parameters       (input-independent)
+        conv_2d      U-Net over k-space, one score per location   (input-adaptive)
+        conv_1d      MLP over k-space, one score per column       (input-adaptive)
+        loupe_2d     learned mask, one weight per location        (input-independent)
+        loupe_1d     learned mask, one weight per column          (input-independent)
+        caipi_2d     fixed 2x2 CAIPI lattice, no parameters       (input-independent)
+        autosamp_2d  learned coordinates snapped to the grid      (input-independent)
+
+    `autosamp_2d` (see :mod:`activemri.samplers.autosamp`) learns a fixed number of
+    continuous k-space positions and snaps each to its nearest free grid cell. The
+    count is fixed at construction (`autosamp_num_points`), so it is a single-step
+    sampler and ignores the per-call `budget`.
 
     The LOUPE families ignore the observed k-space; their mask is a free
     parameter shared across the dataset. By default all four are put through
@@ -72,7 +80,10 @@ class Sampler(nn.Module):
         sampler_depth=4,
         image_domain_input=False,
         reinforce_vd_power=0.0,
+        reinforce_eval='sample',
         caipi_keep_fraction=1.0,
+        autosamp_num_points=0,
+        autosamp_init='uniform',
         ):
         super().__init__()
 
@@ -80,6 +91,8 @@ class Sampler(nn.Module):
             raise ValueError(f"Unknown sampler_type {sampler_type!r}; expected one of {SAMPLER_TYPES}")
         if mask_train_mode not in MASK_TRAIN_MODES:
             raise ValueError(f"Unknown mask_train_mode {mask_train_mode!r}; expected one of {MASK_TRAIN_MODES}")
+        if reinforce_eval not in REINFORCE_EVAL_MODES:
+            raise ValueError(f"Unknown reinforce_eval {reinforce_eval!r}; expected one of {REINFORCE_EVAL_MODES}")
 
         self.sampler_type = sampler_type
         self.line_constrained = is_line_constrained(sampler_type)
@@ -98,9 +111,17 @@ class Sampler(nn.Module):
         self.with_gfactor = with_gfactor
         self.num_anatomy_classes = num_anatomy_classes
         self.num_conditioning_classes = num_conditioning_classes
+        # How `reinforce` deploys the policy in eval: 'sample' draws a mask from it, as in
+        # training; 'topk' takes the highest logits, which for a smooth policy is a
+        # coherent low-pass disc the reconstructor never trained on.
+        self.reinforce_eval = reinforce_eval
+        # Set by the trainer and reseeded every val epoch, so eval draws repeat exactly.
+        self.eval_generator: torch.Generator | None = None
 
         if sampler_type == "caipi_2d":
             self.register_buffer("caipi_pattern", caipi_mask(shape, keep_fraction=caipi_keep_fraction)[None, None])
+        elif sampler_type == "autosamp_2d":
+            self.mask_net = AutoSampCoordinates(shape, autosamp_num_points, init=autosamp_init)
         elif sampler_type == "conv_2d":
             self.mask_net = SampProb2D(
                 fixed_input=fixed_input,
@@ -214,15 +235,16 @@ class Sampler(nn.Module):
         # cap k at the tightest example rather than crash or silently pick a
         # different budget per row.
         k = min(int(round(float(budget))), int((~taken).sum(dim=1).min().item()))
-        # In eval the policy is what would be deployed: the k highest-scoring
-        # locations, not a random draw. There is nothing to credit, so no
-        # log-prob -- which also keeps the REINFORCE term out of the validation
-        # loss that picks the best checkpoint.
-        deterministic = not self.training and not uniform
-        if deterministic:
+        # In eval there is nothing to credit, so no log-prob is returned -- which also
+        # keeps the REINFORCE term out of the validation loss that picks the best
+        # checkpoint. The mask is a draw from the policy (reinforce_eval='sample'),
+        # from `eval_generator` so it repeats every epoch, or its top-k ('topk').
+        evaluating = not self.training and not uniform
+        if evaluating and self.reinforce_eval == 'topk':
             order, logp = torch.topk(logits, k, dim=1).indices, None
         else:
-            order, logp = plackett_luce_sample_and_logprob(logits, k)
+            order, logp = plackett_luce_sample_and_logprob(
+                logits, k, generator=self.eval_generator if evaluating else None)
 
         delta = torch.zeros_like(logits)
         delta.scatter_(1, order, 1.0)  # delta has no grad history -- safe in-place
@@ -241,7 +263,7 @@ class Sampler(nn.Module):
             'rescaled_mask': delta_mask[0, 0].detach(),
             'binarized_mask': binary_mask[0, 0].detach(),
         }
-        draws_policy = not (uniform or deterministic)
+        draws_policy = not (uniform or evaluating)
         return binary_mask, data_to_vis_sampler, (logp if draws_policy else None), (entropy if draws_policy else None)
 
     def forward(self, observed_kspace, old_mask, budget, uncertainty_mask=None, valid_mask=None, recon_complex=None, gfactor=None, anatomy_labels=None):  # noqa: ARG002
@@ -263,6 +285,16 @@ class Sampler(nn.Module):
             data_to_vis_sampler = {
                 'prob_mask': self.caipi_pattern[0, 0],
                 'rescaled_mask': self.caipi_pattern[0, 0],
+                'binarized_mask': binary_mask[0, 0].detach(),
+            }
+            return binary_mask, data_to_vis_sampler, None, None, None
+
+        if self.sampler_type == "autosamp_2d":
+            new_mask, soft_mask = self.mask_net(old_mask, valid_mask)
+            binary_mask = torch.clamp(old_mask + new_mask, min=0, max=1)
+            data_to_vis_sampler = {
+                'prob_mask': soft_mask,
+                'rescaled_mask': new_mask[0, 0].detach(),
                 'binarized_mask': binary_mask[0, 0].detach(),
             }
             return binary_mask, data_to_vis_sampler, None, None, None

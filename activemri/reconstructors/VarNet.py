@@ -113,13 +113,33 @@ class NormUnet(nn.Module):
         return real_to_complex(x)
 
 
-class VarNetBlock(nn.Module):
-    """Single cascade: soft data consistency plus a U-Net regularizer."""
+DC_MODES = ("where", "multiply")
 
-    def __init__(self, model: nn.Module):
+
+class VarNetBlock(nn.Module):
+    """Single cascade: soft data consistency plus a U-Net regularizer.
+
+    ``dc_mode='where'`` gates the DC residual with ``torch.where``, so no gradient reaches
+    the mask through the DC term. ``dc_mode='multiply'`` multiplies by the mask instead,
+    which is identical in the forward pass for a binary mask but gives a learnable mask
+    the gradient ``g * (current - ref)`` at unobserved locations (``ref`` must then be the
+    full, unmasked k-space for that signal to be meaningful).
+    """
+
+    def __init__(self, model: nn.Module, dc_mode: str = "where"):
         super().__init__()
+        if dc_mode not in DC_MODES:
+            raise ValueError(f"dc_mode must be one of {DC_MODES}, got {dc_mode!r}")
         self.model = model
-        self.dc_weight = nn.Parameter(torch.tensor(0.0))
+        self.dc_mode = dc_mode
+        self.dc_weight = nn.Parameter(torch.ones(1))
+
+    def _load_from_state_dict(self, state_dict, prefix, *args, **kwargs):
+        # Checkpoints saved before dc_weight became a raw weight hold a scalar logit.
+        key = prefix + "dc_weight"
+        if key in state_dict and state_dict[key].dim() == 0:
+            state_dict[key] = torch.sigmoid(state_dict[key]).reshape(1)
+        super()._load_from_state_dict(state_dict, prefix, *args, **kwargs)
 
     def sens_expand(self, image: torch.Tensor, sense_maps: torch.Tensor) -> torch.Tensor:
         return fft_2d_img(image * sense_maps)
@@ -135,9 +155,11 @@ class VarNetBlock(nn.Module):
         sense_maps: torch.Tensor,
         anatomy_embedding: torch.Tensor = None,
     ) -> torch.Tensor:
-        zero = torch.zeros(1, device=current_kspace.device, dtype=current_kspace.dtype)
-        dc_weight = torch.sigmoid(self.dc_weight)
-        soft_dc = torch.where(mask.bool(), current_kspace - ref_kspace, zero) * dc_weight
+        if self.dc_mode == "multiply":
+            soft_dc = mask * (current_kspace - ref_kspace) * self.dc_weight
+        else:
+            zero = torch.zeros(1, device=current_kspace.device, dtype=current_kspace.dtype)
+            soft_dc = torch.where(mask.bool(), current_kspace - ref_kspace, zero) * self.dc_weight
         model_term = self.sens_expand(
             self.model(self.sens_reduce(current_kspace, sense_maps), anatomy_embedding), sense_maps
         )
@@ -156,6 +178,8 @@ class VarNet(nn.Module):
             learned per-class embedding shared across cascades.
         film: Inject the embedding by FiLM on each cascade's bottleneck instead
             of as constant input channels.
+        dc_mode: ``'where'`` or ``'multiply'``; see :class:`VarNetBlock`.
+            ``'multiply'`` requires ``full_kspace`` in :meth:`forward`.
     """
 
     def __init__(
@@ -166,8 +190,10 @@ class VarNet(nn.Module):
         num_conditioning_classes: int = 0,
         anatomy_embed_dim: int = DEFAULT_EMBED_DIM,
         film: bool = False,
+        dc_mode: str = "where",
     ):
         super().__init__()
+        self.dc_mode = dc_mode
         self.anatomy_embedding = (
             AnatomyEmbedding(num_conditioning_classes, anatomy_embed_dim)
             if num_conditioning_classes > 0 else None
@@ -176,7 +202,8 @@ class VarNet(nn.Module):
         conditioning_chans = anatomy_embed_dim if has_embedding and not film else 0
         film_embed_dim = anatomy_embed_dim if has_embedding and film else 0
         self.cascades = nn.ModuleList(
-            [VarNetBlock(NormUnet(chans, pools, conditioning_chans=conditioning_chans, film_embed_dim=film_embed_dim))
+            [VarNetBlock(NormUnet(chans, pools, conditioning_chans=conditioning_chans, film_embed_dim=film_embed_dim),
+                         dc_mode=dc_mode)
              for _ in range(num_cascades)]
         )
 
@@ -186,6 +213,7 @@ class VarNet(nn.Module):
         sense_maps: torch.Tensor,
         mask: torch.Tensor,
         anatomy_labels: torch.Tensor = None,
+        full_kspace: torch.Tensor = None,
     ) -> torch.Tensor:
         """
         Args:
@@ -193,6 +221,8 @@ class VarNet(nn.Module):
             sense_maps: [B, C, H, W] complex.
             mask: [B, 1, H, W] binary float.
             anatomy_labels: Optional long tensor [B] of anatomy indices.
+            full_kspace: [B, C, H, W] complex unmasked k-space; the DC reference
+                in ``'multiply'`` mode, ignored in ``'where'`` mode.
 
         Returns:
             Coil-combined reconstruction [B, 1, H, W] complex.
@@ -202,7 +232,14 @@ class VarNet(nn.Module):
             if self.anatomy_embedding is not None else None
         )
 
+        if self.dc_mode == "multiply":
+            if full_kspace is None:
+                raise ValueError("dc_mode='multiply' needs full_kspace as the DC reference")
+            ref_kspace = full_kspace
+        else:
+            ref_kspace = masked_kspace
+
         kspace_pred = masked_kspace.clone()
         for cascade in self.cascades:
-            kspace_pred = cascade(kspace_pred, masked_kspace, mask, sense_maps, anatomy_embedding)
+            kspace_pred = cascade(kspace_pred, ref_kspace, mask, sense_maps, anatomy_embedding)
         return (ifft_2d_img(kspace_pred) * sense_maps.conj()).sum(dim=1, keepdim=True)

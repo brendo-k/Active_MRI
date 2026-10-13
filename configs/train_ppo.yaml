@@ -1,16 +1,15 @@
 defaults:
   - recon: varnet
-  - datasets: multi_anatomy
+  - datasets: brain_knee_balanced
   - _self_
 
 training:
   batch_size: 4
-  num_workers: 32
   seed: 42
 
 env:
   resolution: [256, 256]
-  acceleration: 4.0
+  acceleration: 8.0
   preselect_num: 10
   sense_mask_method: pre_network
   # sparse = L2SR: reconstructor only runs at episode start/end, reward is the
@@ -22,10 +21,16 @@ env:
   # region is a center_block x center_block square. line = each action is one
   # column and the preselected region is the center preselect_num columns.
   action_space: point
-  # Actions acquired per step (drawn without replacement). R=4 in point mode is
-  # (256*256/4 - 16*16) / 128 = 126 steps.
+  # Actions acquired per step (drawn without replacement). R=8 in point mode is
+  # (256*256/8 - 16*16) / 128 = 62 steps, 8192 points in all: the budget the LOUPE and
+  # REINFORCE samplers get (their budget also counts the centre).
   points_per_step: 128
   center_block: 16
+  # What the policy sees besides the mask. kspace = coil-combined k-space (5 channels; the sense maps'
+  # (-1)^row phase leaves its DC on row 0, half a FOV from the mask's centre). kspace_aligned = the same
+  # rolled back to DC-centred. image = SENSE-combined zero-filled image of the acquired multicoil data
+  # (3 channels: Re, Im, mask). image_kspace_aligned = aligned acquired k-space + that image (5 channels).
+  observation: kspace
 
 ppo:
   # Alternation: PPO phase -> reconstructor phase, repeated num_rounds times (as in L2SR).
@@ -33,7 +38,13 @@ ppo:
   steps_per_round: 100000  # env.step() calls in round 0
   later_round_step_fraction: 0.2
   round_lr_decay: 0.5  # per-round multiplier on the policy and reconstructor lrs
-  episodes_per_update: 2  # each episode is `training.batch_size` slices acquired in lockstep
+  # Each episode is `training.batch_size` slices acquired in lockstep; with group_size G every batch of
+  # slices is played G times, so an update sees episodes_per_update / G * batch_size distinct slices.
+  episodes_per_update: 8
+  # rloo = leave-one-out baseline over the G draws on the same slices (removes per-slice difficulty,
+  # which dominates the terminal return); gae = critic-baselined GAE.
+  advantage_estimator: rloo
+  group_size: 4
   ppo_epochs: 4
   minibatch_size: 32
   clip_range: 0.2
@@ -46,7 +57,9 @@ ppo:
   # gamma=0.5 was tuned for a 16-step horizon; at >100 steps here it would leave
   # early acquisitions with essentially no credit.
   gamma: 1.0
-  gae_lambda: 0.95
+  # Only used by advantage_estimator=gae. With a terminal reward, lambda<1 gives step t only
+  # lambda^(T-1-t) of the real reward (0.95^61 = 0.04 at step 0) and leaves the rest to the critic.
+  gae_lambda: 1.0
   learning_rate: 0.0001
   normalize_rewards: true
   # Reconstructor phase (0 disables it: policy-only PPO against the checkpoint's reconstructor).
@@ -55,19 +68,22 @@ ppo:
   recon_max_grad_norm: 1.0
   recon_policy_deterministic: true
   val_update_freq: 10
-  num_val_episodes: 10
+  num_val_episodes: 16  # x training.batch_size slices, spread evenly over brain and knee; the same slices every validation
+  val_deterministic: false  # best.pt is picked on sampled draws (fixed val_seed); true = greedy top-k, which understates smooth policies
+  val_seed: 0
   checkpoint_freq: 10
   # chans/num_pools must match the VarNet checkpoint's recon config for
   # load_pretrained_backbone to transfer weights.
   chans: ${recon.chans}
   num_pools: ${recon.pools}
   critic_hidden: 256
+  normalize_obs: false  # standardise the observation's data channels per sample inside the network
   backbone_cascade_idx: -1
   pretrained_checkpoint: checkpoints/varnet_caipi2d_r4_brain_knee/best_model.pt
   resume: false
 
 output:
-  out_dir: checkpoints/ppo
+  out_dir: checkpoints/ppo_varnet_r8_brain_knee
 
 device: cuda
 

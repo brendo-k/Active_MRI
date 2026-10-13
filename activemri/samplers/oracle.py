@@ -457,7 +457,7 @@ def icd_refine(
     return {'mask': mask, 'num_moves': total_moves, 'history': history}
 
 
-def plackett_luce_sample_and_logprob(logits: torch.Tensor, k: int):
+def plackett_luce_sample_and_logprob(logits: torch.Tensor, k: int, generator: torch.Generator | None = None):
     """Gumbel-top-k sampling from a Plackett-Luce policy, with its log-probability.
 
     Sampling ``k`` items without replacement in proportion to ``softmax(logits)``,
@@ -472,6 +472,8 @@ def plackett_luce_sample_and_logprob(logits: torch.Tensor, k: int):
     Args:
         logits: [B, N] unnormalised scores over candidates.
         k: Number of items to select per row, without replacement.
+        generator: Optional RNG for the Gumbel noise, so a draw can be replayed
+            (e.g. the same validation masks every epoch). None uses the global RNG.
 
     Returns:
         ``order`` [B, k] selected indices (highest-probability first) and
@@ -482,7 +484,7 @@ def plackett_luce_sample_and_logprob(logits: torch.Tensor, k: int):
     # a non-positive number up to 1e-12 saturates it to exactly 1e-12 every time, so the
     # outer log(-1e-12) was NaN on every single call. Clamping u itself away from both
     # 0 and 1 keeps both logs finite without that degenerate saturation.
-    u = torch.rand_like(logits).clamp(1e-12, 1 - 1e-12)
+    u = torch.rand(logits.shape, generator=generator, device=logits.device, dtype=logits.dtype).clamp(1e-12, 1 - 1e-12)
     gumbel = -torch.log(-torch.log(u))
     order = torch.topk(logits + gumbel, k, dim=1).indices  # [B, k]
 
@@ -1371,7 +1373,7 @@ def reinforce_2d(
             loss = loss - (advantage.detach() * round_logps[t]).mean()
 
         if entropy_weight > 0:
-            logits = theta.unsqueeze(0).expand(E, -1).masked_fill(~preselect_mask.view(-1).bool().unsqueeze(0), float('-inf'))
+            logits = theta.unsqueeze(0).expand(E, -1).masked_fill(preselect_mask.view(-1).bool().unsqueeze(0), float('-inf'))
             probs = torch.softmax(logits, dim=1)
             entropy = -(probs * torch.log(probs + 1e-8)).sum(dim=1).mean()
             loss = loss - entropy_weight * entropy

@@ -37,6 +37,8 @@ def build_train_config(cfg: DictConfig) -> TrainConfig:
         lr=cfg.training.lr,
         lr_step_size=cfg.training.lr_step_size,
         lr_gamma=cfg.training.lr_gamma,
+        lr_scheduler=cfg.training.get('lr_scheduler', 'step'),
+        lr_warmup_epochs=cfg.training.get('lr_warmup_epochs', 2),
         weight_decay=cfg.training.weight_decay,
         limit_batches=cfg.training.limit_batches,
         data_parallel=cfg.training.data_parallel,
@@ -65,8 +67,16 @@ def build_train_config(cfg: DictConfig) -> TrainConfig:
         reinforce_normalize_advantages=cfg.sampler.get('reinforce_normalize_advantages', False),
         reinforce_group_size=cfg.sampler.get('reinforce_group_size', 0),
         reinforce_vd_power=cfg.sampler.get('reinforce_vd_power', 0.0),
+        reinforce_eval=cfg.sampler.get('reinforce_eval', 'sample'),
         reinforce_lr=cfg.sampler.get('reinforce_lr', None),
+        autosamp_init=cfg.sampler.get('autosamp_init', 'uniform'),
+        autosamp_lr=cfg.sampler.get('autosamp_lr', 0.01),
+        autosamp_kernel_sigma_start=cfg.sampler.get('autosamp_kernel_sigma_start', 0.0),
+        autosamp_kernel_sigma_end=cfg.sampler.get('autosamp_kernel_sigma_end', 1.0),
+        autosamp_anneal_fraction=cfg.sampler.get('autosamp_anneal_fraction', 0.8),
+        ppo_policy=cfg.sampler.get('ppo_policy', None),
         freeze_recon=cfg.sampler.get('freeze_recon', False),
+        fixed_mask_checkpoints=dict(cfg.sampler.fixed_mask_checkpoints) if cfg.sampler.get('fixed_mask_checkpoints') else None,
         sense_mask_method=cfg.sampler.get('sense_mask_method', 'pre_network'),
         with_recon=cfg.sampler.get('with_recon', False),
         with_gfactor=cfg.sampler.get('with_gfactor', False),
@@ -76,6 +86,8 @@ def build_train_config(cfg: DictConfig) -> TrainConfig:
         recon=build_recon_config(cfg),
         resolution=list(cfg.misc.resolution),
         random_rotate=cfg.misc.random_rotate,
+        phase_scramble_std=cfg.misc.get('phase_scramble_std', 0.0),
+        phase_scramble_band=list(cfg.misc.get('phase_scramble_band', [6.0, 16.0])),
     )
 
     if config.num_step == 0:
@@ -98,6 +110,7 @@ def build_dataloaders(cfg: DictConfig):
         min_energy_fraction=cfg.datasets.get('min_energy_fraction', 0.2),
         balance=cfg.datasets.get('balance', False),
         train_anatomies=list(cfg.datasets.get('train_anatomies', [])),
+        train_slices=cfg.datasets.get('train_slices', None),
     )
 
 

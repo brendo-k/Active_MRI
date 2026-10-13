@@ -58,6 +58,11 @@ class PPOTrainConfig:
     target_kl: Optional[float] = 0.03  # stop an update's epochs early once mean approx-KL exceeds 1.5x this
     gamma: float = 1.0
     gae_lambda: float = 0.95
+    # "gae": critic-baselined GAE. "rloo": each batch of slices is played `group_size` times and a draw's
+    # advantage is its reward-to-go minus the mean of the other draws' on the same slices (leave-one-out),
+    # which cancels the per-slice difficulty that dominates the return; the critic is then only logged.
+    advantage_estimator: str = "gae"
+    group_size: int = 1  # policy draws per batch of slices; episodes_per_update must be a multiple
     learning_rate: float = 1e-4
     normalize_rewards: bool = True  # divide rewards by the running std of episode returns
     # Reconstructor phase
@@ -68,11 +73,17 @@ class PPOTrainConfig:
     # Evaluation / checkpointing
     val_update_freq: int = 10
     num_val_episodes: int = 10
+    # best.pt and the recon-phase before/after scores use sampled draws (the policy as trained) with
+    # a fixed val_seed, so every validation sees the same noise. True scores the greedy top-k instead,
+    # which understates smooth policies.
+    val_deterministic: bool = False
+    val_seed: int = 0
     checkpoint_freq: int = 10
     # Network
     chans: int = 18
     num_pools: int = 4
     critic_hidden: int = 256
+    normalize_obs: bool = False  # standardise the observation's data channels per sample inside the network
     backbone_cascade_idx: int = -1
     pretrained_checkpoint: Optional[str] = None
     out_dir: str = "checkpoints/ppo"
@@ -141,8 +152,41 @@ def compute_gae(
     return advantages, advantages + values
 
 
+def rewards_to_go(rewards: torch.Tensor, gamma: float) -> torch.Tensor:
+    """`[..., T, B] -> [..., T, B]`: discounted sum of rewards from each step to the episode's end."""
+    returns = torch.zeros_like(rewards)
+    running = torch.zeros_like(rewards[..., 0, :])
+    for t in reversed(range(rewards.shape[-2])):
+        running = rewards[..., t, :] + gamma * running
+        returns[..., t, :] = running
+    return returns
+
+
+def leave_one_out_advantages(group_rewards: torch.Tensor, gamma: float) -> tuple[torch.Tensor, torch.Tensor]:
+    """RLOO over `M` draws on the same slices. `group_rewards`: `[M, T, B]`.
+
+    Each draw's baseline at step `t` is the mean reward-to-go of the other `M - 1` draws, which is
+    independent of that draw's actions, so the advantage stays unbiased.
+
+    Returns:
+        (advantages, reward-to-go), both `[M, T, B]`.
+    """
+    num_draws = group_rewards.shape[0]
+    returns = rewards_to_go(group_rewards, gamma)
+    baseline = (returns.sum(dim=0, keepdim=True) - returns) / (num_draws - 1)
+    return returns - baseline, returns
+
+
 class PPOTrainer:
     def __init__(self, options: PPOTrainConfig, env: MRIEnv, val_env: Optional[MRIEnv], device: torch.device):
+        if options.advantage_estimator not in ("gae", "rloo"):
+            raise ValueError(f"advantage_estimator must be 'gae' or 'rloo', got {options.advantage_estimator!r}")
+        if options.episodes_per_update % options.group_size:
+            raise ValueError(
+                f"episodes_per_update ({options.episodes_per_update}) must be a multiple of "
+                f"group_size ({options.group_size})")
+        if options.advantage_estimator == "rloo" and options.group_size < 2:
+            raise ValueError("advantage_estimator='rloo' needs group_size >= 2")
         self.options = options
         self.env = env
         self.val_env = val_env if val_env is not None else env
@@ -163,6 +207,7 @@ class PPOTrainer:
             chans=options.chans, num_pools=options.num_pools, critic_hidden=options.critic_hidden,
             pretrained_checkpoint=options.pretrained_checkpoint,
             backbone_cascade_idx=options.backbone_cascade_idx,
+            in_chans=env.obs_channels, normalize_obs=options.normalize_obs,
         )
         self.optimizer = torch.optim.Adam(self.policy.parameters(), lr=options.learning_rate)
 
@@ -204,6 +249,16 @@ class PPOTrainer:
                 "optimizer": self.optimizer.state_dict(),
                 "return_std": self.return_std.state_dict(),
                 "reconstructor": self.env.reconstructor.state_dict(),
+                "sensetivity_net": self.env.sensetivity_net.state_dict(),
+                "env_config": {
+                    "action_space": self.env.action_space,
+                    "points_per_step": self.env.points_per_step,
+                    "budget": self.env.budget,
+                    "center_block": self.env.center_block,
+                    "target_fraction": self.env.target_fraction,
+                    "resolution": list(self.env.shape),
+                    "observation": self.env.observation,
+                },
                 "steps": self.steps,
                 "update": self.update_idx,
                 "round": self.round_idx,
@@ -215,37 +270,51 @@ class PPOTrainer:
         )
 
     @torch.no_grad()
-    def evaluate(self, num_episodes: int) -> float:
+    def evaluate(self, num_episodes: int, deterministic: Optional[bool] = None) -> float:
+        deterministic = self.options.val_deterministic if deterministic is None else deterministic
         self.policy.eval()
+        self.val_env.rewind()
         scores = []
-        for _ in range(num_episodes):
-            obs, _ = self.val_env.reset()
-            done = False
-            while not done:
-                actions, _, _ = self.policy.act(obs, deterministic=True)
-                obs, _, dones, meta = self.val_env.step(actions)
-                done = all(dones)
-            scores.append(float(np.mean(meta["current_score"]["nmse"])))
+        cuda_devices = [self.device] if self.device.type == "cuda" else []
+        with torch.random.fork_rng(devices=cuda_devices):  # leave the training RNG stream untouched
+            torch.manual_seed(self.options.val_seed)
+            for _ in range(num_episodes):
+                obs, _ = self.val_env.reset()
+                done = False
+                while not done:
+                    actions, _, _ = self.policy.act(obs, deterministic=deterministic)
+                    obs, _, dones, meta = self.val_env.step(actions)
+                    done = all(dones)
+                scores.append(float(np.mean(meta["current_score"]["nmse"])))
         return -float(np.mean(scores))  # higher is better (lower NMSE)
 
     def _validate(self):
-        val_score = self.evaluate(self.options.num_val_episodes)
-        wandb.log({"val/score": val_score, "update": self.update_idx, "round": self.round_idx}, step=self.steps)
+        num_episodes = self.options.num_val_episodes
+        scores = {mode: self.evaluate(num_episodes, deterministic=mode == "greedy") for mode in ("sampled", "greedy")}
+        val_score = scores["greedy" if self.options.val_deterministic else "sampled"]
+        wandb.log(
+            {"val/score": val_score, "val/score_sampled": scores["sampled"], "val/score_greedy": scores["greedy"],
+             "update": self.update_idx, "round": self.round_idx},
+            step=self.steps,
+        )
         if val_score > self.best_val_score:
             self.best_val_score = val_score
             self.save("best.pt")
-            self.logger.info("New best PPO val score %.6f at update %d.", val_score, self.update_idx)
+            self.logger.info(
+                "New best PPO val score %.6f (sampled %.6f, greedy %.6f) at update %d.",
+                val_score, scores["sampled"], scores["greedy"], self.update_idx,
+            )
         return val_score
 
     @torch.no_grad()
     def collect_rollout(self) -> tuple[Rollout, Dict[str, float]]:
-        """Runs `episodes_per_update` episodes with the stochastic policy."""
+        """Runs `episodes_per_update` episodes with the stochastic policy, `group_size` per batch of slices."""
         opts = self.options
         self.policy.eval()
         episodes = []
         final_nmse: List[float] = []
-        for _ in range(opts.episodes_per_update):
-            obs, _ = self.env.reset()
+        for episode_idx in range(opts.episodes_per_update):
+            obs, _ = self.env.reset(same_batch=episode_idx % opts.group_size != 0)
             step_obs, step_actions, step_log_probs, step_values, step_rewards = [], [], [], [], []
             done = False
             while not done:
@@ -265,30 +334,39 @@ class PPOTrainer:
                 step_obs, step_actions, step_log_probs, step_values, step_rewards,
             )))
 
+        all_rewards = torch.stack([rewards for *_, rewards in episodes])  # [episodes, T, B]
+        episode_returns = rewards_to_go(all_rewards, opts.gamma)[:, 0]  # [episodes, B]
         if opts.normalize_rewards:
-            self.return_std.update(torch.cat([self._discounted_return(rewards) for *_, rewards in episodes]))
+            self.return_std.update(episode_returns)
         reward_scale = 1.0 / max(self.return_std.std, 1e-8) if opts.normalize_rewards else 1.0
 
+        if opts.advantage_estimator == "rloo":
+            groups = (all_rewards * reward_scale).unflatten(0, (-1, opts.group_size))  # [groups, M, T, B]
+            advantages, returns = zip(*(leave_one_out_advantages(group, opts.gamma) for group in groups))
+            advantages, returns = torch.cat(advantages), torch.cat(returns)
+        else:
+            advantages, returns = zip(*(
+                compute_gae(rewards_t * reward_scale, values_t, opts.gamma, opts.gae_lambda)
+                for _, _, _, values_t, rewards_t in episodes
+            ))
+
         batches = {k: [] for k in ("obs", "actions", "log_probs", "advantages", "returns", "values")}
-        raw_returns = []
-        for obs_t, actions_t, log_probs_t, values_t, rewards_t in episodes:
-            advantages, returns = compute_gae(rewards_t * reward_scale, values_t, opts.gamma, opts.gae_lambda)
-            raw_returns.append(rewards_t.sum(dim=0))
-            for key, tensor in zip(batches, (obs_t, actions_t, log_probs_t, advantages, returns, values_t)):
+        for (obs_t, actions_t, log_probs_t, values_t, _), advantages_t, returns_t in zip(episodes, advantages, returns):
+            for key, tensor in zip(batches, (obs_t, actions_t, log_probs_t, advantages_t, returns_t, values_t)):
                 batches[key].append(tensor.flatten(0, 1))
         rollout = Rollout(**{k: torch.cat(v) for k, v in batches.items()})
 
         stats = {
-            "train/episode_reward": torch.cat(raw_returns).mean().item(),
+            "train/episode_reward": episode_returns.mean().item(),
             "train/final_nmse": float(np.mean(final_nmse)),
             "train/reward_scale": reward_scale,
+            "train/return_std": episode_returns.std().item(),
         }
+        if opts.group_size > 1:
+            # Spread of the return between draws on the same slices: the part the policy controls.
+            group_returns = episode_returns.unflatten(0, (-1, opts.group_size))
+            stats["train/within_slice_return_std"] = group_returns.std(dim=1).mean().item()
         return rollout, stats
-
-    def _discounted_return(self, rewards: torch.Tensor) -> torch.Tensor:
-        """Per-episode discounted return from step 0: `[T, B] -> [B]`."""
-        discounts = self.options.gamma ** torch.arange(rewards.shape[0], device=rewards.device, dtype=rewards.dtype)
-        return (rewards * discounts[:, None]).sum(dim=0)
 
     def update_policy(self, rollout: Rollout) -> Dict[str, float]:
         opts = self.options

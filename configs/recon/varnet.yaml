@@ -4,3 +4,4 @@ chans: 18
 pools: 4
 anatomy_conditioning: false  # feed the anatomy label to every cascade
 film_conditioning: false  # FiLM on each cascade bottleneck, driven by condition_classes
+dc_mode: where  # where | multiply (multiply lets mask gradients flow through DC, ref = full k-space)

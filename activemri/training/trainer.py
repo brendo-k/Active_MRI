@@ -1,6 +1,7 @@
 from collections import defaultdict
-from typing import List, Optional
+from typing import Dict, List, Optional
 import logging
+import math
 import os
 import random
 import warnings
@@ -14,13 +15,19 @@ import time
 import matplotlib.pyplot as plt
 
 from activemri.utils.evaluate import build_metrics
+from activemri.utils.metrics import MaskedMetricAccumulator
+from activemri.utils.phase_scramble import scramble_phase_real
 from activemri.models.sequential_sampling import SequentialSampling, reinforce_group_size
+from activemri.samplers.autosamp import annealed_kernel_sigma
 from activemri.utils.util import compute_ssim_torch, compute_psnr_torch
 from activemri.config import TrainConfig
 from activemri.reconstructors.config import UNetReconConfig, CGSenseReconConfig, VarNetReconConfig
 from activemri.reconstructors.CG_Sense import CGSENSEReconstructor
 from activemri.reconstructors.UNet import LOUPEUNet
 from activemri.reconstructors.VarNet import VarNet
+
+PHASE_SCRAMBLE_VAL_SEED = 0
+REINFORCE_VAL_MASK_SEED = 0
 
 
 class Sequential_Trainer:
@@ -36,14 +43,21 @@ class Sequential_Trainer:
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(__name__)
         self.anatomy_to_idx = {name: i for i, name in enumerate(options.label_classes)}
+        self.val_phase_generator = torch.Generator(device=device)
         self.model = build_model(self.options).to(device)
+        self.val_mask_generator = torch.Generator(device=device)
+        self.model.sampler.eval_generator = self.val_mask_generator
 
         if options.pretrained_recon is not None:
             self._load_pretrained_recon(options.pretrained_recon)
         if options.freeze_recon:
             self._freeze_recon()
+        if options.fixed_mask_checkpoints:
+            self._load_fixed_masks(options.fixed_mask_checkpoints)
 
         if options.data_parallel:
+            if options.sampler_type == 'autosamp_2d':
+                raise ValueError("autosamp_2d projects its positions in place during forward, which DataParallel's replicas can't do")
             self.model = torch.nn.DataParallel(self.model)
 
         self.optimizer = build_optimizer(options.lr, options.weight_decay, self._param_groups())
@@ -89,22 +103,52 @@ class Sequential_Trainer:
             )
         self.logger.info(f"Loaded pretrained reconstructor weights from {checkpoint_path}")
 
-    def _param_groups(self):
-        """Trainable parameters, with the mask logits split out when REINFORCE has its own lr.
+    def _load_fixed_masks(self, checkpoints: Dict[str, str]):
+        """Copy each anatomy's learned LOUPE mask from its own checkpoint into the
+        conditioned sampler and freeze the sampler, so only the reconstructor trains."""
+        options = self.options
+        if options.sampler_type != 'loupe_2d' or not options.anatomy_conditioning:
+            raise ValueError("fixed_mask_checkpoints needs sampler_type=loupe_2d with anatomy_conditioning=true")
+        if set(checkpoints) != set(options.label_classes):
+            raise ValueError(f"fixed_mask_checkpoints keys {sorted(checkpoints)} must match anatomies {options.label_classes}")
+        mask = self.model.sampler.mask_net.mask
+        for anatomy, path in checkpoints.items():
+            checkpoint = torch.load(path, map_location='cpu', weights_only=False)
+            if checkpoint['options'].slope != options.slope:
+                raise ValueError(f"{path} was trained with slope {checkpoint['options'].slope}, not {options.slope}")
+            logits = checkpoint['model']['sampler.mask_net.mask']
+            if logits.shape[0] != 1:
+                raise ValueError(f"{path} holds {logits.shape[0]} masks; expected one learned mask")
+            with torch.no_grad():
+                mask[self.anatomy_to_idx[anatomy]] = logits[0].to(mask)
+            self.logger.info(f"Fixed the {anatomy} mask to the one learned in {path}")
+        mask.requires_grad_(False)
 
-        Under Adam each logit moves about `lr` per step whatever its gradient's
-        scale, so the policy's pace is set by this lr, not by the reconstructor's.
+    def _param_groups(self):
+        """Trainable parameters, with the mask parameters split out when they have their own lr.
+
+        Under Adam each logit (or autosamp position, in grid cells) moves about
+        `lr` per step whatever its gradient's scale, so the sampler's pace is set
+        by this lr, not by the reconstructor's.
         """
         trainable = [p for p in self.model.parameters() if p.requires_grad]
-        policy_lr = self.options.reinforce_lr
-        if self.options.mask_train_mode != 'reinforce' or policy_lr is None:
+        if self.options.sampler_type == 'autosamp_2d':
+            policy_lr = self.options.autosamp_lr
+        elif self.options.mask_train_mode == 'reinforce':
+            policy_lr = self.options.reinforce_lr
+        else:
+            policy_lr = None
+        if policy_lr is None:
             return trainable
         model = self.model.module if isinstance(self.model, torch.nn.DataParallel) else self.model
         policy = [p for p in model.sampler.mask_net.parameters() if p.requires_grad]
         policy_ids = {id(p) for p in policy}
         rest = [p for p in trainable if id(p) not in policy_ids]
-        return [group for group in ({'params': rest}, {'params': policy, 'lr': policy_lr})
-                if group['params']]
+        policy_group = {'params': policy, 'lr': policy_lr}
+        if self.options.sampler_type == 'autosamp_2d':
+            policy_group['weight_decay'] = 0.0  # decay would drag every sample towards DC
+            policy_group['eps'] = POSITION_ADAM_EPS
+        return [group for group in ({'params': rest}, policy_group) if group['params']]
 
     @staticmethod
     def _replicate_for_reinforce(batch, group_size=0):
@@ -135,6 +179,24 @@ class Sequential_Trainer:
             else:
                 out[key] = value
         return out
+
+    def _anneal_autosamp_kernel(self, progress):
+        """Set the autosamp soft-mask width for `progress` in [0, 1] through training; a no-op without a soft forward.
+
+        Once the anneal ends the positions are frozen, so the rest of training fine-tunes
+        the reconstructor on a fixed mask. A narrow kernel's gradient would otherwise
+        again favour the empty neighbour over the sampled cell and drift points onto the
+        snap boundaries.
+        """
+        if self.options.sampler_type != 'autosamp_2d' or self.options.autosamp_kernel_sigma_start <= 0:
+            return
+        mask_net = _unwrapped(self.model).sampler.mask_net
+        annealing = progress < self.options.autosamp_anneal_fraction
+        mask_net.positions.requires_grad_(annealing)
+        mask_net.kernel_sigma = annealed_kernel_sigma(
+            self.options.autosamp_kernel_sigma_start, self.options.autosamp_kernel_sigma_end,
+            self.options.autosamp_anneal_fraction, progress,
+        ) if annealing else 0.0
 
     def _recon_modules(self):
         model = self.model.module if isinstance(self.model, torch.nn.DataParallel) else self.model
@@ -168,6 +230,9 @@ class Sequential_Trainer:
         if options.sampler_type != 'conv_2d':
             parts.append(f"sampler-{options.sampler_type}")
 
+        if options.sampler_type == 'autosamp_2d' and getattr(options, 'autosamp_kernel_sigma_start', 0.0) > 0:
+            parts.append(f"anneal{options.autosamp_kernel_sigma_start:g}-{options.autosamp_kernel_sigma_end:g}")
+
         if getattr(options, 'caipi_keep_fraction', 1.0) != 1.0:
             parts.append(f"pf{options.caipi_keep_fraction:g}")
 
@@ -192,13 +257,20 @@ class Sequential_Trainer:
         if options.freeze_recon:
             parts.append("frozen-recon")
 
+        if options.fixed_mask_checkpoints:
+            parts.append("fixed-masks")
+
+        parts.append(f"lr{options.lr:g}")
+        if options.lr_scheduler != 'step':
+            parts.append(f"sched-{options.lr_scheduler}")
+
         res = f"{options.resolution[0]}x{options.resolution[1]}"
         parts.append(res)
 
         accel = 'x'.join(str(int(a)) if a == int(a) else str(a) for a in options.accelerations)
         parts.append(f"{accel}acc")
 
-        is_loupe = 'loupe' in (options.model or '').lower() or 'loupe' in options.sampler_type.lower()
+        is_loupe = 'loupe' in (options.model or '').lower() or options.sampler_type.lower() in ('loupe_2d', 'loupe_1d', 'autosamp_2d')
         is_static = options.sampler_type == 'oracle'
 
         if is_static:
@@ -254,6 +326,7 @@ class Sequential_Trainer:
 
         losses = []
         metrics = build_metrics(device=self.options.device)
+        masked_metrics = MaskedMetricAccumulator(device=self.options.device)
         anatomy_stats = _AnatomyStats(self.options.device)
         logged_train_anatomies = set()
         anatomy_images = {}
@@ -268,8 +341,9 @@ class Sequential_Trainer:
 
             if self.options.mask_train_mode == 'reinforce':
                 batch = self._replicate_for_reinforce(batch, self.options.reinforce_group_size)
+            self._anneal_autosamp_kernel((self.epoch + iter_idx / max_batches) / self.options.num_epochs)
 
-            kspace = batch['kspace'].to(self.device)
+            kspace = self._load_kspace(batch)
             target = batch['target'].to(self.device)
             anatomies = list(batch['anatomy'])
 
@@ -321,6 +395,12 @@ class Sequential_Trainer:
             grad_log['train/lr'] = self.optimizer.param_groups[0]['lr']
             if self.options.mask_train_mode == 'reinforce':
                 grad_log['train/policy_lr'] = self.optimizer.param_groups[-1]['lr']
+            if self.options.sampler_type == 'autosamp_2d':
+                grad_log['train/autosamp_lr'] = self.optimizer.param_groups[-1]['lr']
+                mask_net = _unwrapped(self.model).sampler.mask_net
+                grad_log['train/autosamp_cell_change_frac'] = mask_net.cell_change_fraction
+                if mask_net.kernel_sigma > 0:
+                    grad_log['train/autosamp_kernel_sigma'] = mask_net.kernel_sigma
             if grad_log['grad/nonfinite']:
                 self.logger.warning(
                     "Skipping optimizer step with non-finite gradient norm "
@@ -340,8 +420,10 @@ class Sequential_Trainer:
             data_range = target_for_metrics.max()
             metrics["PSNR"].data_range = data_range
             metrics["SSIM"].data_range = data_range
+            signal_mask = _signal_mask(target_for_metrics)
             masked_output, masked_target = _apply_signal_mask(output.detach(), target_for_metrics)
             metrics.update(masked_output, masked_target)
+            masked_metrics.update(output.detach(), target_for_metrics, signal_mask)
             anatomy_stats.update(anatomies, masked_output, masked_target, pred_dict['mask'].detach())
 
             step_log = {'train/loss': loss.item(), 'train/step': global_step_offset + iter_idx, **grad_log}
@@ -364,7 +446,9 @@ class Sequential_Trainer:
             wandb.log(step_log)
 
         metric_means = metrics.compute()
+        masked_metric_means = masked_metrics.compute()
         epoch_log = {f'train/{name}': value.item() for name, value in metric_means.items()}
+        epoch_log.update({f'train/{name}': value.item() for name, value in masked_metric_means.items()})
         epoch_log['train/loss'] = np.mean(losses)
         epoch_log['epoch'] = self.epoch
         epoch_log.update(anatomy_images)
@@ -375,9 +459,12 @@ class Sequential_Trainer:
 
     def val_epoch(self):
         self.model.eval()
+        self.val_phase_generator.manual_seed(PHASE_SCRAMBLE_VAL_SEED)
+        self.val_mask_generator.manual_seed(REINFORCE_VAL_MASK_SEED)
         losses = []
         sparsity = []
         metrics = build_metrics(device=self.options.device)
+        masked_metrics = MaskedMetricAccumulator(device=self.options.device)
         anatomy_stats = _AnatomyStats(self.options.device)
         start = time.perf_counter()
         logged_anatomies = set()
@@ -385,7 +472,7 @@ class Sequential_Trainer:
 
         with torch.no_grad():
             for iter_idx, batch in enumerate(self.val_loader):
-                kspace = batch['kspace'].to(self.device)
+                kspace = self._load_kspace(batch, self.val_phase_generator)
                 target = batch['target'].to(self.device)
                 anatomies = list(batch['anatomy'])
 
@@ -440,14 +527,18 @@ class Sequential_Trainer:
                 data_range = target_for_metrics.max()
                 metrics["PSNR"].data_range = data_range
                 metrics["SSIM"].data_range = data_range
+                signal_mask = _signal_mask(target_for_metrics)
                 masked_output, masked_target = _apply_signal_mask(output, target_for_metrics)
                 metrics.update(masked_output, masked_target)
+                masked_metrics.update(output, target_for_metrics, signal_mask)
                 anatomy_stats.update(anatomies, masked_output, masked_target, mask)
 
             anatomy_images.update(self._fixed_example_images())
 
             metric_means = metrics.compute()
+            masked_metric_means = masked_metrics.compute()
             epoch_log = {f'val/{name}': value.item() for name, value in metric_means.items()}
+            epoch_log.update({f'val/{name}': value.item() for name, value in masked_metric_means.items()})
             epoch_log['val/loss'] = np.mean(losses)
             epoch_log['epoch'] = self.epoch
             epoch_log.update(anatomy_images)
@@ -464,7 +555,7 @@ class Sequential_Trainer:
         dataset = self.val_loader.dataset
         for anatomy, index in self.visual_examples.items():
             batch = self.val_loader.collate_fn([dataset[index]])
-            kspace = batch['kspace'].to(self.device)
+            kspace = self._load_kspace(batch, self.val_phase_generator)
             target = batch['target'].to(self.device)
             try:
                 pred_dict = self.model(target, kspace, anatomy_labels=self._anatomy_labels(batch))
@@ -475,6 +566,14 @@ class Sequential_Trainer:
                 continue
             images.update(_build_image_log(pred_dict, target, f'val/{anatomy}', self.model.data_for_vis))
         return images
+
+    def _load_kspace(self, batch, generator=None):
+        """The batch's k-space on the device, phase-scrambled when the run asks for it."""
+        kspace = batch['kspace'].to(self.device)
+        if self.options.phase_scramble_std > 0:
+            kspace = scramble_phase_real(
+                kspace, self.options.phase_scramble_std, self.options.phase_scramble_band, generator)
+        return kspace
 
     def _anatomy_labels(self, batch):
         """Conditioning-class index tensor for a batch, or None when the run has no classes."""
@@ -532,6 +631,7 @@ class Sequential_Trainer:
             'optimizer': self.optimizer.state_dict(),
             'best_val_loss': self.best_val_loss,
         }
+        torch.save(checkpoint, f=self.exp_dir / 'last_model.pt')
         if not is_new_best:
             return
 
@@ -784,8 +884,31 @@ def build_optimizer(lr, weight_decay, model_parameters, optim_type='adam'):
     raise NotImplementedError(f"Unknown optimizer type: {optim_type}")
 
 
+COSINE_FLOOR = 0.01  # fraction of the base lr the cosine schedules decay to
+WARMUP_START = 0.1  # fraction of the base lr at epoch 0 of warmup_cosine
+
+
 def build_lr_scheduler(options: TrainConfig, optimizer):
-    return torch.optim.lr_scheduler.StepLR(optimizer, options.lr_step_size, options.lr_gamma)
+    """Per-epoch schedule. The trainer calls `step(epoch)`, so every schedule is a closed form of the epoch."""
+    kind = options.lr_scheduler
+    if kind == 'step':
+        return torch.optim.lr_scheduler.StepLR(optimizer, options.lr_step_size, options.lr_gamma)
+
+    total, warmup = options.num_epochs, options.lr_warmup_epochs
+
+    def cosine(epoch):
+        progress = min(epoch / total, 1.0)
+        return COSINE_FLOOR + (1 - COSINE_FLOOR) * 0.5 * (1 + math.cos(math.pi * progress))
+
+    if kind == 'constant':
+        factor = lambda epoch: 1.0
+    elif kind == 'cosine':
+        factor = cosine
+    elif kind == 'warmup_cosine':
+        factor = lambda epoch: WARMUP_START + (1 - WARMUP_START) * epoch / warmup if epoch < warmup else cosine(epoch)
+    else:
+        raise ValueError(f"Unknown lr_scheduler {kind!r}; expected step, constant, cosine or warmup_cosine")
+    return torch.optim.lr_scheduler.LambdaLR(optimizer, factor)
 
 
 def _sampler_type(options: TrainConfig) -> str:
@@ -798,6 +921,10 @@ def _sampler_type(options: TrainConfig) -> str:
 
 
 GRAD_CLIP_NORM = 1.0
+# Positions' gradients scale with the k-space amplitude and are then shrunk by the global
+# clip, so they can fall below Adam's default eps (1e-8) and stall; this keeps Adam's
+# per-step move at ~lr whatever their scale.
+POSITION_ADAM_EPS = 1e-16
 GRADIENT_GROUPS = ('sampler', 'reconstructor', 'sensetivity_net')
 
 
@@ -877,6 +1004,7 @@ def build_model(options: TrainConfig):
             pools=recon_cfg.pools,
             num_conditioning_classes=num_recon_conditioning_classes,
             film=getattr(recon_cfg, 'film_conditioning', False),
+            dc_mode=getattr(recon_cfg, 'dc_mode', 'where'),
         )
     elif isinstance(recon_cfg, CGSenseReconConfig):
         reconstructor = CGSENSEReconstructor(
@@ -911,10 +1039,13 @@ def build_model(options: TrainConfig):
         reinforce_normalize_advantages=getattr(options, 'reinforce_normalize_advantages', False),
         reinforce_group_size=getattr(options, 'reinforce_group_size', 0),
         reinforce_vd_power=getattr(options, 'reinforce_vd_power', 0.0),
+        reinforce_eval=getattr(options, 'reinforce_eval', 'sample'),
         sampler_chans=getattr(options, 'sampler_chans', 64),
         sampler_depth=getattr(options, 'sampler_depth', 4),
         sampler_image_input=getattr(options, 'sampler_image_input', False),
         caipi_keep_fraction=getattr(options, 'caipi_keep_fraction', 1.0),
+        autosamp_init=getattr(options, 'autosamp_init', 'uniform'),
+        ppo_policy=getattr(options, 'ppo_policy', None),
     )
 
     return model
