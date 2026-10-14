@@ -15,6 +15,8 @@ Both return NHWC, matching the LOUPE convention; `Sampler` permutes to NCHW.
 import torch
 from torch import nn
 
+from activemri.utils.mask_binarization import floored_grad_sigmoid
+
 
 VD_CENTER_OFFSET = 0.05  # radius (as a fraction of the k-space half-extent) below which the prior stops growing
 
@@ -33,12 +35,15 @@ class ProbMask(nn.Module):
             state faster.
         num_conditioning_classes: If > 0, learn one mask per anatomy instead of
             one shared mask.
+        grad_floor: Lower bound on the sigmoid's backward derivative, as a
+            fraction of its peak, so saturated locations keep a gradient.
     """
 
-    def __init__(self, shape=(320, 320), slope=10, num_conditioning_classes=0):
+    def __init__(self, shape=(320, 320), slope=10, num_conditioning_classes=0, grad_floor=0.0):
         super().__init__()
 
         self.slope = slope
+        self.grad_floor = grad_floor
         self.num_conditioning_classes = num_conditioning_classes
         num_masks = max(num_conditioning_classes, 1)
         self.mask = nn.Parameter(torch.cat([self._init_mask_weights(shape) for _ in range(num_masks)]))
@@ -47,7 +52,7 @@ class ProbMask(nn.Module):
         """Args: input NHWC. Returns: probabilities [N or 1, H, W, 1]."""
         logits = _select_mask(self.mask, anatomy_labels, self.num_conditioning_classes)
         logits = logits.view(-1, input.shape[1], input.shape[2], 1)
-        return torch.sigmoid(self.slope * logits)
+        return floored_grad_sigmoid(logits, self.slope, self.grad_floor)
 
     def raw_logits(self, anatomy_labels=None):
         """The free parameter itself (pre-sigmoid), [N or 1, H, W] -- the score
@@ -85,12 +90,14 @@ class LineConstrainedProbMask(nn.Module):
         slope: Sigmoid slope, as in ProbMask.
         num_conditioning_classes: If > 0, learn one line pattern per anatomy
             instead of one shared pattern.
+        grad_floor: As in ProbMask.
     """
 
-    def __init__(self, shape=(320,), slope=10, num_conditioning_classes=0):
+    def __init__(self, shape=(320,), slope=10, num_conditioning_classes=0, grad_floor=0.0):
         super().__init__()
 
         self.slope = slope
+        self.grad_floor = grad_floor
         self.num_conditioning_classes = num_conditioning_classes
         weights = [self._init_mask_weights(shape[0]) for _ in range(max(num_conditioning_classes, 1))]
         # Unconditioned, the parameter keeps its original 1-D shape so existing
@@ -100,7 +107,7 @@ class LineConstrainedProbMask(nn.Module):
     def forward(self, input, anatomy_labels=None):  # noqa: ARG002
         """Args: input NHWC. Returns: probabilities [N or 1, 1, W, 1], broadcast over rows."""
         logits = _select_mask(self.mask, anatomy_labels, self.num_conditioning_classes)
-        return torch.sigmoid(self.slope * logits).view(-1, 1, self.mask.shape[-1], 1)
+        return floored_grad_sigmoid(logits, self.slope, self.grad_floor).view(-1, 1, self.mask.shape[-1], 1)
 
     def raw_logits(self, anatomy_labels=None):
         """The free parameter itself (pre-sigmoid), [N or 1, W] -- the score

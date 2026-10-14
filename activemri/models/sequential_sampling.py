@@ -77,7 +77,10 @@ class SequentialSampling(nn.Module):
             sampler_image_input=False,
             caipi_keep_fraction=1.0,
             autosamp_init='uniform',
+            mask_grad_floor=0.0,
+            ste_grad_floor=0.0,
             ppo_policy=None,
+            acquired_only=False,
             ):
         super().__init__()
 
@@ -102,6 +105,7 @@ class SequentialSampling(nn.Module):
         self.reinforce_entropy_weight = reinforce_entropy_weight
         self.reinforce_normalize_advantages = reinforce_normalize_advantages
         self.reinforce_group_size = reinforce_group_size
+        self.acquired_only = acquired_only
         self.data_for_vis: list[dict] = [dict() for _ in range(num_step)]
 
         self.reconstructor = reconstructor
@@ -138,6 +142,8 @@ class SequentialSampling(nn.Module):
             caipi_keep_fraction=caipi_keep_fraction,
             autosamp_num_points=round(self.budget),
             autosamp_init=autosamp_init,
+            mask_grad_floor=mask_grad_floor,
+            ste_grad_floor=ste_grad_floor,
         )
 
         # Sensitivity estimation
@@ -169,7 +175,7 @@ class SequentialSampling(nn.Module):
 
     def step_forward(self, full_kspace, pred_kspace, old_mask, target, step,
                      sense_maps, sense_mask, uncertainty_map=None, valid_mask=None,
-                     prev_gfactor=None, anatomy_labels=None, fixed_mask=None):
+                     prev_gfactor=None, anatomy_labels=None, fixed_mask=None, kspace_support=None):
         """Execute one sampling + reconstruction step.
 
         Args:
@@ -239,6 +245,8 @@ class SequentialSampling(nn.Module):
                 recon_kwargs = {'anatomy_labels': anatomy_labels} if self.condition_reconstructor else {}
                 if getattr(self.reconstructor, 'dc_mode', None) == 'multiply':
                     recon_kwargs['full_kspace'] = torch.view_as_complex(full_kspace.contiguous())
+                if kspace_support is not None and self.recon_type == 'varnet':
+                    recon_kwargs['kspace_support'] = kspace_support
                 recon_mag = self.reconstructor(masked_kspace_complex, sense_maps, mask, **recon_kwargs)
                 recon = recon_mag.to(torch.complex64)
             else:
@@ -274,6 +282,18 @@ class SequentialSampling(nn.Module):
             'reinforce_entropy': reinforce_entropy,
         }
 
+    @torch.no_grad()
+    def reconstruct_acquired(self, kspace, sense_maps, kspace_support=None):
+        """Magnitude image [B, H, W] reconstructed from every nonzero k-space point: the estimate of the fully sampled image.
+
+        For data whose k-space is already scanner-undersampled, this is the best image the acquired set supports.
+        """
+        k = torch.view_as_complex(kspace.contiguous())
+        mask = self._valid_kspace_mask(kspace)
+        kwargs = {'kspace_support': kspace_support} if kspace_support is not None and self.recon_type == 'varnet' else {}
+        image = self.reconstructor(k, sense_maps, mask, **kwargs)
+        return (image[:, 0].abs() * (sense_maps.abs().pow(2).sum(dim=1) > 0)).float()
+
     def _init_mask(self, data):
         """Initialize mask with pre-selected center k-space region.
 
@@ -301,13 +321,16 @@ class SequentialSampling(nn.Module):
 
         return torch.fft.fftshift(a, dim=(-1, -2))
 
-    def forward(self, target, full_kspace, idx=None, anatomy_labels=None):  # noqa: ARG002
+    def forward(self, target, full_kspace, idx=None, anatomy_labels=None, sense_maps=None, kspace_support=None):  # noqa: ARG002
         """Run full sequential sampling pipeline.
 
         Args:
             target: Ground truth image, shape [B, 1, H, W]
             full_kspace: Multicoil kspace, shape [B, C, H, W, 2]
             anatomy_labels: Optional long tensor [B] of anatomy indices
+            sense_maps: Optional precomputed sensitivity maps [B, C, H, W] complex, used instead of
+                the sensitivity network (for data with a separate calibration scan)
+            kspace_support: Optional [B, 1, H, W] k-space region the VarNet's regularizer may write to
 
         Returns:
             Dict with final reconstruction, intermediate results, masks, and sense maps.
@@ -321,16 +344,23 @@ class SequentialSampling(nn.Module):
         sens_needs_grad = torch.is_grad_enabled() and any(
             p.requires_grad for p in self.sensetivity_net.parameters()
         )
-        with torch.set_grad_enabled(sens_needs_grad):
-            sense_maps, sense_mask = self.sensetivity_net(full_kspace_complex, mask_method=self.sense_mask_method)
+        if sense_maps is None:
+            with torch.set_grad_enabled(sens_needs_grad):
+                sense_maps, sense_mask = self.sensetivity_net(full_kspace_complex, mask_method=self.sense_mask_method)
+        else:
+            sense_mask = (sense_maps.abs().pow(2).sum(dim=1, keepdim=True) > 0.5).to(full_kspace.dtype)
         old_mask = self._init_mask(full_kspace)
         valid_mask = self._valid_kspace_mask(full_kspace)
+        if self.acquired_only:
+            # Pre-selected points the scanner never acquired would count as measured zeros in data consistency.
+            old_mask = old_mask * valid_mask
         pred_kspace = full_kspace * old_mask.unsqueeze(-1)
 
         uncertainty_map = torch.zeros_like(old_mask)
         gfactor = None
 
         reconstructions = []
+        final_complex = None
         zero_filled = []
         uncertainty_maps = []
         masks = []
@@ -344,9 +374,11 @@ class SequentialSampling(nn.Module):
                 full_kspace, pred_kspace, old_mask, target, i,
                 sense_maps, sense_mask, uncertainty_map, valid_mask,
                 prev_gfactor=gfactor, anatomy_labels=anatomy_labels, fixed_mask=fixed_mask,
+                kspace_support=kspace_support,
             )
 
             new_img = pred_dict['output']
+            final_complex = new_img
             old_mask = pred_dict['mask'].detach()
             uncertainty_map = pred_dict['uncertainty_map']
             gfactor = pred_dict.get('gfactor')
@@ -376,6 +408,7 @@ class SequentialSampling(nn.Module):
 
         return {
             'output': final_recon,
+            'recon_complex': final_complex,
             'intermediate_recons': reconstructions,
             'mask': old_mask,
             'masks': masks,
@@ -405,6 +438,8 @@ class SequentialSampling(nn.Module):
             target = target.unsqueeze(1)
         zero_filled = pred_dict['zero_filled_recon'][-1]
         gt_kspace = target_dict['kspace']
+        self_supervised = 'holdout_mask' in target_dict
+        per_example_ssdu = None
 
         # Uncertainty loss (NLL)
         nll_loss = torch.tensor(0.0, device=pred.device)
@@ -415,7 +450,11 @@ class SequentialSampling(nn.Module):
                 )
 
         # Reconstruction loss
-        if loss_type == 'l1':
+        if self_supervised:
+            per_example_ssdu = self.ssdu_loss(pred_dict, target_dict)
+            reconstruction_loss = per_example_ssdu.mean()
+            zero_loss = torch.tensor(0.0, device=pred.device)
+        elif loss_type == 'l1':
             reconstruction_loss = F.l1_loss(pred, target, size_average=True)
             zero_loss = F.l1_loss(zero_filled, target, size_average=True)
         elif loss_type == 'ssim':
@@ -435,7 +474,7 @@ class SequentialSampling(nn.Module):
             raise NotImplementedError(f"Unknown loss_type: {loss_type}")
 
         # K-space loss
-        if meta['kspace_weight'] > 0:
+        if meta['kspace_weight'] > 0 and not self_supervised:
             image = torch.cat([pred, torch.zeros_like(pred)], dim=1).permute(0, 2, 3, 1)
             image_complex = torch.view_as_complex(image.contiguous())
             pred_kspace_c = torch.view_as_real(torch.fft.fft2(torch.fft.ifftshift(image_complex, dim=(1, 2))))
@@ -492,11 +531,14 @@ class SequentialSampling(nn.Module):
                     "mask_train_mode='reinforce' needs batch_size >= 2: each batch item is "
                     "one Monte Carlo draw of the mask, and the REINFORCE baseline is their "
                     "mean reward -- with one item there is nothing to compare it to.")
-            per_example_nmse = (
-                (pred - target).pow(2).flatten(1).sum(dim=1)
-                / target.pow(2).flatten(1).sum(dim=1).clamp(min=1e-12)
-            )
-            reward = -per_example_nmse.detach()
+            if self_supervised:
+                per_example_error = per_example_ssdu
+            else:
+                per_example_error = (
+                    (pred - target).pow(2).flatten(1).sum(dim=1)
+                    / target.pow(2).flatten(1).sum(dim=1).clamp(min=1e-12)
+                )
+            reward = -per_example_error.detach()
             group = reinforce_group_size(reward.shape[0], self.reinforce_group_size)
             if group < 2 or reward.shape[0] % group:
                 raise RuntimeError(
@@ -547,6 +589,21 @@ class SequentialSampling(nn.Module):
             log_dict['Uncertainty Loss'] = nll_loss.item()
 
         return loss, log_dict
+
+    @staticmethod
+    def ssdu_loss(pred_dict, target_dict):
+        """Per-example normalized L1 + L2 error of the predicted k-space on the held-out set Lambda (Yaman et al., SSDU).
+
+        The hold-out k-space was never an input, so this is a loss on measured data the model has not
+        seen. It also scores the sampler's mask: a mask whose pool points predict Lambda better scores lower.
+        """
+        predicted = torch_fft2(pred_dict['recon_complex'] * pred_dict['sense_maps'])
+        measured = torch.view_as_complex(target_dict['holdout_kspace'].contiguous())
+        error = ((predicted - measured) * target_dict['holdout_mask']).abs().flatten(1)
+        reference = measured.abs().flatten(1)
+        relative_l2 = error.pow(2).sum(dim=1).sqrt() / reference.pow(2).sum(dim=1).sqrt().clamp(min=1e-12)
+        relative_l1 = error.sum(dim=1) / reference.sum(dim=1).clamp(min=1e-12)
+        return relative_l2 + relative_l1
 
     def _policy_grad_norm(self, term):
         """Gradient norm of `term` w.r.t. the mask logits, or None when nothing is being differentiated.

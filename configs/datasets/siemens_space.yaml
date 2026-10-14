@@ -1,0 +1,9 @@
+anatomy: [space]
+loader: siemens_space
+data_dir: /export/scratch/bkadota/space_cache  # preprocessed h5 volumes (scripts/siemens_space/preprocess.py)
+volumes: null  # h5 stems to use; null = every h5 in data_dir
+val_volumes: null  # h5 stems held out whole as val; null = every volume is split by readout block
+holdout_fraction: 0.2  # share of each example's acquired points hidden from the model and used as the SSDU loss set
+ssdu: true
+num_coils: 8
+num_workers: 4

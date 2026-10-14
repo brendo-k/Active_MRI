@@ -19,6 +19,7 @@ from activemri.utils.metrics import MaskedMetricAccumulator
 from activemri.utils.phase_scramble import scramble_phase_real
 from activemri.models.sequential_sampling import SequentialSampling, reinforce_group_size
 from activemri.samplers.autosamp import annealed_kernel_sigma
+from activemri.samplers.loupe import LineConstrainedProbMask, ProbMask
 from activemri.utils.util import compute_ssim_torch, compute_psnr_torch
 from activemri.config import TrainConfig
 from activemri.reconstructors.config import UNetReconConfig, CGSenseReconConfig, VarNetReconConfig
@@ -67,6 +68,7 @@ class Sequential_Trainer:
 
         self.scheduler = build_lr_scheduler(options, self.optimizer)
         self.best_val_loss = np.inf
+        self.previous_mask_logits = None
         self.epoch = 0
         self.start_epoch = 0
         self.end_epoch = options.num_epochs
@@ -254,6 +256,11 @@ class Sequential_Trainer:
         if options.mask_train_mode != 'straight_through':
             parts.append(f"mask-{options.mask_train_mode}")
 
+        if getattr(options, 'mask_grad_floor', 0.0) > 0:
+            parts.append(f"mfloor{options.mask_grad_floor:g}")
+        if getattr(options, 'ste_grad_floor', 0.0) > 0:
+            parts.append(f"stefloor{options.ste_grad_floor:g}")
+
         if options.freeze_recon:
             parts.append("frozen-recon")
 
@@ -344,11 +351,11 @@ class Sequential_Trainer:
             self._anneal_autosamp_kernel((self.epoch + iter_idx / max_batches) / self.options.num_epochs)
 
             kspace = self._load_kspace(batch)
-            target = batch['target'].to(self.device)
+            target = self._target(batch, kspace)
             anatomies = list(batch['anatomy'])
 
             try:
-                pred_dict = self.model(target, kspace, anatomy_labels=self._anatomy_labels(batch))
+                pred_dict = self.model(target, kspace, **self._model_inputs(batch))
             except RuntimeError as err:
                 if 'Binarization failed to match target density' not in str(err):
                     raise
@@ -375,10 +382,7 @@ class Sequential_Trainer:
                 ))
 
             output = pred_dict['output']
-            target_dict = {'target': target, 'kspace': kspace}
-            anatomy_labels = self._anatomy_labels(batch)
-            if anatomy_labels is not None:
-                target_dict['anatomy_labels'] = anatomy_labels
+            target_dict = self._target_dict(batch, target, kspace)
             meta = {
                 'recon_weight': 1.0, 'kspace_weight': 0.0,
                 'uncertainty_weight': self.options.uncertainty_weight,
@@ -453,6 +457,10 @@ class Sequential_Trainer:
         epoch_log['epoch'] = self.epoch
         epoch_log.update(anatomy_images)
         epoch_log.update(anatomy_stats.compute('train'))
+        mask_net = _unwrapped(self.model).sampler.mask_net
+        if isinstance(mask_net, (ProbMask, LineConstrainedProbMask)):
+            logit_log, self.previous_mask_logits = mask_logit_stats(mask_net, self.previous_mask_logits)
+            epoch_log.update(logit_log)
         wandb.log(epoch_log)
 
         return np.mean(losses), time.perf_counter() - epoch_start_time, metric_means
@@ -473,11 +481,11 @@ class Sequential_Trainer:
         with torch.no_grad():
             for iter_idx, batch in enumerate(self.val_loader):
                 kspace = self._load_kspace(batch, self.val_phase_generator)
-                target = batch['target'].to(self.device)
+                target = self._target(batch, kspace)
                 anatomies = list(batch['anatomy'])
 
                 try:
-                    pred_dict = self.model(target, kspace, anatomy_labels=self._anatomy_labels(batch))
+                    pred_dict = self.model(target, kspace, **self._model_inputs(batch))
                 except RuntimeError as err:
                     if 'Binarization failed to match target density' not in str(err):
                         raise
@@ -506,10 +514,7 @@ class Sequential_Trainer:
                 if isinstance(output, list):
                     output = output[-1]
 
-                target_dict = {'target': target, 'kspace': kspace}
-                anatomy_labels = self._anatomy_labels(batch)
-                if anatomy_labels is not None:
-                    target_dict['anatomy_labels'] = anatomy_labels
+                target_dict = self._target_dict(batch, target, kspace)
                 meta = {
                     'recon_weight': 1.0, 'kspace_weight': 0.0,
                     'uncertainty_weight': self.options.uncertainty_weight,
@@ -558,7 +563,7 @@ class Sequential_Trainer:
             kspace = self._load_kspace(batch, self.val_phase_generator)
             target = batch['target'].to(self.device)
             try:
-                pred_dict = self.model(target, kspace, anatomy_labels=self._anatomy_labels(batch))
+                pred_dict = self.model(target, kspace, **self._model_inputs(batch))
             except RuntimeError as err:
                 if 'Binarization failed to match target density' not in str(err):
                     raise
@@ -574,6 +579,33 @@ class Sequential_Trainer:
             kspace = scramble_phase_real(
                 kspace, self.options.phase_scramble_std, self.options.phase_scramble_band, generator)
         return kspace
+
+    def _target(self, batch, kspace):
+        """The image the loss and metrics compare against: the batch's, or the frozen reconstructor's estimate from all acquired data."""
+        if not self.options.pseudo_target:
+            return batch['target'].to(self.device)
+        inputs = self._model_inputs(batch)
+        return _unwrapped(self.model).reconstruct_acquired(kspace, inputs['sense_maps'], inputs.get('kspace_support'))
+
+    def _model_inputs(self, batch):
+        """Keyword inputs the model takes beyond the k-space: anatomy labels, and the sense maps and k-space support if the data ships them."""
+        inputs = {'anatomy_labels': self._anatomy_labels(batch)}
+        if 'sense_maps' in batch:
+            inputs['sense_maps'] = batch['sense_maps'].to(self.device)
+        if 'kspace_support' in batch:
+            inputs['kspace_support'] = batch['kspace_support'].to(self.device)
+        return inputs
+
+    def _target_dict(self, batch, target, kspace):
+        """What the loss is scored against: the image target, plus the held-out k-space for self-supervised data."""
+        target_dict = {'target': target, 'kspace': kspace}
+        anatomy_labels = self._anatomy_labels(batch)
+        if anatomy_labels is not None:
+            target_dict['anatomy_labels'] = anatomy_labels
+        if 'holdout_mask' in batch and not self.options.pseudo_target:
+            target_dict['holdout_mask'] = batch['holdout_mask'].to(self.device)
+            target_dict['holdout_kspace'] = batch['holdout_kspace'].to(self.device)
+        return target_dict
 
     def _anatomy_labels(self, batch):
         """Conditioning-class index tensor for a batch, or None when the run has no classes."""
@@ -926,10 +958,35 @@ GRAD_CLIP_NORM = 1.0
 # per-step move at ~lr whatever their scale.
 POSITION_ADAM_EPS = 1e-16
 GRADIENT_GROUPS = ('sampler', 'reconstructor', 'sensetivity_net')
+SATURATED_LOGIT = math.log(99)  # |slope * w| beyond this puts the mask probability outside [0.01, 0.99]
 
 
 def _unwrapped(model):
     return model.module if isinstance(model, torch.nn.DataParallel) else model
+
+
+def mask_logit_stats(mask_net, previous_logits):
+    """Per-epoch LOUPE logit diagnostics, keyed for wandb, plus the logits to pass next epoch.
+
+    Drift shows as saturated_abs_mean and abs_max climbing steadily while
+    saturated_moving_outward_frac stays near 1: saturated logits that keep
+    being pushed further out by a floored gradient instead of settling.
+    """
+    logits = (mask_net.slope * mask_net.mask.detach()).flatten().float()
+    magnitude = logits.abs()
+    saturated = magnitude > SATURATED_LOGIT
+    stats = {
+        'mask/logit_abs_max': magnitude.max(),
+        'mask/logit_abs_p99': torch.quantile(magnitude, 0.99),
+        'mask/saturated_frac': saturated.float().mean(),
+        'mask/saturated_abs_mean': magnitude[saturated].mean() if saturated.any() else magnitude.new_zeros(()),
+    }
+    if previous_logits is not None and saturated.any():
+        moved_outward = magnitude > previous_logits.abs()
+        stats['mask/saturated_moving_outward_frac'] = moved_outward[saturated].float().mean()
+    log = {name: value.item() for name, value in stats.items()}
+    log['mask/logit_hist'] = wandb.Histogram(logits.cpu().numpy())
+    return log, logits
 
 
 def gradient_stats(model, max_norm):
@@ -1045,7 +1102,10 @@ def build_model(options: TrainConfig):
         sampler_image_input=getattr(options, 'sampler_image_input', False),
         caipi_keep_fraction=getattr(options, 'caipi_keep_fraction', 1.0),
         autosamp_init=getattr(options, 'autosamp_init', 'uniform'),
+        mask_grad_floor=getattr(options, 'mask_grad_floor', 0.0),
+        ste_grad_floor=getattr(options, 'ste_grad_floor', 0.0),
         ppo_policy=getattr(options, 'ppo_policy', None),
+        acquired_only=getattr(options, 'ssdu', False),
     )
 
     return model

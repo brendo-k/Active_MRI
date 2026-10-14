@@ -3,6 +3,8 @@
 `Sampler` owns the choice of family and the shared post-processing that turns a
 raw score map into a binary acquisition mask.
 """
+from functools import partial
+
 import torch
 from torch import nn
 
@@ -12,7 +14,7 @@ from activemri.samplers.conv import KspaceLineConstrainedSampler, SampProb2D
 from activemri.samplers.loupe import LineConstrainedProbMask, ProbMask
 from activemri.samplers.oracle import plackett_luce_sample_and_logprob
 from activemri.utils.image_processing import ifft_2d_img
-from activemri.utils.mask_binarization import RescaleProbMap, ThresholdRandomMaskSigmoidV1
+from activemri.utils.mask_binarization import RescaleProbMap, threshold_random_mask
 
 
 SAMPLER_TYPES = ("conv_2d", "conv_1d", "loupe_2d", "loupe_1d", "caipi_2d", "autosamp_2d")
@@ -84,6 +86,8 @@ class Sampler(nn.Module):
         caipi_keep_fraction=1.0,
         autosamp_num_points=0,
         autosamp_init='uniform',
+        mask_grad_floor=0.0,
+        ste_grad_floor=0.0,
         ):
         super().__init__()
 
@@ -143,15 +147,17 @@ class Sampler(nn.Module):
                 num_conditioning_classes=num_conditioning_classes,
             )
         elif sampler_type == "loupe_2d":
-            self.mask_net = ProbMask(shape, slope, num_conditioning_classes=num_conditioning_classes)
+            self.mask_net = ProbMask(shape, slope, num_conditioning_classes=num_conditioning_classes,
+                                     grad_floor=mask_grad_floor)
         else:
-            self.mask_net = LineConstrainedProbMask(shape, slope, num_conditioning_classes=num_conditioning_classes)
+            self.mask_net = LineConstrainedProbMask(shape, slope, num_conditioning_classes=num_conditioning_classes,
+                                                    grad_floor=mask_grad_floor)
 
         if mask_train_mode == 'reinforce' and reinforce_vd_power > 0:
             self.mask_net.init_variable_density(reinforce_vd_power)
 
         self.rescale = RescaleProbMap
-        self.binarize = ThresholdRandomMaskSigmoidV1.apply
+        self.binarize = partial(threshold_random_mask, grad_floor=ste_grad_floor)
 
     @staticmethod
     def _to_image_domain(kspace_channels):
@@ -322,12 +328,19 @@ class Sampler(nn.Module):
         else:
             sparsity = budget / (self.shape[0] * self.shape[1])
 
-        samp_prob = self.rescale(samp_prob_unscaled, sparsity)
+        if self.line_constrained:
+            available = (old_mask.sum(dim=2, keepdim=True) < self.shape[0]).to(old_mask.dtype)
+            if valid_mask is not None:
+                valid_mask = (valid_mask.sum(dim=2, keepdim=True) > 0).to(old_mask.dtype)
+        else:
+            available = 1 - old_mask
+        if valid_mask is not None:
+            available = available * valid_mask
+
+        samp_prob = self.rescale(samp_prob_unscaled, sparsity, available)
         binary_mask = self.binarize(samp_prob)
 
         if valid_mask is not None:
-            if self.line_constrained:
-                valid_mask = (valid_mask.sum(dim=2, keepdim=True) > 0).to(binary_mask.dtype)
             binary_mask = binary_mask * valid_mask
 
         binary_mask = torch.clamp(old_mask + binary_mask, min=0, max=1)

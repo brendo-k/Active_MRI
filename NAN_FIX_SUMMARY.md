@@ -100,10 +100,9 @@ Cascade 0: dc_weight = 0.000000
 
 1. **Restart training** with the new code:
    ```bash
-   python scripts/train_sequential.py \
+   python train.py --model conv \
        recon=varnet \
        datasets=brain_knee_balanced \
-       training.num_step=1 \
        sampler.sampler_type=conv_2d \
        output.out_dir=checkpoints/onestep_2d_varnet_brain_knee_samp128_run4_fixed
    ```

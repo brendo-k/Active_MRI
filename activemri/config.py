@@ -46,6 +46,8 @@ class TrainConfig:
     accelerations: List[float] = field(default_factory=lambda: [4.0])
     sampler_type: str = 'conv_2d'
     slope: float = 10.0
+    mask_grad_floor: float = 0.0  # straight_through only: floor on the LOUPE mask sigmoid's derivative, as a fraction of its peak
+    ste_grad_floor: float = 0.0  # straight_through only: floor on the STE surrogate's derivative, as a fraction of its peak
     sampler_chans: int = 64
     sampler_depth: int = 4
     sampler_image_input: bool = False
@@ -75,6 +77,8 @@ class TrainConfig:
 
     # Data
     min_energy_fraction: float = 0.2
+    pseudo_target: bool = False  # with ssdu: the target is the frozen reconstructor's image from all acquired data, and the loss is on images (stage 2)
+    ssdu: bool = False  # k-space is already scanner-undersampled and self-supervised: the loss is on held-out acquired points, the sampler is confined to acquired points
 
     # Reconstruction
     recon: ReconConfig = field(default_factory=ReconConfig)

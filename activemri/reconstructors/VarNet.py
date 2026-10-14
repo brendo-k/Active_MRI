@@ -154,6 +154,7 @@ class VarNetBlock(nn.Module):
         mask: torch.Tensor,
         sense_maps: torch.Tensor,
         anatomy_embedding: torch.Tensor = None,
+        kspace_support: torch.Tensor = None,
     ) -> torch.Tensor:
         if self.dc_mode == "multiply":
             soft_dc = mask * (current_kspace - ref_kspace) * self.dc_weight
@@ -163,6 +164,8 @@ class VarNetBlock(nn.Module):
         model_term = self.sens_expand(
             self.model(self.sens_reduce(current_kspace, sense_maps), anatomy_embedding), sense_maps
         )
+        if kspace_support is not None:
+            model_term = model_term * kspace_support
         return current_kspace - soft_dc - model_term
 
 
@@ -214,6 +217,7 @@ class VarNet(nn.Module):
         mask: torch.Tensor,
         anatomy_labels: torch.Tensor = None,
         full_kspace: torch.Tensor = None,
+        kspace_support: torch.Tensor = None,
     ) -> torch.Tensor:
         """
         Args:
@@ -223,6 +227,9 @@ class VarNet(nn.Module):
             anatomy_labels: Optional long tensor [B] of anatomy indices.
             full_kspace: [B, C, H, W] complex unmasked k-space; the DC reference
                 in ``'multiply'`` mode, ignored in ``'where'`` mode.
+            kspace_support: Optional [B, 1, H, W] binary k-space region the regularizer may write to.
+                Without it the U-Net can put energy where nothing was acquired (the empty partial-Fourier
+                band) and no loss on measured data will ever see it.
 
         Returns:
             Coil-combined reconstruction [B, 1, H, W] complex.
@@ -241,5 +248,5 @@ class VarNet(nn.Module):
 
         kspace_pred = masked_kspace.clone()
         for cascade in self.cascades:
-            kspace_pred = cascade(kspace_pred, ref_kspace, mask, sense_maps, anatomy_embedding)
+            kspace_pred = cascade(kspace_pred, ref_kspace, mask, sense_maps, anatomy_embedding, kspace_support)
         return (ifft_2d_img(kspace_pred) * sense_maps.conj()).sum(dim=1, keepdim=True)

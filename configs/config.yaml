@@ -28,6 +28,8 @@ sampler:
   accelerations: [4.0]
   sampler_type: conv_2d  # conv_2d | conv_1d | loupe_2d | loupe_1d | caipi_2d | autosamp_2d
   slope: 10
+  mask_grad_floor: 0.0  # straight_through only: floor on the LOUPE mask sigmoid's backward derivative, as a fraction of its peak (0 = exact)
+  ste_grad_floor: 0.0   # straight_through only: same, for the straight-through surrogate sigmoid(5 * (p - u))
   chans: 64  # first-conv width of the conv_2d sampler U-Net (doubles per depth)
   depth: 4  # down/up-sampling stages of the conv_2d sampler U-Net
   image_input: false  # conv_2d only: feed the IFFT of the under-sampled k-space to the sampler instead of k-space
