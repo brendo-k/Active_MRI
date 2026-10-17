@@ -26,13 +26,23 @@ loss:
 sampler:
   model: SequentialSampling
   accelerations: [4.0]
-  sampler_type: conv_2d  # conv_2d | conv_1d | loupe_2d | loupe_1d | caipi_2d | autosamp_2d
+  sampler_type: conv_2d  # conv_2d | conv_1d | loupe_2d | loupe_1d | caipi_2d | autosamp_2d | mnet_2d
   slope: 10
-  mask_grad_floor: 0.0  # straight_through only: floor on the LOUPE mask sigmoid's backward derivative, as a fraction of its peak (0 = exact)
+  mask_grad_floor: 0.0  # straight_through only: floor on the mask sigmoid's backward derivative (LOUPE and conv samplers), as a fraction of its peak (0 = exact)
   ste_grad_floor: 0.0   # straight_through only: same, for the straight-through surrogate sigmoid(5 * (p - u))
+  mask_draws: 1  # straight_through only: K draws per slice with stratified thresholds (u + k/K mod 1), losses averaged; batch is tiled K times, so memory is K x
+  logit_limit: 6.0  # conv_2d: scores soft-clamped to +/- this before the sigmoid (p floor = sigmoid(-limit))
+  logit_leak: 0.01  # conv_2d: slope of the score beyond the clamp, the gradient kept for pinned locations
+  adapt_grid: 16  # smooth_adapt_2d: side of the coarse offset grid predicted from the calibration (0 = a bounded LOUPE mask)
+  adapt_hidden: 64  # smooth_adapt_2d: width of the offset predictor
+  init_mask_checkpoint: null  # loupe_2d / smooth_adapt_2d: start every class's mask from this loupe_2d run's mask (trainable)
+  lr: null  # lr of the sampler's parameters when it differs from training.lr
+  adapt_head_lr: 1.0e-4  # smooth_adapt_2d: lr of the offset predictor (the base mask keeps sampler.lr)
   chans: 64  # first-conv width of the conv_2d sampler U-Net (doubles per depth)
   depth: 4  # down/up-sampling stages of the conv_2d sampler U-Net
-  image_input: false  # conv_2d only: feed the IFFT of the under-sampled k-space to the sampler instead of k-space
+  head: none  # conv_2d/mnet_2d location-specific head on the U-Net scores: none, bias (a learned per-location logit, as in LOUPE) or mlp (bias plus a 256-wide MLP over the score map)
+  head_mlp_lr: 1.0e-4  # head=mlp: lr of the head's MLP alone; its 16.8M-weight first layer diverges at training.lr
+  image_input: null  # conv_2d/mnet_2d: feed the IFFT of the under-sampled k-space (the zero-filled image) to the sampler instead of k-space; null = true for those samplers
   caipi_keep_fraction: 1.0  # caipi_2d only: keep the leftmost fraction of columns (0.75 = 6/8 partial Fourier)
   preselect_num: 10
   mask_train_mode: straight_through  # or 'reinforce'/'random' (loupe_2d/loupe_1d only)
@@ -49,6 +59,18 @@ sampler:
   autosamp_kernel_sigma_end: 1.0  # autosamp_2d only: width the surrogate anneals to geometrically; below ~1 the boundary trap returns (start ~4 removes it)
   autosamp_anneal_fraction: 0.8  # autosamp_2d only: fraction of training spent annealing, after which the positions freeze and the recon fine-tunes on the fixed mask
   ppo_policy: null  # PPOTrainer checkpoint: its frozen deterministic policy picks every mask (use with loupe_2d as the placeholder sampler)
+  mnet_accept: q_check  # mnet_2d only: q_check = train the sampler on a refined mask only if it beats the sampler's own mask (and random); always = train on every one
+  mnet_compare_random: true  # mnet_2d, q_check: the refined mask must also beat a random mask scored by the frozen warm-start reconstructor (needs output.pretrained_recon trained on random masks)
+  mnet_rollback: true  # mnet_2d, q_check: a rejected batch also reverts the reconstructor update made while refining the mask
+  mnet_degeneracy_fallback: true  # mnet_2d: refine from random masks when over half the batch's mnet masks are identical
+  mnet_label_binarize: threshold  # mnet_2d: mask-backward feeds the reconstructor threshold (label probability > 0.5, as the paper; the count floats, the final label is budgeted) or topk (exact budget every iteration)
+  mnet_random_retry: false  # mnet_2d: if the refined mask does not beat the mnet mask, roll back and refine again from a random mask (the official code's remedy)
+  mnet_label_steps: 20  # mnet_2d: mask-backward iterations per batch (T)
+  mnet_sampler_steps: 40  # mnet_2d: sampler updates on the accepted labels per batch (c)
+  mnet_sparsity_weight: 2.0e-5  # mnet_2d: weight of the L1 norm of the label mask in mask-backward (alpha)
+  mnet_consistency_weight: 0.05  # mnet_2d: weight of the mean BCE tying the label mask to the sampler's output in mask-backward (lambda)
+  mnet_init_margin: 0.1  # mnet_2d: label logits start at +margin on the mnet mask's locations, -margin elsewhere
+  mnet_label_lr: 0.02  # mnet_2d: lr of the label logits in mask-backward; null = training.lr. Adam moves a logit about lr per step, so lr * mnet_label_steps must reach 2 * mnet_init_margin for any location to swap
   freeze_recon: false  # freeze reconstructor+sensetivity_net, train only the sampler
   fixed_mask_checkpoints: null  # {brain: ckpt, knee: ckpt}: copy each loupe_2d checkpoint's mask into that anatomy's slot and freeze it (with anatomy_conditioning: true)
   with_recon: false
@@ -59,6 +81,7 @@ sampler:
 
 output:
   out_dir: checkpoints
+  run_name: null  # wandb run name; null = built from the settings that differ from the baseline (activemri/training/run_naming.py)
   checkpoint: null
   pretrained_recon: null  # load reconstructor+sensetivity_net weights from this checkpoint, sampler stays fresh
 

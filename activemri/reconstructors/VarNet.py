@@ -10,6 +10,7 @@ import math
 
 import torch
 import torch.nn as nn
+import torch.utils.checkpoint
 import torch.nn.functional as F
 from fastmri.models import Unet
 
@@ -73,13 +74,14 @@ class NormUnet(nn.Module):
     def norm(self, x):
         b, c, h, w = x.shape
         x = x.view(b, 2, c // 2 * h * w)
-        mean = x.mean(dim=2).view(b, 2, 1, 1)
-        std = x.std(dim=2).view(b, 2, 1, 1)
-        x = x.view(b, c, h, w)
-        return (x - mean) / (std + 1e-12), mean, std
+        mean = x.mean(dim=2).view(b, 2, 1, 1, 1)
+        std = x.std(dim=2).view(b, 2, 1, 1, 1)
+        x = x.view(b, 2, c // 2, h, w)
+        return ((x - mean) / (std + 1e-12)).view(b, c, h, w), mean, std
 
     def unnorm(self, x, mean, std):
-        return x * std + mean
+        b, c, h, w = x.shape
+        return (x.view(b, 2, c // 2, h, w) * std + mean).view(b, c, h, w)
 
     def pad(self, x):
         _, _, h, w = x.shape
@@ -114,6 +116,11 @@ class NormUnet(nn.Module):
 
 
 DC_MODES = ("where", "multiply")
+# PromptMR+'s adaptive input: the current image plus A^H A x, a latent carried between cascades and
+# A^H y. PromptMR+'s code also passes A^H A x - A^H y, which the first (linear) conv can form from the
+# two, so it is left out. The U-Net returns its correction and the next latent.
+ADAPTIVE_INPUT_IMAGES = 4
+ADAPTIVE_OUTPUT_IMAGES = 2
 
 
 class VarNetBlock(nn.Module):
@@ -124,20 +131,27 @@ class VarNetBlock(nn.Module):
     which is identical in the forward pass for a binary mask but gives a learnable mask
     the gradient ``g * (current - ref)`` at unobserved locations (``ref`` must then be the
     full, unmasked k-space for that signal to be meaningful).
+
+    ``dc_weight_shape`` replaces the scalar DC weight with a learned weight per k-space
+    location (NV-Raw2Insights-MRI's weighted DC), so the cascade can trust measured samples
+    differently across k-space. ``adaptive_input`` conditions the U-Net on A^H A x and A^H y
+    as in PromptMR+, so it sees where its estimate disagrees with the data instead of having
+    to infer the sampling pattern from the image's aliasing.
     """
 
-    def __init__(self, model: nn.Module, dc_mode: str = "where"):
+    def __init__(self, model: nn.Module, dc_mode: str = "where", dc_weight_shape=None, adaptive_input: bool = False):
         super().__init__()
         if dc_mode not in DC_MODES:
             raise ValueError(f"dc_mode must be one of {DC_MODES}, got {dc_mode!r}")
         self.model = model
         self.dc_mode = dc_mode
-        self.dc_weight = nn.Parameter(torch.ones(1))
+        self.adaptive_input = adaptive_input
+        self.dc_weight = nn.Parameter(torch.ones(1, 1, *dc_weight_shape) if dc_weight_shape else torch.ones(1))
 
     def _load_from_state_dict(self, state_dict, prefix, *args, **kwargs):
         # Checkpoints saved before dc_weight became a raw weight hold a scalar logit.
         key = prefix + "dc_weight"
-        if key in state_dict and state_dict[key].dim() == 0:
+        if key in state_dict and state_dict[key].dim() == 0 and self.dc_weight.dim() == 1:
             state_dict[key] = torch.sigmoid(state_dict[key]).reshape(1)
         super()._load_from_state_dict(state_dict, prefix, *args, **kwargs)
 
@@ -155,18 +169,27 @@ class VarNetBlock(nn.Module):
         sense_maps: torch.Tensor,
         anatomy_embedding: torch.Tensor = None,
         kspace_support: torch.Tensor = None,
-    ) -> torch.Tensor:
+        zero_filled: torch.Tensor = None,
+        latent: torch.Tensor = None,
+    ):
+        """Returns the next k-space estimate, and with ``adaptive_input`` also the next latent."""
         if self.dc_mode == "multiply":
             soft_dc = mask * (current_kspace - ref_kspace) * self.dc_weight
         else:
             zero = torch.zeros(1, device=current_kspace.device, dtype=current_kspace.dtype)
             soft_dc = torch.where(mask.bool(), current_kspace - ref_kspace, zero) * self.dc_weight
-        model_term = self.sens_expand(
-            self.model(self.sens_reduce(current_kspace, sense_maps), anatomy_embedding), sense_maps
-        )
+        image = self.sens_reduce(current_kspace, sense_maps)
+        if self.adaptive_input:
+            normal = self.sens_reduce(mask * current_kspace, sense_maps)
+            conditioned = torch.cat([image, normal, latent, zero_filled], dim=1)
+            correction, latent = self.model(conditioned, anatomy_embedding).chunk(ADAPTIVE_OUTPUT_IMAGES, dim=1)
+        else:
+            correction = self.model(image, anatomy_embedding)
+        model_term = self.sens_expand(correction, sense_maps)
         if kspace_support is not None:
             model_term = model_term * kspace_support
-        return current_kspace - soft_dc - model_term
+        next_kspace = current_kspace - soft_dc - model_term
+        return (next_kspace, latent) if self.adaptive_input else next_kspace
 
 
 class VarNet(nn.Module):
@@ -183,6 +206,11 @@ class VarNet(nn.Module):
             of as constant input channels.
         dc_mode: ``'where'`` or ``'multiply'``; see :class:`VarNetBlock`.
             ``'multiply'`` requires ``full_kspace`` in :meth:`forward`.
+        dc_weight_shape: k-space (H, W) of a learned per-location DC weight in every cascade;
+            None keeps the scalar weight. See :class:`VarNetBlock`.
+        adaptive_input: Condition every cascade's U-Net on A^H A x and A^H y (PromptMR+).
+        checkpoint_cascades: Recompute each cascade in the backward pass instead of storing its
+            activations, trading compute for memory while training.
     """
 
     def __init__(
@@ -194,9 +222,14 @@ class VarNet(nn.Module):
         anatomy_embed_dim: int = DEFAULT_EMBED_DIM,
         film: bool = False,
         dc_mode: str = "where",
+        dc_weight_shape=None,
+        adaptive_input: bool = False,
+        checkpoint_cascades: bool = False,
     ):
         super().__init__()
         self.dc_mode = dc_mode
+        self.adaptive_input = adaptive_input
+        self.checkpoint_cascades = checkpoint_cascades
         self.anatomy_embedding = (
             AnatomyEmbedding(num_conditioning_classes, anatomy_embed_dim)
             if num_conditioning_classes > 0 else None
@@ -204,9 +237,11 @@ class VarNet(nn.Module):
         has_embedding = self.anatomy_embedding is not None
         conditioning_chans = anatomy_embed_dim if has_embedding and not film else 0
         film_embed_dim = anatomy_embed_dim if has_embedding and film else 0
+        unet_images = (ADAPTIVE_INPUT_IMAGES, ADAPTIVE_OUTPUT_IMAGES) if adaptive_input else (1, 1)
         self.cascades = nn.ModuleList(
-            [VarNetBlock(NormUnet(chans, pools, conditioning_chans=conditioning_chans, film_embed_dim=film_embed_dim),
-                         dc_mode=dc_mode)
+            [VarNetBlock(NormUnet(chans, pools, in_chans=2 * unet_images[0], out_chans=2 * unet_images[1],
+                                  conditioning_chans=conditioning_chans, film_embed_dim=film_embed_dim),
+                         dc_mode=dc_mode, dc_weight_shape=dc_weight_shape, adaptive_input=adaptive_input)
              for _ in range(num_cascades)]
         )
 
@@ -246,7 +281,19 @@ class VarNet(nn.Module):
         else:
             ref_kspace = masked_kspace
 
+        def run(cascade, *inputs):
+            if self.checkpoint_cascades and self.training and torch.is_grad_enabled():
+                return torch.utils.checkpoint.checkpoint(cascade, *inputs, use_reentrant=False)
+            return cascade(*inputs)
+
         kspace_pred = masked_kspace.clone()
-        for cascade in self.cascades:
-            kspace_pred = cascade(kspace_pred, ref_kspace, mask, sense_maps, anatomy_embedding, kspace_support)
+        if self.adaptive_input:
+            zero_filled = (ifft_2d_img(masked_kspace) * sense_maps.conj()).sum(dim=1, keepdim=True)
+            latent = zero_filled
+            for cascade in self.cascades:
+                kspace_pred, latent = run(cascade, kspace_pred, ref_kspace, mask, sense_maps, anatomy_embedding,
+                                          kspace_support, zero_filled, latent)
+        else:
+            for cascade in self.cascades:
+                kspace_pred = run(cascade, kspace_pred, ref_kspace, mask, sense_maps, anatomy_embedding, kspace_support)
         return (ifft_2d_img(kspace_pred) * sense_maps.conj()).sum(dim=1, keepdim=True)

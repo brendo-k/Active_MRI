@@ -13,27 +13,70 @@ from torch import nn
 
 from activemri.reconstructors.UNet import LOUPEUNet, upsample_block
 from activemri.utils.conditioning import DEFAULT_EMBED_DIM, AnatomyEmbedding, FiLM, broadcast_channels
+from activemri.utils.mask_binarization import floored_grad_sigmoid
 
 
 LOGIT_LIMIT = 6.0
 LOGIT_LEAK = 0.01
+LOCATION_HEADS = ('none', 'bias', 'mlp')
+LOCATION_HEAD_HIDDEN = 256
+# Multiplies the per-location bias, like LOUPE's slope: Adam moves each parameter ~lr per step, so this
+# lets the bias move as fast in logit space as a slope-5 LOUPE mask does.
+LOCATION_BIAS_SCALE = 5.0
 
 
-def scores_to_prob(logits):
+def scores_to_prob(logits, grad_floor=0.0, logit_limit=LOGIT_LIMIT, logit_leak=LOGIT_LEAK):
     """Squash raw network scores to a per-location probability in (0, 1).
 
-    The logit is soft-clamped to +/-LOGIT_LIMIT before the sigmoid. Left
+    The logit is soft-clamped to +/-`logit_limit` (default LOGIT_LIMIT) before the sigmoid. Left
     unbounded, a location pushed far enough negative receives a vanishing
     gradient and can never be selected again, so the sampler ratchets whole
     regions of k-space to zero and never recovers them; outside the clamp the
-    LOGIT_LEAK slope keeps that gradient finite.
+    `logit_leak` slope (default LOGIT_LEAK) keeps that gradient finite.
 
     The result is already bounded, so `RescaleProbMap` alone sets the sparsity
     and no max-normalisation is needed. This matches the LOUPE samplers, which
-    expose their weights through a plain sigmoid.
+    expose their weights through a plain sigmoid. `grad_floor` additionally
+    floors the sigmoid's backward derivative, as in `ProbMask`.
     """
-    clamped = logits.clamp(-LOGIT_LIMIT, LOGIT_LIMIT)
-    return torch.sigmoid(clamped + LOGIT_LEAK * (logits - clamped))
+    clamped = logits.clamp(-logit_limit, logit_limit)
+    return floored_grad_sigmoid(clamped + logit_leak * (logits - clamped), 1.0, grad_floor)
+
+
+class LocationHead(nn.Module):
+    """Location-specific correction added to the U-Net's score map.
+
+    A convolutional U-Net can only make a score depend on position through the
+    input and the zero-padded borders, so it cannot express a per-location
+    pattern like LOUPE's. 'bias' adds a learned logit per location (LOUPE's
+    parameter, shared by every input); 'mlp' also adds an input-dependent term,
+    an MLP over the whole score map through LOCATION_HEAD_HIDDEN units. Both
+    start at zero, so training starts from the plain U-Net. The MLP's input is
+    layer-normalised, so its first layer sees unit-scale scores however far the
+    U-Net's scores drift; without it the two layers' product blows the sampler's
+    gradient up within a few hundred steps.
+    """
+
+    def __init__(self, shape, kind):
+        super().__init__()
+        if kind not in LOCATION_HEADS[1:]:
+            raise ValueError(f"Unknown location head {kind!r}; expected one of {LOCATION_HEADS[1:]}")
+        num_locations = shape[0] * shape[1]
+        self.bias = nn.Parameter(torch.zeros(1, 1, *shape))
+        self.mlp = None
+        if kind == 'mlp':
+            output = nn.Linear(LOCATION_HEAD_HIDDEN, num_locations, bias=False)
+            nn.init.zeros_(output.weight)
+            self.mlp = nn.Sequential(
+                nn.Flatten(), nn.LayerNorm(num_locations), nn.Linear(num_locations, LOCATION_HEAD_HIDDEN),
+                nn.ReLU(inplace=True), output,
+            )
+
+    def forward(self, scores):
+        corrected = scores + LOCATION_BIAS_SCALE * self.bias
+        if self.mlp is not None:
+            corrected = corrected + self.mlp(scores).view_as(scores)
+        return corrected
 
 
 class SampProb2D(nn.Module):
@@ -59,13 +102,23 @@ class SampProb2D(nn.Module):
         anatomy_embed_dim: Width of that embedding.
         chans: Output channels of the U-Net's first convolution; doubles at each depth.
         depth: Number of down-/up-sampling stages in the U-Net.
+        grad_floor: Lower bound on the score sigmoid's backward derivative, as a
+            fraction of its peak (0 = exact).
+        head: Location-specific head on the probability scores, one of LOCATION_HEADS
+            (see LocationHead).
+        logit_limit, logit_leak: The score clamp and the slope beyond it, as in `scores_to_prob`.
     """
 
     def __init__(self, fixed_input=False, with_recon=False, with_gfactor=False,
                  uncertainty_mode='none', num_anatomy_classes=0, shape=(128, 128),
                  num_conditioning_classes=0, anatomy_embed_dim=DEFAULT_EMBED_DIM,
-                 chans=64, depth=4):
+                 chans=64, depth=4, grad_floor=0.0, head='none',
+                 logit_limit=LOGIT_LIMIT, logit_leak=LOGIT_LEAK):
         super().__init__()
+        self.grad_floor = grad_floor
+        self.logit_limit = logit_limit
+        self.logit_leak = logit_leak
+        self.location_head = LocationHead(shape, head) if head != 'none' else None
 
         self.bottleneck_chans = chans * 2 ** depth
 
@@ -161,7 +214,7 @@ class SampProb2D(nn.Module):
 
         if use_encoder_path:
             out, skips, bottleneck = self._forward_encoder(x)
-            prob = scores_to_prob(out[:, :1])
+            prob = scores_to_prob(self._located(out[:, :1]), self.grad_floor, self.logit_limit, self.logit_leak)
 
             if self.uncertainty_mode == 'head':
                 unc_x = bottleneck
@@ -183,10 +236,10 @@ class SampProb2D(nn.Module):
             out = self.unet(x)
 
             if self.uncertainty_mode == 'channel':
-                prob = scores_to_prob(out[:, :1])
+                prob = scores_to_prob(self._located(out[:, :1]), self.grad_floor, self.logit_limit, self.logit_leak)
                 uncertainty = out[:, 1:2]
             else:
-                prob = scores_to_prob(out)
+                prob = scores_to_prob(self._located(out), self.grad_floor, self.logit_limit, self.logit_leak)
                 uncertainty = None
 
             anatomy_logits = None
@@ -194,6 +247,9 @@ class SampProb2D(nn.Module):
         prob = prob * (1 - mask)
 
         return prob, uncertainty, anatomy_logits
+
+    def _located(self, scores):
+        return scores if self.location_head is None else self.location_head(scores)
 
     def _forward_encoder(self, x):
         """Run the shared encoder and return prob output + intermediate states for the uncertainty head."""
@@ -228,13 +284,15 @@ class KspaceLineConstrainedSampler(nn.Module):
         num_conditioning_classes: If > 0, modulate the hidden state with the
             anatomy embedding so the predicted lines can differ between anatomies.
         anatomy_embed_dim: Width of that embedding.
+        grad_floor: As in SampProb2D.
     """
 
     HIDDEN_DIM = 512
 
     def __init__(self, num_lines, fixed_input=False, num_anatomy_classes=0,
-                 num_conditioning_classes=0, anatomy_embed_dim=DEFAULT_EMBED_DIM):
+                 num_conditioning_classes=0, anatomy_embed_dim=DEFAULT_EMBED_DIM, grad_floor=0.0):
         super().__init__()
+        self.grad_floor = grad_floor
 
         self.num_anatomy_classes = num_anatomy_classes
         self.num_conditioning_classes = num_conditioning_classes
@@ -290,7 +348,7 @@ class KspaceLineConstrainedSampler(nn.Module):
         hidden = self.encoder(feat_map.flatten(start_dim=1))
         if self.anatomy_embedding is not None:
             hidden = self.anatomy_film(hidden, self.anatomy_embedding(anatomy_labels, hidden.shape[0]))
-        out = scores_to_prob(self.mask_head(hidden))
+        out = scores_to_prob(self.mask_head(hidden), self.grad_floor)
 
         already_sampled = (mask.sum(dim=-2) == H).float().reshape(N, -1)
         new_mask = out * (1 - already_sampled)

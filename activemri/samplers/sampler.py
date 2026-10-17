@@ -13,13 +13,18 @@ from activemri.samplers.caipi import caipi_mask
 from activemri.samplers.conv import KspaceLineConstrainedSampler, SampProb2D
 from activemri.samplers.loupe import LineConstrainedProbMask, ProbMask
 from activemri.samplers.oracle import plackett_luce_sample_and_logprob
+from activemri.samplers.smooth_adapt import SmoothAdaptiveMask
 from activemri.utils.image_processing import ifft_2d_img
-from activemri.utils.mask_binarization import RescaleProbMap, threshold_random_mask
+from activemri.utils.mask_binarization import (
+    RescaleProbMap, stratified_thresholds, threshold_random_mask, topk_straight_through)
 
 
-SAMPLER_TYPES = ("conv_2d", "conv_1d", "loupe_2d", "loupe_1d", "caipi_2d", "autosamp_2d")
+SAMPLER_TYPES = ("conv_2d", "conv_1d", "loupe_2d", "loupe_1d", "caipi_2d", "autosamp_2d", "mnet_2d", "smooth_adapt_2d")
 MASK_TRAIN_MODES = ("straight_through", "reinforce", "random")
 REINFORCE_EVAL_MODES = ("sample", "topk")
+
+
+CONV_2D_TYPES = ("conv_2d", "mnet_2d")
 
 
 def is_line_constrained(sampler_type):
@@ -30,7 +35,7 @@ def is_line_constrained(sampler_type):
 class Sampler(nn.Module):
     """Generates sampling masks for sequential k-space acquisition.
 
-    Six sampler families are available, selected by `sampler_type`:
+    Seven sampler families are available, selected by `sampler_type`:
 
         conv_2d      U-Net over k-space, one score per location   (input-adaptive)
         conv_1d      MLP over k-space, one score per column       (input-adaptive)
@@ -38,6 +43,13 @@ class Sampler(nn.Module):
         loupe_1d     learned mask, one weight per column          (input-independent)
         caipi_2d     fixed 2x2 CAIPI lattice, no parameters       (input-independent)
         autosamp_2d  learned coordinates snapped to the grid      (input-independent)
+        mnet_2d      the conv_2d U-Net with exact-budget top-k    (input-adaptive)
+        smooth_adapt_2d  LOUPE mask + smooth offset from the calibration  (input-adaptive, smooth)
+
+    `mnet_2d` is the sampler network of Huang & Ravishankar (TCI 2022), trained by the
+    alternating scheme in :mod:`activemri.training.mnet_trainer`. It is `conv_2d`
+    in every respect but the binarization: the highest-scoring locations are taken
+    exactly (deterministic, straight-through backward) instead of a Bernoulli draw.
 
     `autosamp_2d` (see :mod:`activemri.samplers.autosamp`) learns a fixed number of
     continuous k-space positions and snaps each to its nearest free grid cell. The
@@ -80,6 +92,7 @@ class Sampler(nn.Module):
         mask_train_mode='straight_through',
         sampler_chans=64,
         sampler_depth=4,
+        sampler_head="none",
         image_domain_input=False,
         reinforce_vd_power=0.0,
         reinforce_eval='sample',
@@ -88,6 +101,12 @@ class Sampler(nn.Module):
         autosamp_init='uniform',
         mask_grad_floor=0.0,
         ste_grad_floor=0.0,
+        mask_draws=1,
+        logit_limit=6.0,
+        logit_leak=0.01,
+        adapt_grid=16,
+        adapt_hidden=64,
+        calibration_size=10,
         ):
         super().__init__()
 
@@ -101,9 +120,11 @@ class Sampler(nn.Module):
         self.sampler_type = sampler_type
         self.line_constrained = is_line_constrained(sampler_type)
         self.is_loupe = sampler_type.startswith("loupe")
-        if image_domain_input and sampler_type != 'conv_2d':
-            raise ValueError("image_domain_input is only implemented for conv_2d")
+        if image_domain_input and sampler_type not in CONV_2D_TYPES:
+            raise ValueError("image_domain_input is only implemented for conv_2d and mnet_2d")
         self.image_domain_input = image_domain_input
+        if sampler_head != "none" and sampler_type not in CONV_2D_TYPES:
+            raise ValueError("sampler_head is only implemented for conv_2d and mnet_2d")
         self.mask_train_mode = mask_train_mode
         if mask_train_mode in ('reinforce', 'random') and not self.is_loupe:
             raise ValueError(f"mask_train_mode={mask_train_mode!r} is only implemented for loupe_2d/loupe_1d")
@@ -126,7 +147,7 @@ class Sampler(nn.Module):
             self.register_buffer("caipi_pattern", caipi_mask(shape, keep_fraction=caipi_keep_fraction)[None, None])
         elif sampler_type == "autosamp_2d":
             self.mask_net = AutoSampCoordinates(shape, autosamp_num_points, init=autosamp_init)
-        elif sampler_type == "conv_2d":
+        elif sampler_type in CONV_2D_TYPES:
             self.mask_net = SampProb2D(
                 fixed_input=fixed_input,
                 with_recon=with_recon,
@@ -137,6 +158,10 @@ class Sampler(nn.Module):
                 num_conditioning_classes=num_conditioning_classes,
                 chans=sampler_chans,
                 depth=sampler_depth,
+                head=sampler_head,
+                grad_floor=mask_grad_floor,
+                logit_limit=logit_limit,
+                logit_leak=logit_leak,
             )
         elif sampler_type == "conv_1d":
             if with_uncertainty:
@@ -145,7 +170,12 @@ class Sampler(nn.Module):
                 shape[0], fixed_input=fixed_input,
                 num_anatomy_classes=num_anatomy_classes,
                 num_conditioning_classes=num_conditioning_classes,
+                grad_floor=mask_grad_floor,
             )
+        elif sampler_type == "smooth_adapt_2d":
+            self.mask_net = SmoothAdaptiveMask(shape, slope, calibration_size, grid=adapt_grid, hidden=adapt_hidden,
+                                               num_conditioning_classes=num_conditioning_classes,
+                                               grad_floor=mask_grad_floor, logit_limit=logit_limit)
         elif sampler_type == "loupe_2d":
             self.mask_net = ProbMask(shape, slope, num_conditioning_classes=num_conditioning_classes,
                                      grad_floor=mask_grad_floor)
@@ -158,6 +188,11 @@ class Sampler(nn.Module):
 
         self.rescale = RescaleProbMap
         self.binarize = partial(threshold_random_mask, grad_floor=ste_grad_floor)
+        self.exact_budget = sampler_type == "mnet_2d"
+        if mask_draws > 1 and (mask_train_mode != "straight_through" or self.exact_budget or sampler_type == "caipi_2d"):
+            raise ValueError("mask_draws > 1 averages straight-through Bernoulli draws, so it needs "
+                             f"mask_train_mode='straight_through' and a thresholding sampler, got {sampler_type!r}, {mask_train_mode!r}")
+        self.mask_draws = mask_draws
 
     @staticmethod
     def _to_image_domain(kspace_channels):
@@ -178,6 +213,9 @@ class Sampler(nn.Module):
         if self.line_constrained:
             prob, anatomy_logits = self.mask_net(input_kspace, old_mask, anatomy_labels=anatomy_labels)
             return prob, None, anatomy_logits
+
+        if self.sampler_type == "smooth_adapt_2d":
+            return self.mask_net(input_kspace, anatomy_labels) * (1 - old_mask), None, None
 
         prob, uncertainty, anatomy_logits = self.mask_net(
             input_kspace, old_mask, recon=recon_complex, gfactor=gfactor,
@@ -272,6 +310,53 @@ class Sampler(nn.Module):
         draws_policy = not (uniform or evaluating)
         return binary_mask, data_to_vis_sampler, (logp if draws_policy else None), (entropy if draws_policy else None)
 
+    def unscaled_probabilities(self, observed_kspace, old_mask, recon_complex=None, gfactor=None, anatomy_labels=None):
+        """The network's per-location scores before budget control: (scores NCHW, uncertainty or None, anatomy_logits or None)."""
+        sampler_input = torch.cat([observed_kspace, observed_kspace * old_mask.permute(0, 2, 3, 1)], dim=-1)
+        if self.image_domain_input:
+            sampler_input = self._to_image_domain(sampler_input)
+        return self._predict_probabilities(sampler_input, old_mask, recon_complex, gfactor, anatomy_labels)
+
+    def _draw_thresholds(self, probabilities):
+        """Stratified thresholds for the `mask_draws` copies of each slice in a training batch, else None (fresh noise).
+
+        Only training batches are tiled draw-major by the trainer; evaluation draws once per slice.
+        """
+        if self.mask_draws > 1 and self.training:
+            return stratified_thresholds(probabilities, self.mask_draws)
+        return None
+
+    def select_locations(self, samp_prob_unscaled, old_mask, budget, valid_mask=None):
+        """Turn unscaled per-location probabilities into this step's binary mask.
+
+        Rescales to the sparsity `budget` implies over the still-available locations, then
+        binarizes: a Bernoulli draw, or the exact top-k for `mnet_2d`.
+
+        Returns:
+            (rescaled probabilities, old_mask union the new locations), both NCHW.
+        """
+        if self.line_constrained:
+            sparsity = budget / self.shape[0]
+            available = (old_mask.sum(dim=2, keepdim=True) < self.shape[0]).to(old_mask.dtype)
+            if valid_mask is not None:
+                valid_mask = (valid_mask.sum(dim=2, keepdim=True) > 0).to(old_mask.dtype)
+        else:
+            sparsity = budget / (self.shape[0] * self.shape[1])
+            available = 1 - old_mask
+        if valid_mask is not None:
+            available = available * valid_mask
+
+        samp_prob = self.rescale(samp_prob_unscaled, sparsity, available)
+        if self.exact_budget:
+            binary_mask = topk_straight_through(samp_prob, int(round(float(budget))), available)
+        else:
+            binary_mask = self.binarize(samp_prob, threshold=self._draw_thresholds(samp_prob))
+
+        if valid_mask is not None:
+            binary_mask = binary_mask * valid_mask
+
+        return samp_prob, torch.clamp(old_mask + binary_mask, min=0, max=1)
+
     def forward(self, observed_kspace, old_mask, budget, uncertainty_mask=None, valid_mask=None, recon_complex=None, gfactor=None, anatomy_labels=None):  # noqa: ARG002
         """
         Returns:
@@ -315,35 +400,10 @@ class Sampler(nn.Module):
                 old_mask, budget, valid_mask, anatomy_labels, uniform=True)
             return binary_mask, data_to_vis_sampler, None, None, None
 
-        sampler_input = torch.cat([observed_kspace, observed_kspace * old_mask.permute(0, 2, 3, 1)], dim=-1)
-        if self.image_domain_input:
-            sampler_input = self._to_image_domain(sampler_input)
+        samp_prob_unscaled, sampler_uncertainty, anatomy_logits = self.unscaled_probabilities(
+            observed_kspace, old_mask, recon_complex, gfactor, anatomy_labels)
 
-        samp_prob_unscaled, sampler_uncertainty, anatomy_logits = self._predict_probabilities(
-            sampler_input, old_mask, recon_complex, gfactor, anatomy_labels
-        )
-
-        if self.line_constrained:
-            sparsity = budget / self.shape[0]
-        else:
-            sparsity = budget / (self.shape[0] * self.shape[1])
-
-        if self.line_constrained:
-            available = (old_mask.sum(dim=2, keepdim=True) < self.shape[0]).to(old_mask.dtype)
-            if valid_mask is not None:
-                valid_mask = (valid_mask.sum(dim=2, keepdim=True) > 0).to(old_mask.dtype)
-        else:
-            available = 1 - old_mask
-        if valid_mask is not None:
-            available = available * valid_mask
-
-        samp_prob = self.rescale(samp_prob_unscaled, sparsity, available)
-        binary_mask = self.binarize(samp_prob)
-
-        if valid_mask is not None:
-            binary_mask = binary_mask * valid_mask
-
-        binary_mask = torch.clamp(old_mask + binary_mask, min=0, max=1)
+        samp_prob, binary_mask = self.select_locations(samp_prob_unscaled, old_mask, budget, valid_mask)
 
         data_to_vis_sampler = {
             'prob_mask': samp_prob_unscaled[0, 0, :, :].detach(),

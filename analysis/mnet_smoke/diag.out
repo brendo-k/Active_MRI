@@ -1,0 +1,16 @@
+== thr_lr_default 
+ - step 0: reject (running 0.00) Q refined/mnet/random = -0.1843/-0.1843/-0.2382 flip=0.000 distinct=1.00 recon loss 0.0554->0.0514
+ - step 1: reject (running 0.00) Q refined/mnet/random = -0.1622/-0.1622/-0.2327 flip=0.000 distinct=1.00 recon loss 0.0565->0.0519
+ - step 2: reject (running 0.00) Q refined/mnet/random = -0.2189/-0.2189/-0.2956 flip=0.000 distinct=1.00 recon loss 0.0729->0.0664
+== thr_lr0.05 sampler.mnet_label_lr=0.05
+ - step 0: accept (running 1.00) Q refined/mnet/random = -0.1958/-0.1992/-0.2382 flip=0.332 distinct=1.00 recon loss 0.0554->0.0570
+ - step 1: accept (running 1.00) Q refined/mnet/random = -0.1632/-0.1698/-0.2327 flip=0.098 distinct=1.00 recon loss 0.0571->0.0568
+ - step 2: accept (running 1.00) Q refined/mnet/random = -0.2267/-0.2315/-0.2956 flip=0.107 distinct=1.00 recon loss 0.0707->0.0701
+== thr_lr0.05_noreg sampler.mnet_label_lr=0.05 sampler.mnet_sparsity_weight=0 sampler.mnet_consistency_weight=0
+ - step 0: reject (running 0.00) Q refined/mnet/random = -0.2213/-0.2038/-0.2382 flip=0.719 distinct=1.00 recon loss 0.0554->0.0437
+ - step 1: reject (running 0.00) Q refined/mnet/random = -0.2128/-0.1906/-0.2327 flip=0.721 distinct=1.00 recon loss 0.0565->0.0422
+ - step 2: reject (running 0.00) Q refined/mnet/random = -0.2957/-0.2528/-0.2956 flip=0.722 distinct=1.00 recon loss 0.0729->0.0562
+== topk_lr0.05_noreg sampler.mnet_label_lr=0.05 sampler.mnet_sparsity_weight=0 sampler.mnet_consistency_weight=0 sampler.mnet_label_binarize=topk
+ - step 0: accept (running 1.00) Q refined/mnet/random = -0.1768/-0.1978/-0.2382 flip=0.749 distinct=1.00 recon loss 0.0554->0.0484
+ - step 1: accept (running 1.00) Q refined/mnet/random = -0.1474/-0.1701/-0.2327 flip=0.593 distinct=1.00 recon loss 0.0556->0.0461
+ - step 2: accept (running 1.00) Q refined/mnet/random = -0.2021/-0.2299/-0.2956 flip=0.644 distinct=1.00 recon loss 0.0706->0.0601

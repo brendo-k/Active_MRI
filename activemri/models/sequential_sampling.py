@@ -74,11 +74,17 @@ class SequentialSampling(nn.Module):
             reinforce_eval='sample',
             sampler_chans=64,
             sampler_depth=4,
+            sampler_head='none',
             sampler_image_input=False,
             caipi_keep_fraction=1.0,
             autosamp_init='uniform',
             mask_grad_floor=0.0,
             ste_grad_floor=0.0,
+            mask_draws=1,
+            logit_limit=6.0,
+            logit_leak=0.01,
+            adapt_grid=16,
+            adapt_hidden=64,
             ppo_policy=None,
             acquired_only=False,
             ):
@@ -136,6 +142,7 @@ class SequentialSampling(nn.Module):
             mask_train_mode=mask_train_mode,
             sampler_chans=sampler_chans,
             sampler_depth=sampler_depth,
+            sampler_head=sampler_head,
             image_domain_input=sampler_image_input,
             reinforce_vd_power=reinforce_vd_power,
             reinforce_eval=reinforce_eval,
@@ -144,6 +151,12 @@ class SequentialSampling(nn.Module):
             autosamp_init=autosamp_init,
             mask_grad_floor=mask_grad_floor,
             ste_grad_floor=ste_grad_floor,
+            mask_draws=mask_draws,
+            logit_limit=logit_limit,
+            logit_leak=logit_leak,
+            adapt_grid=adapt_grid,
+            adapt_hidden=adapt_hidden,
+            calibration_size=preselect_num,
         )
 
         # Sensitivity estimation
@@ -321,7 +334,38 @@ class SequentialSampling(nn.Module):
 
         return torch.fft.fftshift(a, dim=(-1, -2))
 
-    def forward(self, target, full_kspace, idx=None, anatomy_labels=None, sense_maps=None, kspace_support=None):  # noqa: ARG002
+    def _initial_masks(self, full_kspace):
+        """(pre-selected centre mask, valid k-space mask), both [B, 1, H, W]."""
+        old_mask = self._init_mask(full_kspace)
+        valid_mask = self._valid_kspace_mask(full_kspace)
+        if self.acquired_only:
+            # Pre-selected points the scanner never acquired would count as measured zeros in data consistency.
+            old_mask = old_mask * valid_mask
+        return old_mask, valid_mask
+
+    def propose_mask(self, full_kspace, anatomy_labels=None):
+        """The single-step sampler's mask for `full_kspace`, with no reconstruction.
+
+        Differentiable in the sampler's weights, so it also serves training the sampler on labels.
+
+        Returns:
+            Dict with `old_mask` (the pre-selected centre), `valid_mask`, `unscaled` and `rescaled`
+            probabilities, and the binary `mask` (centre included), all [B, 1, H, W].
+        """
+        if self.num_step != 1:
+            raise ValueError(f"propose_mask is the single-step mask, got num_step={self.num_step}")
+        with torch.no_grad():
+            sense_maps, _ = self.sensetivity_net(torch.view_as_complex(full_kspace.contiguous()),
+                                                 mask_method=self.sense_mask_method)
+        old_mask, valid_mask = self._initial_masks(full_kspace)
+        observed = torch.view_as_complex((full_kspace * old_mask.unsqueeze(-1)).contiguous())
+        combined = (torch_ifft2(observed) * sense_maps).sum(dim=1)
+        unscaled, _, _ = self.sampler.unscaled_probabilities(
+            torch.view_as_real(torch_fft2(combined)), old_mask, anatomy_labels=anatomy_labels)
+        rescaled, mask = self.sampler.select_locations(unscaled, old_mask, self.budget, valid_mask)
+        return {'old_mask': old_mask, 'valid_mask': valid_mask, 'unscaled': unscaled, 'rescaled': rescaled, 'mask': mask}
+
+    def forward(self, target, full_kspace, idx=None, anatomy_labels=None, sense_maps=None, kspace_support=None, fixed_mask=None):  # noqa: ARG002
         """Run full sequential sampling pipeline.
 
         Args:
@@ -331,6 +375,8 @@ class SequentialSampling(nn.Module):
             sense_maps: Optional precomputed sensitivity maps [B, C, H, W] complex, used instead of
                 the sensitivity network (for data with a separate calibration scan)
             kspace_support: Optional [B, 1, H, W] k-space region the VarNet's regularizer may write to
+            fixed_mask: Optional [B, 1, H, W] complete mask (pre-selected centre included) that replaces
+                the sampler's. Single-step only; it stays differentiable, so a caller can optimise it.
 
         Returns:
             Dict with final reconstruction, intermediate results, masks, and sense maps.
@@ -349,11 +395,7 @@ class SequentialSampling(nn.Module):
                 sense_maps, sense_mask = self.sensetivity_net(full_kspace_complex, mask_method=self.sense_mask_method)
         else:
             sense_mask = (sense_maps.abs().pow(2).sum(dim=1, keepdim=True) > 0.5).to(full_kspace.dtype)
-        old_mask = self._init_mask(full_kspace)
-        valid_mask = self._valid_kspace_mask(full_kspace)
-        if self.acquired_only:
-            # Pre-selected points the scanner never acquired would count as measured zeros in data consistency.
-            old_mask = old_mask * valid_mask
+        old_mask, valid_mask = self._initial_masks(full_kspace)
         pred_kspace = full_kspace * old_mask.unsqueeze(-1)
 
         uncertainty_map = torch.zeros_like(old_mask)
@@ -367,7 +409,10 @@ class SequentialSampling(nn.Module):
         anatomy_logits_list = []
         reinforce_logp = None  # [B], sum of every step's Plackett-Luce log-prob
         reinforce_entropy = None  # [B], sum of every step's draw entropy
-        fixed_mask = self.mask_policy(full_kspace) if self.mask_policy is not None else None
+        if fixed_mask is not None and self.num_step != 1:
+            raise ValueError(f"a fixed_mask is the whole mask, so it needs num_step=1, got {self.num_step}")
+        if fixed_mask is None and self.mask_policy is not None:
+            fixed_mask = self.mask_policy(full_kspace)
 
         for i in range(self.num_step):
             pred_dict = self.step_forward(

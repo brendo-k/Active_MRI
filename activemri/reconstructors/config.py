@@ -53,6 +53,9 @@ class VarNetReconConfig(ReconConfig):
     anatomy_conditioning: bool = False
     film_conditioning: bool = False
     dc_mode: str = 'where'
+    dc_weight_map: bool = False
+    adaptive_input: bool = False
+    checkpoint_cascades: bool = False
 
 
 @dataclass

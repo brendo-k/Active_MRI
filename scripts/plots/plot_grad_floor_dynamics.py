@@ -80,6 +80,8 @@ def main():
             'runtime_hours': run.summary.get('_runtime', 0) / 3600,
         }
     args.out.with_suffix('.json').write_text(json.dumps(summary, indent=2, default=float))
+    per_epoch_all = pd.concat({label: per_epoch for label, (_, per_epoch, _) in data.items()}, names=['run'])
+    per_epoch_all.to_csv(args.out.with_name(args.out.stem + '_per_epoch.csv'))
     print(json.dumps(summary, indent=2, default=float))
 
 

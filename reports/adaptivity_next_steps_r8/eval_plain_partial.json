@@ -1,0 +1,80 @@
+{
+  "loupe_original": {
+    "psnr": {
+      "brain": 38.09358596801758,
+      "knee": 39.966304779052734
+    },
+    "anatomy_swap_cost_db": {
+      "mean": 0.0,
+      "ci95": [
+        0.0,
+        0.0
+      ]
+    },
+    "slice_swap_cost_db": {
+      "mean": 0.0,
+      "ci95": [
+        0.0,
+        0.0
+      ]
+    },
+    "slice_vs_mean_corr": {
+      "brain": 0.9999940991401672,
+      "knee": 0.9999940991401672
+    },
+    "brain_vs_knee_corr": 0.9999940991401672
+  },
+  "adapt16_joint_R8": {
+    "psnr": {
+      "brain": 31.921829223632812,
+      "knee": 33.343936920166016
+    },
+    "anatomy_swap_cost_db": {
+      "mean": 9.495158337813336e-06,
+      "ci95": [
+        2.595002200678209e-06,
+        2.8340299877527283e-05
+      ]
+    },
+    "slice_swap_cost_db": {
+      "mean": 1.1311020671200822e-06,
+      "ci95": [
+        -7.381240675385925e-06,
+        1.1789964241870613e-05
+      ]
+    },
+    "slice_vs_mean_corr": {
+      "brain": 1.0000234308630922,
+      "knee": 1.0000232246726057
+    },
+    "brain_vs_knee_corr": 1.000023365020752,
+    "offset_mean_abs": 5662620.5,
+    "offset_across_slice_std": NaN
+  },
+  "anattable_joint_R8": {
+    "psnr": {
+      "brain": 38.16100311279297,
+      "knee": 40.050296783447266
+    },
+    "anatomy_swap_cost_db": {
+      "mean": 0.057778362184762955,
+      "ci95": [
+        0.03143735826015472,
+        0.060961900930851694
+      ]
+    },
+    "slice_swap_cost_db": {
+      "mean": 0.0,
+      "ci95": [
+        0.0,
+        0.0
+      ]
+    },
+    "slice_vs_mean_corr": {
+      "brain": 0.999954879283905,
+      "knee": 0.999987781047821
+    },
+    "brain_vs_knee_corr": 0.9754115343093872
+  },
+  "paired": {}
+}

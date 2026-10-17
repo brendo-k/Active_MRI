@@ -1,0 +1,727 @@
+{
+  "543w70np": {
+    "name": "cg_sense_128x128_4acc_step1_bs4",
+    "group": null,
+    "tags": []
+  },
+  "s312ztg7": {
+    "name": "varnet_128x128_4acc_step1_bs4",
+    "group": null,
+    "tags": []
+  },
+  "wixr2oza": {
+    "name": "unet_128x128_4acc_step1_bs4",
+    "group": null,
+    "tags": []
+  },
+  "ch546okf": {
+    "name": "unet_128x128_4acc_step1_bs4",
+    "group": null,
+    "tags": []
+  },
+  "lj6pxg7t": {
+    "name": "unet_128x128_4acc_step1_bs4",
+    "group": null,
+    "tags": []
+  },
+  "movfdgo7": {
+    "name": "cg_sense_128x128_4acc_step1_bs4",
+    "group": null,
+    "tags": []
+  },
+  "ohwh1bet": {
+    "name": "cg_sense_128x128_4acc_step1_bs4",
+    "group": null,
+    "tags": []
+  },
+  "8xm92lle": {
+    "name": "unet_128x128_4acc_step1_bs4",
+    "group": null,
+    "tags": []
+  },
+  "m8av0qwa": {
+    "name": "unet_128x128_4acc_step1_bs4",
+    "group": null,
+    "tags": []
+  },
+  "tbsybx3r": {
+    "name": "cg_sense_128x128_4acc_step1_bs4",
+    "group": null,
+    "tags": []
+  },
+  "wr4h67mk": {
+    "name": "cg_sense_128x128_4acc_step1_bs4",
+    "group": null,
+    "tags": []
+  },
+  "6p0l7fzs": {
+    "name": "unet_256x256_4acc_step1_bs4",
+    "group": null,
+    "tags": []
+  },
+  "ekl54pk4": {
+    "name": "cg_sense_256x256_4acc_step1_bs4",
+    "group": null,
+    "tags": []
+  },
+  "fmypeiue": {
+    "name": "unet_256x256_4acc_step1_bs4",
+    "group": null,
+    "tags": []
+  },
+  "up2pm8eq": {
+    "name": "cg_sense_256x256_4acc_step1_bs4",
+    "group": null,
+    "tags": []
+  },
+  "4xctytt5": {
+    "name": "cg_sense_256x256_4acc_step1_bs4",
+    "group": null,
+    "tags": []
+  },
+  "0cnk9nsu": {
+    "name": "unet_256x256_4acc_step1_bs4",
+    "group": null,
+    "tags": []
+  },
+  "6o8ibpsg": {
+    "name": "cg_sense_256x256_4acc_step1_bs4",
+    "group": null,
+    "tags": []
+  },
+  "6gzht41w": {
+    "name": "unet_256x256_4acc_step1_bs4",
+    "group": null,
+    "tags": []
+  },
+  "3e5wd3so": {
+    "name": "cg_sense_256x256_4acc_step1_bs4",
+    "group": null,
+    "tags": []
+  },
+  "87lpqaha": {
+    "name": "unet_256x256_4acc_step1_bs4",
+    "group": null,
+    "tags": []
+  },
+  "epht8uas": {
+    "name": "unet_256x256_4acc_step1_bs4",
+    "group": null,
+    "tags": []
+  },
+  "w7tixevj": {
+    "name": "cg_sense_256x256_4acc_step1_bs4",
+    "group": null,
+    "tags": []
+  },
+  "5huihtej": {
+    "name": "unet_256x256_4acc_step1_bs4",
+    "group": null,
+    "tags": []
+  },
+  "1jqxi632": {
+    "name": "cg_sense_256x256_4acc_step1_bs4",
+    "group": null,
+    "tags": []
+  },
+  "3qslxcek": {
+    "name": "unet_256x256_4acc_step1_bs4",
+    "group": null,
+    "tags": []
+  },
+  "cnrsncpg": {
+    "name": "unet_256x256_4acc_step1_bs4",
+    "group": null,
+    "tags": []
+  },
+  "7kj94wfo": {
+    "name": "cg_sense_256x256_4acc_step1_bs4",
+    "group": null,
+    "tags": []
+  },
+  "br3vy97a": {
+    "name": "varnet_256x256_4acc_step1_bs4",
+    "group": null,
+    "tags": []
+  },
+  "upqvy55m": {
+    "name": "varnet_256x256_4acc_step1_bs4",
+    "group": null,
+    "tags": []
+  },
+  "1lja3mp4": {
+    "name": "varnet_256x256_4acc_step1_bs4",
+    "group": null,
+    "tags": []
+  },
+  "c9ycl6r5": {
+    "name": "varnet_256x256_4acc_step1_bs4",
+    "group": null,
+    "tags": []
+  },
+  "cv0cih2u": {
+    "name": "varnet_256x256_4acc_step1_bs4",
+    "group": null,
+    "tags": []
+  },
+  "iv3efc2m": {
+    "name": "varnet_256x256_4acc_step1_bs4",
+    "group": null,
+    "tags": []
+  },
+  "qhbldt6m": {
+    "name": "varnet_256x256_4acc_step1_bs4",
+    "group": null,
+    "tags": []
+  },
+  "u67t3tft": {
+    "name": "varnet_256x256_4acc_step1_bs4",
+    "group": null,
+    "tags": []
+  },
+  "fubo0w0p": {
+    "name": "varnet_256x256_4acc_step1_bs4",
+    "group": null,
+    "tags": []
+  },
+  "slr80f9j": {
+    "name": "unet_256x256_4acc_step1_bs4",
+    "group": null,
+    "tags": []
+  },
+  "v7ny5mu2": {
+    "name": "unet_256x256_5acc_step1_bs4",
+    "group": null,
+    "tags": []
+  },
+  "6aq8xcuk": {
+    "name": "varnet_256x256_4acc_step1_bs4",
+    "group": null,
+    "tags": []
+  },
+  "zia1bior": {
+    "name": "varnet_256x256_4acc_step1_bs4",
+    "group": null,
+    "tags": []
+  },
+  "f42i0f2w": {
+    "name": "varnet_256x256_4acc_step1_bs4",
+    "group": null,
+    "tags": []
+  },
+  "z75iwevs": {
+    "name": "unet_frozen-recon_64x64_4acc_step1_bs4",
+    "group": null,
+    "tags": []
+  },
+  "iwitsoqk": {
+    "name": "SequentialSampling_varnet_sampler-loupe_2d_mask-random_256x256_4acc_step1_bs4",
+    "group": null,
+    "tags": []
+  },
+  "cnw5838n": {
+    "name": "SequentialSampling_varnet_sampler-loupe_2d_mask-reinforce_frozen-recon_256x256_4acc_step1_bs4",
+    "group": null,
+    "tags": []
+  },
+  "j0t6q8fw": {
+    "name": "SequentialSampling_varnet_sampler-loupe_2d_mask-reinforce_frozen-recon_256x256_4acc_step1_bs4",
+    "group": null,
+    "tags": []
+  },
+  "6vo5129i": {
+    "name": "SequentialSampling_varnet_sampler-loupe_2d_mask-reinforce_frozen-recon_256x256_4acc_step1_bs16",
+    "group": null,
+    "tags": []
+  },
+  "swyfjdym": {
+    "name": "SequentialSampling_varnet_sampler-loupe_2d_mask-reinforce_frozen-recon_256x256_4acc_step1_bs16",
+    "group": null,
+    "tags": []
+  },
+  "583udxbw": {
+    "name": "SequentialSampling_varnet_sampler-loupe_2d_mask-reinforce_frozen-recon_256x256_4acc_step1_bs8",
+    "group": null,
+    "tags": []
+  },
+  "lr7iao0x": {
+    "name": "SequentialSampling_varnet_sampler-loupe_2d_mask-reinforce_frozen-recon_256x256_4acc_step1_bs8",
+    "group": null,
+    "tags": []
+  },
+  "b2ogilu2": {
+    "name": "SequentialSampling_varnet_brain-knee_samp-c128d4_256x256_4acc_1step_bs4",
+    "group": null,
+    "tags": []
+  },
+  "yez1z6yg": {
+    "name": "SequentialSampling_varnet_brain-knee_samp-c128d4_256x256_4acc_1step_bs4",
+    "group": null,
+    "tags": []
+  },
+  "z32rt54i": {
+    "name": "SequentialSampling_varnet_brain-knee_samp-c128d4_256x256_4acc_1step_bs4",
+    "group": null,
+    "tags": []
+  },
+  "94nphgm5": {
+    "name": "SequentialSampling_varnet_brain-knee_samp-c128d4_256x256_4acc_1step_bs4",
+    "group": null,
+    "tags": []
+  },
+  "x67tgssw": {
+    "name": "SequentialSampling_varnet_brain-knee_sampler-caipi_2d_256x256_4acc_1step_bs4",
+    "group": null,
+    "tags": []
+  },
+  "5qxctmz8": {
+    "name": "SequentialSampling_varnet_brain-knee_sampler-caipi_2d_256x256_4acc_1step_bs4",
+    "group": null,
+    "tags": []
+  },
+  "gq8hkqot": {
+    "name": "SequentialSampling_varnet_brain-knee_sampler-caipi_2d_256x256_4acc_1step_bs4",
+    "group": null,
+    "tags": []
+  },
+  "9nmv6h2o": {
+    "name": "SequentialSampling_varnet_brain-knee_sampler-caipi_2d_256x256_4acc_1step_bs4",
+    "group": null,
+    "tags": []
+  },
+  "2d7e446t": {
+    "name": "SequentialSampling_varnet_brain-knee_sampler-caipi_2d_256x256_4acc_1step_bs4",
+    "group": null,
+    "tags": []
+  },
+  "qpaflt54": {
+    "name": "SequentialSampling_varnet_brain-knee_sampler-caipi_2d_256x256_4acc_1step_bs4",
+    "group": null,
+    "tags": []
+  },
+  "rbdddrmf": {
+    "name": "SequentialSampling_varnet_brain-knee_sampler-caipi_2d_256x256_4acc_1step_bs4",
+    "group": null,
+    "tags": []
+  },
+  "6qkjg6f8": {
+    "name": "SequentialSampling_varnet_brain-knee_train-brain_sampler-caipi_2d_256x256_4acc_1step_bs4",
+    "group": null,
+    "tags": []
+  },
+  "j2ojdkcf": {
+    "name": "SequentialSampling_varnet_brain-knee_train-brain_sampler-caipi_2d_256x256_4acc_1step_bs4",
+    "group": null,
+    "tags": []
+  },
+  "iyd83q7k": {
+    "name": "SequentialSampling_varnet_brain-knee_sampler-loupe_2d_mask-reinforce_256x256_8acc_1step_bs16",
+    "group": null,
+    "tags": []
+  },
+  "87tm7bqo": {
+    "name": "SequentialSampling_varnet_sampler-loupe_2d_256x256_4acc_1step_bs4",
+    "group": null,
+    "tags": []
+  },
+  "7idd8bb8": {
+    "name": "SequentialSampling_varnet_brain-knee_train-brain_sampler-caipi_2d_256x256_4acc_1step_bs4",
+    "group": null,
+    "tags": []
+  },
+  "g2xoowz3": {
+    "name": "SequentialSampling_varnet_brain-knee_train-brain_sampler-caipi_2d_256x256_4acc_1step_bs4",
+    "group": null,
+    "tags": []
+  },
+  "uiz4dz0h": {
+    "name": "SequentialSampling_varnet_brain-knee_train-brain_sampler-caipi_2d_256x256_4acc_1step_bs4",
+    "group": null,
+    "tags": []
+  },
+  "ewhs0mnt": {
+    "name": "SequentialSampling_varnet_brain-knee_train-brain_sampler-caipi_2d_256x256_4acc_1step_bs4",
+    "group": null,
+    "tags": []
+  },
+  "igppj1em": {
+    "name": "varnet_brain-knee_train-brain_sampler-caipi_2d_256x256_4acc_1step_bs4",
+    "group": null,
+    "tags": []
+  },
+  "db7fsabe": {
+    "name": "varnet_brain-knee_train-brain_sampler-caipi_2d_256x256_4acc_1step_bs4",
+    "group": null,
+    "tags": []
+  },
+  "7xzh34zr": {
+    "name": "varnet_brain-knee_train-brain_sampler-caipi_2d_256x256_4acc_1step_bs4",
+    "group": null,
+    "tags": []
+  },
+  "9f4zv3of": {
+    "name": "varnet_brain-knee_train-brain_sampler-caipi_2d_256x256_4acc_1step_bs4",
+    "group": null,
+    "tags": []
+  },
+  "6axu66ji": {
+    "name": "varnet_knee_sampler-loupe_2d_256x256_4acc_zero_step_bs4",
+    "group": null,
+    "tags": []
+  },
+  "tkg7jgpw": {
+    "name": "varnet_brain_sampler-loupe_2d_256x256_4acc_zero_step_bs4",
+    "group": null,
+    "tags": []
+  },
+  "6jabzuw4": {
+    "name": "varnet_brain_sampler-loupe_2d_256x256_4acc_zero_step_bs4",
+    "group": null,
+    "tags": []
+  },
+  "iwjkokvz": {
+    "name": "varnet_brain_sampler-loupe_2d_256x256_4acc_zero_step_bs4",
+    "group": null,
+    "tags": []
+  },
+  "x2pjealj": {
+    "name": "varnet_knee_sampler-loupe_2d_256x256_4acc_zero_step_bs4",
+    "group": null,
+    "tags": []
+  },
+  "g8moxmys": {
+    "name": "varnet_knee_sampler-loupe_2d_256x256_4acc_zero_step_bs4",
+    "group": null,
+    "tags": []
+  },
+  "azd6r64k": {
+    "name": "varnet_brain-knee_sampler-loupe_2d_256x256_8acc_zero_step_bs16",
+    "group": null,
+    "tags": []
+  },
+  "mj4759it": {
+    "name": "varnet_brain-knee_sampler-loupe_2d_mask-reinforce_256x256_8acc_zero_step_bs16",
+    "group": null,
+    "tags": []
+  },
+  "9oqin528": {
+    "name": "varnet_brain-knee_train-brain_sampler-caipi_2d_pf0.75_256x256_4acc_1step_bs4",
+    "group": null,
+    "tags": []
+  },
+  "c0fbn3dh": {
+    "name": "varnet_brain-knee_train-brain_sampler-caipi_2d_pf0.75_256x256_4acc_1step_bs4",
+    "group": null,
+    "tags": []
+  },
+  "eflshbfe": {
+    "name": "varnet_brain-knee_train-brain_sampler-caipi_2d_256x256_4acc_1step_bs4",
+    "group": null,
+    "tags": []
+  },
+  "8n0xwham": {
+    "name": "varnet_brain_sampler-loupe_2d_256x256_4acc_zero_step_bs4",
+    "group": null,
+    "tags": []
+  },
+  "2ihoedok": {
+    "name": "varnet_brain_sampler-loupe_2d_256x256_4acc_zero_step_bs4",
+    "group": null,
+    "tags": []
+  },
+  "gop7hnae": {
+    "name": "varnet_brain-knee_sampler-loupe_2d_mask-reinforce_256x256_8acc_zero_step_bs16",
+    "group": null,
+    "tags": []
+  },
+  "x7ydo9c0": {
+    "name": "varnet_brain-knee_sampler-loupe_2d_mask-reinforce_256x256_8acc_zero_step_bs16",
+    "group": null,
+    "tags": []
+  },
+  "1k9d0xdj": {
+    "name": "varnet_brain-knee_sampler-loupe_2d_256x256_8acc_zero_step_bs16",
+    "group": null,
+    "tags": []
+  },
+  "jcwgy4ai": {
+    "name": "varnet_brain_sampler-loupe_2d_256x256_4acc_zero_step_bs4",
+    "group": null,
+    "tags": []
+  },
+  "lievnpuf": {
+    "name": "varnet_brain_sampler-loupe_2d_256x256_4acc_zero_step_bs4",
+    "group": null,
+    "tags": []
+  },
+  "qildvqy6": {
+    "name": "varnet_brain_sampler-loupe_2d_256x256_4acc_zero_step_bs4",
+    "group": null,
+    "tags": []
+  },
+  "j76u8fmn": {
+    "name": "varnet_brain_sampler-loupe_2d_256x256_4acc_zero_step_bs4",
+    "group": null,
+    "tags": []
+  },
+  "cns2qbwz": {
+    "name": "varnet_brain_sampler-loupe_2d_256x256_4acc_zero_step_bs4",
+    "group": null,
+    "tags": []
+  },
+  "wh7gvfh4": {
+    "name": "varnet_brain_sampler-loupe_2d_256x256_4acc_zero_step_bs4",
+    "group": null,
+    "tags": []
+  },
+  "75lkxey0": {
+    "name": "varnet_brain-knee_sampler-loupe_2d_mask-reinforce_256x256_8acc_zero_step_bs16",
+    "group": null,
+    "tags": []
+  },
+  "u2bw3dnr": {
+    "name": "varnet_brain-knee_sampler-loupe_2d_mask-reinforce_256x256_8acc_zero_step_bs16",
+    "group": null,
+    "tags": []
+  },
+  "oztalq2t": {
+    "name": "varnet_brain-knee_sampler-loupe_2d_mask-reinforce_256x256_8acc_zero_step_bs16",
+    "group": null,
+    "tags": []
+  },
+  "s5yc18pj": {
+    "name": "varnet_brain-knee_sampler-autosamp_2d_256x256_8acc_zero_step_bs16",
+    "group": null,
+    "tags": []
+  },
+  "7ahum2zr": {
+    "name": "varnet_brain-knee_sampler-autosamp_2d_256x256_8acc_zero_step_bs16",
+    "group": null,
+    "tags": []
+  },
+  "n9kicklr": {
+    "name": "varnet_brain-knee_sampler-autosamp_2d_256x256_8acc_zero_step_bs16",
+    "group": null,
+    "tags": []
+  },
+  "3c5tgnwe": {
+    "name": "varnet_brain-knee_sampler-autosamp_2d_anneal4-1_256x256_8acc_zero_step_bs16",
+    "group": null,
+    "tags": []
+  },
+  "kj2qymth": {
+    "name": "varnet_brain-knee_sampler-autosamp_2d_anneal4-1_256x256_8acc_zero_step_bs16",
+    "group": null,
+    "tags": []
+  },
+  "pjysura8": {
+    "name": "varnet_brain-knee_sampler-loupe_2d_cond-anat_256x256_8acc_zero_step_bs16",
+    "group": null,
+    "tags": []
+  },
+  "jrbkh8lq": {
+    "name": "varnet_brain-knee_sampler-loupe_2d_mask-reinforce_256x256_8acc_zero_step_bs16",
+    "group": null,
+    "tags": []
+  },
+  "3tmv0kp8": {
+    "name": "varnet_brain-knee_sampler-autosamp_2d_256x256_8acc_zero_step_bs16",
+    "group": null,
+    "tags": []
+  },
+  "8k0wbzru": {
+    "name": "varnet_brain-knee_sampler-autosamp_2d_anneal4-1_256x256_8acc_zero_step_bs16",
+    "group": null,
+    "tags": []
+  },
+  "q1s31eho": {
+    "name": "varnet_brain-knee_sampler-loupe_2d_mask-reinforce_256x256_8acc_zero_step_bs16",
+    "group": null,
+    "tags": []
+  },
+  "fy0dmjis": {
+    "name": "varnet_brain-knee_sampler-autosamp_2d_anneal4-1_256x256_8acc_zero_step_bs16",
+    "group": null,
+    "tags": []
+  },
+  "4ok6v4q6": {
+    "name": "varnet_brain-knee_sampler-autosamp_2d_anneal4-1_256x256_8acc_zero_step_bs2",
+    "group": null,
+    "tags": []
+  },
+  "onalzjt5": {
+    "name": "varnet_brain-knee_sampler-loupe_2d_radial32-kxasym_mask-reinforce_256x256_8acc_zero_step_bs16",
+    "group": null,
+    "tags": []
+  },
+  "slhb0p0y": {
+    "name": "varnet_brain-knee_train-knee_sampler-loupe_2d_256x256_8acc_zero_step_bs16",
+    "group": null,
+    "tags": []
+  },
+  "obhu7ax7": {
+    "name": "varnet_brain-knee_train-brain_sampler-loupe_2d_256x256_8acc_zero_step_bs16",
+    "group": null,
+    "tags": []
+  },
+  "rzxbmdzy": {
+    "name": "varnet_brain-knee_train-brain_sampler-loupe_2d_256x256_8acc_zero_step_bs16",
+    "group": null,
+    "tags": []
+  },
+  "u5e1xbsq": {
+    "name": "varnet_brain-knee_train-brain_sampler-loupe_2d_256x256_8acc_zero_step_bs16",
+    "group": null,
+    "tags": []
+  },
+  "1mj0aie5": {
+    "name": "varnet_brain-knee_sampler-loupe_2d_cond-anat_fixed-masks_256x256_8acc_zero_step_bs16",
+    "group": null,
+    "tags": []
+  },
+  "wqk8bxvy": {
+    "name": "varnet_brain-knee_sampler-loupe_2d_mask-reinforce_256x256_8acc_zero_step_bs16",
+    "group": null,
+    "tags": []
+  },
+  "gmyqks31": {
+    "name": "varnet_brain-knee_sampler-autosamp_2d_lr0.001_sched-constant_256x256_8acc_zero_step_bs16",
+    "group": null,
+    "tags": []
+  },
+  "08j4s5l9": {
+    "name": "varnet_brain-knee_sampler-autosamp_2d_lr0.0003_sched-constant_256x256_8acc_zero_step_bs16",
+    "group": null,
+    "tags": []
+  },
+  "i6e1xgxq": {
+    "name": "varnet_brain-knee_sampler-autosamp_2d_lr0.003_sched-constant_256x256_8acc_zero_step_bs16",
+    "group": null,
+    "tags": []
+  },
+  "2n6n2ohe": {
+    "name": "varnet_brain-knee_train-brain_sampler-loupe_2d_lr0.0003_256x256_8acc_zero_step_bs16",
+    "group": null,
+    "tags": []
+  },
+  "3dy30odd": {
+    "name": "varnet_brain-knee_train-brain_sampler-loupe_2d_lr0.0003_256x256_8acc_zero_step_bs16",
+    "group": null,
+    "tags": []
+  },
+  "el8mkcow": {
+    "name": "varnet_brain-knee_train-brain_sampler-loupe_2d_lr0.0003_256x256_8acc_zero_step_bs16",
+    "group": null,
+    "tags": []
+  },
+  "plo1svqi": {
+    "name": "varnet_brain-knee_train-brain_sampler-loupe_2d_lr0.0003_256x256_8acc_zero_step_bs16",
+    "group": null,
+    "tags": []
+  },
+  "xp0p0qc8": {
+    "name": "varnet_brain-knee_train-brain_sampler-loupe_2d_lr0.0003_256x256_8acc_zero_step_bs16",
+    "group": null,
+    "tags": []
+  },
+  "7wwxrswn": {
+    "name": "varnet_brain-knee_sampler-loupe_2d_cond-anat_fixed-masks_lr0.0003_256x256_8acc_zero_step_bs16",
+    "group": null,
+    "tags": []
+  },
+  "89o38xuo": {
+    "name": "varnet_brain-knee_sampler-loupe_2d_cond-anat_fixed-masks_lr0.0003_256x256_8acc_zero_step_bs16",
+    "group": null,
+    "tags": []
+  },
+  "0rjgui1a": {
+    "name": "varnet_brain-knee_train-brain_sampler-loupe_2d_lr0.0003_256x256_8acc_zero_step_bs16",
+    "group": null,
+    "tags": []
+  },
+  "1ahao515": {
+    "name": "varnet_brain-knee_train-brain_sampler-loupe_2d_lr0.0003_256x256_8acc_zero_step_bs16",
+    "group": null,
+    "tags": []
+  },
+  "g449cnkq": {
+    "name": "varnet_brain-knee_sampler-loupe_2d_cond-anat_fixed-masks_lr0.0003_256x256_8acc_zero_step_bs16",
+    "group": null,
+    "tags": []
+  },
+  "kvl7gf2h": {
+    "name": "varnet_brain-knee_sampler-autosamp_2d_lr0.001_sched-warmup_cosine_256x256_8acc_zero_step_bs16",
+    "group": null,
+    "tags": []
+  },
+  "rpq2oysm": {
+    "name": "varnet_brain-knee_sampler-autosamp_2d_lr0.003_sched-warmup_cosine_256x256_8acc_zero_step_bs16",
+    "group": null,
+    "tags": []
+  },
+  "icmc29az": {
+    "name": "unet_brain_sampler-loupe_2d_lr0.001_256x256_4acc_zero_step_bs1",
+    "group": null,
+    "tags": []
+  },
+  "ijhnsmnm": {
+    "name": "varnet_brain-knee_sampler-loupe_2d_lr0.001_256x256_8acc_zero_step_bs16",
+    "group": null,
+    "tags": []
+  },
+  "uo8d68n0": {
+    "name": "varnet_brain-knee_sampler-loupe_2d_mfloor0.05_stefloor0.05_lr0.001_256x256_8acc_zero_step_bs16",
+    "group": null,
+    "tags": []
+  },
+  "a5x94azs": {
+    "name": "varnet_space_sampler-loupe_2d_mask-random_lr0.001_sched-cosine_256x128_12acc_zero_step_bs4",
+    "group": null,
+    "tags": []
+  },
+  "7nhdbww2": {
+    "name": "varnet_space_sampler-loupe_2d_mask-random_lr0.001_sched-cosine_256x128_12acc_zero_step_bs4",
+    "group": null,
+    "tags": []
+  },
+  "ziuji11f": {
+    "name": "varnet_brain-knee_mfloor0.05_stefloor0.05_lr0.001_256x256_8acc_1step_bs16",
+    "group": null,
+    "tags": []
+  },
+  "dyihq1h2": {
+    "name": "varnet_brain-knee_samp-img_mfloor0.05_stefloor0.05_lr0.001_256x256_8acc_1step_bs16",
+    "group": null,
+    "tags": []
+  },
+  "lj113kv4": {
+    "name": "varnet_brain-knee_samp-img_head-bias_mfloor0.05_stefloor0.05_lr0.001_256x256_8acc_1step_bs16",
+    "group": null,
+    "tags": []
+  },
+  "d4hb98to": {
+    "name": "varnet_brain-knee_mfloor0.05_stefloor0.05_draws2_lr0.001_256x256_8acc_1step_bs8",
+    "group": null,
+    "tags": []
+  },
+  "fkg5xsd6": {
+    "name": "varnet_brain-knee_sampler-loupe_2d_mask-random_lr0.001_256x256_8acc_zero_step_bs16",
+    "group": null,
+    "tags": []
+  },
+  "35y4evjr": {
+    "name": "varnet_brain-knee_sampler-mnet_2d_samp-img_label-always_lr0.001_256x256_8acc_1step_bs16",
+    "group": null,
+    "tags": []
+  },
+  "ypmzc42n": {
+    "name": "varnet_brain-knee_samp-img_head-mlp_mfloor0.05_stefloor0.05_lr0.001_256x256_8acc_1step_bs16",
+    "group": null,
+    "tags": []
+  },
+  "ewfi3v76": {
+    "name": "varnet_brain-knee_mfloor0.05_stefloor0.05_clamp10-0.05_lr0.001_256x256_8acc_1step_bs16",
+    "group": null,
+    "tags": []
+  }
+}

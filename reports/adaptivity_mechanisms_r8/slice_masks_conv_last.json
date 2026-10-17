@@ -1,0 +1,101 @@
+{
+  "config": {
+    "recon": "checkpoints/conv2d_varnet_r8_brain_knee_floor0.05/last_model.pt",
+    "slices": 48,
+    "steps": 120,
+    "draws": 2,
+    "lr": 0.05,
+    "prior": "/tmp/bkadota_oracle_labels_r8/prior.pt"
+  },
+  "own": {
+    "slice_minus_shared_db": {
+      "mean": 0.31285619735717773,
+      "ci95": [
+        0.24722171537578105,
+        0.37122230902314174
+      ]
+    },
+    "shared_minus_prior_db": {
+      "mean": 0.25175344944000244,
+      "ci95": [
+        0.19950722269713878,
+        0.3060007393360138
+      ]
+    },
+    "slice_minus_prior_db": {
+      "mean": 0.5646096467971802,
+      "ci95": [
+        0.45819780975580215,
+        0.6651114389300347
+      ]
+    },
+    "by_anatomy_slice_minus_shared_db": {
+      "brain": 0.4311412274837494,
+      "knee": 0.19457118213176727
+    },
+    "psnr_shared": 39.07401657104492
+  },
+  "neighbour": {
+    "slice_minus_shared_db": {
+      "mean": -0.3030925989151001,
+      "ci95": [
+        -0.35893388763070105,
+        -0.24725179858505728
+      ]
+    },
+    "shared_minus_prior_db": {
+      "mean": 0.25175344944000244,
+      "ci95": [
+        0.20092065632343292,
+        0.304838602989912
+      ]
+    },
+    "slice_minus_prior_db": {
+      "mean": -0.051339149475097656,
+      "ci95": [
+        -0.0819148501381278,
+        -0.019656464830040948
+      ]
+    },
+    "by_anatomy_slice_minus_shared_db": {
+      "brain": -0.3451213836669922,
+      "knee": -0.261063814163208
+    },
+    "psnr_shared": 39.07401657104492
+  },
+  "other": {
+    "slice_minus_shared_db": {
+      "mean": -0.3651054799556732,
+      "ci95": [
+        -0.40372117757797243,
+        -0.3255071222782135
+      ]
+    },
+    "shared_minus_prior_db": {
+      "mean": 0.23463241755962372,
+      "ci95": [
+        0.21090143993496896,
+        0.2592656597495079
+      ]
+    },
+    "slice_minus_prior_db": {
+      "mean": -0.1304730623960495,
+      "ci95": [
+        -0.15524156168103218,
+        -0.10614602565765381
+      ]
+    },
+    "by_anatomy_slice_minus_shared_db": {
+      "brain": -0.4333864748477936,
+      "knee": -0.29682445526123047
+    },
+    "psnr_shared": 39.4228401184082
+  },
+  "masks": {
+    "slice_vs_shared_corr": 0.7129650115966797,
+    "shared_vs_prior_corr": 0.7522792220115662,
+    "neighbour_deviation_corr": 0.7140913009643555,
+    "other_deviation_corr": 0.6868586897229155,
+    "mean_abs_deviation": 0.07730542868375778
+  }
+}

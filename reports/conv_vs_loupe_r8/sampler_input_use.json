@@ -1,0 +1,170 @@
+{
+  "baseline": {
+    "epochs_trained": 50,
+    "effective_overall_std": 0.018653133884072304,
+    "brain": {
+      "slices": 344,
+      "input": {
+        "slice_vs_mean_corr": 0.0996486507364928,
+        "norm_cv": 0.33705398440361023
+      },
+      "unscaled": {
+        "across_slice_std": 0.018880799412727356,
+        "slice_vs_mean_corr": 0.9895690208282406,
+        "frac_below_0.01": 0.5361051781232967,
+        "frac_clamped": 0.5301537624625272
+      },
+      "effective": {
+        "across_slice_std": 0.015331806614995003,
+        "slice_vs_mean_corr": 0.989959731704044
+      },
+      "effective_std_with_mean_scores": 0.0,
+      "real_slice_deviation_rel": 0.09790919721126556,
+      "response_rel": {
+        "zero_input": 0.19217795133590698,
+        "half_input": 0.061100661754608154,
+        "double_input": 0.055206626653671265,
+        "anatomy_mean_input": 0.1862906813621521
+      }
+    },
+    "knee": {
+      "slices": 344,
+      "input": {
+        "slice_vs_mean_corr": 0.19845802482492608,
+        "norm_cv": 0.2967563569545746
+      },
+      "unscaled": {
+        "across_slice_std": 0.021757395938038826,
+        "slice_vs_mean_corr": 0.9860856262259645,
+        "frac_below_0.01": 0.5264980404876,
+        "frac_clamped": 0.5195282337277435
+      },
+      "effective": {
+        "across_slice_std": 0.017472781240940094,
+        "slice_vs_mean_corr": 0.9866368283607687
+      },
+      "effective_std_with_mean_scores": 0.0,
+      "real_slice_deviation_rel": 0.11969427764415741,
+      "response_rel": {
+        "zero_input": 0.15831106901168823,
+        "half_input": 0.06461123377084732,
+        "double_input": 0.07368979603052139,
+        "anatomy_mean_input": 0.15249308943748474
+      }
+    },
+    "brain_vs_knee_mean_input_corr": -0.36797485212540704,
+    "brain_vs_knee_mean_scores_corr": 0.9875704739333618
+  },
+  "image_input": {
+    "epochs_trained": 50,
+    "effective_overall_std": 0.016409054398536682,
+    "brain": {
+      "slices": 344,
+      "input": {
+        "slice_vs_mean_corr": 0.10390758488642211,
+        "norm_cv": 0.3375743627548218
+      },
+      "unscaled": {
+        "across_slice_std": 0.01868535205721855,
+        "slice_vs_mean_corr": 0.9897506657385182,
+        "frac_below_0.01": 0.5295524597167969,
+        "frac_clamped": 0.5208077098048011
+      },
+      "effective": {
+        "across_slice_std": 0.015953147783875465,
+        "slice_vs_mean_corr": 0.9901516715056045
+      },
+      "effective_std_with_mean_scores": 0.0,
+      "real_slice_deviation_rel": 0.09488868713378906,
+      "response_rel": {
+        "zero_input": 0.11941421777009964,
+        "half_input": 0.05740010365843773,
+        "double_input": 0.10097252577543259,
+        "anatomy_mean_input": 0.11440619081258774
+      }
+    },
+    "knee": {
+      "slices": 344,
+      "input": {
+        "slice_vs_mean_corr": 0.20213013241412184,
+        "norm_cv": 0.2970072627067566
+      },
+      "unscaled": {
+        "across_slice_std": 0.018409576267004013,
+        "slice_vs_mean_corr": 0.990336677834308,
+        "frac_below_0.01": 0.5245662511781205,
+        "frac_clamped": 0.5151291337124136
+      },
+      "effective": {
+        "across_slice_std": 0.015673674643039703,
+        "slice_vs_mean_corr": 0.9907308634892951
+      },
+      "effective_std_with_mean_scores": 0.0,
+      "real_slice_deviation_rel": 0.09314393252134323,
+      "response_rel": {
+        "zero_input": 0.10990496724843979,
+        "half_input": 0.05240628123283386,
+        "double_input": 0.09701600670814514,
+        "anatomy_mean_input": 0.1046907976269722
+      }
+    },
+    "brain_vs_knee_mean_input_corr": -0.3652502609885422,
+    "brain_vs_knee_mean_scores_corr": 0.9986060894434535
+  },
+  "draws2": {
+    "epochs_trained": 50,
+    "effective_overall_std": 0.019565602764487267,
+    "brain": {
+      "slices": 344,
+      "input": {
+        "slice_vs_mean_corr": 0.10265799521868059,
+        "norm_cv": 0.33652937412261963
+      },
+      "unscaled": {
+        "across_slice_std": 0.020261578261852264,
+        "slice_vs_mean_corr": 0.9869430677823664,
+        "frac_below_0.01": 0.488829679267351,
+        "frac_clamped": 0.47849402316780976
+      },
+      "effective": {
+        "across_slice_std": 0.017079509794712067,
+        "slice_vs_mean_corr": 0.9874789920743957
+      },
+      "effective_std_with_mean_scores": 0.0,
+      "real_slice_deviation_rel": 0.1098598912358284,
+      "response_rel": {
+        "zero_input": 0.22246447205543518,
+        "half_input": 0.0691697746515274,
+        "double_input": 0.04713671654462814,
+        "anatomy_mean_input": 0.19647765159606934
+      }
+    },
+    "knee": {
+      "slices": 344,
+      "input": {
+        "slice_vs_mean_corr": 0.20411803730566505,
+        "norm_cv": 0.29852622747421265
+      },
+      "unscaled": {
+        "across_slice_std": 0.020677493885159492,
+        "slice_vs_mean_corr": 0.9823289754752386,
+        "frac_below_0.01": 0.4883390027423238,
+        "frac_clamped": 0.47847082448560135
+      },
+      "effective": {
+        "across_slice_std": 0.018563110381364822,
+        "slice_vs_mean_corr": 0.9831501454922453
+      },
+      "effective_std_with_mean_scores": 0.0,
+      "real_slice_deviation_rel": 0.11977583914995193,
+      "response_rel": {
+        "zero_input": 0.20891761779785156,
+        "half_input": 0.07140129059553146,
+        "double_input": 0.061092521995306015,
+        "anatomy_mean_input": 0.15489895641803741
+      }
+    },
+    "brain_vs_knee_mean_input_corr": -0.3785158109965317,
+    "brain_vs_knee_mean_scores_corr": 0.9885110069358624
+  }
+}

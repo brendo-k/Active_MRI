@@ -90,8 +90,9 @@ class ThresholdRandomMaskSigmoidV1(Function):
     """
 
     @staticmethod
-    def forward(ctx, input, grad_floor=0.0):
-        threshold = torch.rand_like(input)
+    def forward(ctx, input, grad_floor=0.0, threshold=None):
+        if threshold is None:
+            threshold = torch.rand_like(input)
         ctx.save_for_backward(input, threshold)
         ctx.grad_floor = grad_floor
         return (input > threshold).to(input.dtype)
@@ -104,8 +105,41 @@ class ThresholdRandomMaskSigmoidV1(Function):
         surrogate = torch.sigmoid(STE_SLOPE * (input - threshold))
         current_grad = floored_sigmoid_derivative(surrogate, STE_SLOPE, ctx.grad_floor)
 
-        return current_grad * grad_output, None
+        return current_grad * grad_output, None, None
 
 
-def threshold_random_mask(probabilities, grad_floor=0.0):
-    return ThresholdRandomMaskSigmoidV1.apply(probabilities, grad_floor)
+def threshold_random_mask(probabilities, grad_floor=0.0, threshold=None):
+    """Bernoulli(p) mask with a straight-through gradient; `threshold` (same shape, U(0, 1)) replaces the fresh draw."""
+    return ThresholdRandomMaskSigmoidV1.apply(probabilities, grad_floor, threshold)
+
+
+def stratified_thresholds(like, draws):
+    """Thresholds for `draws` masks of the same slices, laid out draw-major: [draws * B, ...] from [draws * B, ...] `like`.
+
+    One U(0, 1) noise map per slice is rotated by k / draws (mod 1) for the k-th draw. Every draw is
+    still marginally uniform, so each mask is an exact Bernoulli(p) sample and its gradient is unbiased;
+    the draws are negatively correlated (for draws=2 the antithetic pair u, u + 1/2), so their average
+    has lower variance than independent draws, and a location of probability p is covered by
+    ~p * draws of them instead of a binomial scatter.
+    """
+    total = like.shape[0]
+    if total % draws:
+        raise ValueError(f"a batch of {total} is not a whole number of {draws} draws per slice")
+    base = torch.rand_like(like[:total // draws])
+    return torch.cat([(base + k / draws) % 1.0 for k in range(draws)], dim=0)
+
+
+def topk_straight_through(probabilities, k, available=None):
+    """Exact-budget binarization: the k highest probabilities per example become 1.
+
+    Backward is the identity on `probabilities`, the usual straight-through
+    surrogate for a hard threshold. `available` (1 = may be selected) confines
+    the choice; if fewer than k are available only those are selected.
+    """
+    scores = probabilities.detach().flatten(1)
+    if available is not None:
+        scores = scores.masked_fill(available.expand_as(probabilities).flatten(1) <= 0, float('-inf'))
+    chosen = torch.zeros_like(scores).scatter_(1, scores.topk(k, dim=1).indices, 1.0).view_as(probabilities)
+    if available is not None:
+        chosen = chosen * available.to(chosen.dtype)
+    return chosen + (probabilities - probabilities.detach())

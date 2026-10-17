@@ -22,6 +22,7 @@ from activemri.samplers.autosamp import annealed_kernel_sigma
 from activemri.samplers.loupe import LineConstrainedProbMask, ProbMask
 from activemri.utils.util import compute_ssim_torch, compute_psnr_torch
 from activemri.config import TrainConfig
+from activemri.training.run_naming import run_group, run_name, run_tags
 from activemri.reconstructors.config import UNetReconConfig, CGSenseReconConfig, VarNetReconConfig
 from activemri.reconstructors.CG_Sense import CGSENSEReconstructor
 from activemri.reconstructors.UNet import LOUPEUNet
@@ -55,6 +56,8 @@ class Sequential_Trainer:
             self._freeze_recon()
         if options.fixed_mask_checkpoints:
             self._load_fixed_masks(options.fixed_mask_checkpoints)
+        if getattr(options, 'init_mask_checkpoint', None):
+            self._init_mask_from(options.init_mask_checkpoint)
 
         if options.data_parallel:
             if options.sampler_type == 'autosamp_2d':
@@ -81,8 +84,8 @@ class Sequential_Trainer:
         self.exp_dir = exp_dir
         self.vis_dir = vis_dir
 
-        run_name = self._build_run_name(options)
-        wandb.init(project="SeqMRI", name=run_name, config=vars(options), dir=str(exp_dir))
+        wandb.init(project="SeqMRI", name=run_name(options), group=run_group(options), tags=run_tags(options),
+                   notes=str(exp_dir), job_type='train', config=vars(options), dir=str(exp_dir))
 
         self.logger.info(self.options)
         self.logger.info(self.model)
@@ -126,6 +129,27 @@ class Sequential_Trainer:
             self.logger.info(f"Fixed the {anatomy} mask to the one learned in {path}")
         mask.requires_grad_(False)
 
+    def _init_mask_from(self, path: str):
+        """Start every class's mask from a loupe_2d run's learned mask, left trainable (unlike fixed_mask_checkpoints)."""
+        options = self.options
+        checkpoint = torch.load(path, map_location='cpu', weights_only=False)
+        source = checkpoint['options']
+        if source.sampler_type != 'loupe_2d':
+            raise ValueError(f"{path} is a {source.sampler_type} run; init_mask_checkpoint needs a loupe_2d run")
+        weights = checkpoint['model']['sampler.mask_net.mask']
+        if weights.shape[0] != 1:
+            raise ValueError(f"{path} holds {weights.shape[0]} masks; expected one learned mask")
+        logits = source.slope * weights[0, ..., 0]
+        mask_net = _unwrapped(self.model).sampler.mask_net
+        if options.sampler_type == 'smooth_adapt_2d':
+            mask_net.set_base_logits(logits.to(mask_net.mask))
+        elif options.sampler_type == 'loupe_2d':
+            with torch.no_grad():
+                mask_net.mask.copy_((logits / options.slope).view(1, *logits.shape, 1).expand_as(mask_net.mask))
+        else:
+            raise ValueError(f"init_mask_checkpoint is for loupe_2d or smooth_adapt_2d, not {options.sampler_type}")
+        self.logger.info(f"Started the sampler's mask from {path}")
+
     def _param_groups(self):
         """Trainable parameters, with the mask parameters split out when they have their own lr.
 
@@ -134,23 +158,49 @@ class Sequential_Trainer:
         by this lr, not by the reconstructor's.
         """
         trainable = [p for p in self.model.parameters() if p.requires_grad]
+        head_mlp = [p for name, p in _unwrapped(self.model).sampler.named_parameters()
+                    if '.location_head.mlp.' in f'.{name}' and p.requires_grad]
+        if head_mlp:
+            head_ids = {id(p) for p in head_mlp}
+            rest = [p for p in trainable if id(p) not in head_ids]
+            return [{'params': rest}, {'params': head_mlp, 'lr': getattr(self.options, 'sampler_head_mlp_lr', 1e-4)}]
         if self.options.sampler_type == 'autosamp_2d':
             policy_lr = self.options.autosamp_lr
         elif self.options.mask_train_mode == 'reinforce':
             policy_lr = self.options.reinforce_lr
         else:
-            policy_lr = None
+            policy_lr = getattr(self.options, 'sampler_lr', None)
         if policy_lr is None:
             return trainable
         model = self.model.module if isinstance(self.model, torch.nn.DataParallel) else self.model
         policy = [p for p in model.sampler.mask_net.parameters() if p.requires_grad]
         policy_ids = {id(p) for p in policy}
         rest = [p for p in trainable if id(p) not in policy_ids]
+        if self.options.sampler_type == 'smooth_adapt_2d':
+            head = [p for name, p in model.sampler.mask_net.named_parameters() if name != 'mask' and p.requires_grad]
+            head_ids = {id(p) for p in head}
+            groups = ({'params': rest}, {'params': [p for p in policy if id(p) not in head_ids], 'lr': policy_lr},
+                      {'params': head, 'lr': self.options.adapt_head_lr})
+            return [group for group in groups if group['params']]
         policy_group = {'params': policy, 'lr': policy_lr}
         if self.options.sampler_type == 'autosamp_2d':
             policy_group['weight_decay'] = 0.0  # decay would drag every sample towards DC
             policy_group['eps'] = POSITION_ADAM_EPS
         return [group for group in ({'params': rest}, policy_group) if group['params']]
+
+    @staticmethod
+    def _tile_for_mask_draws(batch, kspace, target, draws):
+        """Repeat the whole batch `draws` times, draw-major, so the sampler's stratified thresholds line up.
+
+        The k-space and target are tiled after any phase scrambling, so every draw of a slice sees the
+        same data and the draws differ only in their mask. The loss then averages over the draws.
+        """
+        def tile(value):
+            return value.repeat(draws, *[1] * (value.dim() - 1))
+
+        tiled = {key: tile(value) if torch.is_tensor(value) else value * draws if isinstance(value, list) else value
+                 for key, value in batch.items()}
+        return tiled, tile(kspace), tile(target)
 
     @staticmethod
     def _replicate_for_reinforce(batch, group_size=0):
@@ -209,87 +259,6 @@ class Sequential_Trainer:
             module.requires_grad_(False)
             module.eval()
         self.logger.info("Froze reconstructor and sensetivity_net; training sampler only")
-
-    @staticmethod
-    def _build_run_name(options: TrainConfig) -> str:
-        parts = []
-
-        if options.model and options.model != 'SequentialSampling':
-            parts.append(options.model)
-
-        recon_type = options.recon.recon_type
-        parts.append(recon_type)
-
-        if options.loss_type != 'l1':
-            parts.append(f"loss-{options.loss_type}")
-
-        if options.anatomy_classes:
-            parts.append("-".join(options.anatomy_classes))
-
-        if options.train_anatomies:
-            parts.append("train-" + "-".join(options.train_anatomies))
-
-        if options.sampler_type != 'conv_2d':
-            parts.append(f"sampler-{options.sampler_type}")
-
-        if options.sampler_type == 'autosamp_2d' and getattr(options, 'autosamp_kernel_sigma_start', 0.0) > 0:
-            parts.append(f"anneal{options.autosamp_kernel_sigma_start:g}-{options.autosamp_kernel_sigma_end:g}")
-
-        if getattr(options, 'caipi_keep_fraction', 1.0) != 1.0:
-            parts.append(f"pf{options.caipi_keep_fraction:g}")
-
-        if (options.sampler_chans, options.sampler_depth) != (64, 4):
-            parts.append(f"samp-c{options.sampler_chans}d{options.sampler_depth}")
-
-        if getattr(options, 'sampler_image_input', False):
-            parts.append("samp-img")
-
-        if options.uncertainty_loss:
-            parts.append("unc")
-
-        if options.anatomy_weight > 0:
-            parts.append(f"anat{options.anatomy_weight:.1f}")
-
-        if options.anatomy_conditioning:
-            parts.append("cond-anat")
-
-        if options.mask_train_mode != 'straight_through':
-            parts.append(f"mask-{options.mask_train_mode}")
-
-        if getattr(options, 'mask_grad_floor', 0.0) > 0:
-            parts.append(f"mfloor{options.mask_grad_floor:g}")
-        if getattr(options, 'ste_grad_floor', 0.0) > 0:
-            parts.append(f"stefloor{options.ste_grad_floor:g}")
-
-        if options.freeze_recon:
-            parts.append("frozen-recon")
-
-        if options.fixed_mask_checkpoints:
-            parts.append("fixed-masks")
-
-        parts.append(f"lr{options.lr:g}")
-        if options.lr_scheduler != 'step':
-            parts.append(f"sched-{options.lr_scheduler}")
-
-        res = f"{options.resolution[0]}x{options.resolution[1]}"
-        parts.append(res)
-
-        accel = 'x'.join(str(int(a)) if a == int(a) else str(a) for a in options.accelerations)
-        parts.append(f"{accel}acc")
-
-        is_loupe = 'loupe' in (options.model or '').lower() or options.sampler_type.lower() in ('loupe_2d', 'loupe_1d', 'autosamp_2d')
-        is_static = options.sampler_type == 'oracle'
-
-        if is_static:
-            parts.append("static")
-        elif is_loupe:
-            parts.append("zero_step")
-        else:
-            parts.append(f"{options.num_step}step")
-
-        parts.append(f"bs{options.batch_size}")
-
-        return "_".join(parts)
 
     def __call__(self):
         if self.options.checkpoint is not None:
@@ -352,10 +321,12 @@ class Sequential_Trainer:
 
             kspace = self._load_kspace(batch)
             target = self._target(batch, kspace)
+            if self.options.mask_draws > 1:
+                batch, kspace, target = self._tile_for_mask_draws(batch, kspace, target, self.options.mask_draws)
             anatomies = list(batch['anatomy'])
 
             try:
-                pred_dict = self.model(target, kspace, **self._model_inputs(batch))
+                pred_dict = self._train_forward(target, kspace, batch)
             except RuntimeError as err:
                 if 'Binarization failed to match target density' not in str(err):
                     raise
@@ -390,31 +361,9 @@ class Sequential_Trainer:
             }
             loss, log_dict = self.model.loss(pred_dict, target_dict, meta, self.options.loss_type)
 
-            self.optimizer.zero_grad()
-            loss.backward()
-            grad_log = gradient_stats(self.model, GRAD_CLIP_NORM)
-            bad_params = nonfinite_gradient_params(self.model) if grad_log['grad/nonfinite'] else []
-            grad_norm = torch.nn.utils.clip_grad_norm_(self.model.parameters(), GRAD_CLIP_NORM)
-            grad_log['data/zero_coil_frac'] = zero_coil_fraction(kspace)
-            grad_log['train/lr'] = self.optimizer.param_groups[0]['lr']
-            if self.options.mask_train_mode == 'reinforce':
-                grad_log['train/policy_lr'] = self.optimizer.param_groups[-1]['lr']
-            if self.options.sampler_type == 'autosamp_2d':
-                grad_log['train/autosamp_lr'] = self.optimizer.param_groups[-1]['lr']
-                mask_net = _unwrapped(self.model).sampler.mask_net
-                grad_log['train/autosamp_cell_change_frac'] = mask_net.cell_change_fraction
-                if mask_net.kernel_sigma > 0:
-                    grad_log['train/autosamp_kernel_sigma'] = mask_net.kernel_sigma
-            if grad_log['grad/nonfinite']:
-                self.logger.warning(
-                    "Skipping optimizer step with non-finite gradient norm "
-                    f"(loss={loss.item():.4g}, fnames={batch['fname']}, slice_ids={batch['slice_id'].tolist()}, "
-                    f"non-finite params={bad_params})"
-                )
-                wandb.log({**grad_log, 'train/skipped_step': 1.0, 'train/step': global_step_offset + iter_idx})
-                self.optimizer.zero_grad()
+            grad_log = self._optimize(loss, batch, kspace, target, global_step_offset + iter_idx)
+            if grad_log is None:
                 continue
-            self.optimizer.step()
 
             losses.append(loss.item())
 
@@ -464,6 +413,39 @@ class Sequential_Trainer:
         wandb.log(epoch_log)
 
         return np.mean(losses), time.perf_counter() - epoch_start_time, metric_means
+
+    def _train_forward(self, target, kspace, batch):
+        """The forward pass whose output the step's loss, metrics and logged images come from."""
+        return self.model(target, kspace, **self._model_inputs(batch))
+
+    def _optimize(self, loss, batch, kspace, target, step):  # noqa: ARG002
+        """Back-propagate `loss` and take an optimizer step; returns the step's gradient log, or None if the step was skipped."""
+        self.optimizer.zero_grad()
+        loss.backward()
+        grad_log = gradient_stats(self.model, GRAD_CLIP_NORM)
+        bad_params = nonfinite_gradient_params(self.model) if grad_log['grad/nonfinite'] else []
+        clip_gradients_per_group(self.model, GRAD_CLIP_NORM)
+        grad_log['data/zero_coil_frac'] = zero_coil_fraction(kspace)
+        grad_log['train/lr'] = self.optimizer.param_groups[0]['lr']
+        if self.options.mask_train_mode == 'reinforce':
+            grad_log['train/policy_lr'] = self.optimizer.param_groups[-1]['lr']
+        if self.options.sampler_type == 'autosamp_2d':
+            grad_log['train/autosamp_lr'] = self.optimizer.param_groups[-1]['lr']
+            mask_net = _unwrapped(self.model).sampler.mask_net
+            grad_log['train/autosamp_cell_change_frac'] = mask_net.cell_change_fraction
+            if mask_net.kernel_sigma > 0:
+                grad_log['train/autosamp_kernel_sigma'] = mask_net.kernel_sigma
+        if grad_log['grad/nonfinite']:
+            self.logger.warning(
+                "Skipping optimizer step with non-finite gradient norm "
+                f"(loss={loss.item():.4g}, fnames={batch['fname']}, slice_ids={batch['slice_id'].tolist()}, "
+                f"non-finite params={bad_params})"
+            )
+            wandb.log({**grad_log, 'train/skipped_step': 1.0, 'train/step': step})
+            self.optimizer.zero_grad()
+            return None
+        self.optimizer.step()
+        return grad_log
 
     def val_epoch(self):
         self.model.eval()
@@ -775,8 +757,9 @@ class NonRLTester:
         self.exp_dir.mkdir(parents=True, exist_ok=True)
         self.vis_dir.mkdir(parents=True, exist_ok=True)
 
-        run_name = Sequential_Trainer._build_run_name(self.options)
-        wandb.init(project="SeqMRI", name=f"test_{run_name}", config=vars(self.options), dir=str(self.exp_dir))
+        wandb.init(project="SeqMRI", name=f"test_{run_name(self.options)}", group=run_group(self.options),
+                   tags=run_tags(self.options), notes=str(self.exp_dir), job_type='test',
+                   config=vars(self.options), dir=str(self.exp_dir))
 
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(__name__)
@@ -992,8 +975,10 @@ def mask_logit_stats(mask_net, previous_logits):
 def gradient_stats(model, max_norm):
     """Per-step gradient diagnostics, keyed for wandb. Call before clipping.
 
-    Reports the global norm, whether clipping will fire, whether any gradient is
-    non-finite, and for each of the sampler, reconstructor and sensitivity net:
+    Reports the global norm, whether any gradient is non-finite, whether each of
+    `clip_gradients_per_group`'s clips will fire (`grad/clipped` for the
+    non-sampler parameters, `grad/sampler_clipped`), and for each of the
+    sampler, reconstructor and sensitivity net:
     the group's gradient norm, its largest absolute entry, and how many
     parameter tensors hold a non-finite gradient. Together these show which
     component blows up first.
@@ -1001,8 +986,12 @@ def gradient_stats(model, max_norm):
     model = _unwrapped(model)
     all_grads = [p.grad for p in model.parameters() if p.grad is not None]
     total_norm = torch.stack(torch._foreach_norm(all_grads)).norm()
-    names = ['grad/total_norm', 'grad/clipped', 'grad/nonfinite']
-    values = [total_norm, (total_norm > max_norm).float(), (~torch.isfinite(total_norm)).float()]
+    sampler_grads = [p.grad for p in model.sampler.parameters() if p.grad is not None]
+    sampler_norm = torch.stack(torch._foreach_norm(sampler_grads)).norm() if sampler_grads else total_norm.new_zeros(())
+    rest_norm = (total_norm ** 2 - sampler_norm ** 2).clamp_min(0).sqrt()
+    names = ['grad/total_norm', 'grad/clipped', 'grad/sampler_clipped', 'grad/nonfinite']
+    values = [total_norm, (rest_norm > max_norm).float(), (sampler_norm > max_norm).float(),
+              (~torch.isfinite(total_norm)).float()]
     for group in GRADIENT_GROUPS:
         grads = [p.grad for p in getattr(model, group).parameters() if p.grad is not None]
         if not grads:
@@ -1015,6 +1004,21 @@ def gradient_stats(model, max_norm):
             (~torch.isfinite(per_tensor_norm)).sum().float(),
         ]
     return dict(zip(names, torch.stack([v.float() for v in values]).tolist()))
+
+
+def clip_gradients_per_group(model, max_norm):
+    """Clip the sampler's gradient and the rest of the model's separately, each to `max_norm`.
+
+    One global clip lets a sampler gradient blow-up shrink the reconstructor's step by the same factor,
+    freezing it while the sampler diverges.
+    """
+    model = _unwrapped(model)
+    sampler_ids = {id(p) for p in model.sampler.parameters()}
+    sampler = [p for p in model.sampler.parameters() if p.grad is not None]
+    rest = [p for p in model.parameters() if p.grad is not None and id(p) not in sampler_ids]
+    for group in (sampler, rest):
+        if group:
+            torch.nn.utils.clip_grad_norm_(group, max_norm)
 
 
 def nonfinite_gradient_params(model, limit=5):
@@ -1062,6 +1066,9 @@ def build_model(options: TrainConfig):
             num_conditioning_classes=num_recon_conditioning_classes,
             film=getattr(recon_cfg, 'film_conditioning', False),
             dc_mode=getattr(recon_cfg, 'dc_mode', 'where'),
+            dc_weight_shape=tuple(options.resolution) if getattr(recon_cfg, 'dc_weight_map', False) else None,
+            adaptive_input=getattr(recon_cfg, 'adaptive_input', False),
+            checkpoint_cascades=getattr(recon_cfg, 'checkpoint_cascades', False),
         )
     elif isinstance(recon_cfg, CGSenseReconConfig):
         reconstructor = CGSENSEReconstructor(
@@ -1099,11 +1106,17 @@ def build_model(options: TrainConfig):
         reinforce_eval=getattr(options, 'reinforce_eval', 'sample'),
         sampler_chans=getattr(options, 'sampler_chans', 64),
         sampler_depth=getattr(options, 'sampler_depth', 4),
+        sampler_head=getattr(options, 'sampler_head', 'none'),
         sampler_image_input=getattr(options, 'sampler_image_input', False),
         caipi_keep_fraction=getattr(options, 'caipi_keep_fraction', 1.0),
         autosamp_init=getattr(options, 'autosamp_init', 'uniform'),
         mask_grad_floor=getattr(options, 'mask_grad_floor', 0.0),
         ste_grad_floor=getattr(options, 'ste_grad_floor', 0.0),
+        mask_draws=getattr(options, 'mask_draws', 1),
+        logit_limit=getattr(options, 'logit_limit', 6.0),
+        logit_leak=getattr(options, 'logit_leak', 0.01),
+        adapt_grid=getattr(options, 'adapt_grid', 16),
+        adapt_hidden=getattr(options, 'adapt_hidden', 64),
         ppo_policy=getattr(options, 'ppo_policy', None),
         acquired_only=getattr(options, 'ssdu', False),
     )

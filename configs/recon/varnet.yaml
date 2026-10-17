@@ -5,3 +5,6 @@ pools: 4
 anatomy_conditioning: false  # feed the anatomy label to every cascade
 film_conditioning: false  # FiLM on each cascade bottleneck, driven by condition_classes
 dc_mode: where  # where | multiply (multiply lets mask gradients flow through DC, ref = full k-space)
+dc_weight_map: false  # learned DC weight per k-space location in every cascade, as NV-Raw2Insights-MRI; false = one scalar per cascade
+adaptive_input: false  # condition every cascade's U-Net on A^H A x, A^H y and a carried latent, as PromptMR+
+checkpoint_cascades: false  # recompute cascades in backward to save memory

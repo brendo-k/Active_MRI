@@ -1,0 +1,101 @@
+{
+  "config": {
+    "recon": "checkpoints/conv2d_varnet_r8_brain_knee_floor0.05/resume_from_epoch4.pt",
+    "slices": 48,
+    "steps": 120,
+    "draws": 2,
+    "lr": 0.05,
+    "prior": "/tmp/bkadota_oracle_labels_r8/prior.pt"
+  },
+  "own": {
+    "slice_minus_shared_db": {
+      "mean": 0.3083847761154175,
+      "ci95": [
+        0.2554215915501118,
+        0.35766533613204954
+      ]
+    },
+    "shared_minus_prior_db": {
+      "mean": 0.9423227906227112,
+      "ci95": [
+        0.7197083160281181,
+        1.154133105278015
+      ]
+    },
+    "slice_minus_prior_db": {
+      "mean": 1.2507076263427734,
+      "ci95": [
+        1.002852514386177,
+        1.4990337163209912
+      ]
+    },
+    "by_anatomy_slice_minus_shared_db": {
+      "brain": 0.390176922082901,
+      "knee": 0.22659261524677277
+    },
+    "psnr_shared": 36.581016540527344
+  },
+  "neighbour": {
+    "slice_minus_shared_db": {
+      "mean": -0.3320683240890503,
+      "ci95": [
+        -0.40569197237491605,
+        -0.261366418004036
+      ]
+    },
+    "shared_minus_prior_db": {
+      "mean": 0.9423227906227112,
+      "ci95": [
+        0.7222712650895119,
+        1.165823325514793
+      ]
+    },
+    "slice_minus_prior_db": {
+      "mean": 0.6102544665336609,
+      "ci95": [
+        0.44624729827046394,
+        0.77920708656311
+      ]
+    },
+    "by_anatomy_slice_minus_shared_db": {
+      "brain": -0.44411835074424744,
+      "knee": -0.22001831233501434
+    },
+    "psnr_shared": 36.581016540527344
+  },
+  "other": {
+    "slice_minus_shared_db": {
+      "mean": -0.5714121460914612,
+      "ci95": [
+        -0.7071531817317009,
+        -0.45736185535788537
+      ]
+    },
+    "shared_minus_prior_db": {
+      "mean": 0.9302639961242676,
+      "ci95": [
+        0.771057502925396,
+        1.0922575682401656
+      ]
+    },
+    "slice_minus_prior_db": {
+      "mean": 0.35885190963745117,
+      "ci95": [
+        0.2351683486253023,
+        0.4906429149210453
+      ]
+    },
+    "by_anatomy_slice_minus_shared_db": {
+      "brain": -0.7007780075073242,
+      "knee": -0.44204625487327576
+    },
+    "psnr_shared": 36.92325210571289
+  },
+  "masks": {
+    "slice_vs_shared_corr": 0.807370662689209,
+    "shared_vs_prior_corr": 0.8341051936149597,
+    "neighbour_deviation_corr": 0.6580147743225098,
+    "other_deviation_corr": 0.6099246653417746,
+    "mean_abs_deviation": 0.06736838072538376
+  }
+}

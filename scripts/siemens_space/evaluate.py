@@ -8,8 +8,8 @@ For each checkpoint's reconstructor and sense maps, on the val set with its fixe
     pool     every acquired point outside Lambda (~7.8x on MID00295): the most this reconstructor can be given
 
 Reported: SSDU loss on Lambda (the self-supervised objective, no reference involved) and PSNR / SSIM / NMSE
-against the PICS image of everything acquired, over the signal region as the trainer scores it. That reference
-is itself a compressed-sensing reconstruction, so read the image metrics as agreement with it, not accuracy.
+against the CG-SENSE image of everything acquired, over the signal region as the trainer scores it. That reference
+is itself a reconstruction, so read the image metrics as agreement with it, not accuracy.
 """
 import _path  # noqa: F401
 import argparse
@@ -28,7 +28,7 @@ from activemri.reconstructors.CG_Sense import conjugate_gradient_sense
 from activemri.training.trainer import _apply_signal_mask, build_model
 from activemri.utils.evaluate import build_metrics
 
-CACHE_DIR = pathlib.Path.home() / 'data/my_scans/oct_7_2026_cache'
+CACHE_DIR = pathlib.Path('/export/scratch/bkadota/space_cache')
 RANDOM_SEEDS = range(5)
 CG_ITERATIONS, CG_LAMDA = 30, 0.01  # the classical baseline given the identical mask and data
 OUT_DIR = pathlib.Path(__file__).resolve().parents[2] / 'analysis/oct7_scan'
@@ -85,7 +85,7 @@ def mean_std(rows):
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('checkpoints', nargs='+', help='name=path pairs')
-    parser.add_argument('--volumes', nargs='+', default=['meas_MID00295_FID30725_bk_space'])
+    parser.add_argument('--volumes', nargs='+', required=True, help='h5 stems, each scored on its own over all its readout positions')
     parser.add_argument('--holdout-fraction', type=float, default=0.2)
     parser.add_argument('--tag', default='eval')
     parser.add_argument('--device', default='cuda')
@@ -95,23 +95,26 @@ def main():
     for pair in args.checkpoints:
         name, path = pair.split('=', 1)
         model, options, epoch = load(path, args.device)
-        dataset = SiemensSpaceDataset([CACHE_DIR / f'{v}.h5' for v in args.volumes], 'val', args.holdout_fraction, tuple(options.resolution))
-        loader = torch.utils.data.DataLoader(dataset, batch_size=8, shuffle=False)
-        own, images[name] = score(model, loader, args.device)
-        random_rows = [score(model, loader, args.device, seed=s)[0] for s in RANDOM_SEEDS]
-        pool, _ = score(model, loader, args.device, use_pool=True)
-        results[name] = {'epoch': epoch, 'own': own, 'random': mean_std(random_rows), 'pool': pool}
-        print(f'{name} (best epoch {epoch}, R={options.accelerations[0]:g}, sampler={options.sampler_type}/{options.mask_train_mode})')
-        for label, row in (('own', own), ('random', mean_std(random_rows)), ('pool', pool)):
-            fmt = lambda v: f'{v[0]:.4f}±{v[1]:.4f}' if isinstance(v, tuple) else f'{v:.4f}'
-            print(f'  {label:7s} ' + '  '.join(f'{k}={fmt(row[k])}' for k in ('SSDU', 'PSNR', 'SSIM', 'CG_SSDU', 'CG_PSNR', 'CG_SSIM', 'points')))
+        per_volume = {}
+        for volume in args.volumes:
+            dataset = SiemensSpaceDataset([CACHE_DIR / f'{volume}.h5'], 'val', args.holdout_fraction, tuple(options.resolution), val_volumes=[volume])
+            loader = torch.utils.data.DataLoader(dataset, batch_size=8, shuffle=False)
+            own, images[f'{name}/{volume[5:14]}'] = score(model, loader, args.device)
+            random_rows = [score(model, loader, args.device, seed=s)[0] for s in RANDOM_SEEDS]
+            pool, _ = score(model, loader, args.device, use_pool=True)
+            per_volume[volume] = {'own': own, 'random': mean_std(random_rows), 'pool': pool}
+            print(f'{name} epoch {epoch} R={options.accelerations[0]:g} {options.sampler_type}/{options.mask_train_mode}  {volume}')
+            for label, row in per_volume[volume].items():
+                fmt = lambda v: f'{v[0]:.4f}±{v[1]:.4f}' if isinstance(v, tuple) else f'{v:.4f}'
+                print(f'  {label:7s} ' + '  '.join(f'{k}={fmt(row[k])}' for k in ('SSDU', 'PSNR', 'SSIM', 'NMSE', 'CG_SSDU', 'CG_PSNR', 'CG_SSIM', 'CG_NMSE', 'points')))
+        results[name] = {'epoch': epoch, 'volumes': per_volume}
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     (OUT_DIR / f'{args.tag}.json').write_text(json.dumps(results, indent=2))
 
     fig, axes = plt.subplots(len(images), 3, figsize=(10, 4.2 * len(images)), squeeze=False)
     for row, (name, shown) in zip(axes, images.items()):
-        for ax, (key, title) in zip(row, (('target', 'PICS reference'), ('recon', f'{name} recon'), ('mask', f'{name} mask'))):
+        for ax, (key, title) in zip(row, (('target', 'CG-SENSE reference'), ('recon', f'{name} recon'), ('mask', f'{name} mask'))):
             ax.imshow(shown[key], cmap='gray', aspect='auto')
             ax.set_title(title)
             ax.axis('off')

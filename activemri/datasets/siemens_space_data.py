@@ -107,6 +107,9 @@ class SiemensSpaceDataset(torch.utils.data.Dataset):
         }
 
 
+MAX_VAL_WORKERS = 4
+
+
 def build_siemens_space_dataloaders(
     h5_paths: Sequence[pathlib.Path],
     image_shape: Tuple[int, int],
@@ -118,8 +121,12 @@ def build_siemens_space_dataloaders(
     """With `val_volumes` (file stems) those volumes are val entirely and the rest train entirely; otherwise each volume is split by readout block."""
     train = SiemensSpaceDataset(h5_paths, 'train', holdout_fraction, image_shape, val_volumes)
     val = SiemensSpaceDataset(h5_paths, 'val', holdout_fraction, image_shape, val_volumes)
+    persistent = num_workers > 0
+    val_workers = min(num_workers, MAX_VAL_WORKERS)
     train_loader = torch.utils.data.DataLoader(
-        train, batch_size=batch_size, shuffle=True, num_workers=num_workers, drop_last=True, pin_memory=True)
+        train, batch_size=batch_size, shuffle=True, num_workers=num_workers, drop_last=True,
+        pin_memory=True, persistent_workers=persistent)
     val_loader = torch.utils.data.DataLoader(
-        val, batch_size=batch_size, shuffle=False, num_workers=num_workers, pin_memory=True)
+        val, batch_size=batch_size, shuffle=False, num_workers=val_workers, pin_memory=True,
+        persistent_workers=val_workers > 0)
     return train_loader, val_loader

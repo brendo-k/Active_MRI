@@ -1,0 +1,393 @@
+{
+  "absolute": {
+    "loupe recon | conv mask | brain": {
+      "slice_mean_psnr": 37.63396072387695,
+      "slice_mean_ssim": 0.9182000160217285,
+      "trainer_psnr": 36.34609603881836,
+      "trainer_ssim": 0.9316904544830322
+    },
+    "loupe recon | conv mask | knee": {
+      "slice_mean_psnr": 39.57246017456055,
+      "slice_mean_ssim": 0.9427037835121155,
+      "trainer_psnr": 34.14765930175781,
+      "trainer_ssim": 0.9518421292304993
+    },
+    "loupe recon | loupe mask | brain": {
+      "slice_mean_psnr": 38.09364700317383,
+      "slice_mean_ssim": 0.9192524552345276,
+      "trainer_psnr": 36.54670333862305,
+      "trainer_ssim": 0.9328217506408691
+    },
+    "loupe recon | loupe mask | knee": {
+      "slice_mean_psnr": 39.964447021484375,
+      "slice_mean_ssim": 0.9438091516494751,
+      "trainer_psnr": 34.264137268066406,
+      "trainer_ssim": 0.9528923630714417
+    },
+    "loupe recon | loupe_blur mask | brain": {
+      "slice_mean_psnr": 37.91871643066406,
+      "slice_mean_ssim": 0.9184543490409851,
+      "trainer_psnr": 36.45526885986328,
+      "trainer_ssim": 0.932070255279541
+    },
+    "loupe recon | loupe_blur mask | knee": {
+      "slice_mean_psnr": 39.84410095214844,
+      "slice_mean_ssim": 0.9431725144386292,
+      "trainer_psnr": 34.22727584838867,
+      "trainer_ssim": 0.9523524045944214
+    },
+    "loupe recon | loupe_reseed mask | brain": {
+      "slice_mean_psnr": 38.09391784667969,
+      "slice_mean_ssim": 0.9192613363265991,
+      "trainer_psnr": 36.54978561401367,
+      "trainer_ssim": 0.9328340291976929
+    },
+    "loupe recon | loupe_reseed mask | knee": {
+      "slice_mean_psnr": 39.960689544677734,
+      "slice_mean_ssim": 0.9437667727470398,
+      "trainer_psnr": 34.26100158691406,
+      "trainer_ssim": 0.952859103679657
+    },
+    "conv recon | conv mask | brain": {
+      "slice_mean_psnr": 37.508731842041016,
+      "slice_mean_ssim": 0.9174157977104187,
+      "trainer_psnr": 36.279354095458984,
+      "trainer_ssim": 0.930915892124176
+    },
+    "conv recon | conv mask | knee": {
+      "slice_mean_psnr": 39.39052963256836,
+      "slice_mean_ssim": 0.9418579936027527,
+      "trainer_psnr": 34.07255172729492,
+      "trainer_ssim": 0.9510776400566101
+    },
+    "conv recon | loupe mask | brain": {
+      "slice_mean_psnr": 37.322330474853516,
+      "slice_mean_ssim": 0.916845977306366,
+      "trainer_psnr": 36.22671890258789,
+      "trainer_ssim": 0.9304583072662354
+    },
+    "conv recon | loupe mask | knee": {
+      "slice_mean_psnr": 39.332706451416016,
+      "slice_mean_ssim": 0.941641628742218,
+      "trainer_psnr": 34.06147766113281,
+      "trainer_ssim": 0.950894296169281
+    },
+    "conv recon | loupe_blur mask | brain": {
+      "slice_mean_psnr": 36.97516632080078,
+      "slice_mean_ssim": 0.9153152108192444,
+      "trainer_psnr": 36.059608459472656,
+      "trainer_ssim": 0.9290338754653931
+    },
+    "conv recon | loupe_blur mask | knee": {
+      "slice_mean_psnr": 39.03453063964844,
+      "slice_mean_ssim": 0.940190851688385,
+      "trainer_psnr": 33.96586990356445,
+      "trainer_ssim": 0.9496465921401978
+    },
+    "conv recon | conv_reseed mask | brain": {
+      "slice_mean_psnr": 37.50986862182617,
+      "slice_mean_ssim": 0.917382538318634,
+      "trainer_psnr": 36.27751541137695,
+      "trainer_ssim": 0.9308822751045227
+    },
+    "conv recon | conv_reseed mask | knee": {
+      "slice_mean_psnr": 39.3927116394043,
+      "slice_mean_ssim": 0.9418618679046631,
+      "trainer_psnr": 34.073760986328125,
+      "trainer_ssim": 0.951076328754425
+    }
+  },
+  "paired": {
+    "loupe recon: conv - loupe | brain": {
+      "psnr": {
+        "mean": -0.4596862494945526,
+        "ci95": [
+          -0.545638257265091,
+          -0.37203845754265785
+        ],
+        "frac_volumes_positive": 0.0,
+        "volumes": 23
+      },
+      "ssim": {
+        "mean": -0.001052404404617846,
+        "ci95": [
+          -0.0014495065959636122,
+          -0.0007135486433980987
+        ],
+        "frac_volumes_positive": 0.0,
+        "volumes": 23
+      }
+    },
+    "loupe recon: conv - loupe | knee": {
+      "psnr": {
+        "mean": -0.39198821783065796,
+        "ci95": [
+          -0.4676848962903023,
+          -0.2876998782157898
+        ],
+        "frac_volumes_positive": 0.0,
+        "volumes": 10
+      },
+      "ssim": {
+        "mean": -0.0011054519563913345,
+        "ci95": [
+          -0.0012538616632809863,
+          -0.0009323553458671087
+        ],
+        "frac_volumes_positive": 0.0,
+        "volumes": 10
+      }
+    },
+    "loupe recon: loupe_blur - loupe | brain": {
+      "psnr": {
+        "mean": -0.1749287098646164,
+        "ci95": [
+          -0.19941119514405728,
+          -0.1481264267116785
+        ],
+        "frac_volumes_positive": 0.0,
+        "volumes": 23
+      },
+      "ssim": {
+        "mean": -0.0007979925139807165,
+        "ci95": [
+          -0.0011471613455796613,
+          -0.0005845414605573751
+        ],
+        "frac_volumes_positive": 0.0,
+        "volumes": 23
+      }
+    },
+    "loupe recon: loupe_blur - loupe | knee": {
+      "psnr": {
+        "mean": -0.12034584581851959,
+        "ci95": [
+          -0.1372616458684206,
+          -0.09383407123386862
+        ],
+        "frac_volumes_positive": 0.0,
+        "volumes": 10
+      },
+      "ssim": {
+        "mean": -0.0006365823210217059,
+        "ci95": [
+          -0.0007329901462071575,
+          -0.000527735790819861
+        ],
+        "frac_volumes_positive": 0.0,
+        "volumes": 10
+      }
+    },
+    "loupe recon: loupe_reseed - loupe | brain": {
+      "psnr": {
+        "mean": 0.00027105974731966853,
+        "ci95": [
+          -0.008134259935468435,
+          0.009874609718099234
+        ],
+        "frac_volumes_positive": 0.4782608695652174,
+        "volumes": 23
+      },
+      "ssim": {
+        "mean": 8.933766366681084e-06,
+        "ci95": [
+          -2.418506383037311e-05,
+          4.2386026416352243e-05
+        ],
+        "frac_volumes_positive": 0.43478260869565216,
+        "volumes": 23
+      }
+    },
+    "loupe recon: loupe_reseed - loupe | knee": {
+      "psnr": {
+        "mean": -0.003755081444978714,
+        "ci95": [
+          -0.01275406542699784,
+          0.004912897187750783
+        ],
+        "frac_volumes_positive": 0.4,
+        "volumes": 10
+      },
+      "ssim": {
+        "mean": -4.244743104209192e-05,
+        "ci95": [
+          -8.18451662780717e-05,
+          -7.216691244593696e-06
+        ],
+        "frac_volumes_positive": 0.2,
+        "volumes": 10
+      }
+    },
+    "conv recon: loupe - conv | brain": {
+      "psnr": {
+        "mean": -0.1863996386528015,
+        "ci95": [
+          -0.24790208116173745,
+          -0.12529074735939505
+        ],
+        "frac_volumes_positive": 0.17391304347826086,
+        "volumes": 23
+      },
+      "ssim": {
+        "mean": -0.0005697914748452604,
+        "ci95": [
+          -0.0009266386507079006,
+          -0.00026842676452361075
+        ],
+        "frac_volumes_positive": 0.13043478260869565,
+        "volumes": 23
+      }
+    },
+    "conv recon: loupe - conv | knee": {
+      "psnr": {
+        "mean": -0.05782553181052208,
+        "ci95": [
+          -0.10943377092480659,
+          -0.0035564294026698934
+        ],
+        "frac_volumes_positive": 0.3,
+        "volumes": 10
+      },
+      "ssim": {
+        "mean": -0.0002163477911381051,
+        "ci95": [
+          -0.00032743040355853736,
+          -0.00013400802963587925
+        ],
+        "frac_volumes_positive": 0.0,
+        "volumes": 10
+      }
+    },
+    "conv recon: loupe_blur - conv | brain": {
+      "psnr": {
+        "mean": -0.5335661172866821,
+        "ci95": [
+          -0.6328875929117203,
+          -0.42644092440605164
+        ],
+        "frac_volumes_positive": 0.0,
+        "volumes": 23
+      },
+      "ssim": {
+        "mean": -0.002100541954860091,
+        "ci95": [
+          -0.0025498998002149165,
+          -0.0018085339688695967
+        ],
+        "frac_volumes_positive": 0.0,
+        "volumes": 23
+      }
+    },
+    "conv recon: loupe_blur - conv | knee": {
+      "psnr": {
+        "mean": -0.3560020625591278,
+        "ci95": [
+          -0.4562528692185879,
+          -0.2349299836903811
+        ],
+        "frac_volumes_positive": 0.0,
+        "volumes": 10
+      },
+      "ssim": {
+        "mean": -0.0016670337645336986,
+        "ci95": [
+          -0.0020040224131662398,
+          -0.001370677517843433
+        ],
+        "frac_volumes_positive": 0.0,
+        "volumes": 10
+      }
+    },
+    "conv recon: conv_reseed - conv | brain": {
+      "psnr": {
+        "mean": 0.0011373009765520692,
+        "ci95": [
+          -0.007569884473923594,
+          0.010044787125661965
+        ],
+        "frac_volumes_positive": 0.4782608695652174,
+        "volumes": 23
+      },
+      "ssim": {
+        "mean": -3.323877172078937e-05,
+        "ci95": [
+          -7.375650147878332e-05,
+          1.3834801120538007e-05
+        ],
+        "frac_volumes_positive": 0.391304347826087,
+        "volumes": 23
+      }
+    },
+    "conv recon: conv_reseed - conv | knee": {
+      "psnr": {
+        "mean": 0.0021803490817546844,
+        "ci95": [
+          -0.006350313499569893,
+          0.010406362824141977
+        ],
+        "frac_volumes_positive": 0.6,
+        "volumes": 10
+      },
+      "ssim": {
+        "mean": 3.917749381798785e-06,
+        "ci95": [
+          -2.8574494172062257e-05,
+          3.1740222948428705e-05
+        ],
+        "frac_volumes_positive": 0.4,
+        "volumes": 10
+      }
+    },
+    "own vs own: conv - loupe | brain": {
+      "psnr": {
+        "mean": -0.5849131941795349,
+        "ci95": [
+          -0.6850467830896377,
+          -0.46938319578766835
+        ],
+        "frac_volumes_positive": 0.0,
+        "volumes": 23
+      },
+      "ssim": {
+        "mean": -0.001836606184951961,
+        "ci95": [
+          -0.002784283377695829,
+          -0.0011512732628034428
+        ],
+        "frac_volumes_positive": 0.0,
+        "volumes": 23
+      }
+    },
+    "own vs own: conv - loupe | knee": {
+      "psnr": {
+        "mean": -0.5739142298698425,
+        "ci95": [
+          -0.718272939324379,
+          -0.3974173210561276
+        ],
+        "frac_volumes_positive": 0.0,
+        "volumes": 10
+      },
+      "ssim": {
+        "mean": -0.001951246289536357,
+        "ci95": [
+          -0.002417404530569911,
+          -0.0015543318091658877
+        ],
+        "frac_volumes_positive": 0.0,
+        "volumes": 10
+      }
+    }
+  },
+  "sparsity": {
+    "conv": 0.12493062573809956,
+    "loupe": 0.12497844252475472,
+    "loupe_blur": 0.1249512517175009
+  },
+  "epochs": {
+    "loupe": 50,
+    "conv": 50
+  },
+  "mask_seed": 1234,
+  "blur_sigma": 2.0
+}

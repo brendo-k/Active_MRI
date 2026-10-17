@@ -2,11 +2,13 @@
 
     python train.py --model loupe     --recon varnet --dataset brain_knee_balanced --acceleration 8
     python train.py --model conv      --recon unet
+    python train.py --model mnet      --recon varnet --acceleration 8 --pretrained-recon <random-mask recon checkpoint>
     python train.py --model reinforce --recon varnet --entropy-weight 0.005
     python train.py --model ppo       --recon varnet --acceleration 8
     python train.py --model dqn       --recon varnet --acceleration 4
 
-loupe, conv and reinforce train through Sequential_Trainer (configs/config.yaml); `sequential` is the
+loupe, conv and reinforce train through Sequential_Trainer (configs/config.yaml); mnet through its subclass
+MNetTrainer, which alternates mask refinement and sampler fitting (activemri/training/mnet_trainer.py). `sequential` is the
 same trainer with the sampler left to sampler.sampler_type (caipi_2d, autosamp_2d, the 1D samplers). ppo and dqn
 train through their own episode loops (configs/train_ppo.yaml, configs/train_dqn.yaml). Every flag
 left unset keeps that model's YAML value. Trailing key=value arguments are Hydra overrides that are
@@ -16,6 +18,8 @@ applied last, so they win over the presets and flags:
 """
 import os
 os.environ['HDF5_USE_FILE_LOCKING'] = 'FALSE'
+for _pool in ('OMP_NUM_THREADS', 'MKL_NUM_THREADS', 'OPENBLAS_NUM_THREADS'):
+    os.environ.setdefault(_pool, '8')
 
 import argparse
 import random
@@ -26,8 +30,8 @@ import numpy as np
 import torch
 from omegaconf import DictConfig, OmegaConf
 
-MODELS = ('loupe', 'conv', 'reinforce', 'ppo', 'dqn', 'sequential')
-SEQUENTIAL_MODELS = ('loupe', 'conv', 'reinforce', 'sequential')
+MODELS = ('loupe', 'conv', 'mnet', 'reinforce', 'ppo', 'dqn', 'sequential')
+SEQUENTIAL_MODELS = ('loupe', 'conv', 'mnet', 'reinforce', 'sequential')
 RL_MODELS = ('ppo', 'dqn')
 
 JOB_NAME = {model: 'train_sequential' for model in SEQUENTIAL_MODELS} | {'ppo': 'train_ppo', 'dqn': 'train_dqn'}
@@ -35,6 +39,7 @@ JOB_NAME = {model: 'train_sequential' for model in SEQUENTIAL_MODELS} | {'ppo': 
 PRESET_OVERRIDES = {
     'loupe': {'sampler.sampler_type': 'loupe_2d'},
     'conv': {'sampler.sampler_type': 'conv_2d'},
+    'mnet': {'sampler.sampler_type': 'mnet_2d', 'training.batch_size': 8},
     'reinforce': {'sampler.sampler_type': 'loupe_2d', 'sampler.mask_train_mode': 'reinforce'},
     'sequential': {},
     'ppo': {},
@@ -120,13 +125,15 @@ def seed_everything(seed: int):
 @hydra.main(version_base=None, config_path='configs', config_name='config')
 def run_sequential(cfg: DictConfig):
     from activemri.training.builders import build_dataloaders, build_train_config
+    from activemri.training.mnet_trainer import MNetTrainer
     from activemri.training.trainer import Sequential_Trainer
 
     print(OmegaConf.to_yaml(cfg))
     config = build_train_config(cfg)
     seed_everything(cfg.training.seed)
     train_loader, val_loader = build_dataloaders(cfg)
-    Sequential_Trainer(config, train_loader, torch.device(config.device), val_loader=val_loader)()
+    trainer_class = MNetTrainer if config.sampler_type == 'mnet_2d' else Sequential_Trainer
+    trainer_class(config, train_loader, torch.device(config.device), val_loader=val_loader)()
 
 
 @hydra.main(version_base=None, config_path='configs', config_name='train_ppo')

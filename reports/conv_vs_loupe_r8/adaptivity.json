@@ -1,0 +1,107 @@
+{
+  "baseline_epoch4": {
+    "epochs_trained": 5,
+    "brain": {
+      "across_slice_std": 0.006446764338761568,
+      "slice_vs_mean_corr": 0.9964837115767613,
+      "roughness": 0.025611769407987595
+    },
+    "knee": {
+      "across_slice_std": 0.007721108850091696,
+      "slice_vs_mean_corr": 0.9952414682089885,
+      "roughness": 0.025699865072965622
+    },
+    "brain_vs_knee_corr": 0.999262254552556,
+    "brain_knee_max_abs": 0.13831409811973572
+  },
+  "baseline_final": {
+    "epochs_trained": 50,
+    "brain": {
+      "across_slice_std": 0.015331806614995003,
+      "slice_vs_mean_corr": 0.989959731704044,
+      "roughness": 0.02437411993741989
+    },
+    "knee": {
+      "across_slice_std": 0.017472781240940094,
+      "slice_vs_mean_corr": 0.9866368283607687,
+      "roughness": 0.02477830834686756
+    },
+    "brain_vs_knee_corr": 0.9879313120286549,
+    "brain_knee_max_abs": 0.13156139850616455
+  },
+  "image_input": {
+    "epochs_trained": 50,
+    "brain": {
+      "across_slice_std": 0.015953147783875465,
+      "slice_vs_mean_corr": 0.9901516715056045,
+      "roughness": 0.06681988388299942
+    },
+    "knee": {
+      "across_slice_std": 0.015673674643039703,
+      "slice_vs_mean_corr": 0.9907308634892951,
+      "roughness": 0.06080080568790436
+    },
+    "brain_vs_knee_corr": 0.9986600823300801,
+    "brain_knee_max_abs": 0.08107618987560272
+  },
+  "draws2": {
+    "epochs_trained": 50,
+    "brain": {
+      "across_slice_std": 0.017079509794712067,
+      "slice_vs_mean_corr": 0.9874789920743957,
+      "roughness": 0.025820709764957428
+    },
+    "knee": {
+      "across_slice_std": 0.018563110381364822,
+      "slice_vs_mean_corr": 0.9831501454922453,
+      "roughness": 0.025768397375941277
+    },
+    "brain_vs_knee_corr": 0.9891362301510799,
+    "brain_knee_max_abs": 0.1903507113456726
+  },
+  "image_input_bias": {
+    "epochs_trained": 50,
+    "brain": {
+      "across_slice_std": 0.01511854212731123,
+      "slice_vs_mean_corr": 0.9916566996251208,
+      "roughness": 0.5659485459327698
+    },
+    "knee": {
+      "across_slice_std": 0.01403818465769291,
+      "slice_vs_mean_corr": 0.9931798276311499,
+      "roughness": 0.5633296370506287
+    },
+    "brain_vs_knee_corr": 0.9986823803738363,
+    "brain_knee_max_abs": 0.2247752845287323
+  },
+  "clamp10_leak0.05": {
+    "epochs_trained": 50,
+    "brain": {
+      "across_slice_std": 0.01411452330648899,
+      "slice_vs_mean_corr": 0.9917828121813375,
+      "roughness": 0.022671567276120186
+    },
+    "knee": {
+      "across_slice_std": 0.016850117594003677,
+      "slice_vs_mean_corr": 0.9867521098450003,
+      "roughness": 0.022943640127778053
+    },
+    "brain_vs_knee_corr": 0.9936894157316642,
+    "brain_knee_max_abs": 0.14147710800170898
+  },
+  "image_input_mlp_head": {
+    "epochs_trained": 50,
+    "brain": {
+      "across_slice_std": 8.250821110777906e-07,
+      "slice_vs_mean_corr": 0.9999999275342263,
+      "roughness": 1.3986729383468628
+    },
+    "knee": {
+      "across_slice_std": 1.189100885312655e-06,
+      "slice_vs_mean_corr": 0.9999998463605325,
+      "roughness": 1.398675799369812
+    },
+    "brain_vs_knee_corr": 0.9999999913175952,
+    "brain_knee_max_abs": 0.009225547313690186
+  }
+}

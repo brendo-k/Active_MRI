@@ -1,0 +1,58 @@
+{
+  "brain": {
+    "slices": 344,
+    "roughness": {
+      "loupe": 1.1849884986877441,
+      "conv_per_slice_mean": 0.02437411993741989,
+      "conv_anatomy_mean": 0.02140672691166401
+    },
+    "entropy_bits_per_loc": {
+      "loupe": NaN,
+      "conv_per_slice_mean": NaN
+    },
+    "frac_p_below_0.01": {
+      "loupe": 0.4186248779296875,
+      "conv_per_slice_mean": 0.5353379804034566
+    },
+    "frac_p_above_0.99": {
+      "loupe": 0.00152587890625,
+      "conv_per_slice_mean": 0.00152587890625
+    },
+    "conv_mean_vs_loupe_corr": 0.593034616011536,
+    "conv_mean_vs_loupe_top12.5pct_overlap": 0.4700927734375,
+    "conv_slice_vs_own_anatomy_mean_corr": 0.989959731704044,
+    "conv_across_slice_std_mean": 0.015331806614995003,
+    "conv_sum_abs_diff_vs_loupe_frac": 0.4265481233596802
+  },
+  "knee": {
+    "slices": 344,
+    "roughness": {
+      "loupe": 1.1849884986877441,
+      "conv_per_slice_mean": 0.02477830834686756,
+      "conv_anatomy_mean": 0.02150845341384411
+    },
+    "entropy_bits_per_loc": {
+      "loupe": NaN,
+      "conv_per_slice_mean": NaN
+    },
+    "frac_p_below_0.01": {
+      "loupe": 0.4186248779296875,
+      "conv_per_slice_mean": 0.5257283144218977
+    },
+    "frac_p_above_0.99": {
+      "loupe": 0.00152587890625,
+      "conv_per_slice_mean": 0.00152587890625
+    },
+    "conv_mean_vs_loupe_corr": 0.6014960528908718,
+    "conv_mean_vs_loupe_top12.5pct_overlap": 0.4635009765625,
+    "conv_slice_vs_own_anatomy_mean_corr": 0.9866368283607687,
+    "conv_across_slice_std_mean": 0.017472781240940094,
+    "conv_sum_abs_diff_vs_loupe_frac": 0.4274067282676697
+  },
+  "conv_brain_vs_knee_mean_corr": 0.9879313120286549,
+  "conv_brain_minus_knee_max_abs": 0.13156139850616455,
+  "epochs": {
+    "loupe": 50,
+    "conv": 50
+  }
+}

@@ -1,4 +1,6 @@
+import json
 import math
+import os
 import pathlib
 import warnings
 from typing import Callable, Dict, List, Optional, Sequence, Tuple
@@ -21,6 +23,7 @@ ANATOMY_DIR_MAP = {
 }
 
 DEFAULT_BRAIN_CONTRAST = 'T2'
+SLICE_ENERGY_CACHE_DIR = '.slice_energy'
 
 
 def condition_name(anatomy: str, attrs: Dict) -> str:
@@ -104,14 +107,7 @@ class FastMRIDataset(torch.utils.data.Dataset):
                     num_slices = data['kspace'].shape[slice_axis]
 
                     if self.min_energy_fraction > 0:
-                        energies = []
-                        for sid in range(num_slices):
-                            if self.anatomy == 'prostate':
-                                kslice = data['kspace'][:, sid].sum(axis=0)
-                            else:
-                                kslice = data['kspace'][sid]
-                            energies.append(self._center_energy(kslice))
-                        energies = np.array(energies)
+                        energies = self._cached_slice_energies(fname, data, num_slices)
                         threshold = self.min_energy_fraction * energies.max()
                         valid_slices = [s for s in range(num_slices) if energies[s] >= threshold]
                     else:
@@ -120,6 +116,35 @@ class FastMRIDataset(torch.utils.data.Dataset):
                     self.examples += [(fname, sid) for sid in valid_slices]
             except OSError as err:
                 warnings.warn(f"Skipping unreadable file {fname}: {err}")
+
+    def _cached_slice_energies(self, fname: pathlib.Path, data: h5py.File, num_slices: int) -> np.ndarray:
+        """Per-slice centre energies, cached beside the volume so restarts skip the full k-space read."""
+        cache_path = fname.parent / SLICE_ENERGY_CACHE_DIR / f'{fname.stem}.json'
+        stat = fname.stat()
+        signature = {'size': stat.st_size, 'mtime_ns': stat.st_mtime_ns, 'anatomy': self.anatomy}
+        try:
+            cached = json.loads(cache_path.read_text())
+            if cached['signature'] == signature and len(cached['energies']) == num_slices:
+                return np.array(cached['energies'])
+        except (OSError, ValueError, KeyError):
+            pass
+
+        energies = []
+        for sid in range(num_slices):
+            if self.anatomy == 'prostate':
+                kslice = data['kspace'][:, sid].sum(axis=0)
+            else:
+                kslice = data['kspace'][sid]
+            energies.append(float(self._center_energy(kslice)))
+
+        try:
+            cache_path.parent.mkdir(exist_ok=True)
+            tmp_path = cache_path.with_suffix(f'.{os.getpid()}.tmp')
+            tmp_path.write_text(json.dumps({'signature': signature, 'energies': energies}))
+            tmp_path.replace(cache_path)
+        except OSError as err:
+            warnings.warn(f"Could not write slice energy cache {cache_path}: {err}")
+        return np.array(energies)
 
     @staticmethod
     def _center_energy(kspace_slice, center_size=10):
@@ -403,6 +428,9 @@ def _collate_fastmri_batch(samples: List[Dict]) -> Dict:
     return batch
 
 
+MAX_VAL_WORKERS = 4
+
+
 def build_fastmri_dataloaders(
     data_root: pathlib.Path,
     anatomies: List[str],
@@ -546,6 +574,9 @@ def build_fastmri_dataloaders(
         prefetch_factor=4 if num_workers > 0 else None,
         collate_fn=_collate_fastmri_batch,
     )
+    val_loader_kwargs = {**loader_kwargs, 'num_workers': min(num_workers, MAX_VAL_WORKERS)}
+    if val_loader_kwargs['num_workers'] == 0:
+        val_loader_kwargs.update(persistent_workers=False, prefetch_factor=None)
     train_loader = torch.utils.data.DataLoader(
         torch.utils.data.ConcatDataset(train_datasets),
         shuffle=True,
@@ -554,7 +585,7 @@ def build_fastmri_dataloaders(
     val_loader = torch.utils.data.DataLoader(
         torch.utils.data.ConcatDataset(val_datasets),
         shuffle=False,
-        **loader_kwargs,
+        **val_loader_kwargs,
     )
 
     return train_loader, val_loader

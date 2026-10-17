@@ -1,0 +1,33 @@
+{
+  "floor 0.05": {
+    "epoch": 48,
+    "mean_p": 0.14148089289665222,
+    "mean_effective": 0.125,
+    "p_below_0.01_frac": 0.40362548828125,
+    "p_above_0.99_frac": 0.0004730224609375,
+    "effective_below_0.01_frac": 0.41790771484375,
+    "effective_above_0.99_frac": 0.00152587890625,
+    "saturated_logit_frac": 0.4040985107421875,
+    "logit_abs_max": 22.489500045776367,
+    "logit_abs_p99": 15.930685997009277,
+    "effective_entropy_bits_per_loc": 0.3077447712421417
+  },
+  "no floor": {
+    "epoch": 46,
+    "mean_p": 0.1439773142337799,
+    "mean_effective": 0.1249999925494194,
+    "p_below_0.01_frac": 0.396728515625,
+    "p_above_0.99_frac": 0.000457763671875,
+    "effective_below_0.01_frac": 0.4181365966796875,
+    "effective_above_0.99_frac": 0.00152587890625,
+    "saturated_logit_frac": 0.397186279296875,
+    "logit_abs_max": 8.286015510559082,
+    "logit_abs_p99": 7.402767658233643,
+    "effective_entropy_bits_per_loc": 0.3134194612503052
+  },
+  "comparison": {
+    "effective_correlation": 0.9912167407077321,
+    "effective_l1_over_l1": 0.05328420549631119,
+    "top_budget_overlap_frac": 0.9371337890625
+  }
+}

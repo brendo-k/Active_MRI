@@ -38,6 +38,7 @@ class TrainConfig:
 
     # Paths
     out_dir: List[pathlib.Path] = field(default_factory=lambda: [pathlib.Path('checkpoints')])
+    run_name: Optional[str] = None  # wandb run name; None = built from the settings that differ from the baseline (activemri/training/run_naming.py)
     visualization_dir: Optional[pathlib.Path] = None
     checkpoint: Optional[str] = None
     pretrained_recon: Optional[str] = None
@@ -46,10 +47,20 @@ class TrainConfig:
     accelerations: List[float] = field(default_factory=lambda: [4.0])
     sampler_type: str = 'conv_2d'
     slope: float = 10.0
-    mask_grad_floor: float = 0.0  # straight_through only: floor on the LOUPE mask sigmoid's derivative, as a fraction of its peak
+    mask_grad_floor: float = 0.0  # straight_through only: floor on the mask sigmoid's derivative (LOUPE and conv samplers), as a fraction of its peak
     ste_grad_floor: float = 0.0  # straight_through only: floor on the STE surrogate's derivative, as a fraction of its peak
+    mask_draws: int = 1  # straight_through only: K stratified (rotated-threshold) mask draws per slice, their losses averaged; the batch is tiled K times, so memory scales by K
+    logit_limit: float = 6.0  # conv_2d: scores are soft-clamped to +/- this before the sigmoid
+    logit_leak: float = 0.01  # conv_2d: slope of the score beyond the clamp (keeps the gradient of pinned locations alive)
+    adapt_grid: int = 16  # smooth_adapt_2d: side of the coarse offset grid (0 = no offset: a bounded LOUPE mask)
+    adapt_hidden: int = 64  # smooth_adapt_2d: width of the offset predictor
+    init_mask_checkpoint: Optional[str] = None  # loupe_2d / smooth_adapt_2d: start every class's mask from this loupe_2d run's mask (trainable)
+    sampler_lr: Optional[float] = None  # lr of the sampler's parameters when it differs from training.lr
+    adapt_head_lr: float = 1e-4  # smooth_adapt_2d: lr of the offset predictor (the base mask keeps sampler_lr)
     sampler_chans: int = 64
     sampler_depth: int = 4
+    sampler_head: str = 'none'  # conv_2d/mnet_2d: 'none', 'bias' or 'mlp' location-specific head on the U-Net scores
+    sampler_head_mlp_lr: float = 1e-4  # sampler_head=mlp: lr of the head's MLP alone (the per-location bias keeps `lr`)
     sampler_image_input: bool = False
     caipi_keep_fraction: float = 1.0
     preselect_num: int = 10
@@ -67,6 +78,18 @@ class TrainConfig:
     autosamp_kernel_sigma_end: float = 1.0  # autosamp_2d only: width the surrogate anneals to (geometrically); below ~1 the boundary trap returns
     autosamp_anneal_fraction: float = 0.8  # autosamp_2d only: fraction of training over which the width anneals; after it the positions freeze
     ppo_policy: Optional[str] = None  # PPOTrainer checkpoint whose frozen deterministic policy picks every mask; the sampler is then a placeholder
+    mnet_accept: str = 'q_check'  # mnet_2d only: 'q_check' trains the sampler on a refined mask only if it beats the mnet mask (and random); 'always' trains on every one
+    mnet_compare_random: bool = True  # mnet_2d, q_check: the refined mask must also beat a random mask scored by the frozen warm-start reconstructor
+    mnet_rollback: bool = True  # mnet_2d, q_check: a rejected batch also reverts the reconstructor update made while refining the mask
+    mnet_degeneracy_fallback: bool = True  # mnet_2d: refine from random masks when over half the batch's mnet masks are identical
+    mnet_label_binarize: str = 'threshold'  # mnet_2d: mask-backward feeds the reconstructor 'threshold' (label probability > 0.5, as the paper) or the budgeted 'topk'
+    mnet_random_retry: bool = False  # mnet_2d: if the refined mask does not beat the mnet mask, roll back and refine again from a random mask (the official code's remedy)
+    mnet_label_steps: int = 20  # mnet_2d: mask-backward iterations per batch (T)
+    mnet_sampler_steps: int = 40  # mnet_2d: sampler updates on the accepted labels per batch (c)
+    mnet_sparsity_weight: float = 2e-5  # mnet_2d: weight of the L1 norm of the label mask in mask-backward (alpha)
+    mnet_consistency_weight: float = 0.05  # mnet_2d: weight of the mean BCE tying the label mask to the sampler's output in mask-backward (lambda)
+    mnet_init_margin: float = 0.1  # mnet_2d: label logits start at +margin on the mnet mask's locations, -margin elsewhere
+    mnet_label_lr: Optional[float] = 0.02  # mnet_2d: lr of the label logits in mask-backward; None = same as `lr`
     freeze_recon: bool = False
     fixed_mask_checkpoints: Optional[Dict[str, str]] = None  # anatomy -> loupe_2d checkpoint whose learned mask is copied into that anatomy's slot and frozen; needs anatomy_conditioning
     sense_mask_method: Optional[str] = 'pre_network'
