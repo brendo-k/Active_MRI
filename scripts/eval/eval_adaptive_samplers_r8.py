@@ -45,6 +45,7 @@ CONTROLS = {
     'static_joint_R8': 'loupe_original',
     'adapt16_joint_flags_R8': 'static_joint_flags_R8',
     'anattable_joint_flags_R8': 'static_joint_flags_R8',
+    'static_joint_flags_R8': 'loupe_flags_original',
 }
 
 
@@ -61,7 +62,11 @@ def parse_args():
 
 
 def run_path(name, args):
-    return (LOUPE_RUN, 'last_model.pt') if name == 'loupe_original' else (args.runs_dir / name, args.checkpoint)
+    if name == 'loupe_original':
+        return LOUPE_RUN, 'last_model.pt'
+    if name == 'loupe_flags_original':
+        return args.runs_dir / 'loupe2d_flags_R8', 'last_model.pt'
+    return args.runs_dir / name, args.checkpoint
 
 
 @torch.no_grad()

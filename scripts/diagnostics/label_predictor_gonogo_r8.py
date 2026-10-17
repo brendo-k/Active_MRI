@@ -67,9 +67,12 @@ def parse_args():
                              'the anatomy mean), a scale-free term the shared map cannot satisfy')
     parser.add_argument('--screen', action='store_true',
                         help='fit the predictor and report predictability only (no fitted maps, no PSNR evaluation)')
-    parser.add_argument('--predictor-input', choices=('observed', 'full'), default='observed',
+    parser.add_argument('--predictor-input', choices=('observed', 'full', 'centre'), default='observed',
                         help="'full' feeds the predictor the fully sampled SENSE-combined k-space instead of the "
-                             "observed 10x10 centre: whether the labels are learnable at all (privileged, --screen only)")
+                             "observed 10x10 centre: whether the labels are learnable at all (privileged, --screen only); "
+                             "'centre' feeds a --centre-size x --centre-size centre block, as a larger calibration scan "
+                             "would (--screen only: the labels and reconstructor assume the 10x10 centre)")
+    parser.add_argument('--centre-size', type=int, default=24)
     parser.add_argument('--knn', type=int, default=16)
     parser.add_argument('--shared-steps', type=int, default=300, help='steps of each fitted per-anatomy map')
     parser.add_argument('--shared-lr', type=float, default=0.02)
@@ -146,11 +149,18 @@ class Predictor:
 
 
 @torch.no_grad()
-def full_sampler_input(model, loader, indices, device, chunk):
-    """The sampler input of oracle_labels_r8.sampler_input with every k-space location observed [N, H, W, 2]."""
+def full_sampler_input(model, loader, indices, device, chunk, centre_size=None):
+    """The sampler input of oracle_labels_r8.sampler_input with every k-space location observed [N, H, W, 2], or
+    only a centred `centre_size` x `centre_size` block."""
     out = []
     for batch in loader_over(loader, indices, chunk):
         kspace = batch['kspace'].to(device)
+        if centre_size is not None:
+            height, width = kspace.shape[2:4]
+            window = torch.zeros(height, width, device=device)
+            top, left = height // 2 - centre_size // 2, width // 2 - centre_size // 2
+            window[top:top + centre_size, left:left + centre_size] = 1
+            kspace = kspace * window[None, None, :, :, None]
         complex_kspace = torch.view_as_complex(kspace.contiguous())
         sense_maps, _ = model.sensetivity_net(complex_kspace, mask_method=model.sense_mask_method)
         combined = (ifft_2d_img(complex_kspace) * sense_maps).sum(dim=1)
@@ -377,16 +387,17 @@ def main():
     args = parse_args()
     torch.manual_seed(args.seed)
     model, loss_type = load_frozen(args.device)
-    if args.predictor_input == 'full' and not args.screen:
-        raise ValueError("--predictor-input full is privileged and cannot be scored at scan time; use --screen")
+    if args.predictor_input != 'observed' and not args.screen:
+        raise ValueError(f"--predictor-input {args.predictor_input} is scored with --screen only")
     train = load_shards(args.label_dir, 'train')
     val_labels = load_shards(args.label_dir, 'val')
     cfg = OmegaConf.load(RUN / '.hydra' / 'config.yaml')
     cfg.datasets.num_workers = 4
     train_loader, val_loader = build_dataloaders(cfg)
     for labels, loader in ((train, train_loader), (val_labels, val_loader)):
-        labels['predictor_input'] = (full_sampler_input(model, loader, labels['indices'].numpy(), args.device, args.chunk)
-                                     if args.predictor_input == 'full' else labels['kspace_in'])
+        centre = args.centre_size if args.predictor_input == 'centre' else None
+        labels['predictor_input'] = (labels['kspace_in'] if args.predictor_input == 'observed' else
+                                     full_sampler_input(model, loader, labels['indices'].numpy(), args.device, args.chunk, centre))
     prior = torch.load(args.label_dir / 'prior.pt')
     print(f"{len(train['label_logits'])} training labels, {len(val_labels['label_logits'])} validation labels; "
           f"training label - prior {float((train['psnr_label'] - train['psnr_prior']).mean()):+.3f} dB", flush=True)

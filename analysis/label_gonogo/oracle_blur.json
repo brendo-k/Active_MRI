@@ -1,0 +1,138 @@
+{
+  "summary": {
+    "anatomy_mean_label": {
+      "mean_psnr": 38.20957946777344,
+      "vs_anatomy_mean": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "slices": 128,
+        "volumes": 32
+      },
+      "by_anatomy": {
+        "brain": 0.0,
+        "knee": 0.0
+      },
+      "fraction_of_unblurred_gain": 0.0
+    },
+    "oracle_sigma0": {
+      "mean_psnr": 39.13092041015625,
+      "vs_anatomy_mean": {
+        "mean": 0.9213388562202454,
+        "ci95": [
+          0.8150918483734131,
+          1.0359283685684204
+        ],
+        "slices": 128,
+        "volumes": 32
+      },
+      "by_anatomy": {
+        "brain": 1.0855575799942017,
+        "knee": 0.729286253452301
+      },
+      "fraction_of_unblurred_gain": 1.0
+    },
+    "oracle_sigma1": {
+      "mean_psnr": 38.326812744140625,
+      "vs_anatomy_mean": {
+        "mean": 0.117227703332901,
+        "ci95": [
+          0.07385318726301193,
+          0.158805251121521
+        ],
+        "slices": 128,
+        "volumes": 32
+      },
+      "by_anatomy": {
+        "brain": 0.11350200325250626,
+        "knee": 0.12158487737178802
+      },
+      "fraction_of_unblurred_gain": 0.12723625248350298
+    },
+    "oracle_sigma2": {
+      "mean_psnr": 38.1748161315918,
+      "vs_anatomy_mean": {
+        "mean": -0.03476549685001373,
+        "ci95": [
+          -0.08005659282207489,
+          0.006800749804824591
+        ],
+        "slices": 128,
+        "volumes": 32
+      },
+      "by_anatomy": {
+        "brain": -0.06939196586608887,
+        "knee": 0.005729869473725557
+      },
+      "fraction_of_unblurred_gain": -0.03773367053316057
+    },
+    "oracle_sigma4": {
+      "mean_psnr": 38.13410186767578,
+      "vs_anatomy_mean": {
+        "mean": -0.07547809183597565,
+        "ci95": [
+          -0.11933627724647522,
+          -0.03440595045685768
+        ],
+        "slices": 128,
+        "volumes": 32
+      },
+      "by_anatomy": {
+        "brain": -0.121404729783535,
+        "knee": -0.021767277270555496
+      },
+      "fraction_of_unblurred_gain": -0.08192218457563095
+    },
+    "oracle_sigma8": {
+      "mean_psnr": 38.12505340576172,
+      "vs_anatomy_mean": {
+        "mean": -0.08452662825584412,
+        "ci95": [
+          -0.12887945771217346,
+          -0.04530210420489311
+        ],
+        "slices": 128,
+        "volumes": 32
+      },
+      "by_anatomy": {
+        "brain": -0.1348762810230255,
+        "knee": -0.025643138214945793
+      },
+      "fraction_of_unblurred_gain": -0.09174325785261149
+    },
+    "oracle_sigma16": {
+      "mean_psnr": 38.11914825439453,
+      "vs_anatomy_mean": {
+        "mean": -0.09043247997760773,
+        "ci95": [
+          -0.13176865875720978,
+          -0.053568802773952484
+        ],
+        "slices": 128,
+        "volumes": 32
+      },
+      "by_anatomy": {
+        "brain": -0.14419853687286377,
+        "knee": -0.027553526684641838
+      },
+      "fraction_of_unblurred_gain": -0.09815333345280068
+    }
+  },
+  "config": {
+    "device": "cuda",
+    "label_dir": "/tmp/bkadota_oracle_labels_r8",
+    "out": "/tmp/claude-2081/-home-bkadota-code-active-mri-SeqMRI/0e15b7b6-b307-44d8-b893-67aa623ae06e/scratchpad/blur_smoke.json",
+    "sigmas": [
+      0,
+      1,
+      2,
+      4,
+      8,
+      16
+    ],
+    "chunk": 8,
+    "seed": 0
+  }
+}

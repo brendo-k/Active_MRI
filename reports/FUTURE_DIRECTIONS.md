@@ -1,5 +1,11 @@
 # Future Directions for SeqMRI
 
+> **Out of scope: multi-step (within-scan) adaptive sampling for the SPACE sequence.** Acquiring part of the
+> budget, then choosing the rest from what was observed, assumes each k-space sample is independent of when it is
+> acquired. In SPACE the signal evolves along the echo train, so the sampling order sets each sample's contrast and
+> weighting; the naive sequential model here ignores that. Adaptivity stays 1-step (from the ACS) until the
+> echo-train evolution is modelled. This also rules out the step-curriculum item in section 3 for SPACE.
+
 ## 1. Reconstructor Upgrades
 
 - **Unrolled networks (VarNet / E2E-VarNet):** Replace the UNet reconstructor with a model-based unrolled architecture. CG-SENSE is already there as a non-learned baseline — an unrolled CG with learned regularization is the natural next step. This would likely give the biggest single improvement in reconstruction quality and provide better gradients to the sampler.

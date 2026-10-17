@@ -476,3 +476,82 @@ to learn class features from it does not.
    (`mask_draws`), or per-anatomy averaging of the sampler gradient before it reaches the head.
 4. Repeat the fine-tune split with a reconstructor pre-trained on a broad variable-density family. That gives an
    in-distribution reference for the reshape penalty, and a second seed for the conv ep50 numbers.
+
+## Update: next steps 1-2 on the plain VarNet (2026-10-16)
+**Question.** Does an adaptive sampler adapt when the conditions the toy needed hold? Those conditions are a start at
+the population optimum, a small smooth head with phase-invariant input, and a reconstructor that has seen diverse
+masks. The same arms with `recon.adaptive_input` + `recon.dc_weight_map` are still training.
+
+**Setup.**
+- **New sampler `smooth_adapt_2d`** (`activemri/samplers/smooth_adapt.py`): LOUPE base logits (bounded to +/-6 by a
+  tanh) plus a smooth offset.
+  - The offset is a 16 x 16 grid (bounded to +/-6), bicubically upsampled.
+  - It is predicted by a bias-free MLP from the log-magnitude of the 10 x 10 calibration block, minus its mean
+    (phase- and scale-invariant).
+  - It starts at zero, so the sampler starts as LOUPE: max |p - p_LOUPE| 0.0055, PSNR -0.007 dB on 35 val slices.
+  - Static control: the same sampler with the offset off. Positive control: one base map per anatomy, given the label.
+- **Training.** Every arm starts from the LOUPE run's mask and reconstructor (`uo8d68n0`). 10 epochs, batch 16,
+  reconstructor lr 1e-4, base lr 1e-3, offset-predictor lr 1e-4, seed 42; launchers in
+  `analysis/adaptivity_next_steps/`.
+- **Generalist reconstructor** (`scripts/diagnostics/generalist_recon_r8.py`): the LOUPE VarNet fine-tuned for 6000
+  steps on per-slice masks from two families:
+  - smooth reshapes of the LOUPE and conv maps (sigma up to 2.5 logits, length 8-32 px);
+  - parametric variable densities.
+
+  Full val set, LOUPE masks: 37.91 / 39.77 dB (brain / knee), -0.18 / -0.20 dB behind LOUPE's own reconstructor
+  (`scripts/eval/check_recon_on_loupe_masks_r8.py`).
+  Reshaped masks (86-slice subset): +0.12 dB better.
+- **Readout** (`scripts/eval/eval_adaptive_samplers_r8.py`, tables by `scripts/eval/summarize_adaptive_samplers_r8.py`),
+  fixed before the runs finished:
+  - all 688 val slices, 2 common seeded draws per slice;
+  - PSNR paired per slice against the matched control, 95% CI over volumes;
+  - anatomy swap cost: own mask minus a mask the sampler made for a random slice of the other anatomy;
+  - slice swap cost: the same with a random slice of another volume of the same anatomy.
+
+**Results.**
+
+| Run | Sampler | Reconstructor | Val PSNR brain / knee | Anatomy swap cost (dB) | Slice swap cost (dB) | Slice vs mean corr | Brain vs knee corr | Offset mean / across-slice std (logits) |
+|---|---|---|---|---|---|---|---|---|
+| LOUPE (start) | LOUPE | LOUPE run | 38.094 / 39.966 | 0 | 0 | 1.0000 | 1.0000 | |
+| static_joint | static | joint fine-tune | 38.177 / 40.017 | 0 | 0 | 1.0000 | 1.0000 | |
+| adapt16_joint | adaptive head | joint fine-tune | 38.191 / 40.004 | +0.003 [+0.000, +0.005] | +0.001 [-0.001, +0.002] | 0.9999 | 0.9999 | 2.34 / 0.10 |
+| anattable_joint | one map per anatomy | joint fine-tune | 38.161 / 40.050 | +0.058 [+0.031, +0.060] | 0 | 1.0000 | 0.9754 | |
+| adapt16_frozen-loupe-recon | adaptive head | LOUPE run, frozen | 38.055 / 39.975 | -0.003 [-0.008, -0.001] | +0.001 [-0.002, +0.005] | 0.9999 | 0.9998 | 2.25 / 0.08 |
+| adapt16_frozen-generalist | adaptive head | generalist, frozen | 37.142 / 39.113 | -0.012 [-0.084, +0.062] | +0.007 [-0.030, +0.091] | 0.998 / 0.997 | 0.9999 | 1.41 / 0.18 |
+| static_frozen-generalist | static | generalist, frozen | 37.084 / 39.107 | 0 | 0 | 1.0000 | 1.0000 | |
+
+| Paired comparison (per-slice PSNR, dB) | All | Brain | Knee |
+|---|---|---|---|
+| adaptive head - static, joint | +0.000 [-0.002, +0.013] | +0.014 [+0.007, +0.020] | -0.013 [-0.027, +0.001] |
+| anatomy table - static, joint | +0.009 [-0.011, +0.010] | -0.016 [-0.023, -0.007] | +0.033 [+0.019, +0.046] |
+| adaptive head (frozen LOUPE recon) - LOUPE | -0.015 [-0.036, -0.014] | -0.038 [-0.049, -0.028] | +0.009 [-0.002, +0.018] |
+| adaptive head - static, frozen generalist | +0.032 [-0.010, +0.113] | +0.058 [-0.006, +0.146] | +0.006 [-0.089, +0.123] |
+| static (joint) - LOUPE: 10 more epochs, no adaptivity | +0.067 [+0.047, +0.095] | +0.083 [+0.060, +0.104] | +0.051 [-0.014, +0.100] |
+
+- **The adaptive head did not adapt, even under the conditions the toy needed.**
+  - Jointly trained, its offset is large but almost the same for every slice (mean 2.34 logits, across-slice std
+    0.10). It learned a population shift. Its masks are as static as LOUPE's (corr 0.9999), and its PSNR equals the
+    static control.
+  - Against the frozen generalist it varies most between slices (std 0.18, corr 0.997-0.998). It still does not
+    separate anatomies (0.9999), and its PSNR gain over the matched static arm is not significant (+0.03 dB, CI
+    -0.01 to +0.11).
+- **The positive control did adapt.** Given the label, the per-anatomy table separated brain and knee (corr 0.975).
+  The reconstructor prefers each anatomy's own map (swap cost +0.058 dB). This is worth +0.033 dB on knee and costs
+  0.016 dB on brain, about 0.01 dB overall. So anatomy-level adaptation is learnable here, but it is worth hundredths
+  of a dB at this stage.
+- **Training a sampler against a frozen generalist degraded the mask.** Both frozen-generalist arms end about 0.8 dB
+  below the generalist with LOUPE's untouched mask (37.08 vs 37.91 dB brain for the static arm), with validation loss
+  rising every epoch. The reconstructor is unchanged (it scores LOUPE masks exactly as before), so the mask moved
+  somewhere worse. Hypothesis, untested: a reconstructor trained on a broad family that includes weak parametric
+  densities pulls the mask toward that family.
+- **Ten more epochs alone are worth +0.067 dB over LOUPE.** Any comparison against the LOUPE checkpoint, rather than
+  the matched static control, would mistake this for adaptivity.
+
+**Caveats.**
+- One seed per arm.
+- Two bugs were found and fixed before these results; the faulty runs are kept and named `*_unbounded-diverged`
+  (wandb).
+  - The first adaptive-head runs had an unbounded offset. It grew to about 1e6 logits under Adam and the runs diverged
+    (PSNR 31.9 / 33.3). The offset is now bounded and its predictor trains at lr 1e-4.
+  - The generalist's `best_model.pt` was the unmodified start (step 0). A run that loaded it was killed, renamed
+    `*_wrong-recon-killed` (wandb), and rerun with `last_model.pt`.
