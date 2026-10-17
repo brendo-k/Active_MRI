@@ -1,0 +1,6 @@
+oracle transfer, gain vs anatomy_mean_label (dB), 128 labelled val slices
+recon                     control_psnr  oracle  other_slice_oracle
+conv2d floor0.05 (own)    38.21         +0.921  -0.404
+conv2d draws2             38.54         +0.640  -0.367
+conv2d imginput           38.51         +0.651  -0.365
+random_mask varnet        34.82         -0.620  -0.860

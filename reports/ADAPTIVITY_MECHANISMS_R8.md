@@ -555,3 +555,80 @@ masks. The same arms with `recon.adaptive_input` + `recon.dc_weight_map` are sti
     (PSNR 31.9 / 33.3). The offset is now bounded and its predictor trains at lr 1e-4.
   - The generalist's `best_model.pt` was the unmodified start (step 0). A run that loaded it was killed, renamed
     `*_wrong-recon-killed` (wandb), and rerun with `last_model.pt`.
+
+## Update: can a 24 x 24 calibration centre predict the per-slice optimum? (2026-10-16)
+**Question.** The scanner cannot acquire in several steps, so a sampler only ever sees the calibration centre. Would a
+24 x 24 centre carry enough per-slice information to predict how each slice's own optimal mask differs from its
+anatomy's mean? A 24 x 24 centre is 576 samples (7.0% of the R=8 budget of 8192); today's 10 x 10 centre is 100 (1.2%).
+
+**Method.**
+- **Predictor:** the go/no-go predictor of Result 1 (the conv sampler's U-Net fine-tuned to the per-slice oracle
+  labels; BCE, lr 1e-4, 40 epochs, 1200 training labels, 128 validation labels), unchanged except for its input:
+  `scripts/diagnostics/label_predictor_gonogo_r8.py --screen --predictor-input observed | centre --centre-size 24 | full`,
+  launched by `analysis/adaptivity_next_steps/run_centre_screens.sh`.
+- **Predictability:** the correlation, over available k-space locations, between the predictor's deviation from the
+  anatomy-mean label and the label's own deviation.
+- **Ceiling:** the same correlation between two labels of one slice fitted with different seeds.
+- **Training fit:** the same correlation on 128 training slices.
+- Screen mode measures predictability only. It does not compute PSNR.
+
+| Predictor input | Training | Val predictability (128 slices) | Retest subset (32 slices) | Training fit | Source |
+|---|---|---|---|---|---|
+| 10 x 10 centre (today's sampler input) | lr 1e-4, unweighted | 0.061 | 0.058 | 0.055 | `reports/conv_vs_loupe_r8/label_gonogo.json` (identical-settings rerun pending) |
+| 24 x 24 centre | lr 1e-4, unweighted | 0.059 | 0.057 | 0.053 | `reports/adaptivity_next_steps_r8/screen_centre24.json` |
+| full k-space | lr 1e-4, unweighted | 0.123 | 0.117 | 0.108 | `reports/adaptivity_next_steps_r8/screen_full.json` |
+| full k-space | lr 1e-3, gain-weighted, deviation weight 0 / 1 | 0.154 / 0.162 | 0.140 / 0.151 | 0.143 / 0.198 | `analysis/label_gonogo/reweighted/privileged_full_gain_lr1e-3_dev{0,1}.json` |
+| two labels of the same slice (ceiling) | | | 0.970 | | |
+
+- **24 x 24 does not help.**
+  - Under identical training it scores 0.059, against 0.061 for the 10 x 10 centre. The extra calibration lines add
+    nothing this predictor can use.
+  - By the decision rule set before the screen, a LOUPE + VarNet with a 24 x 24 preselected centre is not worth
+    building.
+- **Even the whole k-space predicts little.**
+  - It reaches 0.12-0.16, against a ceiling of 0.97; r squared is 1.5-2.5%.
+  - The full k-space contains the whole slice, and each label is a reproducible function of it (retest 0.97), so the
+    information is present. This predictor cannot extract it from 1200 labels.
+  - It does not fit its own training labels either: training fit is 0.11-0.20, about the same as validation.
+
+**Practical reading.** Calibration size is not the bottleneck. A per-slice optimum varies at pixel scale (Result 1).
+  None of the inputs tested here predicts it. A larger centre would spend 476 more samples (5.8% of the budget) without
+  making the mask predictably adaptive.
+
+**Caveats.**
+- These screens measure predictability, not PSNR. In the original go/no-go, the 10 x 10 predictor scored -0.011 dB
+  against the per-anatomy map.
+- The oracle labels were fitted with a 10 x 10 preselected centre. The screen tests whether 24 x 24 *information*
+  predicts those labels. It does not test a system that acquires 24 x 24, where the remaining budget and the optimal
+  masks would differ.
+- The predictor underfits: training fit is about equal to validation, and the best epoch is the last. A stronger
+  predictor could raise the full-k-space number. The comparison between inputs is matched, but a stronger predictor
+  might also separate them more.
+- One seed per screen.
+
+## Update: closing the per-slice label line (2026-10-17)
+**Question.** Is the predictor's failure in Result 1 a loss problem, an input problem, or the labels themselves? And is
+the +0.91 dB oracle gain a property of the slice or of the frozen reconstructor it was fitted through?
+
+| Test | Script / output | Result |
+|---|---|---|
+| Gain-weighted BCE, lr 1e-3 (screen, val / train fit) | `label_predictor_gonogo_r8.py`, `analysis/label_gonogo/reweighted/` | 0.072 / 0.095 (was 0.061 / 0.055) |
+| Same + (1 - corr) loss term | same | 0.065 / 0.139 |
+| Gain-weighted, full go/no-go (688 val slices, PSNR vs fitted per-anatomy map) | `reports/conv_vs_loupe_r8/label_gonogo_gain_lr1e-3_dev0.json` | predictor +0.001 [-0.014, +0.018], kNN -0.021 [-0.039, -0.001], oracle +0.915 [+0.80, +1.03]: **no-go** |
+| Deviation-only U-Net (zero-init offset on the anatomy-mean logit), memorise 64 train slices | `label_curriculum_r8.py --memorise 64`, `analysis/label_gonogo/curriculum/` | corr 0.26 after 600 steps with ACS-image input; k-space inputs lower |
+| Coarse-to-fine curriculum (blur sigma 8 -> 0 on the target) | `label_curriculum_r8.py`, same folder | no better than sigma 0 alone; stopped |
+| Oracle with its deviation from the anatomy mean blurred (128 labelled val slices) | `oracle_blur_psnr_r8.py`, `analysis/label_gonogo/oracle_blur.json` | sigma 0 +0.921, 1 +0.117, 2 -0.035, 4 -0.075, 8 -0.085, 16 -0.090 dB |
+| Oracle labels scored through other frozen reconstructors | `oracle_transfer_r8.py`, `analysis/label_gonogo/oracle_transfer_summary.txt` | own +0.92, conv draws2 +0.64, conv imginput +0.65, random-mask VarNet -0.62; another same-anatomy slice's label -0.37 to -0.40 on every conv VarNet |
+
+- **The gain is pixel-precise.** A 1 px blur keeps 13% of it and 2 px or more is worse than the anatomy mean, so no
+  smooth or coarse target, and no curriculum through one, can carry it.
+- **It is mostly a property of the slice, given a learned-mask reconstructor.** About 70% survives a different
+  conv-trained VarNet, while another slice's label loses 0.4 dB. It does not survive a VarNet trained on random masks.
+- **It cannot be fitted.** Neither reweighting, a correlation term, a deviation-only parameterisation nor privileged
+  full-k-space input lifts predictability above 0.16 (ceiling 0.97); the U-Net cannot memorise 64 slices.
+
+**Conclusion.** Per-slice mask adaptivity at R=8 with one step from the calibration centre is closed; the per-anatomy
+mask is the practical ceiling found so far. Multi-step (within-scan) adaptivity is out of scope for SPACE because the
+echo-train evolution is not modelled (`reports/FUTURE_DIRECTIONS.md`). Remaining open check: a proxy-target oracle
+(labels fitted against a target built from the calibration centre alone) to bound what any 1-step method could reach
+without a learned predictor.
