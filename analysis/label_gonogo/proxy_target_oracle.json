@@ -1,0 +1,116 @@
+{
+  "summary": {
+    "anatomy_mean_label": {
+      "mean_psnr": 38.20957946777344,
+      "vs_anatomy_mean": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "slices": 128,
+        "volumes": 32
+      },
+      "by_anatomy": {
+        "brain": 0.0,
+        "knee": 0.0
+      },
+      "fraction_of_oracle_gain": 0.0
+    },
+    "oracle": {
+      "mean_psnr": 39.13092041015625,
+      "vs_anatomy_mean": {
+        "mean": 0.9213388562202454,
+        "ci95": [
+          0.8150918483734131,
+          1.0359283685684204
+        ],
+        "slices": 128,
+        "volumes": 32
+      },
+      "by_anatomy": {
+        "brain": 1.0855575799942017,
+        "knee": 0.729286253452301
+      },
+      "fraction_of_oracle_gain": 1.0
+    },
+    "proxy_centre10": {
+      "mean_psnr": 26.667892456054688,
+      "vs_anatomy_mean": {
+        "mean": -11.541687965393066,
+        "ci95": [
+          -12.80681037902832,
+          -10.120925903320312
+        ],
+        "slices": 128,
+        "volumes": 32
+      },
+      "by_anatomy": {
+        "brain": -12.535998344421387,
+        "knee": -10.378849983215332
+      },
+      "fraction_of_oracle_gain": -12.527082611865916
+    },
+    "proxy_centre24": {
+      "mean_psnr": 28.924659729003906,
+      "vs_anatomy_mean": {
+        "mean": -9.284920692443848,
+        "ci95": [
+          -10.461348533630371,
+          -8.143412590026855
+        ],
+        "slices": 128,
+        "volumes": 32
+      },
+      "by_anatomy": {
+        "brain": -10.720090866088867,
+        "knee": -7.606503009796143
+      },
+      "fraction_of_oracle_gain": -10.07763932863404
+    },
+    "proxy_centre64": {
+      "mean_psnr": 33.348388671875,
+      "vs_anatomy_mean": {
+        "mean": -4.8611955642700195,
+        "ci95": [
+          -5.532682418823242,
+          -4.205637454986572
+        ],
+        "slices": 128,
+        "volumes": 32
+      },
+      "by_anatomy": {
+        "brain": -5.6599225997924805,
+        "knee": -3.927090883255005
+      },
+      "fraction_of_oracle_gain": -5.2762298381866515
+    }
+  },
+  "fit_config": {
+    "device": "cuda",
+    "split": "val",
+    "start": 0,
+    "count": 128,
+    "stride": 5,
+    "steps": 120,
+    "draws": 2,
+    "chunk": 8,
+    "lr": 0.05,
+    "prior_slices": 256,
+    "out_dir": "/tmp/bkadota_oracle_labels_r8",
+    "seed": 0
+  },
+  "config": {
+    "device": "cuda",
+    "label_dir": "/tmp/bkadota_oracle_labels_r8",
+    "fit_dir": "/tmp/bkadota_proxy_oracle",
+    "out": "analysis/label_gonogo/proxy_target_oracle.json",
+    "centres": [
+      10,
+      24,
+      64
+    ],
+    "chunk": 8,
+    "seed": 0
+  }
+}

@@ -480,7 +480,7 @@ to learn class features from it does not.
 ## Update: next steps 1-2 on the plain VarNet (2026-10-16)
 **Question.** Does an adaptive sampler adapt when the conditions the toy needed hold? Those conditions are a start at
 the population optimum, a small smooth head with phase-invariant input, and a reconstructor that has seen diverse
-masks. The same arms with `recon.adaptive_input` + `recon.dc_weight_map` are still training.
+masks. The same arms with `recon.adaptive_input` + `recon.dc_weight_map` are in the next section.
 
 **Setup.**
 - **New sampler `smooth_adapt_2d`** (`activemri/samplers/smooth_adapt.py`): LOUPE base logits (bounded to +/-6 by a
@@ -556,6 +556,55 @@ masks. The same arms with `recon.adaptive_input` + `recon.dc_weight_map` are sti
   - The generalist's `best_model.pt` was the unmodified start (step 0). A run that loaded it was killed, renamed
     `*_wrong-recon-killed` (wandb), and rerun with `last_model.pt`.
 
+## Update: the same arms with the flagged VarNet (2026-10-17)
+**Question.** Does a reconstructor that sees the mask change the result? `recon.adaptive_input` conditions every
+cascade's U-Net on A^H A x and A^H y. `recon.dc_weight_map` learns a data-consistency weight per k-space location.
+Both depend only on the binary mask, so the readout above applies unchanged.
+
+**Setup.**
+- **Flagged base:** a new LOUPE + VarNet base with both flags, trained from scratch (`/tmp/bkadota_runs/loupe2d_flags_R8`).
+  It used the plain LOUPE run's settings: 50 epochs, slope 5, gradient floors 0.05, seed 42.
+- **Three arms:** static, adaptive head and anatomy table, trained from that base as in the previous section (10 epochs).
+- **Readout:** the same full-val readout (`--tag flags`), with tables in `reports/adaptivity_next_steps_r8/summary_flags.md`.
+
+| Run | Sampler | Val PSNR brain / knee | Anatomy swap cost (dB) | Slice vs mean corr | Brain vs knee corr | Offset mean / across-slice std (logits) |
+|---|---|---|---|---|---|---|
+| flagged LOUPE base | LOUPE | 37.623 / 39.283 | 0 | 1.0000 | 1.0000 | |
+| static_joint_flags | static | 37.724 / 39.410 | 0 | 1.0000 | 1.0000 | |
+| adapt16_joint_flags | adaptive head | 37.732 / 39.390 | +0.001 [-0.000, +0.002] | 0.9999 | 1.0000 | 3.28 / 0.07 |
+| anattable_joint_flags | one map per anatomy | 37.691 / 39.443 | +0.035 [-0.014, +0.032] | 1.0000 | 0.9816 | |
+
+| Paired comparison (per-slice PSNR, dB) | All | Brain | Knee |
+|---|---|---|---|
+| adaptive head - static | -0.007 [-0.007, +0.006] | +0.007 [+0.002, +0.013] | -0.020 [-0.030, -0.007] |
+| anatomy table - static | -0.000 [-0.024, -0.002] | -0.033 [-0.040, -0.026] | +0.033 [+0.021, +0.041] |
+| static - flagged base: 10 more epochs, no adaptivity | +0.114 [+0.088, +0.126] | +0.102 [+0.077, +0.124] | +0.127 [+0.092, +0.152] |
+
+- **The flags do not make the sampler adapt.**
+  - The adaptive head again learned a population shift. Its offset is large but nearly identical across slices: mean
+    3.28 logits, across-slice std 0.07, against 0.10 on the plain VarNet. Its masks are as static as LOUPE's
+    (corr 0.9999).
+  - Its PSNR equals the static control's (-0.007 dB overall; +0.007 brain, -0.020 knee).
+- **The positive control behaves as on the plain VarNet.** Given the label, the anatomy table separates the
+  anatomies (brain vs knee corr 0.982; 0.975 on the plain VarNet). It trades brain for knee: -0.033 / +0.033 dB, about
+  0 overall.
+- **The flagged base is weaker than the plain one.** Mean per-slice PSNR is 37.62 / 39.28 against 38.09 / 39.97 dB.
+  - On the trainer's metric the gap is smaller: 36.44 / 34.07 against 36.55 / 34.26 dB. That metric pools MSE over
+    slices, so the slices with the largest errors dominate it.
+  - Ten more epochs of joint training are worth more here (+0.114 dB) than on the plain VarNet (+0.067 dB). Together
+    with the weaker base, this suggests the flagged base is less converged at 50 epochs. Hypothesis, untested.
+
+**Caveats.**
+- One seed per arm. The flagged base is one training run.
+- The static and anatomy-table arms first crashed when their GPUs filled with other jobs. They were rerun unchanged
+  on another GPU, and the crashed runs are kept in wandb as `*_oom-crashed`.
+- The 95% intervals resample volumes and weight each volume equally, while the means weight each slice equally.
+  - The validation set has 23 brain and 10 knee volumes but 344 slices of each. So in the "All" column and in the
+    swap costs, the interval leans towards brain.
+  - When brain and knee move in opposite directions, the mean can fall outside its interval (anatomy table:
+    0.000 [-0.024, -0.002]). The per-anatomy columns are barely affected.
+  - The previous section's tables use the same procedure.
+
 ## Update: can a 24 x 24 calibration centre predict the per-slice optimum? (2026-10-16)
 **Question.** The scanner cannot acquire in several steps, so a sampler only ever sees the calibration centre. Would a
 24 x 24 centre carry enough per-slice information to predict how each slice's own optimal mask differs from its
@@ -574,14 +623,14 @@ anatomy's mean? A 24 x 24 centre is 576 samples (7.0% of the R=8 budget of 8192)
 
 | Predictor input | Training | Val predictability (128 slices) | Retest subset (32 slices) | Training fit | Source |
 |---|---|---|---|---|---|
-| 10 x 10 centre (today's sampler input) | lr 1e-4, unweighted | 0.061 | 0.058 | 0.055 | `reports/conv_vs_loupe_r8/label_gonogo.json` (identical-settings rerun pending) |
+| 10 x 10 centre (today's sampler input) | lr 1e-4, unweighted | 0.060 | 0.058 | 0.054 | `reports/adaptivity_next_steps_r8/screen_observed10.json` (original go/no-go run: 0.061 / 0.058 / 0.055) |
 | 24 x 24 centre | lr 1e-4, unweighted | 0.059 | 0.057 | 0.053 | `reports/adaptivity_next_steps_r8/screen_centre24.json` |
 | full k-space | lr 1e-4, unweighted | 0.123 | 0.117 | 0.108 | `reports/adaptivity_next_steps_r8/screen_full.json` |
 | full k-space | lr 1e-3, gain-weighted, deviation weight 0 / 1 | 0.154 / 0.162 | 0.140 / 0.151 | 0.143 / 0.198 | `analysis/label_gonogo/reweighted/privileged_full_gain_lr1e-3_dev{0,1}.json` |
 | two labels of the same slice (ceiling) | | | 0.970 | | |
 
 - **24 x 24 does not help.**
-  - Under identical training it scores 0.059, against 0.061 for the 10 x 10 centre. The extra calibration lines add
+  - Under identical training it scores 0.059, against 0.060 for the 10 x 10 centre. The extra calibration lines add
     nothing this predictor can use.
   - By the decision rule set before the screen, a LOUPE + VarNet with a 24 x 24 preselected centre is not worth
     building.
@@ -629,6 +678,192 @@ the +0.91 dB oracle gain a property of the slice or of the frozen reconstructor 
 
 **Conclusion.** Per-slice mask adaptivity at R=8 with one step from the calibration centre is closed; the per-anatomy
 mask is the practical ceiling found so far. Multi-step (within-scan) adaptivity is out of scope for SPACE because the
-echo-train evolution is not modelled (`reports/FUTURE_DIRECTIONS.md`). Remaining open check: a proxy-target oracle
-(labels fitted against a target built from the calibration centre alone) to bound what any 1-step method could reach
-without a learned predictor.
+echo-train evolution is not modelled (`reports/FUTURE_DIRECTIONS.md`).
+
+**Proxy-target oracle** (`scripts/diagnostics/proxy_target_oracle_r8.py`, `analysis/label_gonogo/proxy_target_oracle.json`).
+The oracle fit (same prior init, 120 steps, frozen VarNet) was run against the RSS of the zero-filled n x n centre
+instead of the ground truth, then scored against the ground truth:
+
+| Fit target | vs anatomy-mean label (dB) | Share of samples at r < 16 / 32 / 64 px |
+|---|---|---|
+| ground truth (oracle) | +0.92 [+0.82, +1.04] | 5.8% / 19% / 47% |
+| 10 x 10 centre (the calibration region) | -11.5 [-12.8, -10.1] | 0.5% / 3% / 24% |
+| 24 x 24 centre | -9.3 [-10.5, -8.1] | 2.9% / 5% / 18% |
+| 64 x 64 centre | -4.9 [-5.5, -4.2] | 6.6% / 27% / 39% |
+
+A blurred target rewards masks that stop the VarNet from producing detail the target lacks, so the fit moves samples
+away from the low-mid frequencies. Direct mask optimisation against a calibration-only target is harmful. This bounds
+this proxy, not every 1-step method.
+
+## Update: what is left beyond the pixel-scale signal? Protocol- and volume-level structure (2026-10-17)
+**Question.** Most of the per-slice oracle signal is pixel-scale and unpredictable (Result 1). Is there coarser
+structure that a deployable mask could use?
+- **One mask per protocol** (brain / knee-PD / knee-PDFS). The scan header gives the protocol, so the mask needs no
+  prediction.
+- **One mask per volume.** This is the only adaptive granularity a 3D (SPACE) scan allows, because every readout
+  position shares the phase-encode mask.
+
+Separately, does the earlier blurred-oracle test hold up? It concluded that the smooth part of the oracle is worthless.
+
+**Method.**
+- **Group screen** (`scripts/diagnostics/label_group_structure_r8.py`):
+  - **Data:** the 1200 training oracle labels (596 brain from 89 volumes, 279 knee-PD from 19, 325 knee-PDFS from 21),
+    as sampling probabilities on the 65,436 available locations.
+  - **Blur:** density-space Gaussian of sigma px (normalised convolution). Every label has the same full valid region.
+  - **Reliability:** the correlation of a group difference between two independent halves of the volumes, over 200
+    random splits. The null permutes the groups across volumes.
+  - **Size:** the energy of the difference without sampling noise (the dot product of the two halves' differences).
+    PD minus PDFS is read against brain minus knee.
+  - **Volume:** each half-volume mean's deviation from its protocol mean is correlated within a volume, and between
+    two volumes of the same protocol. Halves are alternating slices, or the first and second block of slices.
+- **Budget check** (`scripts/diagnostics/blur_budget_shift_r8.py`): the share of sampling probability in each radial
+  ring of k-space, for labels blurred in logit space (as `oracle_blur_psnr_r8.py` did) and in density space.
+
+| Blur sigma (px) | Brain vs knee reliability | PD vs PDFS reliability (null) | PD-PDFS size / brain-knee size | Knee variance explained by protocol (null) | All variance explained by anatomy (null) | Volume, alternating halves: within - between | Volume, block halves: within / between |
+|---|---|---|---|---|---|---|---|
+| 0 | 0.56 | 0.17 (0.00) | 0.28 | 0.26% (0.19%) | 0.34% (0.10%) | 0.09 | 0.025 / -0.024 |
+| 2 | 0.89 | 0.50 (0.01) | 0.26 | 0.97% (0.36%) | 2.69% (0.17%) | 0.40 | 0.033 / -0.129 |
+| 4 | 0.93 | 0.56 (0.01) | 0.22 | 1.44% (0.48%) | 4.93% (0.23%) | 0.57 | 0.008 / -0.204 |
+| 8 | 0.94 | 0.53 (0.03) | 0.15 | 1.44% (0.55%) | 6.81% (0.27%) | 0.69 | -0.036 / -0.269 |
+
+- **PD and PDFS want reliably different masks, but the difference is small.**
+  - At 2 px and above, the two halves agree at 0.50-0.56, against a null of at most 0.03.
+  - The difference has 15-28% of the brain-knee difference's energy. It explains 0.6-1.0% of the knee labels'
+    variance beyond the null; anatomy explains 2.5-6.5% of all labels' variance.
+  - The per-anatomy table was worth about +/-0.03 dB (previous sections), so the prior for per-protocol masks is well
+    under that.
+- **Most of the within-volume agreement is between neighbouring slices.**
+  - Alternating halves agree strongly at smooth scales (0.40-0.69). The first and second blocks of a volume do not
+    (within about 0).
+  - Two components cancel inside the block split: a volume effect, and a slice-position effect shared across volumes.
+    Under the position effect, every volume's first block resembles every other volume's first block more than their
+    second blocks (between -0.13 to -0.27).
+  - A per-volume mask, the SPACE case, can use only the volume effect. The position effect would need a mask chosen by
+    slice index, which only 2D multi-slice scans allow.
+- **This refines Result 1.** The per-slice signal is mostly pixel-scale, but a small smooth part is reliable at the
+  protocol and neighbouring-slice level.
+
+| Share of sampling probability by radius (px) | 0-8 | 8-16 | 16-32 | 32-64 | 64+ |
+|---|---|---|---|---|---|
+| label | 0.009 | 0.049 | 0.135 | 0.274 | 0.534 |
+| anatomy mean | 0.010 | 0.049 | 0.134 | 0.275 | 0.533 |
+| logit blur, sigma 2 / 8 | 0.011 / 0.012 | 0.061 / 0.058 | 0.154 / 0.156 | 0.278 / 0.280 | 0.495 / 0.495 |
+| density blur, sigma 2 / 8 | 0.009 / 0.010 | 0.048 / 0.048 | 0.135 / 0.134 | 0.274 / 0.274 | 0.534 / 0.534 |
+
+- **The earlier blurred-oracle result is confounded.**
+  - At every sigma of 1 or more, logit-space blur moves 3-4% of the budget from the outermost ring into the 8-32 px
+    rings. Density-space blur keeps every ring within 0.001.
+  - The earlier finding (blurs of 2 px or more lose 0.04-0.09 dB against the anatomy mean;
+    `analysis/label_gonogo/oracle_blur.json`) therefore mixes a budget shift into the test. It is rerun below.
+
+**The oracle-blur test in density space** (`oracle_blur_psnr_r8.py --space density`,
+`analysis/label_gonogo/oracle_blur_density.json`).
+- **Setup:** 128 labelled validation slices, the labels' own frozen VarNet, 4 seeded draws per slice shared by every
+  arm, and a 95% interval over volumes.
+- **What changes:** each slice's mask is the anatomy mean times the label's smoothed density ratio, so it keeps the
+  label's sampling density at scales above sigma.
+
+| Blur sigma (px) | Logit blur (earlier), gain vs anatomy mean (dB) | Density blur, gain vs anatomy mean (dB) | Density blur, brain / knee | Share of the unblurred gain |
+|---|---|---|---|---|
+| 0 (the oracle) | +0.921 [+0.815, +1.036] | +0.921 [+0.815, +1.036] | +1.086 / +0.729 | 100% |
+| 1 | +0.117 [+0.074, +0.159] | +0.223 [+0.176, +0.268] | +0.279 / +0.157 | 24% |
+| 2 | -0.035 [-0.080, +0.007] | +0.100 [+0.069, +0.130] | +0.129 / +0.065 | 11% |
+| 4 | -0.075 [-0.119, -0.034] | +0.066 [+0.043, +0.091] | +0.081 / +0.047 | 7% |
+| 8 | -0.085 [-0.129, -0.045] | +0.057 [+0.040, +0.079] | +0.064 / +0.049 | 6% |
+| 16 | -0.090 [-0.132, -0.054] | +0.049 [+0.035, +0.068] | +0.054 / +0.044 | 5% |
+
+- **The smooth part of each slice's oracle is worth something.**
+  - Kept at 4-16 px, it gains +0.05 to +0.07 dB over the anatomy mean, with every interval above 0 in both anatomies.
+  - The earlier negative numbers came from the logit blur's budget shift.
+  - This is the most a predictor of smooth per-slice masks could gain through this reconstructor.
+- **It is not mainly protocol structure.** Brain has a single protocol and gains as much as knee.
+- **It is worth about twice the per-anatomy table** (about +/-0.03 dB). No predictor has yet been trained for this
+  target.
+  - The adaptive head of the next-steps section could represent such a target, but trained end to end it found nothing.
+  - The label predictors were trained on full-resolution labels.
+  - The curriculum (`label_curriculum_r8.py`) used logit-blurred targets.
+
+**Can the smooth part be predicted from the calibration?** (`scripts/diagnostics/smooth_label_predictor_r8.py`,
+`analysis/label_gonogo/smooth_predictor.json`)
+- **Target:** each slice's smoothed log density ratio against the anatomy mean (sigma 4 or 8). Each arm's mask is the
+  anatomy mean times exp(predicted ratio), scored as in the table above (same slices, VarNet and draws).
+- **Predictors**, fitted on the 1200 training labels:
+  - **Ridge regression**, per anatomy, with the penalty chosen by 5-fold cross-validation grouped by volume. Its
+    features are log-magnitudes of one of three inputs:
+    - the 10 x 10 centre, which is the sampler's own input;
+    - a 24 x 24 centre (used as a feature only; the budget is unchanged);
+    - the whole k-space pooled to 32 x 32, which is privileged and gives a ceiling.
+  - **kNN:** the mean ratio of the 16 most similar training slices of the same anatomy, on 10 x 10 features.
+- **Controls:**
+  - static smooth refits: the training mean ratio per anatomy, and per protocol;
+  - another slice's ratio, from the same anatomy but another volume;
+  - the mean ratio of the same volume's other labelled slices. This is one smooth mask per volume, as SPACE needs;
+    127 of 128 slices have a partner, typically 5 slices away.
+
+| Arm | Predictability, sigma 4 / 8 | Ridge CV R^2 brain / knee, sigma 4 ; 8 | Gain vs anatomy mean, sigma 4 (dB) | Gain, sigma 8 (dB) |
+|---|---|---|---|---|
+| smooth oracle (own ratio) | 1 / 1 | | +0.066 [+0.044, +0.091] | +0.057 [+0.040, +0.078] |
+| static refit, per anatomy | 0 / 0 | | +0.002 [+0.001, +0.004] | +0.002 [+0.001, +0.003] |
+| static refit, per protocol | 0.05 / 0.06 | | +0.003 [+0.002, +0.005] | +0.003 [+0.002, +0.004] |
+| another slice's ratio | -0.03 / -0.04 | | -0.129 [-0.158, -0.100] | -0.085 [-0.111, -0.063] |
+| same volume, other slices | 0.24 / 0.29 | | -0.022 [-0.042, +0.001] | -0.006 [-0.025, +0.013] |
+| ridge, 10 x 10 centre | 0.23 / 0.28 | 0.12 / 0.11 ; 0.18 / 0.15 | +0.009 [+0.003, +0.015] | +0.010 [+0.005, +0.016] |
+| kNN, 10 x 10 centre | 0.32 / 0.39 | | +0.017 [+0.009, +0.024] | +0.018 [+0.011, +0.026] |
+| ridge, 24 x 24 centre | 0.31 / 0.37 | 0.20 / 0.12 ; 0.31 / 0.19 | +0.019 [+0.012, +0.026] | +0.019 [+0.013, +0.026] |
+| ridge, whole k-space (privileged) | 0.48 / 0.55 | 0.31 / 0.27 ; 0.42 / 0.36 | +0.033 [+0.025, +0.042] | +0.033 [+0.025, +0.042] |
+
+- **The smooth target can be predicted from the calibration, unlike the full labels.**
+  - Predictability is 0.23-0.39 from the 10 x 10 centre, against 0.06 for full-resolution labels (Result 1's
+    go/no-go and the calibration-size screen).
+  - The out-of-fold R^2 is 0.11-0.18.
+- **The gain is small.** From the 10 x 10 centre it is +0.01 dB (ridge) to +0.02 dB (kNN), which is 15-30% of the
+  smooth oracle. A 24 x 24 centre gives +0.02 dB, and the whole k-space +0.03 dB, about half the smooth oracle. Every
+  interval is above 0.
+- **The gain is adaptive.** The static smooth refits gain only +0.002-0.003 dB.
+- **The smooth part is specific to the slice, not the volume.**
+  - Another slice's ratio costs 0.09-0.13 dB.
+  - The average of the same volume's other slices gains nothing (-0.02 to -0.01 dB, not significant).
+  - So a per-volume mask, the SPACE case, cannot use it.
+- **24 x 24 helps here.** It gives +0.019 against +0.009 for ridge on the 10 x 10 centre, unlike the full-resolution
+  label screen. The kNN on the 10 x 10 centre nearly matches it.
+
+**Per-protocol mask table** (`prototable_joint_R8`; readout `--tag protocol`,
+`reports/adaptivity_next_steps_r8/summary_protocol.md`).
+- **Recipe:** the anatomy-table recipe of the next-steps section (10-epoch joint fine-tune from LOUPE, seed 42) with
+  three classes: brain, knee-PD and knee-PDFS.
+- **Readout:** the same full-validation readout, plus a knee swap cost. That is the PSNR lost when a knee slice is given
+  a mask made for a slice of the other knee protocol.
+
+| Run | Val PSNR brain / knee | Knee-PD / knee-PDFS | Brain vs knee corr | PD vs PDFS corr | Protocol swap cost, knee (dB) |
+|---|---|---|---|---|---|
+| static_joint | 38.177 / 40.017 | 42.793 / 38.224 | 1.0000 | 1.0000 | 0 |
+| anattable_joint (brain / knee) | 38.161 / 40.050 | 42.849 / 38.242 | 0.9754 | 1.0000 | 0 |
+| prototable_joint (brain / PD / PDFS) | 38.159 / 40.036 | 42.875 / 38.202 | 0.9818 | 0.9691 | +0.019 [-0.037, +0.085] |
+
+| Paired comparison (per-slice PSNR, dB) | Brain | Knee | Knee-PD | Knee-PDFS |
+|---|---|---|---|---|
+| anatomy table - static | -0.016 [-0.023, -0.007] | +0.033 [+0.019, +0.047] | +0.056 [+0.040, +0.070] | +0.018 [+0.008, +0.025] |
+| protocol table - static | -0.018 [-0.026, -0.008] | +0.019 [-0.011, +0.055] | +0.082 [+0.069, +0.097] | -0.022 [-0.038, -0.002] |
+| protocol table - anatomy table | -0.002 [-0.003, -0.000] | -0.014 [-0.035, +0.012] | +0.026 [+0.019, +0.030] | -0.040 [-0.062, -0.013] |
+
+- **The protocol table separates PD and PDFS masks.** Their correlation is 0.969, a larger separation than brain
+  against knee.
+- **It does not pay.**
+  - Against the anatomy table, it gains 0.026 dB on PD and loses 0.040 dB on PDFS (knee overall -0.014, not
+    significant).
+  - The protocol swap cost is not significant.
+  - As with the anatomy table, more classes under one shared reconstructor trade one class's PSNR for another's. This
+    matches the screen: the PD-PDFS difference is about a quarter of the brain-knee difference.
+
+**Caveats.**
+- The correlations measure reliability, not dB.
+- Every dB number in this section is measured through one frozen VarNet that was co-adapted to the conv sampler's
+  masks.
+  - Whether a jointly trained reconstructor keeps the predictors' +0.01-0.03 dB is untested.
+  - Result 3 measured a mismatch tax of about 25% on mask changes.
+- The predictors' output scale was not tuned (ridge shrinks it).
+- The blurred oracles are fitted with the ground truth, so they bound what a predictor could reach. Through other VarNets the full oracle kept about 70% of its gain (`analysis/label_gonogo/oracle_transfer_summary.txt`).
+- The labels were fitted through one frozen VarNet (the conv run's), with a 10 x 10 centre at R=8.
+- fastMRI slices are only a loose proxy for SPACE readout positions.
+- Knee has only 19 PD and 21 PDFS training volumes, and 4 and 6 in validation.
+- The protocol table is one seed, fine-tuned for 10 epochs from a shared mask rather than trained from scratch.
