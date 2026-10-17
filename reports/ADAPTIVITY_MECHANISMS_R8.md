@@ -867,3 +867,24 @@ Separately, does the earlier blurred-oracle test hold up? It concluded that the 
 - fastMRI slices are only a loose proxy for SPACE readout positions.
 - Knee has only 19 PD and 21 PDFS training volumes, and 4 and 6 in validation.
 - The protocol table is one seed, fine-tuned for 10 epochs from a shared mask rather than trained from scratch.
+
+## Update: best-of-K mask selection upper bound (2026-10-17)
+**Question.** SUNO-style selection: if a perfect selector picks, per slice, the best of K candidate masks, does it
+beat the anatomy-mean label? Candidates are K per-anatomy k-medoids of the 1200 training oracle labels (sharp label
+masks, not averages). The pick uses draws 10-11; reported PSNR uses the shared scoring draws 0-3. Frozen conv ep50
+VarNet, 128 labelled val slices (`scripts/diagnostics/best_of_k_oracle_r8.py`, `analysis/label_gonogo/best_of_k_oracle.json`).
+
+| Arm vs anatomy-mean label (dB) | K = 4 | K = 16 | K = 64 |
+|---|---|---|---|
+| best of K (perfect selector) | -0.126 [-0.157, -0.096] | -0.078 [-0.108, -0.045] | -0.098 [-0.123, -0.070] |
+| best of K, same draws (winner's-curse check) | -0.118 | -0.069 | -0.078 |
+| random of K (no-information selector) | -0.240 | -0.295 | -0.338 |
+
+Own oracle label: +0.921 [+0.81, +1.03].
+
+- **Even perfect selection loses to the anatomy mean** at every K, through this reconstructor. More candidates do not
+  help (K = 64 is no better than 16): another slice's label carries a mismatch cost (0.24-0.34 dB for a random pick)
+  that choosing well recovers only partly (0.11-0.24 dB).
+- **Caveat:** the reconstructor never trained on these candidates. A jointly trained candidate set (reconstructor
+  trained on all K, assignment by best reconstruction, as SUNO alternates) removes the mismatch cost; its ceiling is
+  roughly the best-minus-random spread, about +0.1-0.2 dB, before a selector has to find it from the calibration.
