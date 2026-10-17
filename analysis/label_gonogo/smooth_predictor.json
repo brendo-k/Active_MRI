@@ -1,0 +1,449 @@
+{
+  "counts": {
+    "train": 1200,
+    "val": 128
+  },
+  "by_sigma": {
+    "4": {
+      "predictability": {
+        "smooth_oracle": 1.0,
+        "anatomy_mean_ratio": 0.0,
+        "protocol_mean_ratio": 0.050478105875861344,
+        "other_slice": -0.0262212634161193,
+        "volume_oracle": 0.24287696607050224,
+        "ridge_centre10": 0.23186465094409214,
+        "ridge_centre24": 0.30962508002354056,
+        "ridge_full": 0.47756706705043644,
+        "knn_centre10": 0.3162093218125958
+      },
+      "ridge": {
+        "centre10": {
+          "brain": {
+            "penalty": 3.1622776601683795,
+            "cv_r2": 0.12020752723116312,
+            "penalty_at_grid_edge": false
+          },
+          "knee": {
+            "penalty": 10.0,
+            "cv_r2": 0.1126709306469662,
+            "penalty_at_grid_edge": false
+          }
+        },
+        "centre24": {
+          "brain": {
+            "penalty": 3.1622776601683795,
+            "cv_r2": 0.20471071035269883,
+            "penalty_at_grid_edge": false
+          },
+          "knee": {
+            "penalty": 3.1622776601683795,
+            "cv_r2": 0.1243631118903964,
+            "penalty_at_grid_edge": false
+          }
+        },
+        "full": {
+          "brain": {
+            "penalty": 1.0,
+            "cv_r2": 0.3102408873183111,
+            "penalty_at_grid_edge": false
+          },
+          "knee": {
+            "penalty": 1.0,
+            "cv_r2": 0.27074764072539903,
+            "penalty_at_grid_edge": false
+          }
+        }
+      }
+    },
+    "8": {
+      "predictability": {
+        "smooth_oracle": 0.9999999999999997,
+        "anatomy_mean_ratio": 0.0,
+        "protocol_mean_ratio": 0.056479783072074616,
+        "other_slice": -0.04389129043939348,
+        "volume_oracle": 0.29154786471108496,
+        "ridge_centre10": 0.28240053870551,
+        "ridge_centre24": 0.37148042005317583,
+        "ridge_full": 0.553506126510686,
+        "knn_centre10": 0.3859406579880906
+      },
+      "ridge": {
+        "centre10": {
+          "brain": {
+            "penalty": 3.1622776601683795,
+            "cv_r2": 0.18441798707393808,
+            "penalty_at_grid_edge": false
+          },
+          "knee": {
+            "penalty": 10.0,
+            "cv_r2": 0.15117950588342133,
+            "penalty_at_grid_edge": false
+          }
+        },
+        "centre24": {
+          "brain": {
+            "penalty": 3.1622776601683795,
+            "cv_r2": 0.30675231263483116,
+            "penalty_at_grid_edge": false
+          },
+          "knee": {
+            "penalty": 3.1622776601683795,
+            "cv_r2": 0.19111754230894762,
+            "penalty_at_grid_edge": false
+          }
+        },
+        "full": {
+          "brain": {
+            "penalty": 0.31622776601683794,
+            "cv_r2": 0.4171559305327779,
+            "penalty_at_grid_edge": false
+          },
+          "knee": {
+            "penalty": 1.0,
+            "cv_r2": 0.3576832552054514,
+            "penalty_at_grid_edge": false
+          }
+        }
+      }
+    }
+  },
+  "volume_oracle_slices_with_partners": 127,
+  "psnr": {
+    "anatomy_mean_label": {
+      "mean_psnr": 38.20957946777344,
+      "vs_anatomy_mean": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "slices": 128,
+        "volumes": 32
+      },
+      "by_protocol": {
+        "brain": 0.0,
+        "knee-PD": 0.0,
+        "knee-PDFS": 0.0
+      }
+    },
+    "smooth_oracle_sigma4": {
+      "mean_psnr": 38.27509307861328,
+      "vs_anatomy_mean": {
+        "mean": 0.06550820171833038,
+        "ci95": [
+          0.04421697556972504,
+          0.09124831110239029
+        ],
+        "slices": 128,
+        "volumes": 32
+      },
+      "by_protocol": {
+        "brain": 0.08100076019763947,
+        "knee-PD": 0.017809296026825905,
+        "knee-PDFS": 0.06255927681922913
+      }
+    },
+    "anatomy_mean_ratio_sigma4": {
+      "mean_psnr": 38.212005615234375,
+      "vs_anatomy_mean": {
+        "mean": 0.0024307072162628174,
+        "ci95": [
+          0.001116894418373704,
+          0.0037841785233467817
+        ],
+        "slices": 128,
+        "volumes": 32
+      },
+      "by_protocol": {
+        "brain": 0.003332690801471472,
+        "knee-PD": 0.0002994537353515625,
+        "knee-PDFS": 0.0019278404070064425
+      }
+    },
+    "protocol_mean_ratio_sigma4": {
+      "mean_psnr": 38.21286392211914,
+      "vs_anatomy_mean": {
+        "mean": 0.0032845288515090942,
+        "ci95": [
+          0.001888209953904152,
+          0.0047072297893464565
+        ],
+        "slices": 128,
+        "volumes": 32
+      },
+      "by_protocol": {
+        "brain": 0.003332690801471472,
+        "knee-PD": 0.001001548720523715,
+        "knee-PDFS": 0.004370077978819609
+      }
+    },
+    "other_slice_sigma4": {
+      "mean_psnr": 38.08020782470703,
+      "vs_anatomy_mean": {
+        "mean": -0.1293751299381256,
+        "ci95": [
+          -0.1582821160554886,
+          -0.10033153742551804
+        ],
+        "slices": 128,
+        "volumes": 32
+      },
+      "by_protocol": {
+        "brain": -0.14583250880241394,
+        "knee-PD": -0.1342693269252777,
+        "knee-PDFS": -0.09774839133024216
+      }
+    },
+    "volume_oracle_sigma4": {
+      "mean_psnr": 38.18791961669922,
+      "vs_anatomy_mean": {
+        "mean": -0.02166154980659485,
+        "ci95": [
+          -0.04224288463592529,
+          0.001437014783732593
+        ],
+        "slices": 128,
+        "volumes": 32
+      },
+      "by_protocol": {
+        "brain": -0.02912175841629505,
+        "knee-PD": -0.045760154724121094,
+        "knee-PDFS": 0.0038955395575612783
+      }
+    },
+    "ridge_centre10_sigma4": {
+      "mean_psnr": 38.2182731628418,
+      "vs_anatomy_mean": {
+        "mean": 0.008690744638442993,
+        "ci95": [
+          0.0033573834225535393,
+          0.014704978093504906
+        ],
+        "slices": 128,
+        "volumes": 32
+      },
+      "by_protocol": {
+        "brain": 0.01086259912699461,
+        "knee-PD": 0.014030074700713158,
+        "knee-PDFS": 0.0021101145539432764
+      }
+    },
+    "ridge_centre24_sigma4": {
+      "mean_psnr": 38.228271484375,
+      "vs_anatomy_mean": {
+        "mean": 0.01869077980518341,
+        "ci95": [
+          0.012282073497772217,
+          0.025631148368120193
+        ],
+        "slices": 128,
+        "volumes": 32
+      },
+      "by_protocol": {
+        "brain": 0.02251964993774891,
+        "knee-PD": 0.02392902411520481,
+        "knee-PDFS": 0.00923034455627203
+      }
+    },
+    "ridge_full_sigma4": {
+      "mean_psnr": 38.24303436279297,
+      "vs_anatomy_mean": {
+        "mean": 0.03345215320587158,
+        "ci95": [
+          0.025199124589562416,
+          0.04185677692294121
+        ],
+        "slices": 128,
+        "volumes": 32
+      },
+      "by_protocol": {
+        "brain": 0.035999685525894165,
+        "knee-PD": 0.05025672912597656,
+        "knee-PDFS": 0.0203272495418787
+      }
+    },
+    "knn_centre10_sigma4": {
+      "mean_psnr": 38.22625732421875,
+      "vs_anatomy_mean": {
+        "mean": 0.016677483916282654,
+        "ci95": [
+          0.00915836263448,
+          0.023987596854567528
+        ],
+        "slices": 128,
+        "volumes": 32
+      },
+      "by_protocol": {
+        "brain": 0.020091844722628593,
+        "knee-PD": 0.02132244035601616,
+        "knee-PDFS": 0.008254662156105042
+      }
+    },
+    "smooth_oracle_sigma8": {
+      "mean_psnr": 38.266746520996094,
+      "vs_anatomy_mean": {
+        "mean": 0.05716891586780548,
+        "ci95": [
+          0.040155768394470215,
+          0.07791320234537125
+        ],
+        "slices": 128,
+        "volumes": 32
+      },
+      "by_protocol": {
+        "brain": 0.06444436311721802,
+        "knee-PD": 0.02963733673095703,
+        "knee-PDFS": 0.0584157295525074
+      }
+    },
+    "anatomy_mean_ratio_sigma8": {
+      "mean_psnr": 38.21183776855469,
+      "vs_anatomy_mean": {
+        "mean": 0.0022600293159484863,
+        "ci95": [
+          0.0011795188765972853,
+          0.003377644345164299
+        ],
+        "slices": 128,
+        "volumes": 32
+      },
+      "by_protocol": {
+        "brain": 0.002953183837234974,
+        "knee-PD": 0.00024337768263649195,
+        "knee-PDFS": 0.002067859284579754
+      }
+    },
+    "protocol_mean_ratio_sigma8": {
+      "mean_psnr": 38.21234893798828,
+      "vs_anatomy_mean": {
+        "mean": 0.0027682483196258545,
+        "ci95": [
+          0.0018061988521367311,
+          0.0037428291980177164
+        ],
+        "slices": 128,
+        "volumes": 32
+      },
+      "by_protocol": {
+        "brain": 0.002953183837234974,
+        "knee-PD": 0.00261268625035882,
+        "knee-PDFS": 0.002520830137655139
+      }
+    },
+    "other_slice_sigma8": {
+      "mean_psnr": 38.12469482421875,
+      "vs_anatomy_mean": {
+        "mean": -0.08488538861274719,
+        "ci95": [
+          -0.11085192859172821,
+          -0.06317038089036942
+        ],
+        "slices": 128,
+        "volumes": 32
+      },
+      "by_protocol": {
+        "brain": -0.10027937591075897,
+        "knee-PD": -0.0789211243391037,
+        "knee-PDFS": -0.060708463191986084
+      }
+    },
+    "volume_oracle_sigma8": {
+      "mean_psnr": 38.203330993652344,
+      "vs_anatomy_mean": {
+        "mean": -0.006248876452445984,
+        "ci95": [
+          -0.025039508938789368,
+          0.012928411364555359
+        ],
+        "slices": 128,
+        "volumes": 32
+      },
+      "by_protocol": {
+        "brain": -0.012467370368540287,
+        "knee-PD": -0.01739673689007759,
+        "knee-PDFS": 0.010469925589859486
+      }
+    },
+    "ridge_centre10_sigma8": {
+      "mean_psnr": 38.219696044921875,
+      "vs_anatomy_mean": {
+        "mean": 0.01011320948600769,
+        "ci95": [
+          0.004904025234282017,
+          0.016199490055441856
+        ],
+        "slices": 128,
+        "volumes": 32
+      },
+      "by_protocol": {
+        "brain": 0.012199373915791512,
+        "knee-PD": 0.016270827502012253,
+        "knee-PDFS": 0.003264549421146512
+      }
+    },
+    "ridge_centre24_sigma8": {
+      "mean_psnr": 38.22846221923828,
+      "vs_anatomy_mean": {
+        "mean": 0.018878981471061707,
+        "ci95": [
+          0.012693187221884727,
+          0.025723064318299294
+        ],
+        "slices": 128,
+        "volumes": 32
+      },
+      "by_protocol": {
+        "brain": 0.023484990000724792,
+        "knee-PD": 0.02418670617043972,
+        "knee-PDFS": 0.008007979020476341
+      }
+    },
+    "ridge_full_sigma8": {
+      "mean_psnr": 38.24250030517578,
+      "vs_anatomy_mean": {
+        "mean": 0.03291594982147217,
+        "ci95": [
+          0.024708211421966553,
+          0.04216313734650612
+        ],
+        "slices": 128,
+        "volumes": 32
+      },
+      "by_protocol": {
+        "brain": 0.035949401557445526,
+        "knee-PD": 0.048590660095214844,
+        "knee-PDFS": 0.01951075904071331
+      }
+    },
+    "knn_centre10_sigma8": {
+      "mean_psnr": 38.227752685546875,
+      "vs_anatomy_mean": {
+        "mean": 0.01817171275615692,
+        "ci95": [
+          0.010963661596179008,
+          0.026282548904418945
+        ],
+        "slices": 128,
+        "volumes": 32
+      },
+      "by_protocol": {
+        "brain": 0.021847572177648544,
+        "knee-PD": 0.02384185791015625,
+        "knee-PDFS": 0.008760501630604267
+      }
+    }
+  },
+  "config": {
+    "device": "cuda",
+    "label_dir": "/tmp/bkadota_oracle_labels_r8",
+    "out": "analysis/label_gonogo/smooth_predictor.json",
+    "sigmas": [
+      4,
+      8
+    ],
+    "eps": 0.001,
+    "knn": 16,
+    "chunk": 8,
+    "seed": 0
+  }
+}

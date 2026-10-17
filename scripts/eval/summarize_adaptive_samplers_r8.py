@@ -19,6 +19,7 @@ DESCRIPTIONS = {  # run: (sampler, reconstructor)
     'static_joint_flags_R8': ('static (offset off)', 'flagged VarNet, joint fine-tune'),
     'adapt16_joint_flags_R8': ('adaptive head, 16 x 16 grid', 'flagged VarNet, joint fine-tune'),
     'anattable_joint_flags_R8': ('one map per anatomy', 'flagged VarNet, joint fine-tune'),
+    'prototable_joint_R8': ('one map per protocol (brain / knee-PD / knee-PDFS)', 'joint fine-tune'),
 }
 
 
@@ -59,9 +60,17 @@ def main():
                         'slice swap cost (dB)', 'slice vs mean corr brain / knee', 'brain vs knee corr',
                         'offset mean abs / across-slice std (logits)'], rows))
     lines.append('')
+    protocol_rows = [[name, f"{r['psnr_by_protocol']['knee-PD']:.3f} / {r['psnr_by_protocol']['knee-PDFS']:.3f}",
+                      ci(r['protocol_swap_cost_db']), f"{r['pd_vs_pdfs_corr']:.4f}"]
+                     for name, r in results.items() if 'protocol_swap_cost_db' in r]
+    if protocol_rows:
+        lines.append(table(['run', 'val PSNR knee-PD / knee-PDFS', 'protocol swap cost, knee (dB)', 'PD vs PDFS corr'],
+                           protocol_rows))
+        lines.append('')
     if paired:
-        lines.append(table(['comparison (per-slice PSNR, dB)', 'all', 'brain', 'knee'],
-                           [[k, ci(v['all']), ci(v['brain']), ci(v['knee'])] for k, v in paired.items()]))
+        columns = [c for c in ('all', 'brain', 'knee', 'knee-PD', 'knee-PDFS') if c in next(iter(paired.values()))]
+        lines.append(table(['comparison (per-slice PSNR, dB)', *columns],
+                           [[k, *(ci(v[c]) for c in columns)] for k, v in paired.items()]))
     text = '\n'.join(lines) + '\n'
     (OUT / f'summary_{args.tag}.md').write_text(text)
     print(text)

@@ -1,7 +1,14 @@
 """How much of the per-slice oracle gain survives blurring the label's deviation from the anatomy mean?
 
-For each labelled validation slice of oracle_labels_r8.py, the oracle logit is
-logit(anatomy mean) + G_sigma * (label logit - logit(anatomy mean)), a Gaussian low-pass in k-space location.
+For each labelled validation slice of oracle_labels_r8.py, the blurred oracle is, with `--space`:
+
+  logit    logit(anatomy mean) + G_sigma * (label logit - logit(anatomy mean)), a Gaussian low-pass of the logit
+           deviation. For near-binary labels this does not keep the sampling density: the blur averages +/-6
+           logits, so a region's probability after the blur differs from its fraction of sampled locations.
+  density  anatomy mean * (G_sigma * label + eps) / (G_sigma * anatomy mean + eps), over the available locations:
+           the reference's fine structure modulated by the label's smoothed density ratio, so every region keeps
+           the label's sampling density at scales above sigma.
+
 Each sigma is scored with the frozen baseline VarNet through the trainer's masked PSNR over seeded Bernoulli
 draws shared by every arm, against the anatomy-mean label (the strongest non-adaptive control of
 label_predictor_gonogo_r8.py) with volume-bootstrap 95% intervals. If a coarse sigma keeps most of the gain, a
@@ -23,8 +30,8 @@ from omegaconf import OmegaConf
 import _path  # noqa: F401
 from activemri.training.builders import build_dataloaders
 from label_curriculum_r8 import gaussian_blur
-from label_predictor_gonogo_r8 import (ANATOMIES, anatomy_reference, bootstrap_ci, label_probability, load_shards,
-                                       logit_of)
+from label_predictor_gonogo_r8 import (ANATOMIES, anatomy_reference, available_of, bootstrap_ci, label_probability,
+                                       load_shards, logit_of)
 from oracle_labels_r8 import OUT_DIR, RUN, load_frozen, loader_over, masks_from_logits, seeded_psnr, to_device
 
 OUT = Path('analysis/label_gonogo/oracle_blur.json')
@@ -38,7 +45,17 @@ def parse_args():
     parser.add_argument('--sigmas', type=float, nargs='+', default=[0, 1, 2, 4, 8, 16])
     parser.add_argument('--chunk', type=int, default=8)
     parser.add_argument('--seed', type=int, default=0)
+    parser.add_argument('--space', choices=('logit', 'density'), default='logit')
+    parser.add_argument('--eps', type=float, default=1e-3, help='density space: regulariser of the density ratio')
     return parser.parse_args()
+
+
+def density_blurred(label, reference, available, sigma, eps):
+    """The reference's probability times the label's Gaussian-smoothed density ratio, over the available locations."""
+    if sigma <= 0:
+        return label
+    ratio = (gaussian_blur(label * available, sigma) + eps) / (gaussian_blur(reference * available, sigma) + eps)
+    return (reference * ratio).clamp(0, 1)
 
 
 @torch.no_grad()
@@ -48,10 +65,15 @@ def main():
     train, val = load_shards(args.label_dir, 'train'), load_shards(args.label_dir, 'val')
     train_probability = label_probability(train)
     anatomy_mean = {a: train_probability[torch.as_tensor(train['anatomy'] == a)].mean(0) for a in ANATOMIES}
-    reference_logit = logit_of(anatomy_reference(anatomy_mean, val['anatomy']))
-    deviation = val['label_logits'].float() - reference_logit
-    arms = {'anatomy_mean_label': reference_logit,
-            **{f'oracle_sigma{s:g}': reference_logit + gaussian_blur(deviation, s) for s in args.sigmas}}
+    reference = anatomy_reference(anatomy_mean, val['anatomy'])
+    reference_logit = logit_of(reference)
+    if args.space == 'logit':
+        deviation = val['label_logits'].float() - reference_logit
+        blurred = {s: reference_logit + gaussian_blur(deviation, s) for s in args.sigmas}
+    else:
+        label, available = label_probability(val), available_of(val)
+        blurred = {s: logit_of(density_blurred(label, reference, available, s, args.eps)) for s in args.sigmas}
+    arms = {'anatomy_mean_label': reference_logit, **{f'oracle_sigma{s:g}': blurred[s] for s in args.sigmas}}
 
     cfg = OmegaConf.load(RUN / '.hydra' / 'config.yaml')
     cfg.datasets.num_workers = 4

@@ -1,0 +1,140 @@
+{
+  "summary": {
+    "anatomy_mean_label": {
+      "mean_psnr": 38.20957946777344,
+      "vs_anatomy_mean": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "slices": 128,
+        "volumes": 32
+      },
+      "by_anatomy": {
+        "brain": 0.0,
+        "knee": 0.0
+      },
+      "fraction_of_unblurred_gain": 0.0
+    },
+    "oracle_sigma0": {
+      "mean_psnr": 39.13091278076172,
+      "vs_anatomy_mean": {
+        "mean": 0.9213322401046753,
+        "ci95": [
+          0.8150876760482788,
+          1.035910725593567
+        ],
+        "slices": 128,
+        "volumes": 32
+      },
+      "by_anatomy": {
+        "brain": 1.085545301437378,
+        "knee": 0.7292864918708801
+      },
+      "fraction_of_unblurred_gain": 1.0
+    },
+    "oracle_sigma1": {
+      "mean_psnr": 38.432559967041016,
+      "vs_anatomy_mean": {
+        "mean": 0.2229779213666916,
+        "ci95": [
+          0.17633667588233948,
+          0.2680429518222809
+        ],
+        "slices": 128,
+        "volumes": 32
+      },
+      "by_anatomy": {
+        "brain": 0.27908915281295776,
+        "knee": 0.15735629200935364
+      },
+      "fraction_of_unblurred_gain": 0.24201684437023327
+    },
+    "oracle_sigma2": {
+      "mean_psnr": 38.30916976928711,
+      "vs_anatomy_mean": {
+        "mean": 0.09958380460739136,
+        "ci95": [
+          0.06873439252376556,
+          0.1295851469039917
+        ],
+        "slices": 128,
+        "volumes": 32
+      },
+      "by_anatomy": {
+        "brain": 0.12942026555538177,
+        "knee": 0.06469031423330307
+      },
+      "fraction_of_unblurred_gain": 0.10808674685700496
+    },
+    "oracle_sigma4": {
+      "mean_psnr": 38.27509307861328,
+      "vs_anatomy_mean": {
+        "mean": 0.06550820171833038,
+        "ci95": [
+          0.04281920567154884,
+          0.09083321690559387
+        ],
+        "slices": 128,
+        "volumes": 32
+      },
+      "by_anatomy": {
+        "brain": 0.08100076019763947,
+        "knee": 0.047389790415763855
+      },
+      "fraction_of_unblurred_gain": 0.0711016057691499
+    },
+    "oracle_sigma8": {
+      "mean_psnr": 38.266746520996094,
+      "vs_anatomy_mean": {
+        "mean": 0.05716891586780548,
+        "ci95": [
+          0.04011932387948036,
+          0.07893100380897522
+        ],
+        "slices": 128,
+        "volumes": 32
+      },
+      "by_anatomy": {
+        "brain": 0.06444436311721802,
+        "knee": 0.048660341650247574
+      },
+      "fraction_of_unblurred_gain": 0.062050271747041384
+    },
+    "oracle_sigma16": {
+      "mean_psnr": 38.25896453857422,
+      "vs_anatomy_mean": {
+        "mean": 0.04938456416130066,
+        "ci95": [
+          0.034839384257793427,
+          0.06801828742027283
+        ],
+        "slices": 128,
+        "volumes": 32
+      },
+      "by_anatomy": {
+        "brain": 0.053931333124637604,
+        "knee": 0.044067155569791794
+      },
+      "fraction_of_unblurred_gain": 0.05360125480433631
+    }
+  },
+  "config": {
+    "device": "cuda",
+    "label_dir": "/tmp/bkadota_oracle_labels_r8",
+    "out": "analysis/label_gonogo/oracle_blur_density.json",
+    "sigmas": [
+      0,
+      1,
+      2,
+      4,
+      8,
+      16
+    ],
+    "chunk": 8,
+    "seed": 0,
+    "space": "density",
+    "eps": 0.001
+  }
+}

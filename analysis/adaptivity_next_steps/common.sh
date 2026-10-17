@@ -14,5 +14,5 @@ sampler_run() {
     sampler.sampler_type=smooth_adapt_2d sampler.slope=5 sampler.mask_grad_floor=0.05 sampler.ste_grad_floor=0.05 \
     sampler.init_mask_checkpoint=${INIT_MASK:-$LOUPE} sampler.lr=1e-3 training.lr_warmup_epochs=0 training.lr_step_size=1000 \
     output.run_name=$name "$@" > $LOG/$name.log 2>&1
-  echo "done $name $(date) rc=$?" >> $LOG/launcher.log
+  rc=$?; echo "done $name $(date) rc=$rc" >> $LOG/launcher.log
 }
