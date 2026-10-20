@@ -9,6 +9,7 @@ import numpy as np
 import torch
 
 from activemri.training.trainer import build_model, _apply_signal_mask, anatomy_labels_from_batch
+from activemri.utils.metric_mask import metric_mask_from_real_kspace
 from activemri.utils.evaluate import build_metrics
 from activemri.datasets.fastmri_data import build_fastmri_dataloaders
 from activemri.config import TrainConfig
@@ -86,7 +87,7 @@ def evaluate_checkpoint(checkpoint_path, device='cuda', anatomies=('brain',)):
 
             metrics_masked["PSNR"].data_range = data_range
             metrics_masked["SSIM"].data_range = data_range
-            masked_output, masked_target = _apply_signal_mask(output, target_for_metrics)
+            masked_output, masked_target = _apply_signal_mask(output, target_for_metrics, metric_mask_from_real_kspace(kspace, batch['anatomy']))
             metrics_masked.update(masked_output, masked_target)
 
     masked_results = metrics_masked.compute()

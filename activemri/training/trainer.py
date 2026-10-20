@@ -17,6 +17,7 @@ import matplotlib.pyplot as plt
 from activemri.utils.evaluate import build_metrics
 from activemri.utils.metrics import MaskedMetricAccumulator
 from activemri.utils.phase_scramble import scramble_phase_real
+from activemri.utils.metric_mask import metric_mask_from_real_kspace
 from activemri.models.sequential_sampling import SequentialSampling, reinforce_group_size
 from activemri.samplers.autosamp import annealed_kernel_sigma
 from activemri.samplers.loupe import LineConstrainedProbMask, ProbMask
@@ -373,8 +374,8 @@ class Sequential_Trainer:
             data_range = target_for_metrics.max()
             metrics["PSNR"].data_range = data_range
             metrics["SSIM"].data_range = data_range
-            signal_mask = _signal_mask(target_for_metrics)
-            masked_output, masked_target = _apply_signal_mask(output.detach(), target_for_metrics)
+            signal_mask = self._metric_mask(batch)
+            masked_output, masked_target = _apply_signal_mask(output.detach(), target_for_metrics, signal_mask)
             metrics.update(masked_output, masked_target)
             masked_metrics.update(output.detach(), target_for_metrics, signal_mask)
             anatomy_stats.update(anatomies, masked_output, masked_target, pred_dict['mask'].detach())
@@ -514,8 +515,8 @@ class Sequential_Trainer:
                 data_range = target_for_metrics.max()
                 metrics["PSNR"].data_range = data_range
                 metrics["SSIM"].data_range = data_range
-                signal_mask = _signal_mask(target_for_metrics)
-                masked_output, masked_target = _apply_signal_mask(output, target_for_metrics)
+                signal_mask = self._metric_mask(batch)
+                masked_output, masked_target = _apply_signal_mask(output, target_for_metrics, signal_mask)
                 metrics.update(masked_output, masked_target)
                 masked_metrics.update(output, target_for_metrics, signal_mask)
                 anatomy_stats.update(anatomies, masked_output, masked_target, mask)
@@ -553,6 +554,10 @@ class Sequential_Trainer:
                 continue
             images.update(_build_image_log(pred_dict, target, f'val/{anatomy}', self.model.data_for_vis))
         return images
+
+    def _metric_mask(self, batch):
+        """The run-independent metric support mask of the batch's slices, from their fully sampled k-space."""
+        return metric_mask_from_real_kspace(batch['kspace'].to(self.device), batch['anatomy'])
 
     def _load_kspace(self, batch, generator=None):
         """The batch's k-space on the device, phase-scrambled when the run asks for it."""
@@ -1192,15 +1197,19 @@ class _AnatomyStats:
 
 
 def _signal_mask(target, threshold=0.1):
-    """Body mask from the target RSS, zeroing background so metrics are computed
-    over the signal region only. Per-sample threshold as a fraction of max."""
+    """Legacy target-threshold mask, kept only for scripts not yet moved to activemri.utils.metric_mask."""
     flat = target.flatten(1)
     max_val = flat.max(dim=1).values.view(-1, *([1] * (target.dim() - 1)))
     return (target > threshold * max_val).to(target.dtype)
 
 
-def _apply_signal_mask(output, target):
-    mask = _signal_mask(target)
+def _apply_signal_mask(output, target, mask=None):
+    """Zero both images outside the metric support `mask` (see activemri.utils.metric_mask).
+
+    Without a mask this falls back to the legacy target-threshold mask, which no longer matches the trainer's metrics.
+    """
+    if mask is None:
+        mask = _signal_mask(target)
     return output * mask, target * mask
 
 

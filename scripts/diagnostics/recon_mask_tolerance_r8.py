@@ -131,7 +131,7 @@ class MaskMaker:
 def psnr_of(recon, part, mask):
     output = recon(part['target'], part['kspace'], anatomy_labels=part['label'], fixed_mask=mask)['output']
     target = part['target'] if part['target'].dim() == 4 else part['target'].unsqueeze(1)
-    return compute_psnr_torch(*_apply_signal_mask(output, target)).flatten().cpu()
+    return compute_psnr_torch(*_apply_signal_mask(output, target, part['metric_mask'])).flatten().cpu()
 
 
 def val_subset(stride):

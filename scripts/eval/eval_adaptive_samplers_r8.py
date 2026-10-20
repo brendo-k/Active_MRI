@@ -133,7 +133,7 @@ def psnr_with_donors(model, loader, maps, donors, device):
                 new = (probability > threshold) & maps['valid'][rows]
                 mask = (maps['old'][rows] | new).float().unsqueeze(1).to(device)
                 output = model(part['target'], part['kspace'], anatomy_labels=part['label'], fixed_mask=mask)['output']
-                results[name][rows] += compute_psnr_torch(*_apply_signal_mask(output, target)).flatten().cpu() / len(SEEDS)
+                results[name][rows] += compute_psnr_torch(*_apply_signal_mask(output, target, part['metric_mask'])).flatten().cpu() / len(SEEDS)
         start += count
     return results
 

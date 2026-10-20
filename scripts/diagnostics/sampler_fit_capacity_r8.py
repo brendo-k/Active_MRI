@@ -32,7 +32,8 @@ from omegaconf import OmegaConf
 import _path  # noqa: F401
 from activemri.samplers.conv import scores_to_prob
 from activemri.training.builders import build_dataloaders
-from activemri.training.trainer import _apply_signal_mask, _signal_mask, build_model
+from activemri.training.trainer import _apply_signal_mask, build_model
+from activemri.utils.metric_mask import metric_mask_from_real_kspace
 from activemri.utils.util import compute_psnr_torch
 
 RUN = Path('checkpoints/conv2d_varnet_r8_brain_knee_floor0.05')
@@ -68,10 +69,6 @@ def load_frozen(device):
     return model, checkpoint['options'].loss_type
 
 
-def support_fraction(target):
-    return _signal_mask(target if target.dim() == 4 else target.unsqueeze(1)).flatten(1).float().mean(1)
-
-
 def pick_slices(loader, per_anatomy, rng):
     """`per_anatomy` slices of each anatomy at evenly spaced support quantiles, from a random subset of the loader's batches."""
     chosen_batches = set(rng.choice(len(loader), min(POOL_BATCHES, len(loader)), replace=False).tolist())
@@ -79,10 +76,11 @@ def pick_slices(loader, per_anatomy, rng):
     for index, batch in enumerate(loader):
         if index not in chosen_batches:
             continue
-        support = support_fraction(batch['target'])
+        metric_mask = metric_mask_from_real_kspace(batch['kspace'].cuda(), batch['anatomy']).cpu()
+        support = metric_mask.flatten(1).mean(1)
         labels = batch.get('anatomy_labels')
         for row, anatomy in enumerate(batch['anatomy']):
-            pool[anatomy].append({'kspace': batch['kspace'][row], 'target': batch['target'][row],
+            pool[anatomy].append({'kspace': batch['kspace'][row], 'target': batch['target'][row], 'metric_mask': metric_mask[row],
                                   'label': labels[row] if torch.is_tensor(labels) else None,
                                   'support': float(support[row]), 'anatomy': anatomy})
     selected = []
@@ -96,13 +94,14 @@ def pick_slices(loader, per_anatomy, rng):
 def stack(slices):
     labels = [s['label'] for s in slices]
     return {'kspace': torch.stack([s['kspace'] for s in slices]), 'target': torch.stack([s['target'] for s in slices]),
+            'metric_mask': torch.stack([s['metric_mask'] for s in slices]),
             'label': torch.stack(labels) if all(l is not None for l in labels) else None,
             'anatomy': np.array([s['anatomy'] for s in slices]), 'support': [s['support'] for s in slices]}
 
 
 def chunk_of(data, positions, device):
     return {key: (value[positions].to(device) if torch.is_tensor(value) else None) for key, value in data.items()
-            if key in ('kspace', 'target', 'label')}
+            if key in ('kspace', 'target', 'metric_mask', 'label')}
 
 
 def positions_in_chunks(count, chunk):
@@ -148,7 +147,7 @@ def score(model, data, mask_fn, device, chunk):
             torch.manual_seed(seed * 1000 + index)
             mask, probability = mask_fn(part, positions)
             output = model(part['target'], part['kspace'], anatomy_labels=part['label'], fixed_mask=mask)['output']
-            masked_output, masked_target = _apply_signal_mask(output, part['target'] if part['target'].dim() == 4 else part['target'].unsqueeze(1))
+            masked_output, masked_target = _apply_signal_mask(output, part['target'] if part['target'].dim() == 4 else part['target'].unsqueeze(1), part['metric_mask'])
             psnr[positions] += compute_psnr_torch(masked_output, masked_target).flatten().cpu() / len(SCORING_SEEDS)
             if seed == SCORING_SEEDS[0]:
                 effective.append(probability.cpu())

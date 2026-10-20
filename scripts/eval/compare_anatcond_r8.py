@@ -37,6 +37,7 @@ from omegaconf import OmegaConf
 
 import _path  # noqa: F401
 from activemri.training.trainer import _AnatomyStats, _apply_signal_mask, build_model
+from activemri.utils.metric_mask import metric_mask_from_real_kspace
 from activemri.utils.util import compute_psnr_torch, compute_ssim_torch
 from activemri.training.builders import build_dataloaders
 
@@ -104,7 +105,7 @@ def evaluate(model, options, val_loader, device, seed, swap_labels):
         if isinstance(output, list):
             output = output[-1]
         target4 = target if output.dim() == target.dim() else target.unsqueeze(1)
-        masked_output, masked_target = _apply_signal_mask(output, target4)
+        masked_output, masked_target = _apply_signal_mask(output, target4, metric_mask_from_real_kspace(kspace, anatomies))
         stats.update(anatomies, masked_output, masked_target)
         rows['anatomy'] += anatomies
         rows['volume'] += [f'{a}/{f}' for a, f in zip(anatomies, batch['fname'])]

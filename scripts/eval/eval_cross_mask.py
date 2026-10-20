@@ -35,6 +35,7 @@ import torch
 
 import _path  # noqa: F401
 from activemri.training.trainer import _apply_signal_mask, build_model
+from activemri.utils.metric_mask import metric_mask_from_real_kspace
 from activemri.utils.evaluate import build_metrics
 from activemri.utils.util import compute_psnr_torch, compute_ssim_torch
 from activemri.datasets.fastmri_data import build_fastmri_dataloaders
@@ -68,7 +69,8 @@ def load_val_batches(anatomy, args):
     for i, batch in enumerate(val_loader):
         if args.max_batches and i >= args.max_batches:
             break
-        batches.append((batch['kspace'], batch['target'], list(batch['fname'])))
+        mask = metric_mask_from_real_kspace(batch['kspace'].to(args.device), [anatomy] * len(batch['kspace'])).cpu()
+        batches.append((batch['kspace'], batch['target'], list(batch['fname']), mask))
     return batches
 
 
@@ -83,13 +85,13 @@ def evaluate(model, batches, device):
     """Trainer-style aggregates plus per-slice PSNR/SSIM, all over the body mask."""
     metrics = build_metrics(device=device)
     psnr, ssim = [], []
-    for kspace, target, _ in batches:
-        kspace, target = kspace.to(device), target.to(device)
+    for kspace, target, _, mask in batches:
+        kspace, target, mask = kspace.to(device), target.to(device), mask.to(device)
         output = model(target, kspace)['output']
         if isinstance(output, list):
             output = output[-1]
         target_4d = target if target.dim() == output.dim() else target.unsqueeze(1)
-        masked_output, masked_target = _apply_signal_mask(output, target_4d)
+        masked_output, masked_target = _apply_signal_mask(output, target_4d, mask)
         data_range = target_4d.max()
         metrics['PSNR'].data_range = data_range
         metrics['SSIM'].data_range = data_range

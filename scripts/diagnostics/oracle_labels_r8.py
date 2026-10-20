@@ -31,6 +31,7 @@ import _path  # noqa: F401
 from activemri.samplers.conv import scores_to_prob
 from activemri.training.builders import build_dataloaders
 from activemri.training.trainer import _apply_signal_mask, build_model
+from activemri.utils.metric_mask import metric_mask_from_real_kspace
 from activemri.utils.image_processing import fft_2d_img, ifft_2d_img
 from activemri.utils.util import compute_psnr_torch
 
@@ -79,7 +80,8 @@ def loader_over(loader, indices, chunk):
 
 def to_device(batch, device):
     labels = batch.get('anatomy_labels')
-    return {'kspace': batch['kspace'].to(device), 'target': batch['target'].to(device),
+    kspace = batch['kspace'].to(device)
+    return {'kspace': kspace, 'target': batch['target'].to(device), 'metric_mask': metric_mask_from_real_kspace(kspace, batch['anatomy']),
             'label': labels.to(device) if torch.is_tensor(labels) else None}
 
 
@@ -119,7 +121,7 @@ def seeded_psnr(model, part, mask_fn, chunk_index):
         torch.manual_seed(seed * 100003 + chunk_index)
         output = model(part['target'], part['kspace'], anatomy_labels=part['label'], fixed_mask=mask_fn())['output']
         target = part['target'] if part['target'].dim() == 4 else part['target'].unsqueeze(1)
-        masked_output, masked_target = _apply_signal_mask(output, target)
+        masked_output, masked_target = _apply_signal_mask(output, target, part['metric_mask'])
         psnr += compute_psnr_torch(masked_output, masked_target).flatten().cpu() / len(SCORING_SEEDS)
     return psnr
 

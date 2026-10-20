@@ -117,7 +117,7 @@ def score(recon, estimator, data, pairs, maps):
             mask = torch.clamp(old_mask + (probability > torch.stack(noise).to(probability.device)).float() * valid_mask, max=1)
             output = recon(part['target'], part['kspace'], anatomy_labels=part['label'], fixed_mask=mask)['output']
             target_image = part['target'] if part['target'].dim() == 4 else part['target'].unsqueeze(1)
-            masked_output, masked_target = _apply_signal_mask(output, target_image)
+            masked_output, masked_target = _apply_signal_mask(output, target_image, part['metric_mask'])
             psnr[start:start + len(chunk)] += compute_psnr_torch(masked_output, masked_target).flatten().cpu() / len(SCORING_SEEDS)
     return psnr
 

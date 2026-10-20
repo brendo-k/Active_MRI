@@ -33,6 +33,7 @@ from torch.utils.data import DataLoader, Subset
 import _path  # noqa: F401
 from activemri.training.builders import build_dataloaders
 from activemri.training.trainer import _apply_signal_mask
+from activemri.utils.metric_mask import metric_mask_from_real_kspace
 from activemri.utils.util import compute_psnr_torch
 from mask_gradient_anatomy_r8 import load
 
@@ -84,7 +85,7 @@ def psnr_with(model, part, probability, seed_key):
         mask = model.sampler.select_locations(probability, old_mask, model.budget, valid_mask)[1]
         output = model(part['target'], part['kspace'], fixed_mask=mask)['output']
         target = part['target'] if part['target'].dim() == 4 else part['target'].unsqueeze(1)
-        psnr += compute_psnr_torch(*_apply_signal_mask(output, target)).flatten().cpu() / len(SCORING_SEEDS)
+        psnr += compute_psnr_torch(*_apply_signal_mask(output, target, part['metric_mask'])).flatten().cpu() / len(SCORING_SEEDS)
         l1 += (output - target).abs().flatten(1).mean(1).cpu() / len(SCORING_SEEDS)
     return psnr, l1
 
@@ -152,6 +153,7 @@ def main():
     position = 0
     for batch in loader:
         part = {'kspace': batch['kspace'].to(args.device), 'target': batch['target'].to(args.device)}
+        part['metric_mask'] = metric_mask_from_real_kspace(part['kspace'], batch['anatomy'])
         labels = labels_for(batch, classes, args.device)
         sources = {'shared': unscaled(shared, part['kspace'], None),
                    'anat_own': unscaled(anat, part['kspace'], labels),

@@ -40,7 +40,8 @@ from torch.utils.data import DataLoader, Subset
 import _path  # noqa: F401
 from activemri.samplers.conv import scores_to_prob
 from activemri.training.builders import build_dataloaders
-from activemri.training.trainer import _signal_mask, build_model
+from activemri.training.trainer import build_model
+from activemri.utils.metric_mask import metric_mask_from_real_kspace
 from activemri.utils.image_processing import fft_2d_img, ifft_2d_img
 from activemri.utils.mask_binarization import SIGMOID_PEAK_DERIVATIVE, floored_grad_sigmoid
 
@@ -103,7 +104,8 @@ def adjacent_pairs(dataset, pairs_per_anatomy, rng):
 
 def to_device(batch, device):
     labels = batch.get('anatomy_labels')
-    return {'kspace': batch['kspace'].to(device), 'target': batch['target'].to(device),
+    kspace = batch['kspace'].to(device)
+    return {'kspace': kspace, 'target': batch['target'].to(device), 'metric_mask': metric_mask_from_real_kspace(kspace, batch['anatomy']),
             'label': labels.to(device) if torch.is_tensor(labels) else None}
 
 
@@ -231,7 +233,7 @@ def collect(score_model, recon, loader, args):
         add('p_eff', torch.clamp(rescaled + old_mask, max=1)[:, 0])
         add('centre', old_mask[:, 0].bool())
         add('valid', valid_mask[:, 0].bool())
-        add('support', _signal_mask(target).flatten(1).mean(1))
+        add('support', part['metric_mask'].flatten(1).mean(1))
         meta['anatomy'] += list(batch['anatomy'])
         meta['fname'] += list(batch['fname'])
         meta['slice_id'] += [int(s) for s in batch['slice_id']]

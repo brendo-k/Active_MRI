@@ -23,6 +23,7 @@ import torch
 import _path  # noqa: F401
 from activemri.datasets.fastmri_data import build_fastmri_dataloaders
 from activemri.training.trainer import _apply_signal_mask, build_model
+from activemri.utils.metric_mask import metric_mask_from_real_kspace
 from activemri.utils.evaluate import build_metrics
 
 CONFIG_NUM_COILS = {'brain': 16, 'knee': 15}
@@ -39,9 +40,9 @@ def load_model(run_dir, device):
     return model, ckpt['epoch'] + 1
 
 
-def masked_pair(output, target):
+def masked_pair(output, target, kspace, anatomies):
     target = target if target.dim() == output.dim() else target.unsqueeze(1)
-    return _apply_signal_mask(output, target)
+    return _apply_signal_mask(output, target, metric_mask_from_real_kspace(kspace, anatomies))
 
 
 def mean_metrics(metric_collection):

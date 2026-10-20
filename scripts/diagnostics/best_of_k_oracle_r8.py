@@ -93,7 +93,7 @@ def psnr_over_seeds(model, part, logits, chunk_index, seeds):
         mask = masks_from_logits(model, logits, part['kspace'])
         output = model(part['target'], part['kspace'], anatomy_labels=part['label'], fixed_mask=mask)['output']
         target = part['target'] if part['target'].dim() == 4 else part['target'].unsqueeze(1)
-        psnr += compute_psnr_torch(*_apply_signal_mask(output, target)).flatten().cpu() / len(seeds)
+        psnr += compute_psnr_torch(*_apply_signal_mask(output, target, part['metric_mask'])).flatten().cpu() / len(seeds)
     return psnr
 
 
