@@ -43,7 +43,7 @@ from mask_gradient_anatomy_r8 import ScoreModel, load, per_sample_l1
 
 RUN = Path('checkpoints/loupe2d_cgsense_r8_brain_knee_prototable_bilinear_const_100ep')
 SHARED_RUN = Path('checkpoints/loupe2d_cgsense_r8_brain_knee_shared_bilinear_const_100ep')
-OUT_DIR = Path('analysis/anatcond_cgsense/metric_apodized')
+OUT_DIR = Path('reports/cgsense_anatcond/metric_apodized')
 TS = (0.0, 0.05, 0.1, 0.25, 0.5, 0.75, 1.0)
 SLOPE_TS = (0.0, 0.05, 0.1, 0.25)
 RING_PX = 2

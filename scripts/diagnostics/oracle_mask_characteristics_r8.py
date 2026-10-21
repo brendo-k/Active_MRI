@@ -48,7 +48,7 @@ from label_predictor_gonogo_r8 import ANATOMIES, available_of, label_probability
 from oracle_init_identifiability_r8 import REFITS, leave_one_out_reference, matched_rows
 from oracle_labels_r8 import OUT_DIR, RUN, load_frozen, loader_over, masks_from_logits, to_device
 
-OUT = Path('analysis/label_gonogo/oracle_mask_characteristics.json')
+OUT = Path('reports/label_gonogo_r8/oracle_mask_characteristics.json')
 RINGS = (0, 8, 16, 32, 64, 1000)
 LAGS = {'axis0_lag1': (1, 0), 'axis0_lag2': (2, 0), 'axis1_lag1': (0, 1), 'axis1_lag2': (0, 2), 'diagonal_lag1': (1, 1)}
 

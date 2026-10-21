@@ -13,12 +13,12 @@ preselected centre with the same maps (both from the 24 x 24 calibration):
 
     python scripts/eval/eval_cgsense_mask_variants_r8.py
     python scripts/eval/eval_cgsense_mask_variants_r8.py --runs ecalib_c10 ecalib_c24 --reference ecalib_c10 \\
-        --out analysis/acs_gate_cgsense/population_c24_vs_c10.json
+        --out reports/acs_gate_cgsense_r8/population_c24_vs_c10.json
 
 The 100-epoch line (bilinear sense upsampling, constant lr, all from a random start):
 
     python scripts/eval/eval_cgsense_mask_variants_r8.py --runs shared_100ep anatomy_100ep protocol_100ep \\
-        --reference shared_100ep --out analysis/cgsense_mask_variants/eval_100ep.json
+        --reference shared_100ep --out reports/cgsense_mask_variants_r8/eval_100ep.json
 """
 import argparse
 import json
@@ -55,7 +55,7 @@ SWAP = {'brain': 'knee', 'knee': 'brain', 'knee-PD': 'knee-PDFS', 'knee-PDFS': '
 GROUPS = ('brain', 'knee', 'knee-PD', 'knee-PDFS')
 SCORING_SEEDS = (0, 1)
 BOOTSTRAPS = 2000
-OUT = Path('analysis/cgsense_mask_variants/eval.json')
+OUT = Path('reports/cgsense_mask_variants_r8/eval.json')
 
 
 def parse_args():

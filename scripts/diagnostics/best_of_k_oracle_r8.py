@@ -38,7 +38,7 @@ from label_predictor_gonogo_r8 import (ANATOMIES, anatomy_reference, available_o
                                        load_shards, logit_of)
 from oracle_labels_r8 import OUT_DIR, RUN, SCORING_SEEDS, load_frozen, loader_over, masks_from_logits, to_device
 
-OUT = Path('analysis/label_gonogo/best_of_k_oracle.json')
+OUT = Path('reports/label_gonogo_r8/best_of_k_oracle.json')
 SELECTION_SEEDS = (10, 11)
 MEDOID_ITERATIONS = 20
 

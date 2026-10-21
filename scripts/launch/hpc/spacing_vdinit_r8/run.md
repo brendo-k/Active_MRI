@@ -2,7 +2,7 @@
 
 Two questions, one SLURM array:
 
-1. **Does sample spacing matter for VarNet at R=8?** The learned LOUPE mask's pixel spacing matches an independent random draw (nearest-neighbour pair correlation 0.86, vs 0.87 for a random draw; `analysis/mask_spacing/mask_spacing_r8.json`). If a Poisson-disc mask with the *same* density, centre and count beats an independent draw, then position-aware mask learners (BASS, AutoSamp) have room to beat LOUPE. If they tie, LOUPE's density is close to the ceiling.
+1. **Does sample spacing matter for VarNet at R=8?** The learned LOUPE mask's pixel spacing matches an independent random draw (nearest-neighbour pair correlation 0.86, vs 0.87 for a random draw; `reports/mask_spacing_r8/mask_spacing_r8.json`). If a Poisson-disc mask with the *same* density, centre and count beats an independent draw, then position-aware mask learners (BASS, AutoSamp) have room to beat LOUPE. If they tie, LOUPE's density is close to the ceiling.
 2. **Does starting LOUPE from a variable-density (VD) prior help?** This is the low-frequency prior of Sun et al. (TCI 2024) used as an initialisation: `clamp(c ((D - r)/D)^4, 0.01, 0.99)`, with `c` set so the starting map holds exactly the sample budget. Compared with the default uniform-random start, at the same seed.
 
 ## Folder

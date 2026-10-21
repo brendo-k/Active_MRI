@@ -35,7 +35,7 @@ import _path  # noqa: F401
 from activemri.utils.mask_binarization import RescaleProbMap
 from mask_spacing_r8 import VARNET_LOUPE, pair_correlation
 
-OUT_DIR = Path('analysis/mask_spacing/masks_r8')
+OUT_DIR = Path('reports/mask_spacing_r8/masks_r8')
 RING_WIDTH = 8
 COMPENSATION_SIGMA = 6.0
 BANDS = ((0, 24), (24, 48), (48, 96), (96, 182))

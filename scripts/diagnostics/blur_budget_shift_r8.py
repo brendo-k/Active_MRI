@@ -20,7 +20,7 @@ from label_predictor_gonogo_r8 import ANATOMIES, anatomy_reference, available_of
 from oracle_blur_psnr_r8 import density_blurred
 from oracle_labels_r8 import OUT_DIR
 
-OUT = Path('analysis/label_gonogo/blur_budget_shift.json')
+OUT = Path('reports/label_gonogo_r8/blur_budget_shift.json')
 RINGS = ((0, 8), (8, 16), (16, 32), (32, 64), (64, 256))
 
 

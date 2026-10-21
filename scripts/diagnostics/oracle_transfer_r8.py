@@ -30,7 +30,7 @@ from activemri.training.trainer import build_model
 from label_predictor_gonogo_r8 import ANATOMIES, anatomy_reference, bootstrap_ci, label_probability, load_shards, logit_of
 from oracle_labels_r8 import OUT_DIR, RUN, loader_over, masks_from_logits, seeded_psnr, to_device
 
-OUT = Path('analysis/label_gonogo/oracle_transfer.json')
+OUT = Path('reports/label_gonogo_r8/oracle_transfer.json')
 RECONSTRUCTORS = (
     RUN,
     Path('checkpoints/conv2d_varnet_r8_brain_knee_floor0.05_draws2'),

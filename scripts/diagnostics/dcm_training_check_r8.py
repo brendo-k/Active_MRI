@@ -34,7 +34,7 @@ RUNS = {
     'DCM protocol': 'checkpoints/loupe2d_cgsense_r8_brain_knee_dcm_prototable',
 }
 MARGINS = (0.01, 0.05)
-OUT = Path('analysis/cgsense_mask_variants/dcm_training_check.json')
+OUT = Path('reports/cgsense_mask_variants_r8/dcm_training_check.json')
 
 
 def parse_args():

@@ -34,7 +34,7 @@ RUNS = {
     'DCM anatomy': 'checkpoints/loupe2d_cgsense_r8_brain_knee_dcm_anatcond',
     'DCM protocol': 'checkpoints/loupe2d_cgsense_r8_brain_knee_dcm_prototable',
 }
-OUT_JSON = Path('analysis/cgsense_mask_variants/masks.json')
+OUT_JSON = Path('reports/cgsense_mask_variants_r8/masks.json')
 OUT_FIG = Path('reports/figures/cgsense_mask_variants_r8.png')
 OUTER_RADIUS = 64
 

@@ -48,7 +48,7 @@ from mask_gradient_anatomy_r8 import load
 from subject_coadapt_ceiling_r8 import (ANATOMY_INDEX, LOUPE_RUN, PROBABILITY_EPS, Slices, control_slices, evenly,
                                         masks_from_logits, volume_groups)
 
-OUT_DIR = Path('analysis/subject_coadapt/ssl')
+OUT_DIR = Path('reports/subject_coadaptation_r8/ssl')
 ACQUISITION_SEED = 0
 
 

@@ -44,7 +44,7 @@ from label_predictor_gonogo_r8 import (ANATOMIES, anatomy_reference, available_o
                                        label_probability, load_shards, logit_of)
 from oracle_labels_r8 import OUT_DIR, RUN, load_frozen, loader_over, masks_from_logits, seeded_psnr, to_device
 
-OUT = Path('analysis/label_gonogo/smooth_predictor.json')
+OUT = Path('reports/label_gonogo_r8/smooth_predictor.json')
 PROTOCOLS = ('brain', 'knee-PD', 'knee-PDFS')
 CV_FOLDS = 5
 PENALTIES = np.logspace(-3, 4, 15)

@@ -78,16 +78,16 @@ repository README.
    image), realised adaptive gain / oracle gain is computed against the same static reference.
 5. **In-house evidence** is re-read from existing outputs, not new experiments:
    - `reports/conv_vs_loupe_r8/label_gonogo.json`, `reports/conv_vs_loupe_r8/adaptivity.json`;
-   - `analysis/label_gonogo/{acs_vs_label_similarity,oracle_blur_density,smooth_predictor,best_of_k_oracle,oracle_init_identifiability}.json`;
-   - `analysis/label_gonogo/reweighted/privileged_full_gain_lr1e-3_dev0.json`;
+   - `reports/label_gonogo_r8/{acs_vs_label_similarity,oracle_blur_density,smooth_predictor,best_of_k_oracle,oracle_init_identifiability}.json`;
+   - `reports/label_gonogo_r8/reweighted/privileged_full_gain_lr1e-3_dev0.json`;
    - `reports/adaptivity_next_steps_r8/screen_{observed10,centre24,full}.json`;
    - `reports/anatcond_r8/{paired,label_swap_100ep}.json` (from `scripts/eval/compare_anatcond_r8.py` and
      `scripts/eval/label_swap_anatcond.py`);
-   - `analysis/anatcond_cgsense/cross_eval_100ep{,_train}.json`;
+   - `reports/cgsense_anatcond/cross_eval_100ep{,_train}.json`;
    - wandb summaries.
 
    One new number is the per-volume base PSNR spread (`scripts/diagnostics/per_volume_base_psnr_spread.py` ->
-   `analysis/subject_coadapt/per_volume_base_psnr_spread.json`). It covers the 22 volumes of the block-split
+   `reports/subject_coadaptation_r8/per_volume_base_psnr_spread.json`). It covers the 22 volumes of the block-split
    subject co-adaptation runs, with the LOUPE VarNet `uo8d68n0` as base, averaged over each volume's scored slices.
    - Label "predictability" is the correlation of a predicted mask deviation with the oracle label's deviation from
      the anatomy mean.

@@ -31,7 +31,7 @@ from activemri.utils.evaluate import build_metrics
 CACHE_DIR = pathlib.Path('/export/scratch/bkadota/space_cache')
 RANDOM_SEEDS = range(5)
 CG_ITERATIONS, CG_LAMDA = 30, 0.01  # the classical baseline given the identical mask and data
-OUT_DIR = pathlib.Path(__file__).resolve().parents[2] / 'analysis/oct7_scan'
+OUT_DIR = pathlib.Path(__file__).resolve().parents[2] / 'reports/oct7_scan'
 
 
 def load(checkpoint_path, device):

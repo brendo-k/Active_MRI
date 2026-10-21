@@ -39,7 +39,7 @@ from label_predictor_gonogo_r8 import (ANATOMIES, anatomy_reference, available_o
                                        load_shards, logit_of)
 from oracle_labels_r8 import OUT_DIR, RUN, load_frozen, loader_over, masks_from_logits, seeded_psnr, to_device
 
-OUT = Path('analysis/label_gonogo/oracle_init_identifiability.json')
+OUT = Path('reports/label_gonogo_r8/oracle_init_identifiability.json')
 REFITS = {'retest': Path(f'{OUT_DIR}_retest'), 'init_loupe': Path(f'{OUT_DIR}_init_loupe'),
           'init_noise': Path(f'{OUT_DIR}_init_noise')}
 

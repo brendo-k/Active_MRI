@@ -10,7 +10,7 @@ from pathlib import Path
 
 import numpy as np
 
-ROOT = Path('analysis/subject_coadapt')
+ROOT = Path('reports/subject_coadaptation_r8')
 BOOTSTRAPS = 2000
 TAIL_UNSUPPORTED = 0.3
 FAMILIES = ('param', 'grid')
@@ -19,7 +19,7 @@ PARAM_NAMES = ('scale', 'anisotropy_a', 'anisotropy_b', 'tilt')
 
 def parse_args():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument('--ceiling-dirs', default='brain,knee', help='folders under analysis/subject_coadapt, one table each')
+    parser.add_argument('--ceiling-dirs', default='brain,knee', help='folders under reports/subject_coadaptation_r8, one table each')
     parser.add_argument('--ssl-dirs', default='', help='comma-separated folders under ssl/, e.g. brain,knee')
     parser.add_argument('--out', type=Path, default=ROOT / 'summary.md')
     parser.add_argument('--exclude', default='', help='comma-separated volume file names left out of the ceiling tables')

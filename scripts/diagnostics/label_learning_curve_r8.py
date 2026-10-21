@@ -12,7 +12,7 @@ Targets, all against the full training set's anatomy-mean label (fixed for every
 
 Predictability is the per-slice correlation of (prediction - the subset's own mean target) with (target - the full
 training mean), so a small subset is not charged for estimating the population map, only for the per-slice part.
-At fraction 1 the smooth targets reproduce analysis/label_gonogo/smooth_predictor.json. Steps between fractions
+At fraction 1 the smooth targets reproduce reports/label_gonogo_r8/smooth_predictor.json. Steps between fractions
 and the slope per doubling are paired over the same validation slices, with volume-bootstrap 95% intervals.
 
     python scripts/diagnostics/label_learning_curve_r8.py --device cuda:3
@@ -37,8 +37,8 @@ from label_predictor_gonogo_r8 import (ANATOMIES, BOOTSTRAPS, anatomy_reference,
 from oracle_labels_r8 import OUT_DIR, RUN, load_frozen, loader_over, sampler_input, to_device
 from smooth_label_predictor_r8 import PENALTIES, features, log_ratio
 
-OUT = Path('analysis/label_gonogo/learning_curve.json')
-REFERENCE = Path('analysis/label_gonogo/smooth_predictor.json')
+OUT = Path('reports/label_gonogo_r8/learning_curve.json')
+REFERENCE = Path('reports/label_gonogo_r8/smooth_predictor.json')
 PIXEL_SIGMA = 4
 MAX_FOLDS = 5
 SPOT_CHECKS = 4

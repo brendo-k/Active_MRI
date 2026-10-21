@@ -45,7 +45,7 @@ from label_curriculum_r8 import gaussian_blur
 from mask_gradient_anatomy_r8 import load, to_device
 
 LOUPE_RUN = Path('checkpoints/grad_floor_compare/loupe2d_r8_slope5_floor0.05')
-OUT_DIR = Path('analysis/subject_coadapt')
+OUT_DIR = Path('reports/subject_coadaptation_r8')
 LOGITS_DIR = Path('/tmp/bkadota_subject_coadapt')
 LOSS_WEIGHTS = {'recon_weight': 1.0, 'kspace_weight': 0.0, 'uncertainty_weight': 0.0, 'anatomy_weight': 0.0}
 SCORING_SEEDS = (0, 1, 2, 3)

@@ -36,7 +36,7 @@ from label_predictor_gonogo_r8 import ANATOMIES, anatomy_reference, bootstrap_ci
 from oracle_labels_r8 import (OUT_DIR, RUN, load_frozen, loader_over, masks_from_logits, recon_loss, seeded_psnr,
                               tiled, to_device)
 
-OUT = Path('analysis/label_gonogo/proxy_target_oracle.json')
+OUT = Path('reports/label_gonogo_r8/proxy_target_oracle.json')
 FIT_DIR = Path('/tmp/bkadota_proxy_oracle')
 
 

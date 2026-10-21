@@ -10,12 +10,12 @@ from pathlib import Path
 
 import numpy as np
 
-ROOT = Path('analysis/subject_coadapt')
+ROOT = Path('reports/subject_coadaptation_r8')
 
 
 def parse_args():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument('--dirs', default='brain_block_full,knee_block_full', help='folders under analysis/subject_coadapt')
+    parser.add_argument('--dirs', default='brain_block_full,knee_block_full', help='folders under reports/subject_coadaptation_r8')
     parser.add_argument('--out', type=Path, default=ROOT / 'per_volume_base_psnr_spread.json')
     return parser.parse_args()
 

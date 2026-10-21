@@ -61,14 +61,14 @@ All runs: CG-SENSE R=8 (R=4 where stated), balanced brain T2 + knee, LOUPE slope
    - Both then train 50 more epochs at constant lr 1e-3, seed 42.
    - The test arm has one mask row per anatomy; the control keeps one shared mask.
 3. **Starting draws** (`scripts/diagnostics/cgsense_init_draws_r8.py`, output
-   `analysis/anatcond_cgsense/init_draws.json`).
+   `reports/cgsense_anatcond/init_draws.json`).
    - `ProbMask` draws one uniform logit field per class, in class order, from the global RNG right after the
      trainer seeds it.
    - So `torch.manual_seed(seed); ProbMask(shape, slope, 3)` reproduces each run's starting logits.
    - The script correlates every row's final logits with draws 0–2, and every row's final probability map with
      every other row's.
 4. Earlier numbers are reused from three sources:
-   - `analysis/cgsense_mask_variants/eval.md` (per-protocol run);
+   - `reports/cgsense_mask_variants_r8/eval.md` (per-protocol run);
    - `reports/cgsense_anatcond/paired_r4.json` (R=4);
    - `reports/sens_upsample_r8/seeds_comparison.json` (seed 42 vs 43 shared masks).
 
@@ -243,8 +243,8 @@ Two explanations fit, and the existing runs do not separate them.
 ## Figures
 No new figures.
 - Masks of the from-scratch variants: `reports/figures/cgsense_mask_variants_r8.png`.
-- Numbers: `analysis/anatcond_cgsense/cross_eval_{50ep,100ep,100ep_train,sharedinit,sharedinit_train}.{json,log}`
-  and `analysis/anatcond_cgsense/init_draws.json`.
+- Numbers: `reports/cgsense_anatcond/cross_eval_{50ep,100ep,100ep_train,sharedinit,sharedinit_train}.{json,log}`
+  and `reports/cgsense_anatcond/init_draws.json`.
 - `cross_eval_sharedinit_smoke*` are an earlier every-64th-slice check, taken with the control at about epoch 33.
   Not used here.
 

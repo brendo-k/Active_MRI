@@ -14,7 +14,7 @@ Conventions: masks are 256x256 k-space, centre = DC; "probabilistic mask" is the
 ## Runs compared
 Both: `train.py --model loupe --recon cg_sense --dataset brain_knee_balanced --acceleration 8 --batch-size 16
 --epochs 50 --seed {42,43}`. CG-SENSE 10 iterations, lambda 0; LOUPE 2D, slope 10, grad floors 0, lr 1e-3 with step
-schedule, 2 seeds per arm. Brain + knee, balanced. The seed-43 runs were launched by `analysis/sens_upsample/run_seed43.sh`.
+schedule, 2 seeds per arm. Brain + knee, balanced. The seed-43 runs were launched by `reports/sens_upsample_r8/run_seed43.sh`.
 
 | Group | Path | wandb | `sens_upsample_method` | Final brain PSNR / SSIM | Final knee PSNR / SSIM |
 |---|---|---|---|---|---|

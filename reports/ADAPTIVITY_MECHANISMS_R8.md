@@ -98,11 +98,11 @@ The toy (method 8) is a separate 32 x 32 problem with two image classes whose be
 
    Each slice map is scored on its own slice, its neighbour and two other volumes, as a gain over the shared map.
 7. **Label predictability** (`scripts/diagnostics/oracle_labels_r8.py`, `label_predictor_gonogo_r8.py`, chain in
-   `analysis/label_gonogo/`). Per-slice oracle masks fitted through the frozen conv ep50 reconstructor for 1200
+   `reports/label_gonogo_r8/`). Per-slice oracle masks fitted through the frozen conv ep50 reconstructor for 1200
    training and 128 validation slices, a 32-slice retest with another seed, and the conv sampler's U-Net fine-tuned
    to predict them.
 8. **Toy** (`scripts/diagnostics/toy_adaptive_sampling.py`, grid in
-   `analysis/adaptivity_mechanisms/run_toy.sh`). 32 x 32 real images: a smooth blob plus five bars, vertical for
+   `reports/adaptivity_mechanisms_r8/run_toy.sh`). 32 x 32 real images: a smooth blob plus five bars, vertical for
    class A (energy along kx) and horizontal for class B. R=8 with the 4 x 4 centre preselected, and the conv sampler's
    estimator (`scores_to_prob` clamp, rescale, floored Bernoulli straight-through). Reconstructor: 3 unrolled CNN
    cascades with differentiable data consistency.
@@ -124,7 +124,7 @@ The toy (method 8) is a separate 32 x 32 problem with two image classes whose be
    - the class probe of the net's hidden features;
    - a gradient split at the static mask;
    - a quality control: the reconstructor of the joint table run, well fitted but co-adapted to class-specific masks
-     (`analysis/adaptivity_mechanisms/run_toy_quality_control.sh`).
+     (`reports/adaptivity_mechanisms_r8/run_toy_quality_control.sh`).
 
 ## Results
 
@@ -494,7 +494,7 @@ masks. The same arms with `recon.adaptive_input` + `recon.dc_weight_map` are in 
   - Static control: the same sampler with the offset off. Positive control: one base map per anatomy, given the label.
 - **Training.** Every arm starts from the LOUPE run's mask and reconstructor (`uo8d68n0`). 10 epochs, batch 16,
   reconstructor lr 1e-4, base lr 1e-3, offset-predictor lr 1e-4, seed 42; launchers in
-  `analysis/adaptivity_next_steps/`.
+  `reports/adaptivity_next_steps_r8/`.
 - **Generalist reconstructor** (`scripts/diagnostics/generalist_recon_r8.py`): the LOUPE VarNet fine-tuned for 6000
   steps on per-slice masks from two families:
   - smooth reshapes of the LOUPE and conv maps (sigma up to 2.5 logits, length 8-32 px);
@@ -616,7 +616,7 @@ anatomy's mean? A 24 x 24 centre is 576 samples (7.0% of the R=8 budget of 8192)
 - **Predictor:** the go/no-go predictor of Result 1 (the conv sampler's U-Net fine-tuned to the per-slice oracle
   labels; BCE, lr 1e-4, 40 epochs, 1200 training labels, 128 validation labels), unchanged except for its input:
   `scripts/diagnostics/label_predictor_gonogo_r8.py --screen --predictor-input observed | centre --centre-size 24 | full`,
-  launched by `analysis/adaptivity_next_steps/run_centre_screens.sh`.
+  launched by `reports/adaptivity_next_steps_r8/run_centre_screens.sh`.
 - **Predictability:** the correlation, over available k-space locations, between the predictor's deviation from the
   anatomy-mean label and the label's own deviation.
 - **Ceiling:** the same correlation between two labels of one slice fitted with different seeds.
@@ -628,7 +628,7 @@ anatomy's mean? A 24 x 24 centre is 576 samples (7.0% of the R=8 budget of 8192)
 | 10 x 10 centre (today's sampler input) | lr 1e-4, unweighted | 0.060 | 0.058 | 0.054 | `reports/adaptivity_next_steps_r8/screen_observed10.json` (original go/no-go run: 0.061 / 0.058 / 0.055) |
 | 24 x 24 centre | lr 1e-4, unweighted | 0.059 | 0.057 | 0.053 | `reports/adaptivity_next_steps_r8/screen_centre24.json` |
 | full k-space | lr 1e-4, unweighted | 0.123 | 0.117 | 0.108 | `reports/adaptivity_next_steps_r8/screen_full.json` |
-| full k-space | lr 1e-3, gain-weighted, deviation weight 0 / 1 | 0.154 / 0.162 | 0.140 / 0.151 | 0.143 / 0.198 | `analysis/label_gonogo/reweighted/privileged_full_gain_lr1e-3_dev{0,1}.json` |
+| full k-space | lr 1e-3, gain-weighted, deviation weight 0 / 1 | 0.154 / 0.162 | 0.140 / 0.151 | 0.143 / 0.198 | `reports/label_gonogo_r8/reweighted/privileged_full_gain_lr1e-3_dev{0,1}.json` |
 | two labels of the same slice (ceiling) | | | 0.970 | | |
 
 - **24 x 24 does not help.**
@@ -663,13 +663,13 @@ the +0.91 dB oracle gain a property of the slice or of the frozen reconstructor 
 
 | Test | Script / output | Result |
 |---|---|---|
-| Gain-weighted BCE, lr 1e-3 (screen, val / train fit) | `label_predictor_gonogo_r8.py`, `analysis/label_gonogo/reweighted/` | 0.072 / 0.095 (was 0.061 / 0.055) |
+| Gain-weighted BCE, lr 1e-3 (screen, val / train fit) | `label_predictor_gonogo_r8.py`, `reports/label_gonogo_r8/reweighted/` | 0.072 / 0.095 (was 0.061 / 0.055) |
 | Same + (1 - corr) loss term | same | 0.065 / 0.139 |
 | Gain-weighted, full go/no-go (688 val slices, PSNR vs fitted per-anatomy map) | `reports/conv_vs_loupe_r8/label_gonogo_gain_lr1e-3_dev0.json` | predictor +0.001 [-0.014, +0.018], kNN -0.021 [-0.039, -0.001], oracle +0.915 [+0.80, +1.03]: **no-go** |
-| Deviation-only U-Net (zero-init offset on the anatomy-mean logit), memorise 64 train slices | `label_curriculum_r8.py --memorise 64`, `analysis/label_gonogo/curriculum/` | corr 0.26 after 600 steps with ACS-image input; k-space inputs lower |
+| Deviation-only U-Net (zero-init offset on the anatomy-mean logit), memorise 64 train slices | `label_curriculum_r8.py --memorise 64`, `reports/label_gonogo_r8/curriculum/` | corr 0.26 after 600 steps with ACS-image input; k-space inputs lower |
 | Coarse-to-fine curriculum (blur sigma 8 -> 0 on the target) | `label_curriculum_r8.py`, same folder | no better than sigma 0 alone; stopped |
-| Oracle with its deviation from the anatomy mean blurred (128 labelled val slices) | `oracle_blur_psnr_r8.py`, `analysis/label_gonogo/oracle_blur.json` | sigma 0 +0.921, 1 +0.117, 2 -0.035, 4 -0.075, 8 -0.085, 16 -0.090 dB |
-| Oracle labels scored through other frozen reconstructors | `oracle_transfer_r8.py`, `analysis/label_gonogo/oracle_transfer_summary.txt` | own +0.92, conv draws2 +0.64, conv imginput +0.65, random-mask VarNet -0.62; another same-anatomy slice's label -0.37 to -0.40 on every conv VarNet |
+| Oracle with its deviation from the anatomy mean blurred (128 labelled val slices) | `oracle_blur_psnr_r8.py`, `reports/label_gonogo_r8/oracle_blur.json` | sigma 0 +0.921, 1 +0.117, 2 -0.035, 4 -0.075, 8 -0.085, 16 -0.090 dB |
+| Oracle labels scored through other frozen reconstructors | `oracle_transfer_r8.py`, `reports/label_gonogo_r8/oracle_transfer_summary.txt` | own +0.92, conv draws2 +0.64, conv imginput +0.65, random-mask VarNet -0.62; another same-anatomy slice's label -0.37 to -0.40 on every conv VarNet |
 
 - **The gain is pixel-precise.** A 1 px blur keeps 13% of it and 2 px or more is worse than the anatomy mean, so no
   smooth or coarse target, and no curriculum through one, can carry it.
@@ -682,7 +682,7 @@ the +0.91 dB oracle gain a property of the slice or of the frozen reconstructor 
 mask is the practical ceiling found so far. Multi-step (within-scan) adaptivity is out of scope for SPACE because the
 echo-train evolution is not modelled (`reports/FUTURE_DIRECTIONS.md`).
 
-**Proxy-target oracle** (`scripts/diagnostics/proxy_target_oracle_r8.py`, `analysis/label_gonogo/proxy_target_oracle.json`).
+**Proxy-target oracle** (`scripts/diagnostics/proxy_target_oracle_r8.py`, `reports/label_gonogo_r8/proxy_target_oracle.json`).
 The oracle fit (same prior init, 120 steps, frozen VarNet) was run against the RSS of the zero-filled n x n centre
 instead of the ground truth, then scored against the ground truth:
 
@@ -756,10 +756,10 @@ Separately, does the earlier blurred-oracle test hold up? It concluded that the 
   - At every sigma of 1 or more, logit-space blur moves 3-4% of the budget from the outermost ring into the 8-32 px
     rings. Density-space blur keeps every ring within 0.001.
   - The earlier finding (blurs of 2 px or more lose 0.04-0.09 dB against the anatomy mean;
-    `analysis/label_gonogo/oracle_blur.json`) therefore mixes a budget shift into the test. It is rerun below.
+    `reports/label_gonogo_r8/oracle_blur.json`) therefore mixes a budget shift into the test. It is rerun below.
 
 **The oracle-blur test in density space** (`oracle_blur_psnr_r8.py --space density`,
-`analysis/label_gonogo/oracle_blur_density.json`).
+`reports/label_gonogo_r8/oracle_blur_density.json`).
 - **Setup:** 128 labelled validation slices, the labels' own frozen VarNet, 4 seeded draws per slice shared by every
   arm, and a 95% interval over volumes.
 - **What changes:** each slice's mask is the anatomy mean times the label's smoothed density ratio, so it keeps the
@@ -786,7 +786,7 @@ Separately, does the earlier blurred-oracle test hold up? It concluded that the 
   - The curriculum (`label_curriculum_r8.py`) used logit-blurred targets.
 
 **Can the smooth part be predicted from the calibration?** (`scripts/diagnostics/smooth_label_predictor_r8.py`,
-`analysis/label_gonogo/smooth_predictor.json`)
+`reports/label_gonogo_r8/smooth_predictor.json`)
 - **Target:** each slice's smoothed log density ratio against the anatomy mean (sigma 4 or 8). Each arm's mask is the
   anatomy mean times exp(predicted ratio), scored as in the table above (same slices, VarNet and draws).
 - **Predictors**, fitted on the 1200 training labels:
@@ -864,7 +864,7 @@ Separately, does the earlier blurred-oracle test hold up? It concluded that the 
   - Whether a jointly trained reconstructor keeps the predictors' +0.01-0.03 dB is untested.
   - Result 3 measured a mismatch tax of about 25% on mask changes.
 - The predictors' output scale was not tuned (ridge shrinks it).
-- The blurred oracles are fitted with the ground truth, so they bound what a predictor could reach. Through other VarNets the full oracle kept about 70% of its gain (`analysis/label_gonogo/oracle_transfer_summary.txt`).
+- The blurred oracles are fitted with the ground truth, so they bound what a predictor could reach. Through other VarNets the full oracle kept about 70% of its gain (`reports/label_gonogo_r8/oracle_transfer_summary.txt`).
 - The labels were fitted through one frozen VarNet (the conv run's), with a 10 x 10 centre at R=8.
 - fastMRI slices are only a loose proxy for SPACE readout positions.
 - Knee has only 19 PD and 21 PDFS training volumes, and 4 and 6 in validation.
@@ -874,7 +874,7 @@ Separately, does the earlier blurred-oracle test hold up? It concluded that the 
 **Question.** SUNO-style selection: if a perfect selector picks, per slice, the best of K candidate masks, does it
 beat the anatomy-mean label? Candidates are K per-anatomy k-medoids of the 1200 training oracle labels (sharp label
 masks, not averages). The pick uses draws 10-11; reported PSNR uses the shared scoring draws 0-3. Frozen conv ep50
-VarNet, 128 labelled val slices (`scripts/diagnostics/best_of_k_oracle_r8.py`, `analysis/label_gonogo/best_of_k_oracle.json`).
+VarNet, 128 labelled val slices (`scripts/diagnostics/best_of_k_oracle_r8.py`, `reports/label_gonogo_r8/best_of_k_oracle.json`).
 
 | Arm vs anatomy-mean label (dB) | K = 4 | K = 16 | K = 64 |
 |---|---|---|---|
@@ -904,7 +904,7 @@ convert to predictor ceilings by a square root.
 
 **Method.**
 - **ACS vs label similarity** (`scripts/diagnostics/acs_vs_label_similarity_r8.py`,
-  `analysis/label_gonogo/acs_vs_label_similarity.json`). Every same-anatomy pair of the 1200 training labels.
+  `reports/label_gonogo_r8/acs_vs_label_similarity.json`). Every same-anatomy pair of the 1200 training labels.
   - *ACS similarity:* |<a, b>| / (|a| |b|) of the sampler's own input (the SENSE-combined 10 x 10 centre, complex).
     This equals the correlation of the two 10 x 10 low-resolution images. Also the correlation of mean-removed log
     magnitudes.
@@ -919,7 +919,7 @@ convert to predictor ceilings by a square root.
   - Pairs are grouped by slice distance within a volume, and other volumes. Also each slice's nearest-ACS slice in
     another volume.
 - **Start dependence** (`scripts/diagnostics/oracle_init_identifiability_r8.py`,
-  `analysis/label_gonogo/oracle_init_identifiability.json`).
+  `reports/label_gonogo_r8/oracle_init_identifiability.json`).
   - The 32 retest slices were refitted with the retest's settings (frozen conv ep50 VarNet, 120 steps, 2 draws,
     lr 0.05, seed 1), from two other starts:
     - LOUPE's logits (slope x w of `uo8d68n0`; logit correlation 0.62 with `prior.pt`; 0.137 dB worse than the
@@ -1023,7 +1023,7 @@ convert to predictor ceilings by a square root.
 
 **Method.**
 - **Mask properties** (`scripts/diagnostics/oracle_mask_characteristics_r8.py`,
-  `analysis/label_gonogo/oracle_mask_characteristics.json`). The 128 labelled validation slices; d is a label's
+  `reports/label_gonogo_r8/oracle_mask_characteristics.json`). The 128 labelled validation slices; d is a label's
   probability minus the anatomy-mean label (training labels) over the available locations. Measured:
   - how binary the labels are;
   - the radial share of d's energy;
@@ -1127,7 +1127,7 @@ ground-truth power has no draw noise.
 ## Update: does predictability grow with more training volumes? (2026-10-19)
 **Question.** Is the per-slice oracle deviation unpredictable because there are only 129 training volumes?
 
-**Method** (`scripts/diagnostics/label_learning_curve_r8.py`, `analysis/label_gonogo/learning_curve.json`).
+**Method** (`scripts/diagnostics/label_learning_curve_r8.py`, `reports/label_gonogo_r8/learning_curve.json`).
 - The ridge and kNN predictors of `smooth_label_predictor_r8.py` are refitted on random subsets of the labelled
   training volumes: 1/8, 1/4, 1/2 and all of them, 10 subsets per fraction.
   - The 1200 labels cover all 129 training volumes: 596 from 89 brain volumes, 604 from 40 knee volumes.

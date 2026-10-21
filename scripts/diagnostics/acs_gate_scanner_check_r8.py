@@ -17,7 +17,7 @@ import numpy as np
 import _path  # noqa: F401
 from activemri.datasets.fastmri_data import _build_balanced_datasets
 
-GATE = pathlib.Path('analysis/acs_gate_cgsense')
+GATE = pathlib.Path('reports/acs_gate_cgsense_r8')
 NAMESPACE = {'m': 'http://www.ismrm.org/ISMRMRD'}
 FEW_COILS = 8
 

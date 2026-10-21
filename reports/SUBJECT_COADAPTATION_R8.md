@@ -76,7 +76,7 @@ Validation set: 23 brain volumes (344 slices) and 10 knee volumes (344 slices).
    - the ground-truth PSNR with Omega as input (deployed) and with a fixed Theta as input (trained);
    - the re-projection error of fft(x S) on Theta and on Lambda.
 
-All tables: `scripts/diagnostics/summarize_subject_coadapt_r8.py` -> `analysis/subject_coadapt/summary.md`.
+All tables: `scripts/diagnostics/summarize_subject_coadapt_r8.py` -> `reports/subject_coadaptation_r8/summary.md`.
 
 ## Results
 
@@ -245,7 +245,7 @@ learning rate and step count.
 - **Slices as proxy:** fastMRI 2D slices stand in for SPACE readout positions.
 
 ## Figures
-None. Every table is in `analysis/subject_coadapt/summary.md`. Per-volume JSONs are under `analysis/subject_coadapt/`:
+None. Every table is in `reports/subject_coadaptation_r8/summary.md`. Per-volume JSONs are under `reports/subject_coadaptation_r8/`:
 - `brain`, `knee`: alternating split;
 - `*_block_full`, `knee_block`: block split;
 - `*_block_maskin600`, `*_block_maskin1500`: the oracle follow-ups;
@@ -253,7 +253,7 @@ None. Every table is in `analysis/subject_coadapt/summary.md`. Per-volume JSONs 
 - `ssl/*`: self-supervised runs;
 - `ssl_density/`: the density diagnostic.
 
-Launchers are `analysis/subject_coadapt/run_*.sh`.
+Launchers are `reports/subject_coadaptation_r8/run_*.sh`.
 
 ## Next steps
 The scanner path is fixed as ACS -> pattern, one step. On this data nothing an ACS -> pattern mapping could output has
@@ -296,9 +296,9 @@ predictor only if `family - family_ctrl` is at least 0.1 dB with its 95% interva
 **Method.**
 - **Code and outputs.**
   - Code: `scripts/diagnostics/subject_coadapt_ceiling_r8.py` (`DensityFamily`).
-  - Launchers: `analysis/subject_coadapt/run_param_family.sh` and `run_param_family_helper.sh`.
-  - Per-volume results: `analysis/subject_coadapt/{brain,knee}_block_param/`.
-  - Tables: `analysis/subject_coadapt/summary_param*.md`.
+  - Launchers: `reports/subject_coadaptation_r8/run_param_family.sh` and `run_param_family_helper.sh`.
+  - Per-volume results: `reports/subject_coadaptation_r8/{brain,knee}_block_param/`.
+  - Tables: `reports/subject_coadaptation_r8/summary_param*.md`.
 - **Data and split.** Same frozen LOUPE VarNet, block split, gap, slice counts and seeded draws as above, on all 23
   brain and 10 knee validation volumes. On overlapping volumes the base PSNR matched the earlier block-split runs
   exactly.

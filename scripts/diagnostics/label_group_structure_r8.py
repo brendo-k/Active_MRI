@@ -45,7 +45,7 @@ from label_curriculum_r8 import gaussian_blur
 from label_predictor_gonogo_r8 import available_of, label_probability, load_shards
 from oracle_labels_r8 import OUT_DIR, RUN
 
-OUT = Path('analysis/label_gonogo/group_structure.json')
+OUT = Path('reports/label_gonogo_r8/group_structure.json')
 PROTOCOLS = ('brain', 'knee-PD', 'knee-PDFS')
 
 

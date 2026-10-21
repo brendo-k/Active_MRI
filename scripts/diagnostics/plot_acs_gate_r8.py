@@ -15,7 +15,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 
-GATE = Path('analysis/acs_gate_cgsense')
+GATE = Path('reports/acs_gate_cgsense_r8')
 OUT = Path('reports/figures/acs_mask_gate_cgsense_r8.png')
 RING_LABELS = ('0-8', '8-16', '16-32', '32-64', '64+')
 FEW, MANY, KNEE, INK, MUTED = '#eb6834', '#2a78d6', '#9a9893', '#0b0b0b', '#52514e'

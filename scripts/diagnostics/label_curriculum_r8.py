@@ -45,7 +45,7 @@ INPUTS = {
                  'scaled by its per-slice peak magnitude, as (real, imag, magnitude)',
 }
 INPUT_CHANNELS = {'kspace': 2, 'kspace_log': 3, 'acs_image': 3}
-OUT = Path('analysis/label_gonogo/curriculum')
+OUT = Path('reports/label_gonogo_r8/curriculum')
 RETEST_DIR = Path('/tmp/bkadota_oracle_labels_r8_retest')
 CHECK_ROWS = 128
 

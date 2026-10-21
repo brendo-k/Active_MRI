@@ -31,7 +31,7 @@ RUNS = {
     'R4 anatomy 50ep conv': 'loupe2d_cgsense_r4_brain_knee_anatcond',
 }
 NUM_DRAWS = 3
-OUT = Path('analysis/anatcond_cgsense/init_draws.json')
+OUT = Path('reports/cgsense_anatcond/init_draws.json')
 
 
 def corr(a, b):

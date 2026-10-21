@@ -35,7 +35,7 @@ from label_group_structure_r8 import slice_sources
 from label_predictor_gonogo_r8 import ANATOMIES, anatomy_reference, available_of, label_probability, load_shards
 from oracle_labels_r8 import OUT_DIR
 
-OUT = Path('analysis/label_gonogo/acs_vs_label_similarity.json')
+OUT = Path('reports/label_gonogo_r8/acs_vs_label_similarity.json')
 DISTANCE_GROUPS = {'1': (1, 1), '2': (2, 2), '3-4': (3, 4), '5-8': (5, 8), '9+': (9, 10 ** 6)}
 
 

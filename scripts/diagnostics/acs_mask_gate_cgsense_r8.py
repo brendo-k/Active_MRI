@@ -51,7 +51,7 @@ from oracle_blur_psnr_r8 import density_blurred
 from subject_coadapt_ceiling_r8 import DensityFamily, control_slices, evenly, volume_groups
 
 RUN = Path('checkpoints/loupe2d_cgsense_r8_brain_knee_ecalib_c24')
-OUT_DIR = Path('analysis/acs_gate_cgsense')
+OUT_DIR = Path('reports/acs_gate_cgsense_r8')
 LOGITS_DIR = Path('/tmp/bkadota_acs_gate')
 LOSS_WEIGHTS = {'recon_weight': 1.0, 'kspace_weight': 0.0, 'uncertainty_weight': 0.0, 'anatomy_weight': 0.0}
 SCORING_SEEDS = (0, 1, 2, 3)

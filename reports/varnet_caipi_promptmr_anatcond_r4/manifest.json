@@ -7,7 +7,7 @@
     "head": "83007c5608803ff2197963a4ebe27c130e13430d",
     "branch": "main",
     "dirty_tracked_files": [
-      "analysis/anatcond_cgsense/metric_apodized/run_mask_path.sh",
+      "reports/cgsense_anatcond/metric_apodized/run_mask_path.sh",
       "scripts/eval/eval_varnet_caipi_anatcond.py"
     ],
     "scripts": [

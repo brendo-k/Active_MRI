@@ -58,7 +58,7 @@ All models are healthy (SSIM 0.91-0.94). Every row is a single seed.
    model uses those maps instead of the U-Net, so the mask is the only learned part. Two runs differ only in
    `sampler.preselect_num` (24 or 10). `eval_cgsense_mask_variants_r8.py --runs ecalib_c10 ecalib_c24` gives the
    paired difference.
-4. **The gate** (`scripts/diagnostics/acs_mask_gate_cgsense_r8.py`, launched by `analysis/acs_gate_cgsense/run_gate*.sh`).
+4. **The gate** (`scripts/diagnostics/acs_mask_gate_cgsense_r8.py`, launched by `reports/acs_gate_cgsense_r8/run_gate*.sh`).
    - **Split:** each validation volume's slices, in order, are split into F (first half) and H (second half, after
      a 2-slice gap). Up to 16 slices of each are used.
    - **Fitting:** per-volume masks are fitted through the frozen ecalib 24 x 24 model with Adam on the L1 training
@@ -101,7 +101,7 @@ All models are healthy (SSIM 0.91-0.94). Every row is a single seed.
      the held-out gain at 8 coils.
 7. **Scanner check.** `scripts/diagnostics/acs_gate_scanner_check_r8.py` reads the ISMRMRD header of every brain
    volume, train and val: system model, field strength, receiver channels and raw k-space coil count. It joins these
-   with the held-out gains (output `analysis/acs_gate_cgsense/scanner_check.json`).
+   with the held-out gains (output `reports/acs_gate_cgsense_r8/scanner_check.json`).
 8. **Figure.** `scripts/diagnostics/plot_acs_gate_r8.py`.
 
 ## Results
@@ -202,7 +202,7 @@ v2 brain, held-out gain vs the population mask (`dir_static` is the same amount 
   (r = 0.84).
 - **Offset and shape act together.** The population map's mean probability over available locations (0.138) sits
   just above the rescale target (0.117). The top-5 volumes' fitted thetas have means of -0.16 to -0.20 (mean of
-  `grid_theta['grid']` in `analysis/acs_gate_cgsense/brain_v2/*.json`), against about 0 for most others. The gainers' theta offset therefore switches the
+  `grid_theta['grid']` in `reports/acs_gate_cgsense_r8/brain_v2/*.json`), against about 0 for most others. The gainers' theta offset therefore switches the
   budget rescale into its inverted branch, which adds a uniform floor. The offset alone loses 0.015 dB and the
   centred shape keeps 70% of the gain.
 - **No scalar reaches the bar.** The best one is `acs_coils`, at +0.050 [-0.010, +0.120] against the population
@@ -287,8 +287,8 @@ most 8 coils (17 Avanto with 4 coils, 2 Avanto with 6, 2 TrioTim with 4, 1 Skyra
   runs, with the share beyond 64 px and g(1) (`scripts/diagnostics/mask_variants_figure_r8.py`).
 
 Data:
-- `analysis/cgsense_mask_variants/` (eval.md, dcm_training_check.json, masks.json);
-- `analysis/acs_gate_cgsense/`:
+- `reports/cgsense_mask_variants_r8/` (eval.md, dcm_training_check.json, masks.json);
+- `reports/acs_gate_cgsense_r8/`:
   - summary.md, summary_v2.md;
   - population_c24_vs_c10.md;
   - fit_check_*.json;
