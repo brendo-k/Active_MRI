@@ -1,0 +1,156 @@
+{
+  "counts": {
+    "brain": {
+      "volumes": 89,
+      "labels": 596
+    },
+    "knee-PD": {
+      "volumes": 19,
+      "labels": 279
+    },
+    "knee-PDFS": {
+      "volumes": 21,
+      "labels": 325
+    }
+  },
+  "common_locations": 65436,
+  "distinct_valid_masks": 1,
+  "by_sigma": {
+    "0": {
+      "brain_vs_knee": {
+        "reliability": 0.5566142597794532,
+        "energy": 14.482299728393555
+      },
+      "pd_vs_pdfs": {
+        "reliability": 0.1651396668329835,
+        "energy": 3.995481643080711
+      },
+      "pd_vs_pdfs_null": {
+        "reliability": 0.0002564989544043783,
+        "energy": -0.000306435264647007
+      },
+      "knee_explained_share": 0.002620224851725338,
+      "knee_explained_share_null": 0.001933243111639124,
+      "anatomy_explained_share": 0.00342902714953691,
+      "anatomy_explained_share_null": 0.000955162472798759,
+      "volume_alternate": {
+        "within": 0.08594510206280069,
+        "between": -0.00859745105860412,
+        "volume_specific": 0.0945425531214048,
+        "volumes": 126
+      },
+      "volume_blocks": {
+        "within": 0.02468711556635782,
+        "between": -0.024010372940742614,
+        "volume_specific": 0.048697488507100435,
+        "volumes": 126
+      },
+      "energy_ratio_pd_pdfs_to_brain_knee": 0.27588723600626025
+    },
+    "2": {
+      "brain_vs_knee": {
+        "reliability": 0.8914023625850678,
+        "energy": 13.665762739181519
+      },
+      "pd_vs_pdfs": {
+        "reliability": 0.501174446567893,
+        "energy": 3.564243246912956
+      },
+      "pd_vs_pdfs_null": {
+        "reliability": 0.005480202271137387,
+        "energy": 0.010605729601811617
+      },
+      "knee_explained_share": 0.009700409576717013,
+      "knee_explained_share_null": 0.0035999432458073176,
+      "anatomy_explained_share": 0.02688637787870676,
+      "anatomy_explained_share_null": 0.001726420088350124,
+      "volume_alternate": {
+        "within": 0.38611745597824215,
+        "between": -0.012230416998873594,
+        "volume_specific": 0.39834787297711577,
+        "volumes": 126
+      },
+      "volume_blocks": {
+        "within": 0.03342175044466756,
+        "between": -0.12900587944905692,
+        "volume_specific": 0.16242762989372447,
+        "volumes": 126
+      },
+      "energy_ratio_pd_pdfs_to_brain_knee": 0.26081553696917387
+    },
+    "4": {
+      "brain_vs_knee": {
+        "reliability": 0.9260212177038193,
+        "energy": 12.554272689819335
+      },
+      "pd_vs_pdfs": {
+        "reliability": 0.5587368170171976,
+        "energy": 2.796014738082886
+      },
+      "pd_vs_pdfs_null": {
+        "reliability": 0.013712066765874624,
+        "energy": 0.016402333248406648
+      },
+      "knee_explained_share": 0.014443033155397904,
+      "knee_explained_share_null": 0.0048196398974809825,
+      "anatomy_explained_share": 0.04926791336432871,
+      "anatomy_explained_share_null": 0.0023005018068966666,
+      "volume_alternate": {
+        "within": 0.5578952920697038,
+        "between": -0.014168197447433362,
+        "volume_specific": 0.5720634895171371,
+        "volumes": 126
+      },
+      "volume_blocks": {
+        "within": 0.007550591126173025,
+        "between": -0.20417469151483403,
+        "volume_specific": 0.21172528264100704,
+        "volumes": 126
+      },
+      "energy_ratio_pd_pdfs_to_brain_knee": 0.22271419517199625
+    },
+    "8": {
+      "brain_vs_knee": {
+        "reliability": 0.9423502978682518,
+        "energy": 10.391764039993285
+      },
+      "pd_vs_pdfs": {
+        "reliability": 0.5277767326698085,
+        "energy": 1.5350514388456942
+      },
+      "pd_vs_pdfs_null": {
+        "reliability": 0.029666321933618747,
+        "energy": 0.02349123592488468
+      },
+      "knee_explained_share": 0.014404489655445257,
+      "knee_explained_share_null": 0.005519173695069388,
+      "anatomy_explained_share": 0.06807161998334942,
+      "anatomy_explained_share_null": 0.002652525993877013,
+      "volume_alternate": {
+        "within": 0.6697292064745275,
+        "between": -0.015461890757783281,
+        "volume_specific": 0.6851910972323108,
+        "volumes": 126
+      },
+      "volume_blocks": {
+        "within": -0.035545763234415696,
+        "between": -0.2691542870416538,
+        "volume_specific": 0.2336085238072381,
+        "volumes": 126
+      },
+      "energy_ratio_pd_pdfs_to_brain_knee": 0.1477180806779256
+    }
+  },
+  "config": {
+    "label_dir": "/tmp/bkadota_oracle_labels_r8",
+    "out": "analysis/label_gonogo/group_structure.json",
+    "sigmas": [
+      0,
+      2,
+      4,
+      8
+    ],
+    "splits": 200,
+    "seed": 0
+  }
+}

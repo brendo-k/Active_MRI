@@ -1,0 +1,138 @@
+{
+  "summary": {
+    "mask": {
+      "share_of_available_with_p_in_0.05_0.95": {
+        "label": 0.4135240912437439,
+        "anatomy_mean_label": 0.4846453070640564
+      },
+      "radial": {
+        "0-8": {
+          "deviation_energy_share": 0.004990679677575827,
+          "label_budget_share": 0.009325177408754826
+        },
+        "8-16": {
+          "deviation_energy_share": 0.038193024694919586,
+          "label_budget_share": 0.04843299835920334
+        },
+        "16-32": {
+          "deviation_energy_share": 0.12004837393760681,
+          "label_budget_share": 0.13456527888774872
+        },
+        "32-64": {
+          "deviation_energy_share": 0.28304019570350647,
+          "label_budget_share": 0.2734565734863281
+        },
+        "64-1000": {
+          "deviation_energy_share": 0.5537276268005371,
+          "label_budget_share": 0.5342199206352234
+        }
+      },
+      "autocorrelation": {
+        "axis0_lag1": {
+          "oracle_deviation": 0.371742158464627,
+          "bernoulli_control": -0.000434990890843226
+        },
+        "axis0_lag2": {
+          "oracle_deviation": 0.13417615072398478,
+          "bernoulli_control": 0.000616366033679891
+        },
+        "axis1_lag1": {
+          "oracle_deviation": 0.29397884572613164,
+          "bernoulli_control": 0.0002393145749707625
+        },
+        "axis1_lag2": {
+          "oracle_deviation": 0.08833553133371234,
+          "bernoulli_control": -0.00011187926023374958
+        },
+        "diagonal_lag1": {
+          "oracle_deviation": 0.18366161950178234,
+          "bernoulli_control": -0.00011062911683332215
+        }
+      },
+      "conjugate_pairs": {
+        "hermitian_partner": {
+          "oracle_deviation": 0.04997438327610813,
+          "bernoulli_control": 0.0003679103544556079
+        },
+        "mirror_axis0_placebo": {
+          "oracle_deviation": 0.03200332559367014,
+          "bernoulli_control": 0.006889590886996809
+        },
+        "mirror_axis1_placebo": {
+          "oracle_deviation": 0.03015177312823402,
+          "bernoulli_control": 0.005589705488268528
+        }
+      }
+    },
+    "refit_conjugate_pair_agreement": {
+      "original_vs_retest": {
+        "per_location": 0.9703349799902732,
+        "per_location_pixel_band": 0.9687187783353679,
+        "per_location_smooth_band": 0.9909419390482794,
+        "pair_sum": 0.9706151356141142,
+        "pair_difference": 0.9700051651643057
+      },
+      "original_vs_init_noise": {
+        "per_location": 0.8454866211726981,
+        "per_location_pixel_band": 0.8360836527655316,
+        "per_location_smooth_band": 0.9596789656297671,
+        "pair_sum": 0.8484310275085718,
+        "pair_difference": 0.8421043984590872
+      },
+      "original_vs_init_loupe": {
+        "per_location": 0.5610743247734677,
+        "per_location_pixel_band": 0.5463122910432983,
+        "per_location_smooth_band": 0.7387351957415873,
+        "pair_sum": 0.5739008555476935,
+        "pair_difference": 0.5464778076968055
+      }
+    },
+    "log_residual_reliability": {
+      "pixel_band": {
+        "split_half": 0.8276052366480353,
+        "reliability": 0.9056717720572143
+      },
+      "smooth_band": {
+        "split_half": 0.9811963121868575,
+        "reliability": 0.9905089224639295
+      }
+    },
+    "slice_fields_followed_by_oracle_deviation": {
+      "log_residual": {
+        "pixel_band": 0.04758558229125967,
+        "smooth_band": 0.25144864421734153,
+        "unsplit": 0.07234259833800558,
+        "pixel_band_disattenuated": 0.05000229892412584,
+        "smooth_band_disattenuated": 0.25265046523760604
+      },
+      "log_power": {
+        "pixel_band": 0.035705244992701876,
+        "smooth_band": 0.2567877411835761,
+        "unsplit": 0.05927350890011468
+      }
+    },
+    "adjacent_slice_similarity": {
+      "pairs": 124,
+      "acs_complex_similarity": 0.9613388046141593,
+      "log_residual": {
+        "pixel_band": 0.036903283737623055,
+        "smooth_band": 0.7398826641706222,
+        "pixel_band_disattenuated": 0.040746863130997256,
+        "smooth_band_disattenuated": 0.7469722355757636
+      },
+      "log_power": {
+        "pixel_band": 0.029534570493772814,
+        "smooth_band": 0.7163594827588365
+      }
+    }
+  },
+  "config": {
+    "device": "cuda",
+    "label_dir": "/tmp/bkadota_oracle_labels_r8",
+    "out": "analysis/label_gonogo/oracle_mask_characteristics.json",
+    "draws": 4,
+    "band_sigma": 4.0,
+    "chunk": 8,
+    "seed": 0
+  }
+}

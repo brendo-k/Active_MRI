@@ -888,3 +888,318 @@ Own oracle label: +0.921 [+0.81, +1.03].
 - **Caveat:** the reconstructor never trained on these candidates. A jointly trained candidate set (reconstructor
   trained on all K, assignment by best reconstruction, as SUNO alternates) removes the mismatch cost; its ceiling is
   roughly the best-minus-random spread, about +0.1-0.2 dB, before a selector has to find it from the calibration.
+
+## Update: why the ACS cannot predict the oracle mask (2026-10-19)
+**Question.** Two things the earlier sections did not test:
+- Do slices whose calibration centres are almost identical want the same oracle mask? If not, no ACS -> mask map can
+  follow the oracle.
+- Is the oracle a unique target? The 0.97 retest only changed the Bernoulli seed. Both fits started from the same
+  `prior.pt`.
+
+**How to read correlations here.** A correlation between two labels measures the variance fraction f they share. A
+predictor that output exactly the shared part would correlate sqrt(f) with each label. So label-vs-label numbers
+convert to predictor ceilings by a square root.
+
+**Method.**
+- **ACS vs label similarity** (`scripts/diagnostics/acs_vs_label_similarity_r8.py`,
+  `analysis/label_gonogo/acs_vs_label_similarity.json`). Every same-anatomy pair of the 1200 training labels.
+  - *ACS similarity:* |<a, b>| / (|a| |b|) of the sampler's own input (the SENSE-combined 10 x 10 centre, complex).
+    This equals the correlation of the two 10 x 10 low-resolution images. Also the correlation of mean-removed log
+    magnitudes.
+  - *Label similarity:* the correlation of the two labels' deviations from the anatomy-mean label over the available
+    locations, in three bands:
+    - unsplit;
+    - smooth: a 4 px Gaussian blur of the deviation;
+    - pixel: the deviation minus its normalised 4 px blur.
+
+    The unsplit number still contains the smooth part, which neighbours share strongly, so per-band arithmetic uses
+    the two bands.
+  - Pairs are grouped by slice distance within a volume, and other volumes. Also each slice's nearest-ACS slice in
+    another volume.
+- **Start dependence** (`scripts/diagnostics/oracle_init_identifiability_r8.py`,
+  `analysis/label_gonogo/oracle_init_identifiability.json`).
+  - The 32 retest slices were refitted with the retest's settings (frozen conv ep50 VarNet, 120 steps, 2 draws,
+    lr 0.05, seed 1), from two other starts:
+    - LOUPE's logits (slope x w of `uo8d68n0`; logit correlation 0.62 with `prior.pt`; 0.137 dB worse than the
+      anatomy mean);
+    - `prior.pt` plus i.i.d. N(0, 1) logit noise (correlation 0.93; 0.074 dB worse).
+  - Labels are in `/tmp/bkadota_oracle_labels_r8_init_{loupe,noise}`.
+  - All arms are scored as in the blur test: 4 seeded draws shared by every arm, gain vs the anatomy-mean label, 95%
+    interval over volumes.
+  - Deviations are taken from each label set's own leave-one-out anatomy mean. A refit keeps its start's population
+    map, and the shared training-label reference would count that offset as per-slice disagreement.
+
+| Pair (1200 training labels) | Pairs | ACS similarity, complex / log-magnitude | Label deviation corr, unsplit | Pixel band (below 4 px) | Smooth band (4 px) |
+|---|---|---|---|---|---|
+| adjacent slices | 513 | 0.97 / 0.90 | 0.059 | 0.030 | 0.53 |
+| 2 slices apart | 480 | 0.91 / 0.82 | 0.028 | 0.005 | 0.41 |
+| 3-4 apart | 880 | 0.79 / 0.74 | 0.019 | 0.002 | 0.31 |
+| 5-8 apart | 1431 | 0.60 / 0.67 | 0.009 | -0.000 | 0.15 |
+| 9 or more apart | 3018 | 0.34 / 0.59 | -0.003 | -0.001 | -0.05 |
+| other volume, same anatomy | 353,094 | 0.31 / 0.61 | -0.002 | -0.002 | -0.004 |
+| nearest-ACS slice of another volume | 1200 | 0.82 | 0.012 | -0.001 | 0.21 |
+
+- **Neighbours have the same ACS but different oracle masks.**
+  - Adjacent slices' calibration centres are 97-98% the same (median 0.98).
+  - Their label deviations share 6% of their variance unsplit, 3% in the pixel band and 53% in the smooth band. Two
+    slices apart, the pixel band is already at 0.005.
+  - Suppose a predictor gives near-identical masks for near-identical ACS, and the part neighbours do not share is the
+    part the ACS cannot carry. Then its predictability is capped at:
+    - about sqrt(0.059) = 0.24 on the unsplit metric used by the predictor screens;
+    - per band, sqrt(0.030) = 0.17 for the pixel band and sqrt(0.53) = 0.73 for the smooth band.
+  - These are upper bounds, not information-theoretic ones: neighbours also share volume-level structure that the ACS
+    may not carry.
+  - On the unsplit metric, the U-Net predictors (0.06) are below the cap. The full-k-space predictor (0.12-0.16) is in
+    between.
+  - The nearest-ACS slice of another volume shares nothing in the pixel band (-0.001).
+- **The smooth part does follow the ACS.** At 4 px the neighbour correlation falls in step with ACS similarity, from
+  0.53 to about 0 by 9 slices apart. The smooth predictors reached 0.23-0.39 on that target.
+
+| Start (32 val slices, 26 volumes) | Gain vs anatomy mean (dB) | Brain / knee | Per-slice deviation corr with the original, unsplit / 4 px | Anatomy-mean map corr with the original's, brain / knee |
+|---|---|---|---|---|
+| `prior.pt` (the original labels) | +0.984 [+0.848, +1.136] | +1.187 / +0.721 | 1 | 1 |
+| `prior.pt`, other draw seed (retest) | +0.981 [+0.842, +1.132] | +1.183 / +0.721 | 0.97 / 0.99 | 0.998 / 0.998 |
+| `prior.pt` + N(0, 1) logit noise | +1.011 [+0.861, +1.154] | +1.206 / +0.760 | 0.85 / 0.96 | 0.904 / 0.883 |
+| LOUPE logits | +0.931 [+0.768, +1.104] | +1.164 / +0.631 | 0.56 / 0.74 | 0.670 / 0.632 |
+| mean of the original and LOUPE-start labels | +0.882 [+0.749, +1.021] | +1.068 / +0.644 | | |
+| mean of the original and noise-start labels | +0.969 [+0.834, +1.107] | +1.160 / +0.724 | | |
+
+- **Every start reaches the same gain, but on different masks.**
+  - From the LOUPE start, the per-slice deviation shares 56% of its variance with the original, 55% in the pixel band
+    alone and 74% at 4 px. The noise start gives 0.85 / 0.84 / 0.96. Pixel-band numbers are from
+    `oracle_mask_characteristics_r8.py`.
+  - Each refit keeps its start's population map (anatomy-mean correlation 0.63-0.67).
+  - The start-independent ceiling for a predictor is therefore about sqrt(0.55) = 0.74 in the pixel band.
+  - The 0.97 "ceiling" in Result 1 and the 24 x 24 screen measures path reproducibility from one start, not
+    predictability.
+  - Start dependence is real, but its ceiling (0.74) sits far above the pixel-band adjacency cap (0.17), so it is
+    not what limits prediction.
+- **Equally good solutions are close together.** The mean of two different solutions keeps +0.88 to +0.97 dB.
+- **Against the shared reference the correlations are deflated:** 0.40 (LOUPE start) and 0.76 (noise start),
+  unsplit.
+
+**Why a weak prediction is worth about 0 dB.** Model the loss as quadratic near the anatomy mean.
+- A predicted deviation with correlation rho and amplitude a (relative to the oracle's) gains about G(2 a rho - a^2),
+  where G is the oracle gain. With the best shrinkage this is at most rho^2 G.
+- At the go/no-go predictor's rho of 0.06, rho^2 G is about 0.003 dB; measured: -0.011 to +0.001 dB.
+- At the adjacency caps, per band, with G about 0.85 dB in the pixel band (the oracle gain minus its smooth part) and
+  0.066 dB in the smooth band:
+  - pixel: 0.030 x 0.85, about 0.026 dB;
+  - smooth: 0.53 x 0.066, about 0.035 dB;
+  - together about 0.06 dB. The smooth arms ran up to about 2x above rho^2 G, so at most about 0.1 dB through this
+    VarNet.
+- Amplitude matters as much as correlation:
+  - the same-volume smooth mean and the 10 x 10 ridge both have rho of about 0.24. Unshrunk, the volume mean gains
+    -0.022 dB; shrunk, the ridge gains +0.009 dB;
+  - a confident wrong mask (another slice's label: rho about 0, full amplitude) costs 0.37-0.40 dB.
+
+**Conclusion.**
+- The oracle's gain is about 90% pixel-scale (a 1 px density blur keeps 24%, 2 px keeps 11%).
+- That structure changes between adjacent slices while their calibration centres barely change.
+- So a smooth ACS -> mask map is capped near 0.17 in the pixel band and 0.73 in the smooth band. Together that is
+  worth about 0.06 dB here, at most about 0.1 dB.
+- The smooth part tracks the ACS but is worth +0.05-0.07 dB at best, and predictors recover +0.01-0.02 dB.
+- Start dependence and the quadratic deviation cost are secondary. H1 and H2 explain why end-to-end samplers do not
+  find even the smooth part.
+- **Hypothesis:** the pixel-scale structure is the slice's own fine k-space detail as the reconstructor sees it. The
+  full-resolution image changes between slices; its 10 x 10 low-pass does not. The next section tests this in part.
+
+**Caveats.**
+- Every dB is through the frozen conv ep50 VarNet. The oracle keeps about 70% of its gain on other conv-trained
+  VarNets.
+- One training seed, R = 8, a 10 x 10 centre, and fastMRI 2D slices as the proxy.
+- The adjacency cap assumes the ACS -> mask map is smooth in its input.
+- The start test covers 32 slices and two alternative starts. Its leave-one-out anatomy means use 13-17 slices per
+  anatomy.
+- The quadratic model is a guide only. Measured arms sit between rho^2 G and rho G.
+
+## Update: what the oracle masks look like, and one mask per volume (2026-10-19)
+**Question.**
+- What distinguishes a slice's oracle mask from the anatomy-mean label?
+- Does it follow anything in the slice's own k-space?
+- Does a coarser granularity help? One mask per volume is what a SPACE scan allows.
+
+**Method.**
+- **Mask properties** (`scripts/diagnostics/oracle_mask_characteristics_r8.py`,
+  `analysis/label_gonogo/oracle_mask_characteristics.json`). The 128 labelled validation slices; d is a label's
+  probability minus the anatomy-mean label (training labels) over the available locations. Measured:
+  - how binary the labels are;
+  - the radial share of d's energy;
+  - d's autocorrelation at 1-2 px;
+  - corr(d(k), d(-k)) for the Hermitian partner, against one-axis mirror placebos, with a Bernoulli draw of the
+    anatomy mean as a control;
+  - on the 32 refit slices, the cross-start agreement of the conjugate pair sum and difference.
+- **What d follows.** The frozen conv ep50 VarNet at the anatomy-mean label, 4 seeded draws. Two fields:
+  - the residual power |fft(x_hat) - y|^2 of the SENSE-combined k-space, averaged over the draws in which k was not
+    sampled;
+  - the ground-truth power |y|^2.
+
+  Both are taken as logs minus their anatomy mean. Every field, d included, is split into a smooth band (normalised
+  4 px Gaussian blur) and a pixel band (the rest). The same fields are computed for each labelled slice's next slice of
+  the same volume (124 pairs).
+- **Per-volume masks** (`acs_vs_label_similarity_r8.py`, `per_volume_mask` in its JSON). Over the 1200 training
+  labels, median 10 labelled slices per volume:
+  - *shared fraction:* the mean label correlation over all pairs of labelled slices of a volume. This is the share of a
+    slice's deviation that one per-volume map can serve, so a perfectly known per-volume map reaches rho =
+    sqrt(shared fraction);
+  - *leave-one-out:* the correlation of each label with the mean of the other labelled slices of its volume, which is
+    a held-out per-volume map.
+
+| Property (128 val labels) | Oracle | Control |
+|---|---|---|
+| Probability mass moved vs the anatomy mean (half the L1 of d over the budget) | 0.33 (its 4 px part: 0.07) | |
+| Share of available locations with p in (0.05, 0.95) | 0.41 | anatomy mean 0.48 |
+| Share of d's energy at radius 0-8 / 8-16 / 16-32 / 32-64 / 64+ px | 0.005 / 0.038 / 0.120 / 0.283 / 0.554 | label budget 0.009 / 0.048 / 0.135 / 0.273 / 0.534 |
+| d autocorrelation at 1 px, axis 0 / axis 1 / diagonal | 0.37 / 0.29 / 0.18 | Bernoulli draw 0.000 |
+| d autocorrelation at 2 px, axis 0 / axis 1 | 0.13 / 0.09 | 0.000 |
+| corr(d(k), d(-k)): Hermitian partner / axis-0 mirror / axis-1 mirror | 0.050 / 0.032 / 0.030 | 0.000 / 0.007 / 0.006 |
+| LOUPE-start refit vs original: per location (pixel band) / pair sum / pair difference | 0.56 (0.55) / 0.57 / 0.55 | |
+
+| Field (the slice's own k-space) | corr with d, pixel band | corr with d, smooth band | Adjacent slices, pixel / smooth |
+|---|---|---|---|
+| log residual power at the anatomy-mean mask (disattenuated) | 0.048 (0.050) | 0.25 (0.25) | 0.037 (0.041) / 0.74 (0.75) |
+| log ground-truth power | 0.036 | 0.26 | 0.030 / 0.72 |
+| oracle label deviation (adjacent training pairs, previous section) | | | 0.030 / 0.53 |
+| ACS, complex similarity (the same 124 adjacent val pairs) | | | 0.96 |
+
+The residual depends on the draws. Its split-half reliability (draws 0-1 against 2-3, Spearman-Brown corrected to
+all 4) is 0.91 in the pixel band and 0.99 in the smooth band. The disattenuated values in brackets divide by it; the
+ground-truth power has no draw noise.
+
+- **What the masks look like.**
+  - The oracle keeps the anatomy mean's radial density: every ring's budget share is within 0.001 (the budget check
+    earlier in this report).
+  - It relocates about a third of the sampling probability, in blobs 1-2 px across: autocorrelation 0.29-0.37 at
+    1 px and 0.09-0.13 at 2 px.
+  - The relocation is spread over all radii in proportion to where samples are. 55% of d's energy is beyond 64 px.
+  - It stays a random-sampling density, not a fixed pattern: 41% of locations remain between 0.05 and 0.95, against
+    48% for the anatomy mean.
+  - It has no conjugate-pair structure: 0.05 for the Hermitian partner against 0.03 for the placebos. Starts
+    disagree about locations, not about which partner of a pair to take (the pair sum and difference agree equally,
+    0.55-0.57).
+- **The smooth part follows the slice's spectrum; the pixel part barely follows anything local.**
+  - At 4 px and above, d rises where this slice's k-space power, or the reconstruction residual, exceeds its anatomy's
+    average (0.25-0.26). This is the part the smooth predictors partly recovered from the calibration.
+  - In the pixel band, d correlates only 0.04-0.05 with either field, 0.050 for the residual after correcting for
+    draw noise. The pixel structure is not "sample where this slice's fine k-space power or residual magnitude is
+    high", so it is not a local feature of the full k-space either.
+  - The claim that even full k-space predicts the labels poorly stands.
+  - **Hypothesis, untested:** the pixel part follows the phase-sensitive product of the residual and the
+    reconstructor's sensitivity at k. That product is what the mask gradient measures.
+- **The slice's own fine k-space changes between neighbours too.**
+  - Adjacent slices' residual and power maps correlate 0.03-0.04 in the pixel band and 0.72-0.75 in the smooth band,
+    while their calibration centres are 96% similar.
+  - That is the same split as the labels (0.030 / 0.53). The fine structure the oracle works at changes from slice to
+    slice, and the ACS does not see the change.
+
+| Per-volume mask, band | Shared fraction within a volume | rho, perfect per-volume map | rho, held-out per-volume map | rho^2 G of the perfect map |
+|---|---|---|---|---|
+| pixel (below 4 px) | 0.0027 | 0.052 | 0.009 | about 0.002 dB (G about 0.85 dB) |
+| smooth (4 px) | 0.128 | 0.36 | 0.27 | about 0.008 dB (G about 0.066 dB) |
+| unsplit, for reference | 0.010 | 0.10 | 0.031 | |
+
+- **One mask per volume makes the target smoother but leaves almost nothing to gain.**
+  - One mask can serve only what a volume's slices share: 0.3% of the pixel-band deviation and 13% of the smooth one.
+  - Even a perfectly known per-volume map would be worth about 0.01 dB per slice through this VarNet, or up to about
+    0.02 dB allowing the smooth arms' 2x above rho^2 G.
+  - Measured held-out numbers agree:
+    - the free per-volume mask fitted on half a volume loses 0.10 dB (alternating split, brain) and 0.20 dB (block
+      split) on the other half (`reports/SUBJECT_COADAPTATION_R8.md`);
+    - the smooth same-volume mean gains -0.022 / -0.006 dB.
+  - The in-sample per-volume oracle (+0.22 to +0.53 dB) fits the slices it sees.
+  - A held-out test of 4-number and 8 x 8 per-volume density changes confirms this: at most +0.008 dB over an
+    other-subject fit, and +0.005-0.008 dB even in-sample (`reports/SUBJECT_COADAPTATION_R8.md`, 2026-10-19 update).
+- **True 3D ky-kz masks (SPACE) are untested.** One mask serves every readout position, and here label agreement
+  falls to about 0 by 9 slices apart. So the shared target should again be a smooth envelope with little headroom.
+  - **Hypothesis, untested:** an envelope change worth having would come from scan geometry (FOV, slab thickness,
+    orientation) varying more across SPACE scans than across fastMRI slices. That is header information, not an ACS
+    prediction.
+
+**Caveats.**
+- One frozen VarNet, one seed, 128 slices (124 neighbour pairs).
+- The residual is measured at the anatomy-mean mask, and only its magnitude is used.
+- The per-volume ceilings assume the quadratic model and use labelled slices (about 44% of each training volume) as a
+  sample of the volume.
+- fastMRI slice stacks stand in for a 3D acquisition.
+
+## Update: does predictability grow with more training volumes? (2026-10-19)
+**Question.** Is the per-slice oracle deviation unpredictable because there are only 129 training volumes?
+
+**Method** (`scripts/diagnostics/label_learning_curve_r8.py`, `analysis/label_gonogo/learning_curve.json`).
+- The ridge and kNN predictors of `smooth_label_predictor_r8.py` are refitted on random subsets of the labelled
+  training volumes: 1/8, 1/4, 1/2 and all of them, 10 subsets per fraction.
+  - The 1200 labels cover all 129 training volumes: 596 from 89 brain volumes, 604 from 40 knee volumes.
+  - At 1/8 that is 11 brain and 5 knee volumes.
+- Inputs: the 10 x 10 and 24 x 24 centres, and the full k-space (privileged).
+- Targets, each against the full training set's anatomy mean:
+  - the smoothed log density ratio at 4 and 8 px;
+  - the unsplit probability deviation;
+  - its pixel band (below 4 px).
+- **Score.** Predictability is the per-slice correlation of (prediction minus the subset's own mean) with (target
+  minus the full mean), on the fixed 128 validation labels. A small subset is charged only for the per-slice part,
+  not for estimating the population map.
+- **Comparisons.** Steps between fractions and the slope per doubling are paired over the same validation slices,
+  with 95% intervals from a volume bootstrap.
+- **Matched arm.** At 1/2, a second subset keeps every volume but only half of each volume's labels, with the same
+  label count. It asks whether more subjects help more than more slices.
+- **Checks.** Before the fits:
+  - every label's anatomy matches the rebuilt loader;
+  - the stored sampler inputs match the rebuilt loader's to a relative error of 2e-4;
+  - at fraction 1, `smooth_predictor.json` is reproduced exactly, except ridge 24 x 24 at sigma 4 (0.317 against
+    0.310, a different CV penalty).
+
+| Predictability (val corr) | 1/8 | 1/4 | 1/2 | all | Step 1/2 -> all [95% CI] | Matched: all volumes, half the slices, minus half the volumes |
+|---|---|---|---|---|---|---|
+| kNN, 10 x 10, smooth 4 px | 0.13 | 0.19 | 0.25 | 0.32 | +0.067 [+0.043, +0.093] | +0.004 [-0.010, +0.021] |
+| ridge, 10 x 10, smooth 4 px | 0.13 | 0.17 | 0.20 | 0.23 | +0.034 [+0.015, +0.056] | +0.012 [-0.000, +0.025] |
+| ridge, 24 x 24, smooth 4 px | 0.24 | 0.28 | 0.29 | 0.32 | +0.024 [+0.013, +0.035] | +0.011 [+0.002, +0.020] |
+| ridge, full k-space, smooth 4 px | 0.36 | 0.41 | 0.44 | 0.48 | +0.034 [+0.026, +0.043] | +0.010 [+0.003, +0.017] |
+| ridge, 10 x 10, unsplit | 0.011 | 0.015 | 0.021 | 0.026 | +0.005 [+0.003, +0.007] | -0.001 [-0.002, -0.000] |
+| ridge, full k-space, unsplit | 0.028 | 0.039 | 0.059 | 0.073 | +0.014 [+0.011, +0.017] | +0.002 [+0.001, +0.003] |
+| ridge, 10 x 10, pixel band | 0.001 | 0.001 | 0.002 | 0.003 | +0.000 [-0.000, +0.001] | -0.001 [-0.001, -0.000] |
+| ridge, 24 x 24, pixel band | 0.002 | 0.003 | 0.004 | 0.005 | +0.001 [+0.001, +0.002] | -0.000 [-0.001, +0.000] |
+
+The smooth 8 px target behaves like 4 px: kNN 10 x 10 rises 0.16 -> 0.39, +0.080 for the top step. Scaled-k kNN
+(k = 16 x fraction) gives the same full-data value with a slightly flatter curve. Brain and knee follow the same
+curves.
+
+**Results.**
+- **The pixel band does not respond to data.**
+  - Its predictability is 0.001-0.006 at every fraction, from every input, with at most +0.001 per doubling.
+  - This band carries about 90% of the oracle gain (G about 0.85 dB).
+  - Even 10 more doublings at that slope (about 1000 times the data) would leave rho below 0.02, under 0.02 dB at
+    rho G.
+  - This is not independent of the earlier evidence. Ridge (in dual form) and kNN output input-weighted means of
+    training labels; other volumes' pixel-band labels share about nothing with a val slice's (-0.001 for the
+    nearest-ACS slice); and the features are magnitudes only, while the pixel signal may be phase-sensitive. So the
+    flat curve agrees with the adjacency cap rather than testing a more expressive, phase-aware predictor.
+- **The smooth band is data-limited and not yet saturated.**
+  - It gains +0.02 to +0.08 per doubling, and the top step is as large as the average slope.
+  - Its whole value, though, is the smooth oracle's +0.05-0.07 dB.
+  - Measured gains sit at about rho G (G = 0.066 dB at 4 px): the 10 x 10 kNN gives +0.017 dB at rho 0.32, and the
+    privileged full-k-space ridge +0.034 dB at rho 0.48 (`smooth_predictor.json`).
+  - Extrapolating rho linearly in log n gives about 0.38-0.39 at twice the data and about 0.5 at ten times
+    (optimistic; the adjacency cap is 0.73). That is about +0.025 dB and +0.035 dB from the 10 x 10 centre.
+- **The unsplit deviation rises a little** (+0.005-0.015 per doubling). This is the smooth part inside it.
+- **At equal label count, more subjects add little over more slices** (0 to +0.016, intervals touching 0 for the
+  10 x 10 arms). Most of the doubling gain comes from label count.
+  - Only 44% of the 2700 training slices are labelled. Labelling the rest would be about 1.2 doublings without any
+    new volumes: about +0.07 in rho, or about +0.005 dB. Not worth doing for this.
+
+**Conclusion.**
+- **The smooth signal is data-limited.** Its predictability grows by about 0.06 per doubling and has not
+  saturated. But its whole value is about 0.066 dB, and the extrapolation reaches only about +0.035 dB at ten
+  times the data.
+- **The pixel-scale signal, which holds most of the gain, is flat across an 8x range of volumes.** That agrees
+  with the adjacency cap; it is not new evidence beyond it.
+- This tests whether a fixed per-slice target gets easier to predict with more labels. It does not test whether
+  joint training finds a worse optimum on little data. The toy covers that: it stays static with unlimited data.
+  So does the fact that the oracle ceilings don't depend on how the sampler was trained.
+
+**Caveats.**
+- Ridge and kNN on hand-built features, not the jointly trained sampler.
+- Correlations, not PSNR. The expected PSNR difference of the largest step (kNN 10 x 10, 0.25 -> 0.32) is about
+  0.004 dB at rho G, below what 128 slices resolve (interval width about 0.015 dB), so it was not scored.
+- The labels, and the VarNet behind them, come from a reconstructor trained on all 129 volumes. Reconstructor data
+  was not varied; a brain-only joint run at 89 against 177 volumes (both on disk) would test it.
+- The validation set is 128 slices from 32 volumes, with only 9 knee volumes.

@@ -1,0 +1,237 @@
+{
+  "summary": {
+    "slices": 1200,
+    "adjacent_median_acs_complex": 0.9808118939399719,
+    "groups": {
+      "same volume, 1 slices apart": {
+        "acs_complex": {
+          "pairs": 513,
+          "mean": 0.970682680606842,
+          "median": 0.9808118939399719
+        },
+        "acs_log_magnitude": {
+          "pairs": 513,
+          "mean": 0.899901807308197,
+          "median": 0.9192298054695129
+        },
+        "label_unsplit": {
+          "pairs": 513,
+          "mean": 0.059390291571617126,
+          "median": 0.0524526908993721
+        },
+        "label_smooth4": {
+          "pairs": 513,
+          "mean": 0.5285631418228149,
+          "median": 0.5378442406654358
+        },
+        "label_pixel4": {
+          "pairs": 513,
+          "mean": 0.029761450365185738,
+          "median": 0.028227752074599266
+        }
+      },
+      "same volume, 2 slices apart": {
+        "acs_complex": {
+          "pairs": 480,
+          "mean": 0.9102134704589844,
+          "median": 0.9344739317893982
+        },
+        "acs_log_magnitude": {
+          "pairs": 480,
+          "mean": 0.816986083984375,
+          "median": 0.8288353681564331
+        },
+        "label_unsplit": {
+          "pairs": 480,
+          "mean": 0.027873657643795013,
+          "median": 0.02289738692343235
+        },
+        "label_smooth4": {
+          "pairs": 480,
+          "mean": 0.41130754351615906,
+          "median": 0.4041000306606293
+        },
+        "label_pixel4": {
+          "pairs": 480,
+          "mean": 0.005334882996976376,
+          "median": 0.004304823931306601
+        }
+      },
+      "same volume, 3-4 slices apart": {
+        "acs_complex": {
+          "pairs": 880,
+          "mean": 0.7927898168563843,
+          "median": 0.838046133518219
+        },
+        "acs_log_magnitude": {
+          "pairs": 880,
+          "mean": 0.7373045682907104,
+          "median": 0.7482258677482605
+        },
+        "label_unsplit": {
+          "pairs": 880,
+          "mean": 0.0194806270301342,
+          "median": 0.015492630191147327
+        },
+        "label_smooth4": {
+          "pairs": 880,
+          "mean": 0.3146551549434662,
+          "median": 0.3217284381389618
+        },
+        "label_pixel4": {
+          "pairs": 880,
+          "mean": 0.0020930266473442316,
+          "median": 0.0013510769931599498
+        }
+      },
+      "same volume, 5-8 slices apart": {
+        "acs_complex": {
+          "pairs": 1431,
+          "mean": 0.6040070652961731,
+          "median": 0.638628363609314
+        },
+        "acs_log_magnitude": {
+          "pairs": 1431,
+          "mean": 0.6650928258895874,
+          "median": 0.6730474233627319
+        },
+        "label_unsplit": {
+          "pairs": 1431,
+          "mean": 0.008661236613988876,
+          "median": 0.006538311950862408
+        },
+        "label_smooth4": {
+          "pairs": 1431,
+          "mean": 0.14514842629432678,
+          "median": 0.14489445090293884
+        },
+        "label_pixel4": {
+          "pairs": 1431,
+          "mean": -6.263064278755337e-05,
+          "median": -0.00036127932253293693
+        }
+      },
+      "same volume, 9+ slices apart": {
+        "acs_complex": {
+          "pairs": 3018,
+          "mean": 0.33508744835853577,
+          "median": 0.3119899034500122
+        },
+        "acs_log_magnitude": {
+          "pairs": 3018,
+          "mean": 0.590132474899292,
+          "median": 0.6047141551971436
+        },
+        "label_unsplit": {
+          "pairs": 3018,
+          "mean": -0.003144284710288048,
+          "median": -0.003632613690569997
+        },
+        "label_smooth4": {
+          "pairs": 3018,
+          "mean": -0.04716535285115242,
+          "median": -0.051849376410245895
+        },
+        "label_pixel4": {
+          "pairs": 3018,
+          "mean": -0.0008407346904277802,
+          "median": -0.0011385465040802956
+        }
+      },
+      "other volume, same anatomy": {
+        "acs_complex": {
+          "pairs": 353094,
+          "mean": 0.3065500557422638,
+          "median": 0.27411743998527527
+        },
+        "acs_log_magnitude": {
+          "pairs": 353094,
+          "mean": 0.6076422929763794,
+          "median": 0.6152281165122986
+        },
+        "label_unsplit": {
+          "pairs": 353094,
+          "mean": -0.001814981340430677,
+          "median": -0.002176289213821292
+        },
+        "label_smooth4": {
+          "pairs": 353094,
+          "mean": -0.0035001079086214304,
+          "median": -0.006859997287392616
+        },
+        "label_pixel4": {
+          "pairs": 353094,
+          "mean": -0.0017212190432474017,
+          "median": -0.0017610767390578985
+        }
+      },
+      "other volume, ACS as similar as the median adjacent pair": {
+        "acs_complex": {
+          "pairs": 2,
+          "mean": 0.9835357666015625,
+          "median": 0.9819311499595642
+        },
+        "acs_log_magnitude": {
+          "pairs": 2,
+          "mean": 0.929865837097168,
+          "median": 0.9254088401794434
+        },
+        "label_unsplit": {
+          "pairs": 2,
+          "mean": 0.0249104592949152,
+          "median": 0.0005804928950965405
+        },
+        "label_smooth4": {
+          "pairs": 2,
+          "mean": 0.4325815439224243,
+          "median": 0.18996208906173706
+        },
+        "label_pixel4": {
+          "pairs": 2,
+          "mean": -0.0007137038046494126,
+          "median": -0.0044655934907495975
+        }
+      }
+    },
+    "nearest_acs_neighbour_other_volume": {
+      "acs_complex": 0.8233612179756165,
+      "label_unsplit": 0.011658080853521824,
+      "label_smooth4": 0.21474802494049072,
+      "label_pixel4": -0.0008127454784698784
+    },
+    "per_volume_mask": {
+      "unsplit": {
+        "shared_fraction": 0.01010665949434042,
+        "perfect_volume_map_rho": 0.10053188297421083,
+        "leave_one_out": {
+          "slices": 1200,
+          "mean": 0.030721401430904127,
+          "median_labelled_slices_per_volume": 10.0
+        }
+      },
+      "smooth4": {
+        "shared_fraction": 0.12825678288936615,
+        "perfect_volume_map_rho": 0.35812956159659054,
+        "leave_one_out": {
+          "slices": 1200,
+          "mean": 0.2699120746095529,
+          "median_labelled_slices_per_volume": 10.0
+        }
+      },
+      "pixel4": {
+        "shared_fraction": 0.002695866860449314,
+        "perfect_volume_map_rho": 0.05192173784119051,
+        "leave_one_out": {
+          "slices": 1200,
+          "mean": 0.00946169269357597,
+          "median_labelled_slices_per_volume": 10.0
+        }
+      }
+    }
+  },
+  "config": {
+    "label_dir": "/tmp/bkadota_oracle_labels_r8",
+    "out": "analysis/label_gonogo/acs_vs_label_similarity.json",
+    "band_sigma": 4.0
+  }
+}

@@ -6,6 +6,8 @@ the seed and the slice), through the run's own reconstructor:
   own                PSNR (trainer's masked metric) with the slice's own mask
   anatomy swap cost  own minus PSNR with a mask the sampler made for a random slice of the other anatomy
   slice swap cost    own minus PSNR with a mask made for a random slice of another volume of the same anatomy
+  protocol swap cost knee only: own minus PSNR with a mask made for a random knee slice of the other protocol
+                     (PD vs PDFS), the swap a per-protocol mask table must win
   adaptivity         slice-vs-anatomy-mean correlation of the effective probability, brain-vs-knee correlation of the
                      anatomy means; for smooth_adapt_2d, the offset's mean |value| and its across-slice std
 
@@ -36,6 +38,7 @@ LOUPE_RUN = Path('checkpoints/grad_floor_compare/loupe2d_r8_slope5_floor0.05')
 OUT = Path('reports/adaptivity_next_steps_r8')
 SEEDS = (1234, 4321)
 ANATOMIES = ('brain', 'knee')
+KNEE_PROTOCOLS = ('knee-PD', 'knee-PDFS')
 BOOTSTRAPS = 2000
 CONTROLS = {
     'adapt16_joint_R8': 'static_joint_R8',
@@ -46,7 +49,9 @@ CONTROLS = {
     'adapt16_joint_flags_R8': 'static_joint_flags_R8',
     'anattable_joint_flags_R8': 'static_joint_flags_R8',
     'static_joint_flags_R8': 'loupe_flags_original',
+    'prototable_joint_R8': 'static_joint_R8',
 }
+EXTRA_COMPARISONS = (('prototable_joint_R8', 'anattable_joint_R8'),)
 
 
 def parse_args():
@@ -81,10 +86,11 @@ def sampler_observation(model, kspace):
 
 
 def with_labels(model, batch, device):
-    """The batch on `device`, with anatomy labels built from the anatomy names as the trainer does."""
+    """The batch on `device`, with class labels built from the anatomy (or protocol) names as the trainer does."""
     part = to_device(batch, device)
     classes = list(getattr(model, 'label_classes', None) or ANATOMIES)
-    part['label'] = torch.as_tensor([classes.index(a) for a in batch['anatomy']], device=device)
+    names = batch['condition'] if set(classes) - set(ANATOMIES) else batch['anatomy']
+    part['label'] = torch.as_tensor([classes.index(n) for n in names], device=device)
     return part
 
 
@@ -143,12 +149,14 @@ def correlation(a, b):
     return float((a * b).sum() / (a.norm() * b.norm()))
 
 
-def adaptivity(maps, anatomy):
+def adaptivity(maps, anatomy, condition):
     effective = (maps['rescaled'].float() + maps['old'].float()).clamp(max=1)
     means = {a: effective[torch.as_tensor(anatomy == a)].mean(0) for a in ANATOMIES}
+    protocol_means = [effective[torch.as_tensor(condition == c)].mean(0) for c in KNEE_PROTOCOLS]
     per_slice = [correlation(effective[i], means[anatomy[i]]) for i in range(len(effective))]
     return {'slice_vs_mean_corr': {a: float(np.mean([c for c, x in zip(per_slice, anatomy) if x == a])) for a in ANATOMIES},
-            'brain_vs_knee_corr': correlation(means['brain'], means['knee'])}
+            'brain_vs_knee_corr': correlation(means['brain'], means['knee']),
+            'pd_vs_pdfs_corr': correlation(*protocol_means)}
 
 
 def bootstrap(delta, volumes, rng):
@@ -169,13 +177,17 @@ def main():
     loader = torch.utils.data.DataLoader(dataset, batch_size=args.chunk, shuffle=False, num_workers=4,
                                          collate_fn=val_loader.collate_fn)
     anatomy = np.array(sum((list(b['anatomy']) for b in loader), []))
+    condition = np.array(sum((list(b['condition']) for b in loader), []))
     volumes = np.array(sum((list(b['fname']) for b in loader), []))
     count = len(anatomy)
     donor_rng = np.random.RandomState(7)
     donors = {'own': np.arange(count),
               'other_anatomy': np.array([donor_rng.choice(np.flatnonzero(anatomy != anatomy[i])) for i in range(count)]),
               'same_anatomy': np.array([donor_rng.choice(np.flatnonzero((anatomy == anatomy[i]) & (volumes != volumes[i])))
-                                        for i in range(count)])}
+                                        for i in range(count)]),
+              'other_protocol': np.array([donor_rng.choice(np.flatnonzero((anatomy == 'knee') & (condition != condition[i])))
+                                          if anatomy[i] == 'knee' else i for i in range(count)])}
+    knee = anatomy == 'knee'
     donors = {k: torch.as_tensor(v) for k, v in donors.items()}
 
     per_slice, results = {}, {}
@@ -191,18 +203,22 @@ def main():
             'psnr': {a: float(own[anatomy == a].mean()) for a in ANATOMIES},
             'anatomy_swap_cost_db': bootstrap(own - per_slice[name]['other_anatomy'], volumes, rng),
             'slice_swap_cost_db': bootstrap(own - per_slice[name]['same_anatomy'], volumes, rng),
-            **adaptivity(maps, anatomy),
+            'protocol_swap_cost_db': bootstrap((own - per_slice[name]['other_protocol'])[knee], volumes[knee], rng),
+            'psnr_by_protocol': {c: float(own[condition == c].mean()) for c in KNEE_PROTOCOLS},
+            **adaptivity(maps, anatomy, condition),
             **{k: v for k, v in maps.items() if k.startswith('offset')}}
         print(name, json.dumps(results[name]), flush=True)
         del model
         torch.cuda.empty_cache()
 
     paired = {}
-    for arm, control in CONTROLS.items():
+    for arm, control in (*CONTROLS.items(), *EXTRA_COMPARISONS):
         if arm in per_slice and control in per_slice:
             delta = per_slice[arm]['own'] - per_slice[control]['own']
             paired[f'{arm} - {control}'] = {'all': bootstrap(delta, volumes, rng),
-                                            **{a: bootstrap(delta[anatomy == a], volumes[anatomy == a], rng) for a in ANATOMIES}}
+                                            **{a: bootstrap(delta[anatomy == a], volumes[anatomy == a], rng) for a in ANATOMIES},
+                                            **{c: bootstrap(delta[condition == c], volumes[condition == c], rng)
+                                               for c in KNEE_PROTOCOLS}}
     results['paired'] = paired
     print(json.dumps(paired, indent=1), flush=True)
     OUT.mkdir(parents=True, exist_ok=True)

@@ -1,0 +1,488 @@
+{
+ "R8 shared 50ep conv | shared": {
+  "seed": 42,
+  "corr_with_draw": [
+   0.506,
+   0.006,
+   -0.0
+  ],
+  "corr_with_rows": {
+   "R8 shared 50ep conv seed43 | shared": 0.146,
+   "R8 shared 50ep bilinear | shared": 0.855,
+   "R8 shared 50ep bilinear seed43 | shared": 0.133,
+   "R8 shared 100ep bilinear | shared": 0.808,
+   "R8 anatomy 50ep conv | brain": 0.798,
+   "R8 anatomy 50ep conv | knee": 0.086,
+   "R8 anatomy 100ep bilinear | brain": 0.76,
+   "R8 anatomy 100ep bilinear | knee": 0.064,
+   "R8 protocol 50ep conv | brain": 0.801,
+   "R8 protocol 50ep conv | knee-PD": 0.101,
+   "R8 protocol 50ep conv | knee-PDFS": 0.084,
+   "R8 shared continued (control) | shared": 0.796,
+   "R8 anatomy shared-init | brain": 0.807,
+   "R8 anatomy shared-init | knee": 0.707,
+   "R4 shared 50ep conv | shared": 0.616,
+   "R4 anatomy 50ep conv | brain": 0.601,
+   "R4 anatomy 50ep conv | knee": 0.035
+  }
+ },
+ "R8 shared 50ep conv seed43 | shared": {
+  "seed": 43,
+  "corr_with_draw": [
+   0.512,
+   -0.007,
+   0.002
+  ],
+  "corr_with_rows": {
+   "R8 shared 50ep conv | shared": 0.146,
+   "R8 shared 50ep bilinear | shared": 0.139,
+   "R8 shared 50ep bilinear seed43 | shared": 0.853,
+   "R8 shared 100ep bilinear | shared": 0.123,
+   "R8 anatomy 50ep conv | brain": 0.163,
+   "R8 anatomy 50ep conv | knee": 0.075,
+   "R8 anatomy 100ep bilinear | brain": 0.143,
+   "R8 anatomy 100ep bilinear | knee": 0.06,
+   "R8 protocol 50ep conv | brain": 0.164,
+   "R8 protocol 50ep conv | knee-PD": 0.091,
+   "R8 protocol 50ep conv | knee-PDFS": 0.078,
+   "R8 shared continued (control) | shared": 0.12,
+   "R8 anatomy shared-init | brain": 0.13,
+   "R8 anatomy shared-init | knee": 0.085,
+   "R4 shared 50ep conv | shared": 0.044,
+   "R4 anatomy 50ep conv | brain": 0.054,
+   "R4 anatomy 50ep conv | knee": 0.03
+  }
+ },
+ "R8 shared 50ep bilinear | shared": {
+  "seed": 42,
+  "corr_with_draw": [
+   0.519,
+   0.007,
+   -0.002
+  ],
+  "corr_with_rows": {
+   "R8 shared 50ep conv | shared": 0.855,
+   "R8 shared 50ep conv seed43 | shared": 0.139,
+   "R8 shared 50ep bilinear seed43 | shared": 0.132,
+   "R8 shared 100ep bilinear | shared": 0.903,
+   "R8 anatomy 50ep conv | brain": 0.77,
+   "R8 anatomy 50ep conv | knee": 0.08,
+   "R8 anatomy 100ep bilinear | brain": 0.741,
+   "R8 anatomy 100ep bilinear | knee": 0.062,
+   "R8 protocol 50ep conv | brain": 0.767,
+   "R8 protocol 50ep conv | knee-PD": 0.095,
+   "R8 protocol 50ep conv | knee-PDFS": 0.079,
+   "R8 shared continued (control) | shared": 0.891,
+   "R8 anatomy shared-init | brain": 0.892,
+   "R8 anatomy shared-init | knee": 0.803,
+   "R4 shared 50ep conv | shared": 0.61,
+   "R4 anatomy 50ep conv | brain": 0.6,
+   "R4 anatomy 50ep conv | knee": 0.032
+  }
+ },
+ "R8 shared 50ep bilinear seed43 | shared": {
+  "seed": 43,
+  "corr_with_draw": [
+   0.525,
+   -0.006,
+   0.001
+  ],
+  "corr_with_rows": {
+   "R8 shared 50ep conv | shared": 0.133,
+   "R8 shared 50ep conv seed43 | shared": 0.853,
+   "R8 shared 50ep bilinear | shared": 0.132,
+   "R8 shared 100ep bilinear | shared": 0.118,
+   "R8 anatomy 50ep conv | brain": 0.152,
+   "R8 anatomy 50ep conv | knee": 0.076,
+   "R8 anatomy 100ep bilinear | brain": 0.136,
+   "R8 anatomy 100ep bilinear | knee": 0.06,
+   "R8 protocol 50ep conv | brain": 0.152,
+   "R8 protocol 50ep conv | knee-PD": 0.089,
+   "R8 protocol 50ep conv | knee-PDFS": 0.074,
+   "R8 shared continued (control) | shared": 0.114,
+   "R8 anatomy shared-init | brain": 0.124,
+   "R8 anatomy shared-init | knee": 0.082,
+   "R4 shared 50ep conv | shared": 0.043,
+   "R4 anatomy 50ep conv | brain": 0.052,
+   "R4 anatomy 50ep conv | knee": 0.033
+  }
+ },
+ "R8 shared 100ep bilinear | shared": {
+  "seed": 42,
+  "corr_with_draw": [
+   0.421,
+   0.007,
+   -0.004
+  ],
+  "corr_with_rows": {
+   "R8 shared 50ep conv | shared": 0.808,
+   "R8 shared 50ep conv seed43 | shared": 0.123,
+   "R8 shared 50ep bilinear | shared": 0.903,
+   "R8 shared 50ep bilinear seed43 | shared": 0.118,
+   "R8 anatomy 50ep conv | brain": 0.725,
+   "R8 anatomy 50ep conv | knee": 0.073,
+   "R8 anatomy 100ep bilinear | brain": 0.712,
+   "R8 anatomy 100ep bilinear | knee": 0.058,
+   "R8 protocol 50ep conv | brain": 0.721,
+   "R8 protocol 50ep conv | knee-PD": 0.087,
+   "R8 protocol 50ep conv | knee-PDFS": 0.076,
+   "R8 shared continued (control) | shared": 0.993,
+   "R8 anatomy shared-init | brain": 0.966,
+   "R8 anatomy shared-init | knee": 0.912,
+   "R4 shared 50ep conv | shared": 0.584,
+   "R4 anatomy 50ep conv | brain": 0.574,
+   "R4 anatomy 50ep conv | knee": 0.029
+  }
+ },
+ "R8 anatomy 50ep conv | brain": {
+  "seed": 42,
+  "corr_with_draw": [
+   0.489,
+   0.003,
+   -0.001
+  ],
+  "corr_with_rows": {
+   "R8 shared 50ep conv | shared": 0.798,
+   "R8 shared 50ep conv seed43 | shared": 0.163,
+   "R8 shared 50ep bilinear | shared": 0.77,
+   "R8 shared 50ep bilinear seed43 | shared": 0.152,
+   "R8 shared 100ep bilinear | shared": 0.725,
+   "R8 anatomy 50ep conv | knee": 0.088,
+   "R8 anatomy 100ep bilinear | brain": 0.812,
+   "R8 anatomy 100ep bilinear | knee": 0.066,
+   "R8 protocol 50ep conv | brain": 0.866,
+   "R8 protocol 50ep conv | knee-PD": 0.114,
+   "R8 protocol 50ep conv | knee-PDFS": 0.091,
+   "R8 shared continued (control) | shared": 0.714,
+   "R8 anatomy shared-init | brain": 0.754,
+   "R8 anatomy shared-init | knee": 0.6,
+   "R4 shared 50ep conv | shared": 0.592,
+   "R4 anatomy 50ep conv | brain": 0.618,
+   "R4 anatomy 50ep conv | knee": 0.034
+  }
+ },
+ "R8 anatomy 50ep conv | knee": {
+  "seed": 42,
+  "corr_with_draw": [
+   -0.003,
+   0.592,
+   0.0
+  ],
+  "corr_with_rows": {
+   "R8 shared 50ep conv | shared": 0.086,
+   "R8 shared 50ep conv seed43 | shared": 0.075,
+   "R8 shared 50ep bilinear | shared": 0.08,
+   "R8 shared 50ep bilinear seed43 | shared": 0.076,
+   "R8 shared 100ep bilinear | shared": 0.073,
+   "R8 anatomy 50ep conv | brain": 0.088,
+   "R8 anatomy 100ep bilinear | brain": 0.076,
+   "R8 anatomy 100ep bilinear | knee": 0.756,
+   "R8 protocol 50ep conv | brain": 0.092,
+   "R8 protocol 50ep conv | knee-PD": 0.688,
+   "R8 protocol 50ep conv | knee-PDFS": 0.068,
+   "R8 shared continued (control) | shared": 0.072,
+   "R8 anatomy shared-init | brain": 0.074,
+   "R8 anatomy shared-init | knee": 0.059,
+   "R4 shared 50ep conv | shared": 0.026,
+   "R4 anatomy 50ep conv | brain": 0.025,
+   "R4 anatomy 50ep conv | knee": 0.652
+  }
+ },
+ "R8 anatomy 100ep bilinear | brain": {
+  "seed": 42,
+  "corr_with_draw": [
+   0.399,
+   0.005,
+   -0.002
+  ],
+  "corr_with_rows": {
+   "R8 shared 50ep conv | shared": 0.76,
+   "R8 shared 50ep conv seed43 | shared": 0.143,
+   "R8 shared 50ep bilinear | shared": 0.741,
+   "R8 shared 50ep bilinear seed43 | shared": 0.136,
+   "R8 shared 100ep bilinear | shared": 0.712,
+   "R8 anatomy 50ep conv | brain": 0.812,
+   "R8 anatomy 50ep conv | knee": 0.076,
+   "R8 anatomy 100ep bilinear | knee": 0.057,
+   "R8 protocol 50ep conv | brain": 0.807,
+   "R8 protocol 50ep conv | knee-PD": 0.094,
+   "R8 protocol 50ep conv | knee-PDFS": 0.077,
+   "R8 shared continued (control) | shared": 0.703,
+   "R8 anatomy shared-init | brain": 0.741,
+   "R8 anatomy shared-init | knee": 0.595,
+   "R4 shared 50ep conv | shared": 0.568,
+   "R4 anatomy 50ep conv | brain": 0.585,
+   "R4 anatomy 50ep conv | knee": 0.029
+  }
+ },
+ "R8 anatomy 100ep bilinear | knee": {
+  "seed": 42,
+  "corr_with_draw": [
+   -0.004,
+   0.479,
+   -0.001
+  ],
+  "corr_with_rows": {
+   "R8 shared 50ep conv | shared": 0.064,
+   "R8 shared 50ep conv seed43 | shared": 0.06,
+   "R8 shared 50ep bilinear | shared": 0.062,
+   "R8 shared 50ep bilinear seed43 | shared": 0.06,
+   "R8 shared 100ep bilinear | shared": 0.058,
+   "R8 anatomy 50ep conv | brain": 0.066,
+   "R8 anatomy 50ep conv | knee": 0.756,
+   "R8 anatomy 100ep bilinear | brain": 0.057,
+   "R8 protocol 50ep conv | brain": 0.069,
+   "R8 protocol 50ep conv | knee-PD": 0.62,
+   "R8 protocol 50ep conv | knee-PDFS": 0.051,
+   "R8 shared continued (control) | shared": 0.056,
+   "R8 anatomy shared-init | brain": 0.058,
+   "R8 anatomy shared-init | knee": 0.047,
+   "R4 shared 50ep conv | shared": 0.019,
+   "R4 anatomy 50ep conv | brain": 0.019,
+   "R4 anatomy 50ep conv | knee": 0.604
+  }
+ },
+ "R8 protocol 50ep conv | brain": {
+  "seed": 42,
+  "corr_with_draw": [
+   0.486,
+   0.004,
+   -0.002
+  ],
+  "corr_with_rows": {
+   "R8 shared 50ep conv | shared": 0.801,
+   "R8 shared 50ep conv seed43 | shared": 0.164,
+   "R8 shared 50ep bilinear | shared": 0.767,
+   "R8 shared 50ep bilinear seed43 | shared": 0.152,
+   "R8 shared 100ep bilinear | shared": 0.721,
+   "R8 anatomy 50ep conv | brain": 0.866,
+   "R8 anatomy 50ep conv | knee": 0.092,
+   "R8 anatomy 100ep bilinear | brain": 0.807,
+   "R8 anatomy 100ep bilinear | knee": 0.069,
+   "R8 protocol 50ep conv | knee-PD": 0.113,
+   "R8 protocol 50ep conv | knee-PDFS": 0.091,
+   "R8 shared continued (control) | shared": 0.709,
+   "R8 anatomy shared-init | brain": 0.749,
+   "R8 anatomy shared-init | knee": 0.596,
+   "R4 shared 50ep conv | shared": 0.594,
+   "R4 anatomy 50ep conv | brain": 0.612,
+   "R4 anatomy 50ep conv | knee": 0.036
+  }
+ },
+ "R8 protocol 50ep conv | knee-PD": {
+  "seed": 42,
+  "corr_with_draw": [
+   -0.004,
+   0.572,
+   0.001
+  ],
+  "corr_with_rows": {
+   "R8 shared 50ep conv | shared": 0.101,
+   "R8 shared 50ep conv seed43 | shared": 0.091,
+   "R8 shared 50ep bilinear | shared": 0.095,
+   "R8 shared 50ep bilinear seed43 | shared": 0.089,
+   "R8 shared 100ep bilinear | shared": 0.087,
+   "R8 anatomy 50ep conv | brain": 0.114,
+   "R8 anatomy 50ep conv | knee": 0.688,
+   "R8 anatomy 100ep bilinear | brain": 0.094,
+   "R8 anatomy 100ep bilinear | knee": 0.62,
+   "R8 protocol 50ep conv | brain": 0.113,
+   "R8 protocol 50ep conv | knee-PDFS": 0.064,
+   "R8 shared continued (control) | shared": 0.084,
+   "R8 anatomy shared-init | brain": 0.09,
+   "R8 anatomy shared-init | knee": 0.061,
+   "R4 shared 50ep conv | shared": 0.036,
+   "R4 anatomy 50ep conv | brain": 0.037,
+   "R4 anatomy 50ep conv | knee": 0.561
+  }
+ },
+ "R8 protocol 50ep conv | knee-PDFS": {
+  "seed": 42,
+  "corr_with_draw": [
+   -0.004,
+   0.007,
+   0.616
+  ],
+  "corr_with_rows": {
+   "R8 shared 50ep conv | shared": 0.084,
+   "R8 shared 50ep conv seed43 | shared": 0.078,
+   "R8 shared 50ep bilinear | shared": 0.079,
+   "R8 shared 50ep bilinear seed43 | shared": 0.074,
+   "R8 shared 100ep bilinear | shared": 0.076,
+   "R8 anatomy 50ep conv | brain": 0.091,
+   "R8 anatomy 50ep conv | knee": 0.068,
+   "R8 anatomy 100ep bilinear | brain": 0.077,
+   "R8 anatomy 100ep bilinear | knee": 0.051,
+   "R8 protocol 50ep conv | brain": 0.091,
+   "R8 protocol 50ep conv | knee-PD": 0.064,
+   "R8 shared continued (control) | shared": 0.075,
+   "R8 anatomy shared-init | brain": 0.077,
+   "R8 anatomy shared-init | knee": 0.062,
+   "R4 shared 50ep conv | shared": 0.021,
+   "R4 anatomy 50ep conv | brain": 0.029,
+   "R4 anatomy 50ep conv | knee": 0.026
+  }
+ },
+ "R8 shared continued (control) | shared": {
+  "seed": 42,
+  "corr_with_draw": [
+   0.39,
+   0.006,
+   -0.003
+  ],
+  "corr_with_rows": {
+   "R8 shared 50ep conv | shared": 0.796,
+   "R8 shared 50ep conv seed43 | shared": 0.12,
+   "R8 shared 50ep bilinear | shared": 0.891,
+   "R8 shared 50ep bilinear seed43 | shared": 0.114,
+   "R8 shared 100ep bilinear | shared": 0.993,
+   "R8 anatomy 50ep conv | brain": 0.714,
+   "R8 anatomy 50ep conv | knee": 0.072,
+   "R8 anatomy 100ep bilinear | brain": 0.703,
+   "R8 anatomy 100ep bilinear | knee": 0.056,
+   "R8 protocol 50ep conv | brain": 0.709,
+   "R8 protocol 50ep conv | knee-PD": 0.084,
+   "R8 protocol 50ep conv | knee-PDFS": 0.075,
+   "R8 anatomy shared-init | brain": 0.964,
+   "R8 anatomy shared-init | knee": 0.917,
+   "R4 shared 50ep conv | shared": 0.577,
+   "R4 anatomy 50ep conv | brain": 0.567,
+   "R4 anatomy 50ep conv | knee": 0.028
+  }
+ },
+ "R8 anatomy shared-init | brain": {
+  "seed": 42,
+  "corr_with_draw": [
+   0.399,
+   0.006,
+   -0.004
+  ],
+  "corr_with_rows": {
+   "R8 shared 50ep conv | shared": 0.807,
+   "R8 shared 50ep conv seed43 | shared": 0.13,
+   "R8 shared 50ep bilinear | shared": 0.892,
+   "R8 shared 50ep bilinear seed43 | shared": 0.124,
+   "R8 shared 100ep bilinear | shared": 0.966,
+   "R8 anatomy 50ep conv | brain": 0.754,
+   "R8 anatomy 50ep conv | knee": 0.074,
+   "R8 anatomy 100ep bilinear | brain": 0.741,
+   "R8 anatomy 100ep bilinear | knee": 0.058,
+   "R8 protocol 50ep conv | brain": 0.749,
+   "R8 protocol 50ep conv | knee-PD": 0.09,
+   "R8 protocol 50ep conv | knee-PDFS": 0.077,
+   "R8 shared continued (control) | shared": 0.964,
+   "R8 anatomy shared-init | knee": 0.848,
+   "R4 shared 50ep conv | shared": 0.583,
+   "R4 anatomy 50ep conv | brain": 0.576,
+   "R4 anatomy 50ep conv | knee": 0.028
+  }
+ },
+ "R8 anatomy shared-init | knee": {
+  "seed": 42,
+  "corr_with_draw": [
+   0.4,
+   0.005,
+   -0.001
+  ],
+  "corr_with_rows": {
+   "R8 shared 50ep conv | shared": 0.707,
+   "R8 shared 50ep conv seed43 | shared": 0.085,
+   "R8 shared 50ep bilinear | shared": 0.803,
+   "R8 shared 50ep bilinear seed43 | shared": 0.082,
+   "R8 shared 100ep bilinear | shared": 0.912,
+   "R8 anatomy 50ep conv | brain": 0.6,
+   "R8 anatomy 50ep conv | knee": 0.059,
+   "R8 anatomy 100ep bilinear | brain": 0.595,
+   "R8 anatomy 100ep bilinear | knee": 0.047,
+   "R8 protocol 50ep conv | brain": 0.596,
+   "R8 protocol 50ep conv | knee-PD": 0.061,
+   "R8 protocol 50ep conv | knee-PDFS": 0.062,
+   "R8 shared continued (control) | shared": 0.917,
+   "R8 anatomy shared-init | brain": 0.848,
+   "R4 shared 50ep conv | shared": 0.528,
+   "R4 anatomy 50ep conv | brain": 0.514,
+   "R4 anatomy 50ep conv | knee": 0.021
+  }
+ },
+ "R4 shared 50ep conv | shared": {
+  "seed": 42,
+  "corr_with_draw": [
+   0.626,
+   0.001,
+   -0.004
+  ],
+  "corr_with_rows": {
+   "R8 shared 50ep conv | shared": 0.616,
+   "R8 shared 50ep conv seed43 | shared": 0.044,
+   "R8 shared 50ep bilinear | shared": 0.61,
+   "R8 shared 50ep bilinear seed43 | shared": 0.043,
+   "R8 shared 100ep bilinear | shared": 0.584,
+   "R8 anatomy 50ep conv | brain": 0.592,
+   "R8 anatomy 50ep conv | knee": 0.026,
+   "R8 anatomy 100ep bilinear | brain": 0.568,
+   "R8 anatomy 100ep bilinear | knee": 0.019,
+   "R8 protocol 50ep conv | brain": 0.594,
+   "R8 protocol 50ep conv | knee-PD": 0.036,
+   "R8 protocol 50ep conv | knee-PDFS": 0.021,
+   "R8 shared continued (control) | shared": 0.577,
+   "R8 anatomy shared-init | brain": 0.583,
+   "R8 anatomy shared-init | knee": 0.528,
+   "R4 anatomy 50ep conv | brain": 0.848,
+   "R4 anatomy 50ep conv | knee": 0.018
+  }
+ },
+ "R4 anatomy 50ep conv | brain": {
+  "seed": 42,
+  "corr_with_draw": [
+   0.626,
+   0.0,
+   -0.001
+  ],
+  "corr_with_rows": {
+   "R8 shared 50ep conv | shared": 0.601,
+   "R8 shared 50ep conv seed43 | shared": 0.054,
+   "R8 shared 50ep bilinear | shared": 0.6,
+   "R8 shared 50ep bilinear seed43 | shared": 0.052,
+   "R8 shared 100ep bilinear | shared": 0.574,
+   "R8 anatomy 50ep conv | brain": 0.618,
+   "R8 anatomy 50ep conv | knee": 0.025,
+   "R8 anatomy 100ep bilinear | brain": 0.585,
+   "R8 anatomy 100ep bilinear | knee": 0.019,
+   "R8 protocol 50ep conv | brain": 0.612,
+   "R8 protocol 50ep conv | knee-PD": 0.037,
+   "R8 protocol 50ep conv | knee-PDFS": 0.029,
+   "R8 shared continued (control) | shared": 0.567,
+   "R8 anatomy shared-init | brain": 0.576,
+   "R8 anatomy shared-init | knee": 0.514,
+   "R4 shared 50ep conv | shared": 0.848,
+   "R4 anatomy 50ep conv | knee": 0.012
+  }
+ },
+ "R4 anatomy 50ep conv | knee": {
+  "seed": 42,
+  "corr_with_draw": [
+   -0.001,
+   0.678,
+   0.003
+  ],
+  "corr_with_rows": {
+   "R8 shared 50ep conv | shared": 0.035,
+   "R8 shared 50ep conv seed43 | shared": 0.03,
+   "R8 shared 50ep bilinear | shared": 0.032,
+   "R8 shared 50ep bilinear seed43 | shared": 0.033,
+   "R8 shared 100ep bilinear | shared": 0.029,
+   "R8 anatomy 50ep conv | brain": 0.034,
+   "R8 anatomy 50ep conv | knee": 0.652,
+   "R8 anatomy 100ep bilinear | brain": 0.029,
+   "R8 anatomy 100ep bilinear | knee": 0.604,
+   "R8 protocol 50ep conv | brain": 0.036,
+   "R8 protocol 50ep conv | knee-PD": 0.561,
+   "R8 protocol 50ep conv | knee-PDFS": 0.026,
+   "R8 shared continued (control) | shared": 0.028,
+   "R8 anatomy shared-init | brain": 0.028,
+   "R8 anatomy shared-init | knee": 0.021,
+   "R4 shared 50ep conv | shared": 0.018,
+   "R4 anatomy 50ep conv | brain": 0.012
+  }
+ }
+}

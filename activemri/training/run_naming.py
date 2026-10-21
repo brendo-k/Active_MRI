@@ -48,6 +48,8 @@ def sampler_label(options) -> str:
     sampler = _get(options, 'sampler_type')
     if _get(options, 'ppo_policy'):
         return 'ppo-policy'
+    if _get(options, 'fixed_mask_path'):
+        return 'fixed-mask-' + str(_get(options, 'fixed_mask_path')).rstrip('/').rsplit('/', 1)[-1].removesuffix('.pt')
     if _get(options, 'mask_train_mode') == 'random':
         return 'random-mask'
     label = sampler.replace('_', '')
@@ -59,8 +61,12 @@ def sampler_label(options) -> str:
 
 
 def _sampler_tokens(options):
+    if _get(options, 'fixed_mask_path'):
+        return []  # the placeholder sampler's settings do nothing
     sampler = _get(options, 'sampler_type')
     tokens = []
+    if _get(options, 'loupe_vd_init_power') > 0:
+        tokens.append(f"vdinit-p{_get(options, 'loupe_vd_init_power'):g}")
     if sampler in IMAGE_INPUT_SAMPLERS and not _get(options, 'sampler_image_input'):
         tokens.append('kspace-in')
     if _get(options, 'sampler_head') != 'none':
@@ -80,6 +86,8 @@ def _sampler_tokens(options):
         tokens += [f'{name}{floor:g}' for name, floor in (('mfloor', mask_floor), ('stefloor', ste_floor)) if floor > 0]
     if _get(options, 'mask_draws') > 1:
         tokens.append(f"draws{_get(options, 'mask_draws')}")
+    if _get(options, 'selection') == 'dcm':
+        tokens.append(f"dcm-p{_get(options, 'dcm_vd_power'):g}-tau{_get(options, 'dcm_tau'):g}")
     if _differs(options, 'logit_limit') or _differs(options, 'logit_leak'):
         tokens.append(f"clamp{_get(options, 'logit_limit'):g}-{_get(options, 'logit_leak'):g}")
     if _get(options, 'caipi_keep_fraction') != 1.0:
@@ -120,7 +128,10 @@ def _recon_tokens(options):
         tokens += [f'dc-{recon[key]}' if key == 'dc_mode' else f'{key}{recon[key]}'
                    for key, default in VARNET_DEFAULTS.items() if recon.get(key, default) != default]
         tokens += [name for key, name in (('anatomy_conditioning', 'recon-cond'), ('film_conditioning', 'film'),
+                                          ('prompt_conditioning', 'prompt-cond'), ('label_blind', 'blind'),
                                           ('adaptive_input', 'aha-in'), ('dc_weight_map', 'dc-map')) if recon.get(key)]
+        if recon.get('momentum_history'):
+            tokens.append(f"mom{recon['momentum_history']}")
     if recon_type == 'sdum':
         tokens += [name for key, name in (('anatomy_conditioning', 'recon-cond'), ('pretrained', 'pretrained-sdum'))
                    if recon.get(key)]

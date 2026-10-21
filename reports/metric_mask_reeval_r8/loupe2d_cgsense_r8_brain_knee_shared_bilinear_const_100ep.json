@@ -1,0 +1,35 @@
+{
+  "run": "loupe2d_cgsense_r8_brain_knee_shared_bilinear_const_100ep",
+  "checkpoint": "last_model.pt",
+  "epoch": 99,
+  "total_epochs": 100,
+  "skipped_batches": 0,
+  "mask_fraction": {
+    "legacy": 0.3656326781871707,
+    "new": 0.40754659785780795
+  },
+  "legacy": {
+    "brain": {
+      "PSNR": 34.91828918457031,
+      "SSIM": 0.912847638130188,
+      "NMSE": 0.01742778904736042
+    },
+    "knee": {
+      "PSNR": 32.716026306152344,
+      "SSIM": 0.9289554357528687,
+      "NMSE": 0.017144400626420975
+    }
+  },
+  "new": {
+    "brain": {
+      "PSNR": 37.10569763183594,
+      "SSIM": 0.9612482786178589,
+      "NMSE": 0.00797102227807045
+    },
+    "knee": {
+      "PSNR": 34.10887145996094,
+      "SSIM": 0.9215787649154663,
+      "NMSE": 0.01254145335406065
+    }
+  }
+}

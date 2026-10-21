@@ -21,6 +21,15 @@ from activemri.utils.mask_binarization import (
 
 SAMPLER_TYPES = ("conv_2d", "conv_1d", "loupe_2d", "loupe_1d", "caipi_2d", "autosamp_2d", "mnet_2d", "smooth_adapt_2d")
 MASK_TRAIN_MODES = ("straight_through", "reinforce", "random")
+SELECTIONS = ("bernoulli", "dcm")
+
+
+def variable_density_prior(shape, power):
+    """((D - r) / D)^power on the centred k-space grid, D the largest distance from the centre (Sun et al. eq. 13)."""
+    ky = torch.arange(shape[0]) - shape[0] // 2
+    kx = torch.arange(shape[1]) - shape[1] // 2
+    radius = torch.hypot(ky[:, None].float(), kx[None, :].float())
+    return ((radius.max() - radius) / radius.max()).pow(power).view(1, 1, *shape)
 REINFORCE_EVAL_MODES = ("sample", "topk")
 
 
@@ -107,6 +116,9 @@ class Sampler(nn.Module):
         adapt_grid=16,
         adapt_hidden=64,
         calibration_size=10,
+        selection="bernoulli",
+        dcm_vd_power=4.0,
+        dcm_tau=5.0,
         ):
         super().__init__()
 
@@ -114,6 +126,11 @@ class Sampler(nn.Module):
             raise ValueError(f"Unknown sampler_type {sampler_type!r}; expected one of {SAMPLER_TYPES}")
         if mask_train_mode not in MASK_TRAIN_MODES:
             raise ValueError(f"Unknown mask_train_mode {mask_train_mode!r}; expected one of {MASK_TRAIN_MODES}")
+        if selection not in SELECTIONS:
+            raise ValueError(f"Unknown selection {selection!r}; expected one of {SELECTIONS}")
+        if selection == "dcm" and (sampler_type != "loupe_2d" or mask_train_mode != "straight_through" or mask_draws > 1):
+            raise ValueError("selection='dcm' replaces the Bernoulli draw of a straight-through loupe_2d mask, "
+                             f"got {sampler_type!r}, {mask_train_mode!r}, mask_draws={mask_draws}")
         if reinforce_eval not in REINFORCE_EVAL_MODES:
             raise ValueError(f"Unknown reinforce_eval {reinforce_eval!r}; expected one of {REINFORCE_EVAL_MODES}")
 
@@ -193,6 +210,44 @@ class Sampler(nn.Module):
             raise ValueError("mask_draws > 1 averages straight-through Bernoulli draws, so it needs "
                              f"mask_train_mode='straight_through' and a thresholding sampler, got {sampler_type!r}, {mask_train_mode!r}")
         self.mask_draws = mask_draws
+        self.selection = selection
+        self.dcm_tau = dcm_tau
+        if selection == "dcm":
+            self.register_buffer("dcm_acceptance", variable_density_prior(shape, dcm_vd_power), persistent=False)
+
+    def init_loupe_variable_density(self, power, available, budget, eps=1e-2):
+        """Start a straight-through loupe_2d mask at the variable-density prior instead of uniform noise.
+
+        The starting probability is clamp(c * ((D - r) / D)^power, eps, 1 - eps), the acceptance prior of
+        Sun et al. (TCI 2024, eq. 13) with c bisected so the `available` locations ([H, W], 1 = may be
+        sampled) hold `budget` expected samples. The budget rescale is then the identity at step 0, and the
+        clamp keeps every sigmoid off saturation so all locations still get a gradient.
+
+        Returns the starting [H, W] probability.
+        """
+        if not (self.sampler_type == "loupe_2d" and self.mask_train_mode == "straight_through"
+                and self.selection == "bernoulli"):
+            raise ValueError("the variable-density start is for a straight-through loupe_2d mask with Bernoulli "
+                             f"selection, got {self.sampler_type!r}, {self.mask_train_mode!r}, {self.selection!r}")
+        available = available.to(torch.float64)
+        if not eps * available.sum() < budget < (1 - eps) * available.sum():
+            raise ValueError(f"a budget of {budget} is outside what [{eps}, {1 - eps}] probabilities can hold")
+        prior = variable_density_prior(tuple(available.shape), power)[0, 0].to(torch.float64)
+
+        def expected_samples(scale):
+            return float((torch.clamp(scale * prior, eps, 1 - eps) * available).sum())
+
+        low, high = 0.0, 1.0
+        while expected_samples(high) < budget:
+            high *= 2
+        for _ in range(60):
+            middle = 0.5 * (low + high)
+            low, high = (middle, high) if expected_samples(middle) < budget else (low, middle)
+        density = torch.clamp(high * prior, eps, 1 - eps)
+        logits = torch.log(density / (1 - density)) / self.mask_net.slope
+        with torch.no_grad():
+            self.mask_net.mask.copy_(logits.view(1, *density.shape, 1).expand_as(self.mask_net.mask))
+        return density.float()
 
     @staticmethod
     def _to_image_domain(kspace_channels):
@@ -346,6 +401,9 @@ class Sampler(nn.Module):
         if valid_mask is not None:
             available = available * valid_mask
 
+        if self.selection == "dcm":
+            return self._decoupled_comparison(samp_prob_unscaled, old_mask, budget, available)
+
         samp_prob = self.rescale(samp_prob_unscaled, sparsity, available)
         if self.exact_budget:
             binary_mask = topk_straight_through(samp_prob, int(round(float(budget))), available)
@@ -356,6 +414,26 @@ class Sampler(nn.Module):
             binary_mask = binary_mask * valid_mask
 
         return samp_prob, torch.clamp(old_mask + binary_mask, min=0, max=1)
+
+    def _decoupled_comparison(self, rejection_preference, old_mask, budget, available):
+        """Deterministic mask of Sun et al. (IEEE TCI 2024): the `budget` available locations with the highest
+        acceptance - rejection, where acceptance is the fixed variable-density prior and rejection is the learned
+        map rescaled to the prior's mean over the available locations (their eq. 18), so neither map dominates.
+        Backward: straight-through through budget * softmax(score / tau) over the available locations.
+
+        Returns (that soft allocation, old_mask union the chosen locations), as `select_locations` does.
+        """
+        available = available.expand_as(rejection_preference).to(rejection_preference.dtype)
+        acceptance = self.dcm_acceptance.to(rejection_preference.dtype).expand_as(rejection_preference)
+        numel = rejection_preference[0].numel()
+        rejection = torch.cat([
+            self.rescale(rejection_preference[i:i + 1],
+                         float((acceptance[i] * available[i]).sum() / numel), available[i:i + 1])
+            for i in range(len(rejection_preference))])
+        score = (acceptance - rejection).masked_fill(available <= 0, float('-inf'))
+        allocation = budget * torch.softmax(score.flatten(1) / self.dcm_tau, dim=1).view_as(score)
+        chosen = topk_straight_through(allocation, int(round(float(budget))), available)
+        return allocation, torch.clamp(old_mask + chosen, min=0, max=1)
 
     def forward(self, observed_kspace, old_mask, budget, uncertainty_mask=None, valid_mask=None, recon_complex=None, gfactor=None, anatomy_labels=None):  # noqa: ARG002
         """

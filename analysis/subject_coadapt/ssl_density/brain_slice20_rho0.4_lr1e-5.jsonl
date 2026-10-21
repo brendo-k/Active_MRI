@@ -1,0 +1,10 @@
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+Balanced train set (volumes, slices): {'brain': (89, 1350), 'knee': (40, 1350)}
+Balanced val set (volumes, slices): {'brain': (23, 344), 'knee': (10, 344)}
+{"step": 0, "psnr_omega": 40.0343, "scale_omega": 1.0002, "psnr_theta": 34.223, "scale_theta": 1.0242, "reprojection_error_theta": 0.0994, "reprojection_error_lambda": 0.2481}
+{"step": 5, "train_loss": 0.6276, "psnr_omega": 39.7323, "scale_omega": 0.9957, "psnr_theta": 34.9478, "scale_theta": 1.0184, "reprojection_error_theta": 0.0977, "reprojection_error_lambda": 0.2362}
+{"step": 10, "train_loss": 0.5956, "psnr_omega": 39.1692, "scale_omega": 0.9913, "psnr_theta": 35.5721, "scale_theta": 1.013, "reprojection_error_theta": 0.0966, "reprojection_error_lambda": 0.2266}
+{"step": 25, "train_loss": 0.5338, "psnr_omega": 37.5968, "scale_omega": 0.9829, "psnr_theta": 36.5603, "scale_theta": 1.0027, "reprojection_error_theta": 0.0946, "reprojection_error_lambda": 0.2111}
+{"step": 50, "train_loss": 0.516, "psnr_omega": 37.3099, "scale_omega": 0.9824, "psnr_theta": 36.9428, "scale_theta": 1.0022, "reprojection_error_theta": 0.0932, "reprojection_error_lambda": 0.2029}

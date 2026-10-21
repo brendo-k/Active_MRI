@@ -50,11 +50,15 @@ class TrainConfig:
     mask_grad_floor: float = 0.0  # straight_through only: floor on the mask sigmoid's derivative (LOUPE and conv samplers), as a fraction of its peak
     ste_grad_floor: float = 0.0  # straight_through only: floor on the STE surrogate's derivative, as a fraction of its peak
     mask_draws: int = 1  # straight_through only: K stratified (rotated-threshold) mask draws per slice, their losses averaged; the batch is tiled K times, so memory scales by K
+    selection: str = 'bernoulli'  # loupe_2d straight_through: 'bernoulli' draws, or 'dcm' = deterministic top-M of a VD prior minus the learned map (Sun et al., TCI 2024)
+    dcm_vd_power: float = 4.0  # selection=dcm: exponent p of the acceptance prior ((D - r) / D)^p
+    dcm_tau: float = 5.0  # selection=dcm: softmax temperature of the straight-through backward
     logit_limit: float = 6.0  # conv_2d: scores are soft-clamped to +/- this before the sigmoid
     logit_leak: float = 0.01  # conv_2d: slope of the score beyond the clamp (keeps the gradient of pinned locations alive)
     adapt_grid: int = 16  # smooth_adapt_2d: side of the coarse offset grid (0 = no offset: a bounded LOUPE mask)
     adapt_hidden: int = 64  # smooth_adapt_2d: width of the offset predictor
     init_mask_checkpoint: Optional[str] = None  # loupe_2d / smooth_adapt_2d: start every class's mask from this loupe_2d run's mask (trainable)
+    loupe_vd_init_power: float = 0.0  # loupe_2d straight-through: >0 starts the mask at the budget-matched VD prior clamp(c ((D - r) / D)^p) instead of uniform noise
     sampler_lr: Optional[float] = None  # lr of the sampler's parameters when it differs from training.lr
     adapt_head_lr: float = 1e-4  # smooth_adapt_2d: lr of the offset predictor (the base mask keeps sampler_lr)
     sampler_chans: int = 64
@@ -78,6 +82,7 @@ class TrainConfig:
     autosamp_kernel_sigma_end: float = 1.0  # autosamp_2d only: width the surrogate anneals to (geometrically); below ~1 the boundary trap returns
     autosamp_anneal_fraction: float = 0.8  # autosamp_2d only: fraction of training over which the width anneals; after it the positions freeze
     ppo_policy: Optional[str] = None  # PPOTrainer checkpoint whose frozen deterministic policy picks every mask; the sampler is then a placeholder
+    fixed_mask_path: Optional[str] = None  # saved [H, W] binary mask (centre included) used for every slice; the sampler is then a placeholder and only the reconstructor trains
     mnet_accept: str = 'q_check'  # mnet_2d only: 'q_check' trains the sampler on a refined mask only if it beats the mnet mask (and random); 'always' trains on every one
     mnet_compare_random: bool = True  # mnet_2d, q_check: the refined mask must also beat a random mask scored by the frozen warm-start reconstructor
     mnet_rollback: bool = True  # mnet_2d, q_check: a rejected batch also reverts the reconstructor update made while refining the mask
@@ -96,6 +101,8 @@ class TrainConfig:
     with_recon: bool = False
     with_gfactor: bool = False
     gfactor_replicas: int = 16
+    sens_upsample_method: str = 'conv'
+    sens_conv_after_upsample: bool = False
     uncertainty_mode: str = 'none'
 
     # Data

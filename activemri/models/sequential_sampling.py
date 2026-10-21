@@ -14,6 +14,7 @@ from torch import nn
 
 from activemri.reconstructors.CG_Sense import compute_gfactor
 from activemri.reconstructors.SensetivityModel_mc import SensetivityModel_mc
+from activemri.samplers.fixed_mask import FileMaskPolicy
 from activemri.samplers.ppo import PPOMaskPolicy
 from activemri.samplers.sampler import Sampler, is_line_constrained
 from activemri.utils.image_processing import fft_2d_img as torch_fft2
@@ -61,6 +62,8 @@ class SequentialSampling(nn.Module):
             with_recon=False,
             with_gfactor=False,
             gfactor_replicas=16,
+            sens_upsample_method='conv',
+            sens_conv_after_upsample=False,
             uncertainty_mode='none',
             num_anatomy_classes=0,
             num_conditioning_classes=0,
@@ -85,7 +88,12 @@ class SequentialSampling(nn.Module):
             logit_leak=0.01,
             adapt_grid=16,
             adapt_hidden=64,
+            selection='bernoulli',
+            dcm_vd_power=4.0,
+            dcm_tau=5.0,
             ppo_policy=None,
+            fixed_mask_path=None,
+            loupe_vd_init_power=0.0,
             acquired_only=False,
             ):
         super().__init__()
@@ -157,15 +165,30 @@ class SequentialSampling(nn.Module):
             adapt_grid=adapt_grid,
             adapt_hidden=adapt_hidden,
             calibration_size=preselect_num,
+            selection=selection,
+            dcm_vd_power=dcm_vd_power,
+            dcm_tau=dcm_tau,
         )
 
         # Sensitivity estimation
-        self.sensetivity_net = SensetivityModel_mc(2, 2, 8)
+        self.sensetivity_net = SensetivityModel_mc(
+            2, 2, 8, conv_after_upsample=sens_conv_after_upsample, upsample_method=sens_upsample_method)
 
-        # A frozen PPO policy replaces the sampler's mask (the sampler stays only as a placeholder).
-        self.mask_policy = PPOMaskPolicy(ppo_policy, sense_mask_method) if ppo_policy else None
+        if loupe_vd_init_power > 0:
+            self.sampler.init_loupe_variable_density(
+                loupe_vd_init_power, 1 - self._init_mask(torch.zeros(1))[0, 0], self.budget)
+
+        # A frozen PPO policy or a saved mask replaces the sampler's mask (the sampler stays only as a placeholder).
+        if ppo_policy and fixed_mask_path:
+            raise ValueError("ppo_policy and fixed_mask_path both replace the sampler's mask; set one")
+        if ppo_policy:
+            self.mask_policy = PPOMaskPolicy(ppo_policy, sense_mask_method)
+        elif fixed_mask_path:
+            self.mask_policy = FileMaskPolicy(fixed_mask_path, shape, centre=self._init_mask(torch.zeros(1))[0, 0])
+        else:
+            self.mask_policy = None
         if self.mask_policy is not None and num_step != 1:
-            raise ValueError(f"ppo_policy produces the whole mask at once, so it needs num_step=1, got {num_step}")
+            raise ValueError(f"a mask policy produces the whole mask at once, so it needs num_step=1, got {num_step}")
 
         print(f"Sampler: {sampler_type}")
         print(f"Number of sequential steps: {num_step}")

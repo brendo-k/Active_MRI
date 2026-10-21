@@ -55,7 +55,7 @@ def validation_metrics(model, loader, device):
     for batch in loader:
         kspace, target = batch['kspace'].to(device), batch['target'].to(device)
         output = model(target, kspace)['output']
-        masked_output, masked_target = masked_pair(output, target)
+        masked_output, masked_target = masked_pair(output, target, kspace, batch['anatomy'])
         data_range = masked_target.max()
         metrics['PSNR'].data_range = data_range
         metrics['SSIM'].data_range = data_range
@@ -69,7 +69,7 @@ def reconstruct_slice(model, dataset, loader, index, device):
     kspace, target = batch['kspace'].to(device), batch['target'].to(device)
     torch.manual_seed(RNG_SEED)
     pred = model(target, kspace)
-    masked_output, masked_target = masked_pair(pred['output'], target)
+    masked_output, masked_target = masked_pair(pred['output'], target, kspace, batch['anatomy'])
     metrics = build_metrics(device=device)
     data_range = masked_target.max()
     metrics['PSNR'].data_range = data_range

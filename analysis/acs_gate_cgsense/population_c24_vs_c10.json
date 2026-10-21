@@ -1,0 +1,73 @@
+{
+ "runs": {
+  "ecalib_c10": "checkpoints/loupe2d_cgsense_r8_brain_knee_ecalib_c10",
+  "ecalib_c24": "checkpoints/loupe2d_cgsense_r8_brain_knee_ecalib_c24"
+ },
+ "reference": "ecalib_c10",
+ "mean_psnr": {
+  "brain": {
+   "ecalib_c10": 35.8088264465332,
+   "ecalib_c24": 35.73011016845703
+  },
+  "knee": {
+   "ecalib_c10": 38.359703063964844,
+   "ecalib_c24": 38.226802825927734
+  },
+  "knee-PD": {
+   "ecalib_c10": 41.48738479614258,
+   "ecalib_c24": 41.296627044677734
+  },
+  "knee-PDFS": {
+   "ecalib_c10": 36.33942794799805,
+   "ecalib_c24": 36.243900299072266
+  }
+ },
+ "vs_reference": {
+  "brain": {
+   "ecalib_c24": {
+    "mean": -0.07871906459331512,
+    "ci95": [
+     -0.10530913826078177,
+     -0.04220846714451909
+    ],
+    "slices": 344
+   }
+  },
+  "knee": {
+   "ecalib_c24": {
+    "mean": -0.13290128111839294,
+    "ci95": [
+     -0.17400726787745951,
+     -0.09159804303199054
+    ],
+    "slices": 344
+   }
+  },
+  "knee-PD": {
+   "ecalib_c24": {
+    "mean": -0.1907593309879303,
+    "ci95": [
+     -0.2598215341567993,
+     -0.14388933777809143
+    ],
+    "slices": 135
+   }
+  },
+  "knee-PDFS": {
+   "ecalib_c24": {
+    "mean": -0.09552885591983795,
+    "ci95": [
+     -0.11719270795583725,
+     -0.06165938079357147
+    ],
+    "slices": 209
+   }
+  }
+ },
+ "swap_cost": {
+  "brain": {},
+  "knee": {},
+  "knee-PD": {},
+  "knee-PDFS": {}
+ }
+}

@@ -1,0 +1,52 @@
+{
+  "a": "checkpoints/loupe2d_cgsense_r8_brain_knee_anatcond_bilinear_const_100ep",
+  "b": "checkpoints/loupe2d_cgsense_r8_brain_knee_shared_bilinear_const_100ep",
+  "brain": {
+    "psnr": {
+      "mean": 0.15913233160972595,
+      "ci": [
+        0.08333234308812416,
+        0.23493232013132775
+      ],
+      "n_volumes": 23,
+      "frac_volumes_better": 0.782608687877655,
+      "a_mean": 35.75578689575195,
+      "b_mean": 35.59665298461914
+    },
+    "ssim": {
+      "mean": 0.00234592123888433,
+      "ci": [
+        0.0015914049494049958,
+        0.0031004375283636637
+      ],
+      "n_volumes": 23,
+      "frac_volumes_better": 1.0,
+      "a_mean": 0.9015061259269714,
+      "b_mean": 0.8991600871086121
+    }
+  },
+  "knee": {
+    "psnr": {
+      "mean": -0.25378596782684326,
+      "ci": [
+        -0.34453614116626063,
+        -0.16303579448742586
+      ],
+      "n_volumes": 10,
+      "frac_volumes_better": 0.0,
+      "a_mean": 37.18365478515625,
+      "b_mean": 37.437442779541016
+    },
+    "ssim": {
+      "mean": -0.004381407983601093,
+      "ci": [
+        -0.006122005932638108,
+        -0.0026408100345640785
+      ],
+      "n_volumes": 10,
+      "frac_volumes_better": 0.0,
+      "a_mean": 0.9126081466674805,
+      "b_mean": 0.9169895052909851
+    }
+  }
+}

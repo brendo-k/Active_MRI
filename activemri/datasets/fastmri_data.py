@@ -10,6 +10,8 @@ import numpy as np
 import torch
 import torch.utils.data
 
+from activemri.datasets.sense_cache import SenseCache, cache_signature
+
 ifft_2d_img = lambda x, dim=(-1, -2): np.fft.fftshift(
     np.fft.ifft2(np.fft.ifftshift(x, axes=dim), axes=dim, norm='ortho'), axes=dim
 )
@@ -68,8 +70,11 @@ class FastMRIDataset(torch.utils.data.Dataset):
         min_energy_fraction: float = 0.2,
         file_names: Optional[Sequence[str]] = None,
         slice_ids: Optional[Sequence[int]] = None,
+        sense_cache=None,
     ):
         self.root = pathlib.Path(root)
+        self.sense_cache = sense_cache
+        self.sense_signature = cache_signature(anatomy, image_shape, num_coils) if sense_cache is not None else None
         self.anatomy = anatomy
         self.image_shape = image_shape
         self.transform = transform
@@ -269,6 +274,9 @@ class FastMRIDataset(torch.utils.data.Dataset):
             'espirit_maps': espirit_maps,  # [C, H, W] complex or None
         }
 
+        if self.sense_cache is not None:
+            sample['sense_maps'] = self.sense_cache.load(self.anatomy, fname, slice_id, self.sense_signature)
+
         if self.transform is not None:
             sample = self.transform(sample)
 
@@ -352,6 +360,19 @@ def _trim_examples(dataset: FastMRIDataset, num_examples: int, seed: int) -> Non
     dataset.examples = [ex for v in volumes for ex in by_volume[v]][:num_examples]
 
 
+def _group_files(anatomy: str, files: List[pathlib.Path], balance_by: str) -> Dict[str, List[pathlib.Path]]:
+    """The balancing groups of one anatomy's files: the anatomy itself, or for knee under `balance_by='condition'` its protocols (PD / PDFS)."""
+    if balance_by == 'anatomy' or anatomy != 'knee':
+        return {anatomy: files}
+    if balance_by != 'condition':
+        raise ValueError(f"balance_by must be 'anatomy' or 'condition', got '{balance_by}'")
+    groups: Dict[str, List[pathlib.Path]] = {}
+    for f in files:
+        with h5py.File(f, 'r') as data:
+            groups.setdefault(condition_name(anatomy, dict(data.attrs)), []).append(f)
+    return groups
+
+
 def _build_balanced_datasets(
     data_root: pathlib.Path,
     anatomies: List[str],
@@ -359,9 +380,14 @@ def _build_balanced_datasets(
     val_fraction: float,
     seed: int = 1234,
     train_slices: Optional[Dict[str, int]] = None,
+    balance_by: str = 'anatomy',
     **dataset_kwargs,
 ) -> Tuple[List[FastMRIDataset], List[FastMRIDataset]]:
     """Per-anatomy train/val datasets with an equal number of slices per anatomy.
+
+    With `balance_by='condition'` the groups are the conditions instead (brain, knee-PD, knee-PDFS):
+    each knee protocol gets as many slices as brain. Volumes are split into train/val exactly as for
+    `balance_by='anatomy'` and only then divided by protocol, so a volume never changes side.
 
     `train_slices` overrides the train slice count of the named anatomies, so a
     single-anatomy run can use as many slices as the full multi-anatomy train set.
@@ -373,6 +399,7 @@ def _build_balanced_datasets(
     split by volume.
     """
     files = {'train': {}, 'val': {}}
+    group_anatomy = {}
     for anatomy in anatomies:
         train_dir, val_dir = _resolve_anatomy_dirs(data_root, anatomy, contrast)
         if train_dir == val_dir:
@@ -381,24 +408,28 @@ def _build_balanced_datasets(
         else:
             train_files, val_files = list_anatomy_files(train_dir, anatomy), list_anatomy_files(val_dir, anatomy)
             roots = {'train': train_dir, 'val': val_dir}
-        files['train'][anatomy] = (roots['train'], train_files)
-        files['val'][anatomy] = (roots['val'], val_files)
+        for split, split_files in (('train', train_files), ('val', val_files)):
+            for group, group_files in _group_files(anatomy, split_files, balance_by).items():
+                files[split][group] = (roots[split], group_files)
+                group_anatomy[group] = anatomy
 
+    if balance_by == 'condition' and train_slices:
+        raise ValueError("train_slices is not supported with balance_by='condition'")
     train_slices = train_slices or {}
     datasets = {}
     for split in ('train', 'val'):
         raw_totals = {
-            a: sum(_slice_count(f, a) for f in split_files)
-            for a, (_, split_files) in files[split].items()
+            g: sum(_slice_count(f, group_anatomy[g]) for f in split_files)
+            for g, (_, split_files) in files[split].items()
         }
         target = min(raw_totals.values())
         built = {}
         overridden = {a: n for a, n in train_slices.items() if split == 'train' and a in files[split]}
-        for anatomy, (root, split_files) in files[split].items():
+        for group, (root, split_files) in files[split].items():
             # The energy filter drops slices, so an overridden anatomy starts from all its volumes and is trimmed after.
-            names = _pick_volumes(split_files, anatomy, raw_totals[anatomy] if anatomy in overridden else target, seed)
-            built[anatomy] = FastMRIDataset(
-                root=root, anatomy=anatomy, file_names=names, **dataset_kwargs,
+            names = _pick_volumes(split_files, group_anatomy[group], raw_totals[group] if group in overridden else target, seed)
+            built[group] = FastMRIDataset(
+                root=root, anatomy=group_anatomy[group], file_names=names, **dataset_kwargs,
             )
         for anatomy, ds in built.items():
             if anatomy in overridden and len(ds) < overridden[anatomy]:
@@ -446,6 +477,8 @@ def build_fastmri_dataloaders(
     balance: bool = False,
     train_anatomies: Optional[List[str]] = None,
     train_slices: Optional[int] = None,
+    sense_cache_dir: Optional[str] = None,
+    balance_by: str = 'anatomy',
 ) -> Tuple[torch.utils.data.DataLoader, torch.utils.data.DataLoader]:
     """Build train and val dataloaders from one or more anatomies.
 
@@ -484,8 +517,12 @@ def build_fastmri_dataloaders(
             transform=transform,
             num_coils=num_coils,
             min_energy_fraction=min_energy_fraction,
+            sense_cache=SenseCache(sense_cache_dir) if sense_cache_dir else None,
+            balance_by=balance_by,
         )
     elif data_dir is not None:
+        if sense_cache_dir:
+            raise ValueError("sense_cache_dir is only supported with balance=True")
         data_path = pathlib.Path(data_dir)
         train_dir = data_path / 'train'
         val_dir = data_path / 'val'
@@ -516,6 +553,8 @@ def build_fastmri_dataloaders(
             else:
                 val_datasets.append(train_datasets[-1])
     else:
+        if sense_cache_dir:
+            raise ValueError("sense_cache_dir is only supported with balance=True")
         for anatomy in anatomies:
             train_dir, val_dir = _resolve_anatomy_dirs(data_root, anatomy, contrast)
 

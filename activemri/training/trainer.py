@@ -59,6 +59,8 @@ class Sequential_Trainer:
         if options.fixed_mask_checkpoints:
             self._load_fixed_masks(options.fixed_mask_checkpoints)
         if getattr(options, 'init_mask_checkpoint', None):
+            if getattr(options, 'loupe_vd_init_power', 0.0) > 0:
+                raise ValueError("init_mask_checkpoint and loupe_vd_init_power both set the starting mask; set one")
             self._init_mask_from(options.init_mask_checkpoint)
 
         if options.data_parallel:
@@ -1114,6 +1116,8 @@ def build_model(options: TrainConfig):
         with_recon=getattr(options, 'with_recon', False),
         with_gfactor=getattr(options, 'with_gfactor', False),
         gfactor_replicas=getattr(options, 'gfactor_replicas', 16),
+        sens_upsample_method=getattr(options, 'sens_upsample_method', 'conv'),
+        sens_conv_after_upsample=getattr(options, 'sens_conv_after_upsample', False),
         uncertainty_mode=getattr(options, 'uncertainty_mode', 'none'),
         num_anatomy_classes=num_anatomy_classes,
         num_conditioning_classes=num_sampler_conditioning_classes,
@@ -1138,7 +1142,12 @@ def build_model(options: TrainConfig):
         logit_leak=getattr(options, 'logit_leak', 0.01),
         adapt_grid=getattr(options, 'adapt_grid', 16),
         adapt_hidden=getattr(options, 'adapt_hidden', 64),
+        selection=getattr(options, 'selection', 'bernoulli'),
+        dcm_vd_power=getattr(options, 'dcm_vd_power', 4.0),
+        dcm_tau=getattr(options, 'dcm_tau', 5.0),
         ppo_policy=getattr(options, 'ppo_policy', None),
+        fixed_mask_path=getattr(options, 'fixed_mask_path', None),
+        loupe_vd_init_power=getattr(options, 'loupe_vd_init_power', 0.0),
         acquired_only=getattr(options, 'ssdu', False),
     )
 

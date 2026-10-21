@@ -1,0 +1,12 @@
+anatomy: [brain, knee]
+data_root: /home/bkadota/data/fastmri
+data_dir: null
+contrast: T2
+num_coils: 16
+num_workers: 8
+balance: true
+balance_by: condition  # equal train/val slices for brain, knee-PD (no sat) and knee-PDFS (fat sat); volumes split by volume as in brain_knee_balanced
+condition_classes: []
+train_anatomies: []
+train_slices: null
+sense_cache_dir: null  # BART ecalib maps cached by scripts/data/build_sense_cache.py; when set, the model uses them instead of the sensitivity net

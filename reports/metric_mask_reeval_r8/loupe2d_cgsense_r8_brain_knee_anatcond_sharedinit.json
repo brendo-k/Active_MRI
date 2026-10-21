@@ -1,0 +1,35 @@
+{
+  "run": "loupe2d_cgsense_r8_brain_knee_anatcond_sharedinit",
+  "checkpoint": "last_model.pt",
+  "epoch": 49,
+  "total_epochs": 50,
+  "skipped_batches": 0,
+  "mask_fraction": {
+    "legacy": 0.3656326781871707,
+    "new": 0.40754659785780795
+  },
+  "legacy": {
+    "brain": {
+      "PSNR": 35.04830551147461,
+      "SSIM": 0.9147471785545349,
+      "NMSE": 0.017055829986929893
+    },
+    "knee": {
+      "PSNR": 32.65771484375,
+      "SSIM": 0.9282059669494629,
+      "NMSE": 0.017300618812441826
+    }
+  },
+  "new": {
+    "brain": {
+      "PSNR": 37.33991241455078,
+      "SSIM": 0.9633628726005554,
+      "NMSE": 0.007563617546111345
+    },
+    "knee": {
+      "PSNR": 34.01723861694336,
+      "SSIM": 0.9205162525177002,
+      "NMSE": 0.012709750793874264
+    }
+  }
+}

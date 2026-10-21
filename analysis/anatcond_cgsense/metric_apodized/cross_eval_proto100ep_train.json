@@ -1,0 +1,641 @@
+{
+ "pair": "proto100ep",
+ "split": "train",
+ "stride": 1,
+ "checkpoints": [
+  "checkpoints/loupe2d_cgsense_r8_brain_knee_shared_bilinear_const_100ep",
+  "checkpoints/loupe2d_cgsense_r8_brain_knee_prototable_bilinear_const_100ep"
+ ],
+ "classes": [
+  "brain",
+  "knee-PD",
+  "knee-PDFS"
+ ],
+ "metric_mask": "apodized",
+ "mean_psnr": {
+  "brain": {
+   "shared_recon+shared_mask": 37.00477981567383,
+   "shared_recon+anat_own_mask": 37.19102096557617,
+   "shared_recon+anat_other_mask": 36.20875549316406,
+   "shared_recon+anat_brain_mask": 37.19102096557617,
+   "shared_recon+anat_knee-PD_mask": 36.20875549316406,
+   "shared_recon+anat_knee-PDFS_mask": 35.79010009765625,
+   "anat_recon+shared_mask": 36.968692779541016,
+   "anat_recon+anat_own_mask": 37.166297912597656,
+   "anat_recon+anat_other_mask": 36.16511154174805,
+   "anat_recon+anat_brain_mask": 37.166297912597656,
+   "anat_recon+anat_knee-PD_mask": 36.16511154174805,
+   "anat_recon+anat_knee-PDFS_mask": 35.743003845214844
+  },
+  "knee": {
+   "shared_recon+shared_mask": 36.007442474365234,
+   "shared_recon+anat_own_mask": 35.863895416259766,
+   "shared_recon+anat_other_mask": 35.62126159667969,
+   "shared_recon+anat_brain_mask": 35.94990158081055,
+   "shared_recon+anat_knee-PD_mask": 35.71839904785156,
+   "shared_recon+anat_knee-PDFS_mask": 35.76675796508789,
+   "anat_recon+shared_mask": 36.01264190673828,
+   "anat_recon+anat_own_mask": 35.91732406616211,
+   "anat_recon+anat_other_mask": 35.62339401245117,
+   "anat_recon+anat_brain_mask": 35.948787689208984,
+   "anat_recon+anat_knee-PD_mask": 35.765010833740234,
+   "anat_recon+anat_knee-PDFS_mask": 35.77570724487305
+  },
+  "knee-PD": {
+   "shared_recon+shared_mask": 38.281558990478516,
+   "shared_recon+anat_own_mask": 38.367740631103516,
+   "shared_recon+anat_other_mask": 38.16505432128906,
+   "shared_recon+anat_brain_mask": 38.036048889160156,
+   "shared_recon+anat_knee-PD_mask": 38.367740631103516,
+   "shared_recon+anat_knee-PDFS_mask": 38.16505432128906,
+   "anat_recon+shared_mask": 38.277095794677734,
+   "anat_recon+anat_own_mask": 38.43388366699219,
+   "anat_recon+anat_other_mask": 38.138389587402344,
+   "anat_recon+anat_brain_mask": 38.02114486694336,
+   "anat_recon+anat_knee-PD_mask": 38.43388366699219,
+   "anat_recon+anat_knee-PDFS_mask": 38.138389587402344
+  },
+  "knee-PDFS": {
+   "shared_recon+shared_mask": 33.91447830200195,
+   "shared_recon+anat_own_mask": 33.559505462646484,
+   "shared_recon+anat_other_mask": 33.28010177612305,
+   "shared_recon+anat_brain_mask": 34.029937744140625,
+   "shared_recon+anat_knee-PD_mask": 33.28010177612305,
+   "shared_recon+anat_knee-PDFS_mask": 33.559505462646484,
+   "anat_recon+shared_mask": 33.92856979370117,
+   "anat_recon+anat_own_mask": 33.601226806640625,
+   "anat_recon+anat_other_mask": 33.30873489379883,
+   "anat_recon+anat_brain_mask": 34.04151153564453,
+   "anat_recon+anat_knee-PD_mask": 33.30873489379883,
+   "anat_recon+anat_knee-PDFS_mask": 33.601226806640625
+  }
+ },
+ "contrasts": {
+  "brain": {
+   "anat run - shared run (both own masks and sense nets)": {
+    "mean": 0.16151301562786102,
+    "ci95": [
+     0.12455041743814946,
+     0.20601450987160203
+    ],
+    "slices": 1350
+   },
+   "mask effect on shared sense net (anat_own - shared mask)": {
+    "mean": 0.18624144792556763,
+    "ci95": [
+     0.14809162840247153,
+     0.22682857550680635
+    ],
+    "slices": 1350
+   },
+   "mask effect on anat sense net (anat_own - shared mask)": {
+    "mean": 0.19760416448116302,
+    "ci95": [
+     0.1588683057576418,
+     0.24257419072091577
+    ],
+    "slices": 1350
+   },
+   "sense-net effect with shared mask (anat - shared recon)": {
+    "mean": -0.0360911563038826,
+    "ci95": [
+     -0.04061009921133518,
+     -0.031409986689686774
+    ],
+    "slices": 1350
+   },
+   "sense-net effect with anat_own mask (anat - shared recon)": {
+    "mean": -0.024728450924158096,
+    "ci95": [
+     -0.02911050380207598,
+     -0.020579774491488935
+    ],
+    "slices": 1350
+   },
+   "label swap on anat sense net (anat_other - anat_own mask)": {
+    "mean": -1.0011812448501587,
+    "ci95": [
+     -1.105595165491104,
+     -0.9080409407615663
+    ],
+    "slices": 1350
+   },
+   "label swap on shared sense net (anat_other - anat_own mask)": {
+    "mean": -0.9822648763656616,
+    "ci95": [
+     -1.0863811105489731,
+     -0.89363774061203
+    ],
+    "slices": 1350
+   }
+  },
+  "knee": {
+   "anat run - shared run (both own masks and sense nets)": {
+    "mean": -0.09011728316545486,
+    "ci95": [
+     -0.19124479293823243,
+     -0.005860424833372284
+    ],
+    "slices": 1350
+   },
+   "mask effect on shared sense net (anat_own - shared mask)": {
+    "mean": -0.14354562759399414,
+    "ci95": [
+     -0.2335202641785145,
+     -0.068553431890905
+    ],
+    "slices": 1350
+   },
+   "mask effect on anat sense net (anat_own - shared mask)": {
+    "mean": -0.09531721472740173,
+    "ci95": [
+     -0.19713419564068319,
+     -0.0106237651780248
+    ],
+    "slices": 1350
+   },
+   "sense-net effect with shared mask (anat - shared recon)": {
+    "mean": 0.005199936684221029,
+    "ci95": [
+     -0.002438941947184503,
+     0.014459909615106877
+    ],
+    "slices": 1350
+   },
+   "sense-net effect with anat_own mask (anat - shared recon)": {
+    "mean": 0.05342835560441017,
+    "ci95": [
+     0.04529392179101706,
+     0.06214718390256166
+    ],
+    "slices": 1350
+   },
+   "label swap on anat sense net (anat_other - anat_own mask)": {
+    "mean": -0.2939305305480957,
+    "ci95": [
+     -0.3376895636320114,
+     -0.2367224156856537
+    ],
+    "slices": 1350
+   },
+   "label swap on shared sense net (anat_other - anat_own mask)": {
+    "mean": -0.24263375997543335,
+    "ci95": [
+     -0.28648622557520864,
+     -0.18947829715907574
+    ],
+    "slices": 1350
+   }
+  },
+  "knee-PD": {
+   "anat run - shared run (both own masks and sense nets)": {
+    "mean": 0.1523297131061554,
+    "ci95": [
+     0.022800921788439156,
+     0.2489777624607086
+    ],
+    "slices": 647
+   },
+   "mask effect on shared sense net (anat_own - shared mask)": {
+    "mean": 0.08617973327636719,
+    "ci95": [
+     -0.04394131517037749,
+     0.18717172965407353
+    ],
+    "slices": 647
+   },
+   "mask effect on anat sense net (anat_own - shared mask)": {
+    "mean": 0.15679092705249786,
+    "ci95": [
+     0.01851182971149683,
+     0.26039717718958855
+    ],
+    "slices": 647
+   },
+   "sense-net effect with shared mask (anat - shared recon)": {
+    "mean": -0.004461214877665043,
+    "ci95": [
+     -0.018195085087791087,
+     0.011425543087534604
+    ],
+    "slices": 647
+   },
+   "sense-net effect with anat_own mask (anat - shared recon)": {
+    "mean": 0.06614997237920761,
+    "ci95": [
+     0.05176757136359811,
+     0.08011776991188525
+    ],
+    "slices": 647
+   },
+   "label swap on anat sense net (anat_other - anat_own mask)": {
+    "mean": -0.2954953908920288,
+    "ci95": [
+     -0.3788738563656807,
+     -0.1712151527404786
+    ],
+    "slices": 647
+   },
+   "label swap on shared sense net (anat_other - anat_own mask)": {
+    "mean": -0.20268262922763824,
+    "ci95": [
+     -0.2764147952198982,
+     -0.10076924413442612
+    ],
+    "slices": 647
+   }
+  },
+  "knee-PDFS": {
+   "anat run - shared run (both own masks and sense nets)": {
+    "mean": -0.3132512867450714,
+    "ci95": [
+     -0.3447915159165859,
+     -0.2846244841814041
+    ],
+    "slices": 703
+   },
+   "mask effect on shared sense net (anat_own - shared mask)": {
+    "mean": -0.35497143864631653,
+    "ci95": [
+     -0.38893970772624015,
+     -0.3263108476996422
+    ],
+    "slices": 703
+   },
+   "mask effect on anat sense net (anat_own - shared mask)": {
+    "mean": -0.32734277844429016,
+    "ci95": [
+     -0.3600061975419521,
+     -0.3008216112852097
+    ],
+    "slices": 703
+   },
+   "sense-net effect with shared mask (anat - shared recon)": {
+    "mean": 0.014091494493186474,
+    "ci95": [
+     0.009792563738301396,
+     0.019962724857032297
+    ],
+    "slices": 703
+   },
+   "sense-net effect with anat_own mask (anat - shared recon)": {
+    "mean": 0.041720129549503326,
+    "ci95": [
+     0.03615816002711654,
+     0.048537747096270324
+    ],
+    "slices": 703
+   },
+   "label swap on anat sense net (anat_other - anat_own mask)": {
+    "mean": -0.2924903333187103,
+    "ci95": [
+     -0.3202500559389591,
+     -0.27208668142557146
+    ],
+    "slices": 703
+   },
+   "label swap on shared sense net (anat_other - anat_own mask)": {
+    "mean": -0.27940240502357483,
+    "ci95": [
+     -0.3114351935684681,
+     -0.25690375044941904
+    ],
+    "slices": 703
+   }
+  }
+ },
+ "class_masks": {
+  "brain": {
+   "shared_recon": {
+    "brain": {
+     "mean": 0.0,
+     "ci95": [
+      0.0,
+      0.0
+     ],
+     "slices": 1350
+    },
+    "knee-PD": {
+     "mean": -0.9822648763656616,
+     "ci95": [
+      -1.0880989760160447,
+      -0.8918994650244713
+     ],
+     "slices": 1350
+    },
+    "knee-PDFS": {
+     "mean": -1.4009262323379517,
+     "ci95": [
+      -1.5546356797218324,
+      -1.2801353216171265
+     ],
+     "slices": 1350
+    }
+   },
+   "anat_recon": {
+    "brain": {
+     "mean": 0.0,
+     "ci95": [
+      0.0,
+      0.0
+     ],
+     "slices": 1350
+    },
+    "knee-PD": {
+     "mean": -1.0011812448501587,
+     "ci95": [
+      -1.1068848669528961,
+      -0.911236795783043
+     ],
+     "slices": 1350
+    },
+    "knee-PDFS": {
+     "mean": -1.4232898950576782,
+     "ci95": [
+      -1.582436555624008,
+      -1.3019026160240175
+     ],
+     "slices": 1350
+    }
+   }
+  },
+  "knee": {
+   "shared_recon": {
+    "brain": {
+     "mean": 0.08600734174251556,
+     "ci95": [
+      -0.05320638045668602,
+      0.24501586370170111
+     ],
+     "slices": 1350
+    },
+    "knee-PD": {
+     "mean": -0.1454962193965912,
+     "ci95": [
+      -0.1979669537395239,
+      -0.1033537676557899
+     ],
+     "slices": 1350
+    },
+    "knee-PDFS": {
+     "mean": -0.09713753312826157,
+     "ci95": [
+      -0.14223107546567917,
+      -0.0393150369636716
+     ],
+     "slices": 1350
+    }
+   },
+   "anat_recon": {
+    "brain": {
+     "mean": 0.03146453946828842,
+     "ci95": [
+      -0.11214789003133774,
+      0.20562297999858853
+     ],
+     "slices": 1350
+    },
+    "knee-PD": {
+     "mean": -0.15231162309646606,
+     "ci95": [
+      -0.2024068057537079,
+      -0.10609336011111736
+     ],
+     "slices": 1350
+    },
+    "knee-PDFS": {
+     "mean": -0.14161890745162964,
+     "ci95": [
+      -0.20375120602548122,
+      -0.07022590786218644
+     ],
+     "slices": 1350
+    }
+   }
+  },
+  "knee-PD": {
+   "shared_recon": {
+    "brain": {
+     "mean": -0.3316888213157654,
+     "ci95": [
+      -0.4763916037976742,
+      -0.14401178956031807
+     ],
+     "slices": 647
+    },
+    "knee-PD": {
+     "mean": 0.0,
+     "ci95": [
+      0.0,
+      0.0
+     ],
+     "slices": 647
+    },
+    "knee-PDFS": {
+     "mean": -0.20268262922763824,
+     "ci95": [
+      -0.2744747564196587,
+      -0.09812027048319584
+     ],
+     "slices": 647
+    }
+   },
+   "anat_recon": {
+    "brain": {
+     "mean": -0.41274434328079224,
+     "ci95": [
+      -0.5686888143420219,
+      -0.21232299096882343
+     ],
+     "slices": 647
+    },
+    "knee-PD": {
+     "mean": 0.0,
+     "ci95": [
+      0.0,
+      0.0
+     ],
+     "slices": 647
+    },
+    "knee-PDFS": {
+     "mean": -0.2954953908920288,
+     "ci95": [
+      -0.38085897266864777,
+      -0.17850102633237844
+     ],
+     "slices": 647
+    }
+   }
+  },
+  "knee-PDFS": {
+   "shared_recon": {
+    "brain": {
+     "mean": 0.4704304337501526,
+     "ci95": [
+      0.4239193916320801,
+      0.526112201809883
+     ],
+     "slices": 703
+    },
+    "knee-PD": {
+     "mean": -0.27940240502357483,
+     "ci95": [
+      -0.3122554928064346,
+      -0.25637481659650807
+     ],
+     "slices": 703
+    },
+    "knee-PDFS": {
+     "mean": 0.0,
+     "ci95": [
+      0.0,
+      0.0
+     ],
+     "slices": 703
+    }
+   },
+   "anat_recon": {
+    "brain": {
+     "mean": 0.44028839468955994,
+     "ci95": [
+      0.3953614249825478,
+      0.5005562633275985
+     ],
+     "slices": 703
+    },
+    "knee-PD": {
+     "mean": -0.2924903333187103,
+     "ci95": [
+      -0.321353629976511,
+      -0.2735750883817673
+     ],
+     "slices": 703
+    },
+    "knee-PDFS": {
+     "mean": 0.0,
+     "ci95": [
+      0.0,
+      0.0
+     ],
+     "slices": 703
+    }
+   }
+  }
+ },
+ "mean_l1": {
+  "brain": {
+   "shared_recon+shared_mask": 0.06115303188562393,
+   "shared_recon+anat_own_mask": 0.06070425361394882,
+   "shared_recon+anat_other_mask": 0.06277082860469818,
+   "shared_recon+anat_brain_mask": 0.06070425361394882,
+   "shared_recon+anat_knee-PD_mask": 0.06277082860469818,
+   "shared_recon+anat_knee-PDFS_mask": 0.06392546743154526,
+   "anat_recon+shared_mask": 0.06122194603085518,
+   "anat_recon+anat_own_mask": 0.060744673013687134,
+   "anat_recon+anat_other_mask": 0.062873475253582,
+   "anat_recon+anat_brain_mask": 0.060744673013687134,
+   "anat_recon+anat_knee-PD_mask": 0.062873475253582,
+   "anat_recon+anat_knee-PDFS_mask": 0.06404364854097366
+  },
+  "knee": {
+   "shared_recon+shared_mask": 0.05421465262770653,
+   "shared_recon+anat_own_mask": 0.05484307184815407,
+   "shared_recon+anat_other_mask": 0.05545884743332863,
+   "shared_recon+anat_brain_mask": 0.05411256104707718,
+   "shared_recon+anat_knee-PD_mask": 0.05524132773280144,
+   "shared_recon+anat_knee-PDFS_mask": 0.055060598999261856,
+   "anat_recon+shared_mask": 0.05423347279429436,
+   "anat_recon+anat_own_mask": 0.05473675578832626,
+   "anat_recon+anat_other_mask": 0.05545046180486679,
+   "anat_recon+anat_brain_mask": 0.05415501818060875,
+   "anat_recon+anat_knee-PD_mask": 0.05514992028474808,
+   "anat_recon+anat_knee-PDFS_mask": 0.055037304759025574
+  },
+  "knee-PD": {
+   "shared_recon+shared_mask": 0.025779664516448975,
+   "shared_recon+anat_own_mask": 0.025804976001381874,
+   "shared_recon+anat_other_mask": 0.026258859783411026,
+   "shared_recon+anat_brain_mask": 0.02603040263056755,
+   "shared_recon+anat_knee-PD_mask": 0.025804976001381874,
+   "shared_recon+anat_knee-PDFS_mask": 0.026258859783411026,
+   "anat_recon+shared_mask": 0.02583150938153267,
+   "anat_recon+anat_own_mask": 0.02571018785238266,
+   "anat_recon+anat_other_mask": 0.026337288320064545,
+   "anat_recon+anat_brain_mask": 0.02611924335360527,
+   "anat_recon+anat_knee-PD_mask": 0.02571018785238266,
+   "anat_recon+anat_knee-PDFS_mask": 0.026337288320064545
+  },
+  "knee-PDFS": {
+   "shared_recon+shared_mask": 0.08038455247879028,
+   "shared_recon+anat_own_mask": 0.08156803250312805,
+   "shared_recon+anat_other_mask": 0.08233281224966049,
+   "shared_recon+anat_brain_mask": 0.0799577385187149,
+   "shared_recon+anat_knee-PD_mask": 0.08233281224966049,
+   "shared_recon+anat_knee-PDFS_mask": 0.08156803250312805,
+   "anat_recon+shared_mask": 0.08037297427654266,
+   "anat_recon+anat_own_mask": 0.08145111054182053,
+   "anat_recon+anat_other_mask": 0.08224453032016754,
+   "anat_recon+anat_brain_mask": 0.0799575075507164,
+   "anat_recon+anat_knee-PD_mask": 0.08224453032016754,
+   "anat_recon+anat_knee-PDFS_mask": 0.08145111054182053
+  }
+ },
+ "mask_stats": {
+  "mean_probability": {
+   "shared": 0.1343250274658203,
+   "anat_brain": 0.13395071029663086,
+   "anat_knee-PD": 0.12939120829105377,
+   "anat_knee-PDFS": 0.14024922251701355
+  },
+  "radial_share": {
+   "shared": [
+    0.004429697059094906,
+    0.02750428020954132,
+    0.08694787323474884,
+    0.24707679450511932,
+    0.6340413093566895
+   ],
+   "anat_brain": [
+    0.003960833884775639,
+    0.02901879884302616,
+    0.09520121663808823,
+    0.27552807331085205,
+    0.5962911248207092
+   ],
+   "anat_knee-PD": [
+    0.006953629199415445,
+    0.030916517600417137,
+    0.07343478500843048,
+    0.19639556109905243,
+    0.692299485206604
+   ],
+   "anat_knee-PDFS": [
+    0.003584580961614847,
+    0.02156403474509716,
+    0.05940789729356766,
+    0.1817166656255722,
+    0.7337267398834229
+   ]
+  },
+  "blur_corr": {
+   "shared|anat_brain|sigma0": 0.7220265865325928,
+   "shared|anat_knee-PD|sigma0": 0.06050940230488777,
+   "shared|anat_knee-PDFS|sigma0": 0.051547400653362274,
+   "anat_brain|anat_knee-PD|sigma0": 0.06558496505022049,
+   "anat_brain|anat_knee-PDFS|sigma0": 0.048164863139390945,
+   "anat_knee-PD|anat_knee-PDFS|sigma0": 0.027507759630680084,
+   "shared|anat_brain|sigma2": 0.9717026948928833,
+   "shared|anat_knee-PD|sigma2": 0.8689338564872742,
+   "shared|anat_knee-PDFS|sigma2": 0.8107147812843323,
+   "anat_brain|anat_knee-PD|sigma2": 0.8516078591346741,
+   "anat_brain|anat_knee-PDFS|sigma2": 0.7487461566925049,
+   "anat_knee-PD|anat_knee-PDFS|sigma2": 0.8129174113273621,
+   "shared|anat_brain|sigma8": 0.9858225584030151,
+   "shared|anat_knee-PD|sigma8": 0.9215953350067139,
+   "shared|anat_knee-PDFS|sigma8": 0.8868181705474854,
+   "anat_brain|anat_knee-PD|sigma8": 0.9069824814796448,
+   "anat_brain|anat_knee-PDFS|sigma8": 0.8324176073074341,
+   "anat_knee-PD|anat_knee-PDFS|sigma8": 0.8817135095596313
+  }
+ }
+}

@@ -59,7 +59,7 @@ def radial_average(logits, slope):
 
 
 def load_val_batches(anatomy, args):
-    """Validation batches as (kspace, target, volume names); same data as eval_flipped_mask."""
+    """Validation batches as (kspace, target, volume names, metric mask); same data as eval_flipped_mask."""
     _, val_loader = build_fastmri_dataloaders(
         data_root=args.data_root, anatomies=[anatomy], image_shape=[256, 256],
         batch_size=args.batch_size, num_coils=CONFIG_NUM_COILS[anatomy],
@@ -186,7 +186,7 @@ def main():
         batches = load_val_batches(anatomy, args)
         print(f'{anatomy}: {sum(b[0].shape[0] for b in batches)} val slices', flush=True)
         per_seed = {s: evaluate_run(args.root, anatomy, s, args.seeds, batches, device) for s in args.seeds}
-        volumes = [v for _, _, names in batches for v in names]
+        volumes = [v for _, _, names, _ in batches for v in names]
         summary = summarize(anatomy, per_seed, volumes)
         out_dir = args.root / 'analysis'
         torch.save(per_seed, out_dir / f'cross_mask_eval_{anatomy}_per_slice.pt')

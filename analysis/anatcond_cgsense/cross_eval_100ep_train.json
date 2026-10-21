@@ -1,0 +1,340 @@
+{
+ "pair": "100ep",
+ "split": "train",
+ "stride": 4,
+ "checkpoints": [
+  "checkpoints/loupe2d_cgsense_r8_brain_knee_shared_bilinear_const_100ep",
+  "checkpoints/loupe2d_cgsense_r8_brain_knee_anatcond_bilinear_const_100ep"
+ ],
+ "classes": [
+  "brain",
+  "knee"
+ ],
+ "mean_psnr": {
+  "brain": {
+   "shared_recon+shared_mask": 36.32537841796875,
+   "shared_recon+anat_own_mask": 36.47922134399414,
+   "shared_recon+anat_other_mask": 35.449493408203125,
+   "anat_recon+shared_mask": 36.28044128417969,
+   "anat_recon+anat_own_mask": 36.445648193359375,
+   "anat_recon+anat_other_mask": 35.398738861083984
+  },
+  "knee": {
+   "shared_recon+shared_mask": 37.103946685791016,
+   "shared_recon+anat_own_mask": 36.95699691772461,
+   "shared_recon+anat_other_mask": 36.98991012573242,
+   "anat_recon+shared_mask": 37.077754974365234,
+   "anat_recon+anat_own_mask": 36.964656829833984,
+   "anat_recon+anat_other_mask": 36.93865203857422
+  }
+ },
+ "contrasts": {
+  "brain": {
+   "anat run - shared run (both own masks and sense nets)": {
+    "mean": 0.12026619911193848,
+    "ci95": [
+     0.0914089223369956,
+     0.16487179361283777
+    ],
+    "slices": 338
+   },
+   "mask effect on shared sense net (anat_own - shared mask)": {
+    "mean": 0.1538417786359787,
+    "ci95": [
+     0.12133395876735449,
+     0.19686724953353402
+    ],
+    "slices": 338
+   },
+   "mask effect on anat sense net (anat_own - shared mask)": {
+    "mean": 0.16520701348781586,
+    "ci95": [
+     0.1325520720332861,
+     0.2112191058695316
+    ],
+    "slices": 338
+   },
+   "sense-net effect with shared mask (anat - shared recon)": {
+    "mean": -0.04494080692529678,
+    "ci95": [
+     -0.04928252957761288,
+     -0.0395435999147594
+    ],
+    "slices": 338
+   },
+   "sense-net effect with anat_own mask (anat - shared recon)": {
+    "mean": -0.033575575798749924,
+    "ci95": [
+     -0.037962078116834164,
+     -0.028382406337186698
+    ],
+    "slices": 338
+   },
+   "label swap on anat sense net (anat_other - anat_own mask)": {
+    "mean": -1.046907663345337,
+    "ci95": [
+     -1.1970557540655136,
+     -0.9405206173658375
+    ],
+    "slices": 338
+   },
+   "label swap on shared sense net (anat_other - anat_own mask)": {
+    "mean": -1.0297290086746216,
+    "ci95": [
+     -1.1818984270095825,
+     -0.9215397417545319
+    ],
+    "slices": 338
+   }
+  },
+  "knee": {
+   "anat run - shared run (both own masks and sense nets)": {
+    "mean": -0.13928912580013275,
+    "ci95": [
+     -0.2277895323932171,
+     -0.06204238114878541
+    ],
+    "slices": 337
+   },
+   "mask effect on shared sense net (anat_own - shared mask)": {
+    "mean": -0.1469491571187973,
+    "ci95": [
+     -0.22943575717508793,
+     -0.07891601845622065
+    ],
+    "slices": 337
+   },
+   "mask effect on anat sense net (anat_own - shared mask)": {
+    "mean": -0.11309603601694107,
+    "ci95": [
+     -0.20075105763971807,
+     -0.039111886732280325
+    ],
+    "slices": 337
+   },
+   "sense-net effect with shared mask (anat - shared recon)": {
+    "mean": -0.026193080469965935,
+    "ci95": [
+     -0.038817173428833486,
+     -0.013336004363372924
+    ],
+    "slices": 337
+   },
+   "sense-net effect with anat_own mask (anat - shared recon)": {
+    "mean": 0.007660025265067816,
+    "ci95": [
+     -0.0041548318695276976,
+     0.0208035702817142
+    ],
+    "slices": 337
+   },
+   "label swap on anat sense net (anat_other - anat_own mask)": {
+    "mean": -0.026004021987318993,
+    "ci95": [
+     -0.17114768140017986,
+     0.16218184903264046
+    ],
+    "slices": 337
+   },
+   "label swap on shared sense net (anat_other - anat_own mask)": {
+    "mean": 0.03291308507323265,
+    "ci95": [
+     -0.11031102873384953,
+     0.20826289243996124
+    ],
+    "slices": 337
+   }
+  },
+  "knee-PD": {
+   "anat run - shared run (both own masks and sense nets)": {
+    "mean": 0.0715363621711731,
+    "ci95": [
+     -0.03797163842245936,
+     0.15187205523252473
+    ],
+    "slices": 162
+   },
+   "mask effect on shared sense net (anat_own - shared mask)": {
+    "mean": 0.06243545562028885,
+    "ci95": [
+     -0.044596535712480546,
+     0.14214619286358354
+    ],
+    "slices": 162
+   },
+   "mask effect on anat sense net (anat_own - shared mask)": {
+    "mean": 0.1149669960141182,
+    "ci95": [
+     0.008221711416263135,
+     0.19197295531630512
+    ],
+    "slices": 162
+   },
+   "sense-net effect with shared mask (anat - shared recon)": {
+    "mean": -0.0434306338429451,
+    "ci95": [
+     -0.06635416522622109,
+     -0.02296348698437214
+    ],
+    "slices": 162
+   },
+   "sense-net effect with anat_own mask (anat - shared recon)": {
+    "mean": 0.009100901894271374,
+    "ci95": [
+     -0.01619395976886153,
+     0.03489837450906634
+    ],
+    "slices": 162
+   },
+   "label swap on anat sense net (anat_other - anat_own mask)": {
+    "mean": -0.5197125673294067,
+    "ci95": [
+     -0.6682124644517898,
+     -0.29153667017817503
+    ],
+    "slices": 162
+   },
+   "label swap on shared sense net (anat_other - anat_own mask)": {
+    "mean": -0.42073002457618713,
+    "ci95": [
+     -0.5667865186929703,
+     -0.21420323736965666
+    ],
+    "slices": 162
+   }
+  },
+  "knee-PDFS": {
+   "anat run - shared run (both own masks and sense nets)": {
+    "mean": -0.3344532549381256,
+    "ci95": [
+     -0.3834198124706745,
+     -0.2846912987530232
+    ],
+    "slices": 175
+   },
+   "mask effect on shared sense net (anat_own - shared mask)": {
+    "mean": -0.34077945351600647,
+    "ci95": [
+     -0.38919672295451163,
+     -0.29557776302099237
+    ],
+    "slices": 175
+   },
+   "mask effect on anat sense net (anat_own - shared mask)": {
+    "mean": -0.3242172598838806,
+    "ci95": [
+     -0.37256423234939573,
+     -0.27717175856232645
+    ],
+    "slices": 175
+   },
+   "sense-net effect with shared mask (anat - shared recon)": {
+    "mean": -0.010236031375825405,
+    "ci95": [
+     -0.018855137238278984,
+     -0.00029931077879155463
+    ],
+    "slices": 175
+   },
+   "sense-net effect with anat_own mask (anat - shared recon)": {
+    "mean": 0.0063261850737035275,
+    "ci95": [
+     -0.000691283780906815,
+     0.015323368669487534
+    ],
+    "slices": 175
+   },
+   "label swap on anat sense net (anat_other - anat_own mask)": {
+    "mean": 0.4310290217399597,
+    "ci95": [
+     0.36409709975123405,
+     0.5041676700115204
+    ],
+    "slices": 175
+   },
+   "label swap on shared sense net (anat_other - anat_own mask)": {
+    "mean": 0.45285701751708984,
+    "ci95": [
+     0.3867942787706852,
+     0.5229433193802834
+    ],
+    "slices": 175
+   }
+  }
+ },
+ "mean_l1": {
+  "brain": {
+   "shared_recon+shared_mask": 0.06234236806631088,
+   "shared_recon+anat_own_mask": 0.06191367655992508,
+   "shared_recon+anat_other_mask": 0.06445225328207016,
+   "anat_recon+shared_mask": 0.06244697794318199,
+   "anat_recon+anat_own_mask": 0.06198950856924057,
+   "anat_recon+anat_other_mask": 0.06459374725818634
+  },
+  "knee": {
+   "shared_recon+shared_mask": 0.054879240691661835,
+   "shared_recon+anat_own_mask": 0.05552421882748604,
+   "shared_recon+anat_other_mask": 0.05478430539369583,
+   "anat_recon+shared_mask": 0.054946888238191605,
+   "anat_recon+anat_own_mask": 0.055526841431856155,
+   "anat_recon+anat_other_mask": 0.054884329438209534
+  },
+  "knee-PD": {
+   "shared_recon+shared_mask": 0.025892334058880806,
+   "shared_recon+anat_own_mask": 0.026017311960458755,
+   "shared_recon+anat_other_mask": 0.026144500821828842,
+   "anat_recon+shared_mask": 0.025964219123125076,
+   "anat_recon+anat_own_mask": 0.026026878505945206,
+   "anat_recon+anat_other_mask": 0.02627425454556942
+  },
+  "knee-PDFS": {
+   "shared_recon+shared_mask": 0.08171283453702927,
+   "shared_recon+anat_own_mask": 0.08283919095993042,
+   "shared_recon+anat_other_mask": 0.08129657804965973,
+   "anat_recon+shared_mask": 0.08177654445171356,
+   "anat_recon+anat_own_mask": 0.0828353762626648,
+   "anat_recon+anat_other_mask": 0.08136909455060959
+  }
+ },
+ "mask_stats": {
+  "mean_probability": {
+   "shared": 0.1343250274658203,
+   "anat_brain": 0.1340949833393097,
+   "anat_knee": 0.1333693265914917
+  },
+  "radial_share": {
+   "shared": [
+    0.004429697059094906,
+    0.02750428020954132,
+    0.08694787323474884,
+    0.24707679450511932,
+    0.6340413093566895
+   ],
+   "anat_brain": [
+    0.003887352766469121,
+    0.028969038277864456,
+    0.09473184496164322,
+    0.2748010754585266,
+    0.597610592842102
+   ],
+   "anat_knee": [
+    0.004951479844748974,
+    0.02393697015941143,
+    0.062056515365839005,
+    0.187003493309021,
+    0.7220515608787537
+   ]
+  },
+  "blur_corr": {
+   "shared|anat_brain|sigma0": 0.7115901708602905,
+   "shared|anat_knee|sigma0": 0.05628494545817375,
+   "anat_brain|anat_knee|sigma0": 0.05535005033016205,
+   "shared|anat_brain|sigma2": 0.9715927839279175,
+   "shared|anat_knee|sigma2": 0.8364771604537964,
+   "anat_brain|anat_knee|sigma2": 0.7822809219360352,
+   "shared|anat_brain|sigma8": 0.9860210418701172,
+   "shared|anat_knee|sigma8": 0.9070881605148315,
+   "anat_brain|anat_knee|sigma8": 0.8593904376029968
+  }
+ }
+}

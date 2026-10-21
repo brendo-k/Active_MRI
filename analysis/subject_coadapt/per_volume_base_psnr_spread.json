@@ -1,0 +1,143 @@
+{
+ "summary": {
+  "all": {
+   "volumes": 22,
+   "min": 22.642302592595417,
+   "p10": 34.941150879859926,
+   "median": 40.0280225276947,
+   "p90": 42.64994953473409,
+   "max": 46.06981182098389
+  },
+  "brain": {
+   "volumes": 16,
+   "min": 22.642302592595417,
+   "p10": 30.207828879356384,
+   "median": 39.930815656979874,
+   "p90": 42.55789128939311,
+   "max": 43.46070416768392
+  },
+  "knee": {
+   "volumes": 6,
+   "min": 39.261192321777344,
+   "p10": 39.26912122964859,
+   "median": 41.23094463348389,
+   "p90": 43.87025588750839,
+   "max": 46.06981182098389
+  }
+ },
+ "volumes": [
+  {
+   "anatomy": "brain",
+   "volume": "file_brain_AXT2_202_2020261.h5",
+   "base_psnr": 22.642302592595417
+  },
+  {
+   "anatomy": "brain",
+   "volume": "file_brain_AXT2_202_2020016.h5",
+   "base_psnr": 25.588271697362263
+  },
+  {
+   "anatomy": "brain",
+   "volume": "file_brain_AXT2_208_2080505.h5",
+   "base_psnr": 34.8273860613505
+  },
+  {
+   "anatomy": "brain",
+   "volume": "file_brain_AXT2_200_6001980.h5",
+   "base_psnr": 35.9650342464447
+  },
+  {
+   "anatomy": "brain",
+   "volume": "file_brain_AXT2_209_6001317.h5",
+   "base_psnr": 36.265723037719724
+  },
+  {
+   "anatomy": "brain",
+   "volume": "file_brain_AXT2_206_2060027.h5",
+   "base_psnr": 37.94083301226298
+  },
+  {
+   "anatomy": "brain",
+   "volume": "file_brain_AXT2_209_6001420.h5",
+   "base_psnr": 38.00163531303406
+  },
+  {
+   "anatomy": "knee",
+   "volume": "file1001948.h5",
+   "base_psnr": 39.261192321777344
+  },
+  {
+   "anatomy": "knee",
+   "volume": "file1002514.h5",
+   "base_psnr": 39.277050137519836
+  },
+  {
+   "anatomy": "brain",
+   "volume": "file_brain_AXT2_200_6002539.h5",
+   "base_psnr": 39.92860960960388
+  },
+  {
+   "anatomy": "brain",
+   "volume": "file_brain_AXT2_208_2080050.h5",
+   "base_psnr": 39.93302170435587
+  },
+  {
+   "anatomy": "brain",
+   "volume": "file_brain_AXT2_201_2010588.h5",
+   "base_psnr": 40.12302335103353
+  },
+  {
+   "anatomy": "brain",
+   "volume": "file_brain_AXT2_204_2040011.h5",
+   "base_psnr": 41.169437408447266
+  },
+  {
+   "anatomy": "knee",
+   "volume": "file1000401.h5",
+   "base_psnr": 41.20385730266571
+  },
+  {
+   "anatomy": "knee",
+   "volume": "file1000495.h5",
+   "base_psnr": 41.25803196430206
+  },
+  {
+   "anatomy": "brain",
+   "volume": "file_brain_AXT2_200_6002381.h5",
+   "base_psnr": 41.28727181752523
+  },
+  {
+   "anatomy": "brain",
+   "volume": "file_brain_AXT2_201_2010602.h5",
+   "base_psnr": 41.56940237681071
+  },
+  {
+   "anatomy": "knee",
+   "volume": "file1000956.h5",
+   "base_psnr": 41.6706999540329
+  },
+  {
+   "anatomy": "brain",
+   "volume": "file_brain_AXT2_200_6002375.h5",
+   "base_psnr": 42.44281848271688
+  },
+  {
+   "anatomy": "brain",
+   "volume": "file_brain_AXT2_200_6002302.h5",
+   "base_psnr": 42.672964096069336
+  },
+  {
+   "anatomy": "brain",
+   "volume": "file_brain_AXT2_200_6002308.h5",
+   "base_psnr": 43.46070416768392
+  },
+  {
+   "anatomy": "knee",
+   "volume": "file1000662.h5",
+   "base_psnr": 46.06981182098389
+  }
+ ],
+ "config": {
+  "dirs": "brain_block_full,knee_block_full"
+ }
+}

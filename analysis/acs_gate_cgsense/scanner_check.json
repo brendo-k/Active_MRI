@@ -1,0 +1,925 @@
+{
+ "train": [
+  {
+   "volume": "file_brain_AXT2_200_2000360.h5",
+   "system_model": "Skyra",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 16,
+   "kspace_coils": 16,
+   "scanner_code": "200"
+  },
+  {
+   "volume": "file_brain_AXT2_200_2000362.h5",
+   "system_model": "Skyra",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 16,
+   "kspace_coils": 16,
+   "scanner_code": "200"
+  },
+  {
+   "volume": "file_brain_AXT2_200_2000407.h5",
+   "system_model": "Skyra",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 20,
+   "kspace_coils": 20,
+   "scanner_code": "200"
+  },
+  {
+   "volume": "file_brain_AXT2_200_2000417.h5",
+   "system_model": "Skyra",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 16,
+   "kspace_coils": 16,
+   "scanner_code": "200"
+  },
+  {
+   "volume": "file_brain_AXT2_200_2000485.h5",
+   "system_model": "Skyra",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 16,
+   "kspace_coils": 16,
+   "scanner_code": "200"
+  },
+  {
+   "volume": "file_brain_AXT2_200_2000566.h5",
+   "system_model": "Skyra",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 16,
+   "kspace_coils": 16,
+   "scanner_code": "200"
+  },
+  {
+   "volume": "file_brain_AXT2_200_6002012.h5",
+   "system_model": "Skyra",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 20,
+   "kspace_coils": 20,
+   "scanner_code": "200"
+  },
+  {
+   "volume": "file_brain_AXT2_200_6002100.h5",
+   "system_model": "Skyra",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 16,
+   "kspace_coils": 16,
+   "scanner_code": "200"
+  },
+  {
+   "volume": "file_brain_AXT2_200_6002197.h5",
+   "system_model": "Skyra",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 20,
+   "kspace_coils": 20,
+   "scanner_code": "200"
+  },
+  {
+   "volume": "file_brain_AXT2_200_6002261.h5",
+   "system_model": "Skyra",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 8,
+   "kspace_coils": 8,
+   "scanner_code": "200"
+  },
+  {
+   "volume": "file_brain_AXT2_200_6002262.h5",
+   "system_model": "Skyra",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 16,
+   "kspace_coils": 16,
+   "scanner_code": "200"
+  },
+  {
+   "volume": "file_brain_AXT2_200_6002446.h5",
+   "system_model": "Skyra",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 16,
+   "kspace_coils": 16,
+   "scanner_code": "200"
+  },
+  {
+   "volume": "file_brain_AXT2_200_6002500.h5",
+   "system_model": "Skyra",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 20,
+   "kspace_coils": 20,
+   "scanner_code": "200"
+  },
+  {
+   "volume": "file_brain_AXT2_200_6002528.h5",
+   "system_model": "Skyra",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 16,
+   "kspace_coils": 16,
+   "scanner_code": "200"
+  },
+  {
+   "volume": "file_brain_AXT2_200_6002530.h5",
+   "system_model": "Skyra",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 20,
+   "kspace_coils": 20,
+   "scanner_code": "200"
+  },
+  {
+   "volume": "file_brain_AXT2_200_6002551.h5",
+   "system_model": "Skyra",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 20,
+   "kspace_coils": 20,
+   "scanner_code": "200"
+  },
+  {
+   "volume": "file_brain_AXT2_200_6002594.h5",
+   "system_model": "Skyra",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 20,
+   "kspace_coils": 20,
+   "scanner_code": "200"
+  },
+  {
+   "volume": "file_brain_AXT2_201_2010014.h5",
+   "system_model": "Skyra",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 20,
+   "kspace_coils": 20,
+   "scanner_code": "201"
+  },
+  {
+   "volume": "file_brain_AXT2_201_2010132.h5",
+   "system_model": "Skyra",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 20,
+   "kspace_coils": 20,
+   "scanner_code": "201"
+  },
+  {
+   "volume": "file_brain_AXT2_201_2010156.h5",
+   "system_model": "Skyra",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 16,
+   "kspace_coils": 16,
+   "scanner_code": "201"
+  },
+  {
+   "volume": "file_brain_AXT2_201_2010168.h5",
+   "system_model": "Skyra",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 16,
+   "kspace_coils": 16,
+   "scanner_code": "201"
+  },
+  {
+   "volume": "file_brain_AXT2_201_2010174.h5",
+   "system_model": "Skyra",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 16,
+   "kspace_coils": 16,
+   "scanner_code": "201"
+  },
+  {
+   "volume": "file_brain_AXT2_201_2010201.h5",
+   "system_model": "Skyra",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 16,
+   "kspace_coils": 16,
+   "scanner_code": "201"
+  },
+  {
+   "volume": "file_brain_AXT2_201_2010241.h5",
+   "system_model": "Skyra",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 20,
+   "kspace_coils": 20,
+   "scanner_code": "201"
+  },
+  {
+   "volume": "file_brain_AXT2_201_2010323.h5",
+   "system_model": "Skyra",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 20,
+   "kspace_coils": 20,
+   "scanner_code": "201"
+  },
+  {
+   "volume": "file_brain_AXT2_201_2010338.h5",
+   "system_model": "Skyra",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 20,
+   "kspace_coils": 20,
+   "scanner_code": "201"
+  },
+  {
+   "volume": "file_brain_AXT2_201_2010519.h5",
+   "system_model": "Skyra",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 20,
+   "kspace_coils": 20,
+   "scanner_code": "201"
+  },
+  {
+   "volume": "file_brain_AXT2_201_2010590.h5",
+   "system_model": "Skyra",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 20,
+   "kspace_coils": 20,
+   "scanner_code": "201"
+  },
+  {
+   "volume": "file_brain_AXT2_201_2010604.h5",
+   "system_model": "Skyra",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 16,
+   "kspace_coils": 16,
+   "scanner_code": "201"
+  },
+  {
+   "volume": "file_brain_AXT2_201_2010625.h5",
+   "system_model": "Skyra",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 20,
+   "kspace_coils": 20,
+   "scanner_code": "201"
+  },
+  {
+   "volume": "file_brain_AXT2_202_2020022.h5",
+   "system_model": "Aera",
+   "field_strength_T": 1.494,
+   "receiver_channels": 16,
+   "kspace_coils": 16,
+   "scanner_code": "202"
+  },
+  {
+   "volume": "file_brain_AXT2_202_2020063.h5",
+   "system_model": "Aera",
+   "field_strength_T": 1.494,
+   "receiver_channels": 16,
+   "kspace_coils": 16,
+   "scanner_code": "202"
+  },
+  {
+   "volume": "file_brain_AXT2_202_2020116.h5",
+   "system_model": "Aera",
+   "field_strength_T": 1.494,
+   "receiver_channels": 12,
+   "kspace_coils": 12,
+   "scanner_code": "202"
+  },
+  {
+   "volume": "file_brain_AXT2_202_2020127.h5",
+   "system_model": "Aera",
+   "field_strength_T": 1.494,
+   "receiver_channels": 20,
+   "kspace_coils": 20,
+   "scanner_code": "202"
+  },
+  {
+   "volume": "file_brain_AXT2_202_2020150.h5",
+   "system_model": "Aera",
+   "field_strength_T": 1.494,
+   "receiver_channels": 20,
+   "kspace_coils": 20,
+   "scanner_code": "202"
+  },
+  {
+   "volume": "file_brain_AXT2_202_2020365.h5",
+   "system_model": "Aera",
+   "field_strength_T": 1.494,
+   "receiver_channels": 20,
+   "kspace_coils": 20,
+   "scanner_code": "202"
+  },
+  {
+   "volume": "file_brain_AXT2_202_2020489.h5",
+   "system_model": "Aera",
+   "field_strength_T": 1.494,
+   "receiver_channels": 20,
+   "kspace_coils": 20,
+   "scanner_code": "202"
+  },
+  {
+   "volume": "file_brain_AXT2_202_2020555.h5",
+   "system_model": "Aera",
+   "field_strength_T": 1.494,
+   "receiver_channels": 20,
+   "kspace_coils": 20,
+   "scanner_code": "202"
+  },
+  {
+   "volume": "file_brain_AXT2_203_2030135.h5",
+   "system_model": "TrioTim",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 4,
+   "kspace_coils": 4,
+   "scanner_code": "203"
+  },
+  {
+   "volume": "file_brain_AXT2_203_2030350.h5",
+   "system_model": "TrioTim",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 4,
+   "kspace_coils": 4,
+   "scanner_code": "203"
+  },
+  {
+   "volume": "file_brain_AXT2_204_2040042.h5",
+   "system_model": "Skyra",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 16,
+   "kspace_coils": 16,
+   "scanner_code": "204"
+  },
+  {
+   "volume": "file_brain_AXT2_204_2040073.h5",
+   "system_model": "Skyra",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 16,
+   "kspace_coils": 16,
+   "scanner_code": "204"
+  },
+  {
+   "volume": "file_brain_AXT2_204_2040086.h5",
+   "system_model": "Skyra",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 20,
+   "kspace_coils": 20,
+   "scanner_code": "204"
+  },
+  {
+   "volume": "file_brain_AXT2_205_2050062.h5",
+   "system_model": "Aera",
+   "field_strength_T": 1.494,
+   "receiver_channels": 16,
+   "kspace_coils": 16,
+   "scanner_code": "205"
+  },
+  {
+   "volume": "file_brain_AXT2_205_2050080.h5",
+   "system_model": "Aera",
+   "field_strength_T": 1.494,
+   "receiver_channels": 16,
+   "kspace_coils": 16,
+   "scanner_code": "205"
+  },
+  {
+   "volume": "file_brain_AXT2_205_6000022.h5",
+   "system_model": "Aera",
+   "field_strength_T": 1.494,
+   "receiver_channels": 16,
+   "kspace_coils": 16,
+   "scanner_code": "205"
+  },
+  {
+   "volume": "file_brain_AXT2_206_2060003.h5",
+   "system_model": "Aera",
+   "field_strength_T": 1.494,
+   "receiver_channels": 20,
+   "kspace_coils": 20,
+   "scanner_code": "206"
+  },
+  {
+   "volume": "file_brain_AXT2_206_2060029.h5",
+   "system_model": "Aera",
+   "field_strength_T": 1.494,
+   "receiver_channels": 20,
+   "kspace_coils": 20,
+   "scanner_code": "206"
+  },
+  {
+   "volume": "file_brain_AXT2_206_2060070.h5",
+   "system_model": "Aera",
+   "field_strength_T": 1.494,
+   "receiver_channels": 20,
+   "kspace_coils": 20,
+   "scanner_code": "206"
+  },
+  {
+   "volume": "file_brain_AXT2_207_2070039.h5",
+   "system_model": "Avanto",
+   "field_strength_T": 1.494,
+   "receiver_channels": 4,
+   "kspace_coils": 4,
+   "scanner_code": "207"
+  },
+  {
+   "volume": "file_brain_AXT2_207_2070194.h5",
+   "system_model": "Avanto",
+   "field_strength_T": 1.494,
+   "receiver_channels": 6,
+   "kspace_coils": 6,
+   "scanner_code": "207"
+  },
+  {
+   "volume": "file_brain_AXT2_207_2070249.h5",
+   "system_model": "Avanto",
+   "field_strength_T": 1.494,
+   "receiver_channels": 4,
+   "kspace_coils": 4,
+   "scanner_code": "207"
+  },
+  {
+   "volume": "file_brain_AXT2_207_2070460.h5",
+   "system_model": "Avanto",
+   "field_strength_T": 1.494,
+   "receiver_channels": 4,
+   "kspace_coils": 4,
+   "scanner_code": "207"
+  },
+  {
+   "volume": "file_brain_AXT2_207_2070611.h5",
+   "system_model": "Avanto",
+   "field_strength_T": 1.494,
+   "receiver_channels": 4,
+   "kspace_coils": 4,
+   "scanner_code": "207"
+  },
+  {
+   "volume": "file_brain_AXT2_207_2070716.h5",
+   "system_model": "Avanto",
+   "field_strength_T": 1.494,
+   "receiver_channels": 4,
+   "kspace_coils": 4,
+   "scanner_code": "207"
+  },
+  {
+   "volume": "file_brain_AXT2_207_2070770.h5",
+   "system_model": "Avanto",
+   "field_strength_T": 1.494,
+   "receiver_channels": 4,
+   "kspace_coils": 4,
+   "scanner_code": "207"
+  },
+  {
+   "volume": "file_brain_AXT2_207_2070822.h5",
+   "system_model": "Avanto",
+   "field_strength_T": 1.494,
+   "receiver_channels": 4,
+   "kspace_coils": 4,
+   "scanner_code": "207"
+  },
+  {
+   "volume": "file_brain_AXT2_208_2080011.h5",
+   "system_model": "Avanto",
+   "field_strength_T": 1.494,
+   "receiver_channels": 4,
+   "kspace_coils": 4,
+   "scanner_code": "208"
+  },
+  {
+   "volume": "file_brain_AXT2_208_2080277.h5",
+   "system_model": "Avanto",
+   "field_strength_T": 1.494,
+   "receiver_channels": 4,
+   "kspace_coils": 4,
+   "scanner_code": "208"
+  },
+  {
+   "volume": "file_brain_AXT2_208_2080303.h5",
+   "system_model": "Avanto",
+   "field_strength_T": 1.494,
+   "receiver_channels": 4,
+   "kspace_coils": 4,
+   "scanner_code": "208"
+  },
+  {
+   "volume": "file_brain_AXT2_208_2080329.h5",
+   "system_model": "Avanto",
+   "field_strength_T": 1.494,
+   "receiver_channels": 6,
+   "kspace_coils": 6,
+   "scanner_code": "208"
+  },
+  {
+   "volume": "file_brain_AXT2_208_2080412.h5",
+   "system_model": "Avanto",
+   "field_strength_T": 1.494,
+   "receiver_channels": 4,
+   "kspace_coils": 4,
+   "scanner_code": "208"
+  },
+  {
+   "volume": "file_brain_AXT2_208_2080445.h5",
+   "system_model": "Avanto",
+   "field_strength_T": 1.494,
+   "receiver_channels": 4,
+   "kspace_coils": 4,
+   "scanner_code": "208"
+  },
+  {
+   "volume": "file_brain_AXT2_208_2080475.h5",
+   "system_model": "Avanto",
+   "field_strength_T": 1.494,
+   "receiver_channels": 4,
+   "kspace_coils": 4,
+   "scanner_code": "208"
+  },
+  {
+   "volume": "file_brain_AXT2_208_2080526.h5",
+   "system_model": "Avanto",
+   "field_strength_T": 1.494,
+   "receiver_channels": 4,
+   "kspace_coils": 4,
+   "scanner_code": "208"
+  },
+  {
+   "volume": "file_brain_AXT2_208_2080591.h5",
+   "system_model": "Avanto",
+   "field_strength_T": 1.494,
+   "receiver_channels": 4,
+   "kspace_coils": 4,
+   "scanner_code": "208"
+  },
+  {
+   "volume": "file_brain_AXT2_208_2080630.h5",
+   "system_model": "Avanto",
+   "field_strength_T": 1.494,
+   "receiver_channels": 4,
+   "kspace_coils": 4,
+   "scanner_code": "208"
+  },
+  {
+   "volume": "file_brain_AXT2_208_2080722.h5",
+   "system_model": "Avanto",
+   "field_strength_T": 1.494,
+   "receiver_channels": 4,
+   "kspace_coils": 4,
+   "scanner_code": "208"
+  },
+  {
+   "volume": "file_brain_AXT2_209_2090030.h5",
+   "system_model": "Biograph_mMR",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 12,
+   "kspace_coils": 12,
+   "scanner_code": "209"
+  },
+  {
+   "volume": "file_brain_AXT2_209_2090215.h5",
+   "system_model": "Biograph_mMR",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 16,
+   "kspace_coils": 16,
+   "scanner_code": "209"
+  },
+  {
+   "volume": "file_brain_AXT2_209_2090266.h5",
+   "system_model": "Biograph_mMR",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 14,
+   "kspace_coils": 14,
+   "scanner_code": "209"
+  },
+  {
+   "volume": "file_brain_AXT2_209_6000981.h5",
+   "system_model": "Biograph_mMR",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 14,
+   "kspace_coils": 14,
+   "scanner_code": "209"
+  },
+  {
+   "volume": "file_brain_AXT2_209_6001248.h5",
+   "system_model": "Biograph_mMR",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 14,
+   "kspace_coils": 14,
+   "scanner_code": "209"
+  },
+  {
+   "volume": "file_brain_AXT2_209_6001425.h5",
+   "system_model": "Biograph_mMR",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 14,
+   "kspace_coils": 14,
+   "scanner_code": "209"
+  },
+  {
+   "volume": "file_brain_AXT2_209_6001436.h5",
+   "system_model": "Biograph_mMR",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 14,
+   "kspace_coils": 14,
+   "scanner_code": "209"
+  },
+  {
+   "volume": "file_brain_AXT2_210_2100064.h5",
+   "system_model": "Prisma_fit",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 16,
+   "kspace_coils": 16,
+   "scanner_code": "210"
+  },
+  {
+   "volume": "file_brain_AXT2_210_2100086.h5",
+   "system_model": "Prisma_fit",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 20,
+   "kspace_coils": 20,
+   "scanner_code": "210"
+  },
+  {
+   "volume": "file_brain_AXT2_210_2100105.h5",
+   "system_model": "Prisma_fit",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 20,
+   "kspace_coils": 20,
+   "scanner_code": "210"
+  },
+  {
+   "volume": "file_brain_AXT2_210_2100136.h5",
+   "system_model": "Prisma_fit",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 20,
+   "kspace_coils": 20,
+   "scanner_code": "210"
+  },
+  {
+   "volume": "file_brain_AXT2_210_2100201.h5",
+   "system_model": "Prisma_fit",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 16,
+   "kspace_coils": 16,
+   "scanner_code": "210"
+  },
+  {
+   "volume": "file_brain_AXT2_210_6001491.h5",
+   "system_model": "Prisma_fit",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 20,
+   "kspace_coils": 20,
+   "scanner_code": "210"
+  },
+  {
+   "volume": "file_brain_AXT2_210_6001506.h5",
+   "system_model": "Prisma_fit",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 20,
+   "kspace_coils": 20,
+   "scanner_code": "210"
+  },
+  {
+   "volume": "file_brain_AXT2_210_6001532.h5",
+   "system_model": "Prisma_fit",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 20,
+   "kspace_coils": 20,
+   "scanner_code": "210"
+  },
+  {
+   "volume": "file_brain_AXT2_210_6001534.h5",
+   "system_model": "Prisma_fit",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 16,
+   "kspace_coils": 16,
+   "scanner_code": "210"
+  },
+  {
+   "volume": "file_brain_AXT2_210_6001546.h5",
+   "system_model": "Prisma_fit",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 20,
+   "kspace_coils": 20,
+   "scanner_code": "210"
+  },
+  {
+   "volume": "file_brain_AXT2_210_6001709.h5",
+   "system_model": "Prisma_fit",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 16,
+   "kspace_coils": 16,
+   "scanner_code": "210"
+  },
+  {
+   "volume": "file_brain_AXT2_210_6001747.h5",
+   "system_model": "Prisma_fit",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 16,
+   "kspace_coils": 16,
+   "scanner_code": "210"
+  },
+  {
+   "volume": "file_brain_AXT2_210_6001763.h5",
+   "system_model": "Prisma_fit",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 16,
+   "kspace_coils": 16,
+   "scanner_code": "210"
+  },
+  {
+   "volume": "file_brain_AXT2_210_6001909.h5",
+   "system_model": "Prisma_fit",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 20,
+   "kspace_coils": 20,
+   "scanner_code": "210"
+  }
+ ],
+ "val": [
+  {
+   "volume": "file_brain_AXT2_200_6001980.h5",
+   "system_model": "Skyra",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 20,
+   "kspace_coils": 20,
+   "scanner_code": "200",
+   "held_out_gain": 0.027204513549804688
+  },
+  {
+   "volume": "file_brain_AXT2_200_6002302.h5",
+   "system_model": "Skyra",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 16,
+   "kspace_coils": 16,
+   "scanner_code": "200",
+   "held_out_gain": -0.04749170939127367
+  },
+  {
+   "volume": "file_brain_AXT2_200_6002308.h5",
+   "system_model": "Skyra",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 20,
+   "kspace_coils": 20,
+   "scanner_code": "200",
+   "held_out_gain": -0.0419972737630232
+  },
+  {
+   "volume": "file_brain_AXT2_200_6002375.h5",
+   "system_model": "Skyra",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 16,
+   "kspace_coils": 16,
+   "scanner_code": "200",
+   "held_out_gain": 0.06534957885742188
+  },
+  {
+   "volume": "file_brain_AXT2_200_6002381.h5",
+   "system_model": "Skyra",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 16,
+   "kspace_coils": 16,
+   "scanner_code": "200",
+   "held_out_gain": 0.050585428873702654
+  },
+  {
+   "volume": "file_brain_AXT2_200_6002539.h5",
+   "system_model": "Skyra",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 20,
+   "kspace_coils": 20,
+   "scanner_code": "200",
+   "held_out_gain": 0.16948795318603516
+  },
+  {
+   "volume": "file_brain_AXT2_201_2010261.h5",
+   "system_model": "Skyra",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 20,
+   "kspace_coils": 20,
+   "scanner_code": "201",
+   "held_out_gain": 0.04162724812825758
+  },
+  {
+   "volume": "file_brain_AXT2_201_2010571.h5",
+   "system_model": "Skyra",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 20,
+   "kspace_coils": 20,
+   "scanner_code": "201",
+   "held_out_gain": 0.8292719523111991
+  },
+  {
+   "volume": "file_brain_AXT2_201_2010588.h5",
+   "system_model": "Skyra",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 20,
+   "kspace_coils": 20,
+   "scanner_code": "201",
+   "held_out_gain": 0.06282933553060133
+  },
+  {
+   "volume": "file_brain_AXT2_201_2010602.h5",
+   "system_model": "Skyra",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 16,
+   "kspace_coils": 16,
+   "scanner_code": "201",
+   "held_out_gain": 0.1059214274088518
+  },
+  {
+   "volume": "file_brain_AXT2_202_2020016.h5",
+   "system_model": "Aera",
+   "field_strength_T": 1.494,
+   "receiver_channels": 16,
+   "kspace_coils": 16,
+   "scanner_code": "202",
+   "held_out_gain": 0.01796944936116418
+  },
+  {
+   "volume": "file_brain_AXT2_202_2020261.h5",
+   "system_model": "Aera",
+   "field_strength_T": 1.494,
+   "receiver_channels": 16,
+   "kspace_coils": 16,
+   "scanner_code": "202",
+   "held_out_gain": 0.02566019694010535
+  },
+  {
+   "volume": "file_brain_AXT2_203_2030352.h5",
+   "system_model": "TrioTim",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 4,
+   "kspace_coils": 4,
+   "scanner_code": "203",
+   "held_out_gain": 0.1720741271972699
+  },
+  {
+   "volume": "file_brain_AXT2_204_2040011.h5",
+   "system_model": "Skyra",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 16,
+   "kspace_coils": 16,
+   "scanner_code": "204",
+   "held_out_gain": 0.14888254801432055
+  },
+  {
+   "volume": "file_brain_AXT2_206_2060027.h5",
+   "system_model": "Aera",
+   "field_strength_T": 1.494,
+   "receiver_channels": 20,
+   "kspace_coils": 20,
+   "scanner_code": "206",
+   "held_out_gain": 0.0036560694376674974
+  },
+  {
+   "volume": "file_brain_AXT2_207_2070280.h5",
+   "system_model": "Avanto",
+   "field_strength_T": 1.494,
+   "receiver_channels": 4,
+   "kspace_coils": 4,
+   "scanner_code": "207",
+   "held_out_gain": 0.8581085205078125
+  },
+  {
+   "volume": "file_brain_AXT2_208_2080050.h5",
+   "system_model": "Avanto",
+   "field_strength_T": 1.494,
+   "receiver_channels": 4,
+   "kspace_coils": 4,
+   "scanner_code": "208",
+   "held_out_gain": 0.2592735290527344
+  },
+  {
+   "volume": "file_brain_AXT2_208_2080126.h5",
+   "system_model": "Avanto",
+   "field_strength_T": 1.494,
+   "receiver_channels": 6,
+   "kspace_coils": 6,
+   "scanner_code": "208",
+   "held_out_gain": 0.4442417144775348
+  },
+  {
+   "volume": "file_brain_AXT2_208_2080505.h5",
+   "system_model": "Avanto",
+   "field_strength_T": 1.494,
+   "receiver_channels": 4,
+   "kspace_coils": 4,
+   "scanner_code": "208",
+   "held_out_gain": 0.3086160024007185
+  },
+  {
+   "volume": "file_brain_AXT2_209_2090151.h5",
+   "system_model": "Biograph_mMR",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 14,
+   "kspace_coils": 14,
+   "scanner_code": "209",
+   "held_out_gain": 0.028741200764976327
+  },
+  {
+   "volume": "file_brain_AXT2_209_6001317.h5",
+   "system_model": "Biograph_mMR",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 14,
+   "kspace_coils": 14,
+   "scanner_code": "209",
+   "held_out_gain": -0.0003932952880845164
+  },
+  {
+   "volume": "file_brain_AXT2_209_6001420.h5",
+   "system_model": "Biograph_mMR",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 14,
+   "kspace_coils": 14,
+   "scanner_code": "209",
+   "held_out_gain": -0.022574742635093514
+  },
+  {
+   "volume": "file_brain_AXT2_210_6001928.h5",
+   "system_model": "Prisma_fit",
+   "field_strength_T": 2.8936,
+   "receiver_channels": 20,
+   "kspace_coils": 20,
+   "scanner_code": "210",
+   "held_out_gain": 0.10068054199219034
+  }
+ ]
+}

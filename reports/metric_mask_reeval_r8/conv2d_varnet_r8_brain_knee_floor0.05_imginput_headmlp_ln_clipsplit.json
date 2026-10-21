@@ -1,0 +1,35 @@
+{
+  "run": "conv2d_varnet_r8_brain_knee_floor0.05_imginput_headmlp_ln_clipsplit",
+  "checkpoint": "last_model.pt",
+  "epoch": 49,
+  "total_epochs": 50,
+  "skipped_batches": 0,
+  "mask_fraction": {
+    "legacy": 0.3656326781871707,
+    "new": 0.40754659785780795
+  },
+  "legacy": {
+    "brain": {
+      "PSNR": 36.387577056884766,
+      "SSIM": 0.931958019733429,
+      "NMSE": 0.013588378205895424
+    },
+    "knee": {
+      "PSNR": 34.152259826660156,
+      "SSIM": 0.9515567421913147,
+      "NMSE": 0.012659740634262562
+    }
+  },
+  "new": {
+    "brain": {
+      "PSNR": 39.96504211425781,
+      "SSIM": 0.9803359508514404,
+      "NMSE": 0.004060595761984587
+    },
+    "knee": {
+      "PSNR": 37.22807693481445,
+      "SSIM": 0.9559736251831055,
+      "NMSE": 0.006405055057257414
+    }
+  }
+}

@@ -1,0 +1,138 @@
+{
+ "LOUPE shared": {
+  "all": {
+   "corr_init_trained": 0.40326882574586714,
+   "logit_change_over_init_std": 1.7755717039108276,
+   "corr_trained_radius": -0.3214260586098101,
+   "corr_init_radius": 0.003494381763815513
+  }
+ },
+ "LOUPE anatomy": {
+  "brain": {
+   "corr_init_trained": 0.3827180814293615,
+   "logit_change_over_init_std": 1.6962705850601196,
+   "corr_trained_radius": -0.38622051495120086,
+   "corr_init_radius": 0.003494381763815513
+  },
+  "knee": {
+   "corr_init_trained": 0.4545666432403992,
+   "logit_change_over_init_std": 1.6257935762405396,
+   "corr_trained_radius": -0.19412895541654512,
+   "corr_init_radius": -0.0015249240464253393
+  }
+ },
+ "DCM shared": {
+  "all": {
+   "corr_init_trained": 0.03320355950387914,
+   "logit_change_over_init_std": 1.9448771476745605,
+   "corr_trained_radius": 0.1548429741088322,
+   "corr_init_radius": 0.003494381763815513,
+   "score_std": 0.4004572629928589,
+   "score_range": [
+    -11.443120956420898,
+    -10.251112937927246
+   ],
+   "allocation_max_over_min": 1.2692190408706665,
+   "near_threshold_fraction_of_budget": {
+    "0.01": 5.998393535614014,
+    "0.05": 6.129634380340576
+   },
+   "dice_init_mask": 0.2679443359375,
+   "dice_best_mask": 0.2384033203125
+  }
+ },
+ "DCM anatomy": {
+  "brain": {
+   "corr_init_trained": 0.05547606036170916,
+   "logit_change_over_init_std": 1.823421597480774,
+   "corr_trained_radius": 0.18306051660805758,
+   "corr_init_radius": 0.003494381763815513,
+   "score_std": 0.4054020941257477,
+   "score_range": [
+    -11.444746017456055,
+    -10.237579345703125
+   ],
+   "allocation_max_over_min": 1.2730727195739746,
+   "near_threshold_fraction_of_budget": {
+    "0.01": 5.710083961486816,
+    "0.05": 5.930548667907715
+   },
+   "dice_init_mask": 0.2762451171875,
+   "dice_best_mask": 0.2799072265625
+  },
+  "knee": {
+   "corr_init_trained": 0.06459631466135944,
+   "logit_change_over_init_std": 1.5994044542312622,
+   "corr_trained_radius": -0.11455216170380576,
+   "corr_init_radius": -0.0015249240464253393,
+   "score_std": 0.3209801912307739,
+   "score_range": [
+    -11.436654090881348,
+    -10.312223434448242
+   ],
+   "allocation_max_over_min": 1.2521802186965942,
+   "near_threshold_fraction_of_budget": {
+    "0.01": 6.359243869781494,
+    "0.05": 6.524592399597168
+   },
+   "dice_init_mask": 0.236083984375,
+   "dice_best_mask": 0.2236328125
+  }
+ },
+ "DCM protocol": {
+  "brain": {
+   "corr_init_trained": 0.05288238493003532,
+   "logit_change_over_init_std": 1.8209422826766968,
+   "corr_trained_radius": 0.18925989395108325,
+   "corr_init_radius": 0.003494381763815513,
+   "score_std": 0.40605708956718445,
+   "score_range": [
+    -11.434454917907715,
+    -10.237199783325195
+   ],
+   "allocation_max_over_min": 1.270551323890686,
+   "near_threshold_fraction_of_budget": {
+    "0.01": 5.7408552169799805,
+    "0.05": 5.952545642852783
+   },
+   "dice_init_mask": 0.2635498046875,
+   "dice_best_mask": 0.27197265625
+  },
+  "knee-PD": {
+   "corr_init_trained": 0.33711347514962864,
+   "logit_change_over_init_std": 1.039221167564392,
+   "corr_trained_radius": -0.7825062210304617,
+   "corr_init_radius": -0.0015249240464253393,
+   "score_std": 0.14129117131233215,
+   "score_range": [
+    -11.26114273071289,
+    -10.172329902648926
+   ],
+   "allocation_max_over_min": 1.2432917356491089,
+   "near_threshold_fraction_of_budget": {
+    "0.01": 5.283984184265137,
+    "0.05": 5.867647171020508
+   },
+   "dice_init_mask": 0.29833984375,
+   "dice_best_mask": 0.2965087890625
+  },
+  "knee-PDFS": {
+   "corr_init_trained": 0.06093682602465002,
+   "logit_change_over_init_std": 1.7005350589752197,
+   "corr_trained_radius": -0.033420117295333895,
+   "corr_init_radius": 0.0029893623034797498,
+   "score_std": 0.33994874358177185,
+   "score_range": [
+    -11.42768383026123,
+    -10.307217597961426
+   ],
+   "allocation_max_over_min": 1.2511874437332153,
+   "near_threshold_fraction_of_budget": {
+    "0.01": 6.303386211395264,
+    "0.05": 6.47305965423584
+   },
+   "dice_init_mask": 0.234130859375,
+   "dice_best_mask": 0.2103271484375
+  }
+ }
+}
