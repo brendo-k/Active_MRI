@@ -59,7 +59,7 @@ inside the metric mask (`_apply_signal_mask` with `metric_mask_from_real_kspace`
   group's slices), with R the target max of the group's last batch (torchmetrics keeps the last `data_range` set).
   It weights high-error slices more than the per-slice mean does. Both arms see the same targets, so a trainer
   gap is exactly -10 log10(MSE_cond / MSE_blind); its absolute per-class values depend on which batch came last and
-  are not comparable across classes. The brain / knee values reproduce `reports/METRIC_MASK_REEVAL_R8.md` (seed
+  are not comparable across classes. The brain / knee values reproduce `reports/metric_mask_reeval_r8/report.md` (seed
   42: cond 41.61 / 37.82, blind 41.69 / 37.85 dB).
 
 1. **Arm gap** (cond - blind), per class and knee pooled, per seed. Paired over slices; 95% CI over per-volume
@@ -165,7 +165,7 @@ VarNet. The bottleneck-FiLM label cost 0.15 dB brain and 0.14 dB knee on plain V
   logged per-anatomy PSNR, not only these. Runs scored on the same val loader share R, so gaps between them are
   unaffected. Absolute values depend on which batch came last, so they do not compare across classes, anatomies or
   dataset configs.
-- This supersedes the CAIPI line in `reports/METRIC_MASK_REEVAL_R8.md`, which compared both cond seeds with the
+- This supersedes the CAIPI line in `reports/metric_mask_reeval_r8/report.md`, which compared both cond seeds with the
   seed-42 blind run only.
 
 ## Figures

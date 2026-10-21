@@ -4,7 +4,7 @@ Deadline **28 Oct 2026** (ECHO; confirm the time zone there). Co-author draft ta
 Limits: Impact 40 words · Synopsis 100 words (Motivation / Goals / Approach / Results, text only, no citations) ·
 body 750 words · ≤5 figures, captions ≤500 characters · one Preview Figure · code/data links in Acknowledgements only.
 `[[...]]` = number pending or decision open. Numbers come only from the scripts in "Evidence map"; all use the trainer's
-current metric mask. Never mix in legacy-metric numbers (`reports/METRIC_MASK_REEVAL_R8.md`).
+current metric mask. Never mix in legacy-metric numbers (`reports/metric_mask_reeval_r8/report.md`).
 
 **Pre-set decision rule (2026-10-20, before results):** the anatomy result leads if the matched pair shows per-anatomy >
 shared with the 95% CI excluding 0 on at least one anatomy and no significant loss on the other, in both seeds. Otherwise

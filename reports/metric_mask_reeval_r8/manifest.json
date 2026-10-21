@@ -1,0 +1,1141 @@
+{
+  "schema": 1,
+  "generated_at": "2026-10-21T21:29:20+00:00",
+  "code": {
+    "produced_at": "4f70ea6147b3b4cfdb4555ed5d2c8a935cc06903",
+    "produced_at_subject": "Add metric-mask re-eval script and report for the R=8/R=4 checkpoints",
+    "head": "e6677318ed729337819db24873d821ba733eaf20",
+    "branch": "main",
+    "dirty_tracked_files": [
+      "nalysis/anatcond_cgsense/metric_apodized/run_mask_path.sh",
+      "docs/ISMRM_2027_ABSTRACT.md",
+      "reports/VARNET_CAIPI_PROMPTMR_ANATCOND_R4.md"
+    ],
+    "scripts": [
+      {
+        "path": "scripts/eval/reeval_metric_mask_r8.py",
+        "changed_since_produced_at": false
+      }
+    ]
+  },
+  "metric_mask": {
+    "version": "apodized",
+    "definition": "k-space-apodized per-anatomy mask (activemri/utils/metric_mask.py), the trainer metric since 2026-10-20",
+    "apodization_sigma": 16,
+    "params": {
+      "brain": {
+        "fraction": 0.15,
+        "radius": 6
+      },
+      "knee": {
+        "fraction": 0.06,
+        "radius": 12
+      }
+    }
+  },
+  "data": {
+    "config": {
+      "anatomy": [
+        "brain",
+        "knee"
+      ],
+      "data_root": "/home/bkadota/data/fastmri",
+      "data_dir": null,
+      "contrast": "T2",
+      "num_coils": 16,
+      "num_workers": 8,
+      "balance": true,
+      "condition_classes": [],
+      "train_anatomies": [],
+      "train_slices": null
+    },
+    "note": "Each run's own validation set from its .hydra/config.yaml: balanced brain T2 + knee, 688 slices (344 brain from 23 volumes, 344 knee from 10 volumes), seeded eval mask generator."
+  },
+  "runs": [
+    {
+      "name": "conv2d_varnet_r8_brain_knee_floor0.05",
+      "path": "checkpoints/conv2d_varnet_r8_brain_knee_floor0.05",
+      "config_sha256": "f7364ed06de6ff8f",
+      "overrides": [
+        "sampler.sampler_type=conv_2d",
+        "recon=varnet",
+        "datasets=brain_knee_balanced",
+        "training.num_step=1",
+        "sampler.accelerations=[8.0]",
+        "sampler.mask_grad_floor=0.05",
+        "sampler.ste_grad_floor=0.05",
+        "training.batch_size=16",
+        "training.seed=42",
+        "output.out_dir=checkpoints/conv2d_varnet_r8_brain_knee_floor0.05",
+        "output.checkpoint=checkpoints/conv2d_varnet_r8_brain_knee_floor0.05/resume_from_epoch4.pt"
+      ],
+      "wandb_run_id": "ziuji11f",
+      "trained_at_commit": null,
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 774006750,
+          "modified": "2026-10-15T20:46:13+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 774006750,
+          "modified": "2026-10-15T20:46:11+00:00"
+        }
+      }
+    },
+    {
+      "name": "conv2d_varnet_r8_brain_knee_floor0.05_ahain",
+      "path": "checkpoints/conv2d_varnet_r8_brain_knee_floor0.05_ahain",
+      "config_sha256": "86dda72ebfe5cb94",
+      "overrides": [
+        "sampler.sampler_type=conv_2d",
+        "recon=varnet",
+        "datasets=brain_knee_balanced",
+        "training.num_step=1",
+        "sampler.accelerations=[8.0]",
+        "sampler.mask_grad_floor=0.05",
+        "sampler.ste_grad_floor=0.05",
+        "training.batch_size=16",
+        "training.seed=42",
+        "output.out_dir=/tmp/bkadota_checkpoints/conv2d_varnet_r8_brain_knee_floor0.05_ahain",
+        "recon.adaptive_input=true",
+        "recon.checkpoint_cascades=true"
+      ],
+      "wandb_run_id": "aj3kohhj",
+      "trained_at_commit": null,
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 774152606,
+          "modified": "2026-10-17T11:23:23+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 774152606,
+          "modified": "2026-10-17T11:37:49+00:00"
+        }
+      }
+    },
+    {
+      "name": "conv2d_varnet_r8_brain_knee_floor0.05_clamp10_leak0.05",
+      "path": "checkpoints/conv2d_varnet_r8_brain_knee_floor0.05_clamp10_leak0.05",
+      "config_sha256": "850059de1cabcefc",
+      "overrides": [
+        "sampler.sampler_type=conv_2d",
+        "recon=varnet",
+        "datasets=brain_knee_balanced",
+        "training.num_step=1",
+        "sampler.accelerations=[8.0]",
+        "sampler.mask_grad_floor=0.05",
+        "sampler.ste_grad_floor=0.05",
+        "training.batch_size=16",
+        "training.seed=42",
+        "output.out_dir=checkpoints/conv2d_varnet_r8_brain_knee_floor0.05_clamp10_leak0.05",
+        "sampler.image_input=false",
+        "sampler.logit_limit=10",
+        "sampler.logit_leak=0.05"
+      ],
+      "wandb_run_id": "ewfi3v76",
+      "trained_at_commit": null,
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 774007134,
+          "modified": "2026-10-16T20:20:37+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 774007134,
+          "modified": "2026-10-16T20:20:35+00:00"
+        }
+      }
+    },
+    {
+      "name": "conv2d_varnet_r8_brain_knee_floor0.05_draws2",
+      "path": "checkpoints/conv2d_varnet_r8_brain_knee_floor0.05_draws2",
+      "config_sha256": "cc6d846e4de1d791",
+      "overrides": [
+        "sampler.sampler_type=conv_2d",
+        "recon=varnet",
+        "datasets=brain_knee_balanced",
+        "training.num_step=1",
+        "sampler.accelerations=[8.0]",
+        "sampler.mask_grad_floor=0.05",
+        "sampler.ste_grad_floor=0.05",
+        "training.batch_size=8",
+        "training.seed=42",
+        "output.out_dir=checkpoints/conv2d_varnet_r8_brain_knee_floor0.05_draws2",
+        "sampler.mask_draws=2",
+        "sampler.image_input=false"
+      ],
+      "wandb_run_id": "d4hb98to",
+      "trained_at_commit": null,
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 774007070,
+          "modified": "2026-10-16T13:22:10+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 774007070,
+          "modified": "2026-10-16T13:43:44+00:00"
+        }
+      }
+    },
+    {
+      "name": "conv2d_varnet_r8_brain_knee_floor0.05_imginput",
+      "path": "checkpoints/conv2d_varnet_r8_brain_knee_floor0.05_imginput",
+      "config_sha256": "6c4fd0ef2c090126",
+      "overrides": [
+        "sampler.sampler_type=conv_2d",
+        "recon=varnet",
+        "datasets=brain_knee_balanced",
+        "training.num_step=1",
+        "sampler.accelerations=[8.0]",
+        "sampler.mask_grad_floor=0.05",
+        "sampler.ste_grad_floor=0.05",
+        "training.batch_size=16",
+        "training.seed=42",
+        "output.out_dir=checkpoints/conv2d_varnet_r8_brain_knee_floor0.05_imginput",
+        "sampler.image_input=true"
+      ],
+      "wandb_run_id": "dyihq1h2",
+      "trained_at_commit": null,
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 774007070,
+          "modified": "2026-10-16T02:33:08+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 774007070,
+          "modified": "2026-10-16T02:33:06+00:00"
+        }
+      }
+    },
+    {
+      "name": "conv2d_varnet_r8_brain_knee_floor0.05_imginput_headbias",
+      "path": "checkpoints/conv2d_varnet_r8_brain_knee_floor0.05_imginput_headbias",
+      "config_sha256": "a7c0b7798858a6c1",
+      "overrides": [
+        "sampler.sampler_type=conv_2d",
+        "recon=varnet",
+        "datasets=brain_knee_balanced",
+        "training.num_step=1",
+        "sampler.accelerations=[8.0]",
+        "sampler.mask_grad_floor=0.05",
+        "sampler.ste_grad_floor=0.05",
+        "training.batch_size=16",
+        "training.seed=42",
+        "output.out_dir=checkpoints/conv2d_varnet_r8_brain_knee_floor0.05_imginput_headbias",
+        "sampler.head=bias"
+      ],
+      "wandb_run_id": "lj113kv4",
+      "trained_at_commit": null,
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 774794854,
+          "modified": "2026-10-16T07:02:34+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 774794854,
+          "modified": "2026-10-16T07:13:42+00:00"
+        }
+      }
+    },
+    {
+      "name": "conv2d_varnet_r8_brain_knee_floor0.05_imginput_headmlp_ln_clipsplit",
+      "path": "checkpoints/conv2d_varnet_r8_brain_knee_floor0.05_imginput_headmlp_ln_clipsplit",
+      "config_sha256": "b9c682fdd15ab190",
+      "overrides": [
+        "sampler.sampler_type=conv_2d",
+        "recon=varnet",
+        "datasets=brain_knee_balanced",
+        "training.num_step=1",
+        "sampler.accelerations=[8.0]",
+        "sampler.mask_grad_floor=0.05",
+        "sampler.ste_grad_floor=0.05",
+        "training.batch_size=16",
+        "training.seed=42",
+        "output.out_dir=checkpoints/conv2d_varnet_r8_brain_knee_floor0.05_imginput_headmlp_ln_clipsplit",
+        "sampler.head=mlp"
+      ],
+      "wandb_run_id": "069x1apw",
+      "trained_at_commit": null,
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 1179030670,
+          "modified": "2026-10-17T00:29:01+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 1179030670,
+          "modified": "2026-10-17T00:34:48+00:00"
+        }
+      }
+    },
+    {
+      "name": "loupe2d_cgsense_r4_brain_knee_anatcond",
+      "path": "checkpoints/loupe2d_cgsense_r4_brain_knee_anatcond",
+      "config_sha256": "03e60d754b56b46d",
+      "overrides": [
+        "sampler.sampler_type=loupe_2d",
+        "recon=cg_sense",
+        "datasets=brain_knee_balanced",
+        "sampler.accelerations=[4.0]",
+        "sampler.anatomy_conditioning=true",
+        "training.batch_size=16",
+        "output.out_dir=checkpoints/loupe2d_cgsense_r4_brain_knee_anatcond"
+      ],
+      "wandb_run_id": "nd02wof1",
+      "trained_at_commit": null,
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 7435362,
+          "modified": "2026-10-17T20:52:06+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 7435362,
+          "modified": "2026-10-17T21:14:56+00:00"
+        }
+      }
+    },
+    {
+      "name": "loupe2d_cgsense_r4_brain_knee_shared",
+      "path": "checkpoints/loupe2d_cgsense_r4_brain_knee_shared",
+      "config_sha256": "79a934bdbff38224",
+      "overrides": [
+        "sampler.sampler_type=loupe_2d",
+        "recon=cg_sense",
+        "datasets=brain_knee_balanced",
+        "sampler.accelerations=[4.0]",
+        "sampler.anatomy_conditioning=false",
+        "training.batch_size=16",
+        "output.out_dir=checkpoints/loupe2d_cgsense_r4_brain_knee_shared"
+      ],
+      "wandb_run_id": "bu3ma9t2",
+      "trained_at_commit": null,
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 6648930,
+          "modified": "2026-10-17T20:54:47+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 6648930,
+          "modified": "2026-10-17T21:15:11+00:00"
+        }
+      }
+    },
+    {
+      "name": "loupe2d_cgsense_r8_brain_knee_anatcond",
+      "path": "checkpoints/loupe2d_cgsense_r8_brain_knee_anatcond",
+      "config_sha256": "f3c83601b4607a44",
+      "overrides": [
+        "sampler.sampler_type=loupe_2d",
+        "recon=cg_sense",
+        "datasets=brain_knee_balanced",
+        "sampler.accelerations=[8.0]",
+        "sampler.anatomy_conditioning=true",
+        "training.batch_size=16",
+        "output.out_dir=checkpoints/loupe2d_cgsense_r8_brain_knee_anatcond"
+      ],
+      "wandb_run_id": "tk3c5ry8",
+      "trained_at_commit": null,
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 7435362,
+          "modified": "2026-10-17T20:50:10+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 7435362,
+          "modified": "2026-10-17T21:10:30+00:00"
+        }
+      }
+    },
+    {
+      "name": "loupe2d_cgsense_r8_brain_knee_anatcond_bilinear_const_100ep",
+      "path": "checkpoints/loupe2d_cgsense_r8_brain_knee_anatcond_bilinear_const_100ep",
+      "config_sha256": "efc0c81d0f6b07fc",
+      "overrides": [
+        "sampler.sampler_type=loupe_2d",
+        "recon=cg_sense",
+        "datasets=brain_knee_balanced",
+        "sampler.accelerations=[8.0]",
+        "sampler.anatomy_conditioning=true",
+        "training.batch_size=16",
+        "output.out_dir=checkpoints/loupe2d_cgsense_r8_brain_knee_anatcond_bilinear_const_100ep",
+        "sampler.sens_upsample_method=bilinear",
+        "training.lr_scheduler=constant",
+        "training.num_epochs=100"
+      ],
+      "wandb_run_id": "kikc9627",
+      "trained_at_commit": null,
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 4122146,
+          "modified": "2026-10-18T22:06:16+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 4122146,
+          "modified": "2026-10-18T23:13:14+00:00"
+        }
+      }
+    },
+    {
+      "name": "loupe2d_cgsense_r8_brain_knee_anatcond_sharedinit",
+      "path": "checkpoints/loupe2d_cgsense_r8_brain_knee_anatcond_sharedinit",
+      "config_sha256": "d9337566c4da5cb5",
+      "overrides": [
+        "sampler.sampler_type=loupe_2d",
+        "recon=cg_sense",
+        "datasets=brain_knee_balanced",
+        "sampler.accelerations=[8.0]",
+        "sampler.anatomy_conditioning=true",
+        "training.batch_size=16",
+        "output.out_dir=checkpoints/loupe2d_cgsense_r8_brain_knee_anatcond_sharedinit",
+        "sampler.sens_upsample_method=bilinear",
+        "training.lr_scheduler=constant",
+        "training.num_epochs=50",
+        "sampler.init_mask_checkpoint=/home/bkadota/code/active_mri/SeqMRI/checkpoints/loupe2d_cgsense_r8_brain_knee_shared_bilinear_const_100ep/last_model.pt",
+        "output.pretrained_recon=/home/bkadota/code/active_mri/SeqMRI/checkpoints/loupe2d_cgsense_r8_brain_knee_shared_bilinear_const_100ep/last_model.pt",
+        "output.run_name=loupe2d_R8_cg_sense_anatcond_sharedinit_brain+knee"
+      ],
+      "wandb_run_id": "zc266a5v",
+      "trained_at_commit": null,
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 4122530,
+          "modified": "2026-10-20T03:20:16+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 4122530,
+          "modified": "2026-10-20T04:53:00+00:00"
+        }
+      }
+    },
+    {
+      "name": "loupe2d_cgsense_r8_brain_knee_dcm_anatcond",
+      "path": "checkpoints/loupe2d_cgsense_r8_brain_knee_dcm_anatcond",
+      "config_sha256": "94ba1d6e8c5b1011",
+      "overrides": [
+        "sampler.sampler_type=loupe_2d",
+        "recon=cg_sense",
+        "datasets=brain_knee_balanced",
+        "sampler.accelerations=[8.0]",
+        "sampler.anatomy_conditioning=true",
+        "training.batch_size=16",
+        "output.out_dir=checkpoints/loupe2d_cgsense_r8_brain_knee_dcm_anatcond",
+        "sampler.selection=dcm",
+        "sampler.dcm_vd_power=1.0",
+        "output.run_name=loupe2d_R8_dcm-p1_cond-anat_cg_sense_brain+knee"
+      ],
+      "wandb_run_id": "gtzmmr4w",
+      "trained_at_commit": null,
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 7435554,
+          "modified": "2026-10-19T21:17:14+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 7435554,
+          "modified": "2026-10-19T21:31:28+00:00"
+        }
+      }
+    },
+    {
+      "name": "loupe2d_cgsense_r8_brain_knee_dcm_prototable",
+      "path": "checkpoints/loupe2d_cgsense_r8_brain_knee_dcm_prototable",
+      "config_sha256": "0d526658724af3df",
+      "overrides": [
+        "sampler.sampler_type=loupe_2d",
+        "recon=cg_sense",
+        "datasets=brain_knee_balanced",
+        "sampler.accelerations=[8.0]",
+        "sampler.anatomy_conditioning=true",
+        "training.batch_size=16",
+        "output.out_dir=checkpoints/loupe2d_cgsense_r8_brain_knee_dcm_prototable",
+        "datasets.condition_classes=[brain,knee-PD,knee-PDFS]",
+        "sampler.selection=dcm",
+        "sampler.dcm_vd_power=1.0",
+        "output.run_name=loupe2d_R8_dcm-p1_cond-proto_cg_sense_brain+knee"
+      ],
+      "wandb_run_id": "mniw8jyy",
+      "trained_at_commit": null,
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 8222050,
+          "modified": "2026-10-19T19:16:53+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 8222050,
+          "modified": "2026-10-19T19:41:02+00:00"
+        }
+      }
+    },
+    {
+      "name": "loupe2d_cgsense_r8_brain_knee_dcm_shared",
+      "path": "checkpoints/loupe2d_cgsense_r8_brain_knee_dcm_shared",
+      "config_sha256": "78db0dcee4b0bdbd",
+      "overrides": [
+        "sampler.sampler_type=loupe_2d",
+        "recon=cg_sense",
+        "datasets=brain_knee_balanced",
+        "sampler.accelerations=[8.0]",
+        "sampler.anatomy_conditioning=false",
+        "training.batch_size=16",
+        "output.out_dir=checkpoints/loupe2d_cgsense_r8_brain_knee_dcm_shared",
+        "sampler.selection=dcm",
+        "sampler.dcm_vd_power=1.0",
+        "output.run_name=loupe2d_R8_dcm-p1_cg_sense_brain+knee"
+      ],
+      "wandb_run_id": "bz85wcp8",
+      "trained_at_commit": null,
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 6649122,
+          "modified": "2026-10-19T20:56:38+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 6649122,
+          "modified": "2026-10-19T21:36:45+00:00"
+        }
+      }
+    },
+    {
+      "name": "loupe2d_cgsense_r8_brain_knee_ecalib_c10",
+      "path": "checkpoints/loupe2d_cgsense_r8_brain_knee_ecalib_c10",
+      "config_sha256": "77e64469da40e15a",
+      "overrides": [
+        "sampler.sampler_type=loupe_2d",
+        "recon=cg_sense",
+        "datasets=brain_knee_balanced",
+        "sampler.accelerations=[8.0]",
+        "sampler.anatomy_conditioning=false",
+        "training.batch_size=16",
+        "output.out_dir=checkpoints/loupe2d_cgsense_r8_brain_knee_ecalib_c10",
+        "sampler.preselect_num=10",
+        "datasets.sense_cache_dir=/data/yanglab2/labmembers2/bkadota/data/fastmri/sense_cache_ecalib",
+        "output.run_name=loupe2d_R8_cg_sense_ecalib_c10_brain+knee"
+      ],
+      "wandb_run_id": "ltb2crlo",
+      "trained_at_commit": null,
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 2750114,
+          "modified": "2026-10-20T02:39:09+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 2750114,
+          "modified": "2026-10-20T02:49:04+00:00"
+        }
+      }
+    },
+    {
+      "name": "loupe2d_cgsense_r8_brain_knee_ecalib_c24",
+      "path": "checkpoints/loupe2d_cgsense_r8_brain_knee_ecalib_c24",
+      "config_sha256": "0b4b139d1e1aed57",
+      "overrides": [
+        "sampler.sampler_type=loupe_2d",
+        "recon=cg_sense",
+        "datasets=brain_knee_balanced",
+        "sampler.accelerations=[8.0]",
+        "sampler.anatomy_conditioning=false",
+        "training.batch_size=16",
+        "output.out_dir=checkpoints/loupe2d_cgsense_r8_brain_knee_ecalib_c24",
+        "sampler.preselect_num=24",
+        "datasets.sense_cache_dir=/data/yanglab2/labmembers2/bkadota/data/fastmri/sense_cache_ecalib",
+        "output.run_name=loupe2d_R8_cg_sense_ecalib_c24_brain+knee"
+      ],
+      "wandb_run_id": "ijs8t3rh",
+      "trained_at_commit": null,
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 2750114,
+          "modified": "2026-10-20T02:33:40+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 2750114,
+          "modified": "2026-10-20T02:49:23+00:00"
+        }
+      }
+    },
+    {
+      "name": "loupe2d_cgsense_r8_brain_knee_prototable",
+      "path": "checkpoints/loupe2d_cgsense_r8_brain_knee_prototable",
+      "config_sha256": "737217b0b5f82fda",
+      "overrides": [
+        "sampler.sampler_type=loupe_2d",
+        "recon=cg_sense",
+        "datasets=brain_knee_balanced",
+        "sampler.accelerations=[8.0]",
+        "sampler.anatomy_conditioning=true",
+        "training.batch_size=16",
+        "output.out_dir=checkpoints/loupe2d_cgsense_r8_brain_knee_prototable",
+        "datasets.condition_classes=[brain,knee-PD,knee-PDFS]",
+        "output.run_name=loupe2d_R8_cond-proto_cg_sense_brain+knee"
+      ],
+      "wandb_run_id": "3dbidc2q",
+      "trained_at_commit": null,
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 8222050,
+          "modified": "2026-10-19T20:54:29+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 8222050,
+          "modified": "2026-10-19T21:35:43+00:00"
+        }
+      }
+    },
+    {
+      "name": "loupe2d_cgsense_r8_brain_knee_prototable_bilinear_const_100ep",
+      "path": "checkpoints/loupe2d_cgsense_r8_brain_knee_prototable_bilinear_const_100ep",
+      "config_sha256": "3c293b5c3205a3c5",
+      "overrides": [
+        "sampler.sampler_type=loupe_2d",
+        "recon=cg_sense",
+        "datasets=brain_knee_balanced",
+        "sampler.accelerations=[8.0]",
+        "sampler.anatomy_conditioning=true",
+        "training.batch_size=16",
+        "output.out_dir=checkpoints/loupe2d_cgsense_r8_brain_knee_prototable_bilinear_const_100ep",
+        "sampler.sens_upsample_method=bilinear",
+        "training.lr_scheduler=constant",
+        "training.num_epochs=100",
+        "datasets.condition_classes=[brain,knee-PD,knee-PDFS]",
+        "output.run_name=loupe2d_R8_cond-proto_cg_sense_bilinear_const_100ep_brain+knee"
+      ],
+      "wandb_run_id": "v1slowen",
+      "trained_at_commit": null,
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 4908834,
+          "modified": "2026-10-20T21:42:20+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 4908834,
+          "modified": "2026-10-20T22:22:44+00:00"
+        }
+      }
+    },
+    {
+      "name": "loupe2d_cgsense_r8_brain_knee_shared",
+      "path": "checkpoints/loupe2d_cgsense_r8_brain_knee_shared",
+      "config_sha256": "1d5cfd2bf957236f",
+      "overrides": [
+        "sampler.sampler_type=loupe_2d",
+        "recon=cg_sense",
+        "datasets=brain_knee_balanced",
+        "sampler.accelerations=[8.0]",
+        "sampler.anatomy_conditioning=false",
+        "training.batch_size=16",
+        "output.out_dir=checkpoints/loupe2d_cgsense_r8_brain_knee_shared"
+      ],
+      "wandb_run_id": "xb6tna6g",
+      "trained_at_commit": null,
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 6648930,
+          "modified": "2026-10-17T21:07:19+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 6648930,
+          "modified": "2026-10-17T21:09:51+00:00"
+        }
+      }
+    },
+    {
+      "name": "loupe2d_cgsense_r8_brain_knee_shared_bilinear_50ep",
+      "path": "checkpoints/loupe2d_cgsense_r8_brain_knee_shared_bilinear_50ep",
+      "config_sha256": "fd5504261f94d8ae",
+      "overrides": [
+        "sampler.sampler_type=loupe_2d",
+        "recon=cg_sense",
+        "datasets=brain_knee_balanced",
+        "training.batch_size=16",
+        "training.seed=42",
+        "output.out_dir=checkpoints/loupe2d_cgsense_r8_brain_knee_shared_bilinear_50ep",
+        "sampler.accelerations=[8.0]",
+        "training.num_epochs=50",
+        "sampler.sens_upsample_method=bilinear"
+      ],
+      "wandb_run_id": "wcxaz648",
+      "trained_at_commit": null,
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 3335778,
+          "modified": "2026-10-20T02:55:56+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 3335778,
+          "modified": "2026-10-20T03:17:31+00:00"
+        }
+      }
+    },
+    {
+      "name": "loupe2d_cgsense_r8_brain_knee_shared_bilinear_50ep_seed43",
+      "path": "checkpoints/loupe2d_cgsense_r8_brain_knee_shared_bilinear_50ep_seed43",
+      "config_sha256": "808beb90680e051f",
+      "overrides": [
+        "sampler.sampler_type=loupe_2d",
+        "recon=cg_sense",
+        "datasets=brain_knee_balanced",
+        "training.batch_size=16",
+        "training.seed=43",
+        "output.out_dir=checkpoints/loupe2d_cgsense_r8_brain_knee_shared_bilinear_50ep_seed43",
+        "sampler.accelerations=[8.0]",
+        "training.num_epochs=50",
+        "sampler.sens_upsample_method=bilinear"
+      ],
+      "wandb_run_id": "wkr6xaqt",
+      "trained_at_commit": null,
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 3335842,
+          "modified": "2026-10-20T10:54:10+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 3335842,
+          "modified": "2026-10-20T11:24:26+00:00"
+        }
+      }
+    },
+    {
+      "name": "loupe2d_cgsense_r8_brain_knee_shared_bilinear_const_100ep",
+      "path": "checkpoints/loupe2d_cgsense_r8_brain_knee_shared_bilinear_const_100ep",
+      "config_sha256": "d7492b6ccb22e345",
+      "overrides": [
+        "sampler.sampler_type=loupe_2d",
+        "recon=cg_sense",
+        "datasets=brain_knee_balanced",
+        "sampler.accelerations=[8.0]",
+        "sampler.anatomy_conditioning=false",
+        "training.batch_size=16",
+        "output.out_dir=checkpoints/loupe2d_cgsense_r8_brain_knee_shared_bilinear_const_100ep",
+        "sampler.sens_upsample_method=bilinear",
+        "training.lr_scheduler=constant",
+        "training.num_epochs=100"
+      ],
+      "wandb_run_id": "u2xei0pq",
+      "trained_at_commit": null,
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 3335650,
+          "modified": "2026-10-18T21:26:34+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 3335650,
+          "modified": "2026-10-18T23:14:02+00:00"
+        }
+      }
+    },
+    {
+      "name": "loupe2d_cgsense_r8_brain_knee_shared_bilinear_nomask_50ep",
+      "path": "checkpoints/loupe2d_cgsense_r8_brain_knee_shared_bilinear_nomask_50ep",
+      "config_sha256": "1133ef0723721648",
+      "overrides": [
+        "sampler.sampler_type=loupe_2d",
+        "recon=cg_sense",
+        "datasets=brain_knee_balanced",
+        "training.batch_size=16",
+        "training.seed=42",
+        "output.out_dir=checkpoints/loupe2d_cgsense_r8_brain_knee_shared_bilinear_nomask_50ep",
+        "sampler.accelerations=[8.0]",
+        "training.num_epochs=50",
+        "sampler.sens_upsample_method=bilinear",
+        "+sampler.sense_mask_method=null"
+      ],
+      "wandb_run_id": "oayag86h",
+      "trained_at_commit": null,
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 3335842,
+          "modified": "2026-10-20T19:46:34+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 3335842,
+          "modified": "2026-10-20T20:06:17+00:00"
+        }
+      }
+    },
+    {
+      "name": "loupe2d_cgsense_r8_brain_knee_shared_cont",
+      "path": "checkpoints/loupe2d_cgsense_r8_brain_knee_shared_cont",
+      "config_sha256": "26dc30575747236f",
+      "overrides": [
+        "sampler.sampler_type=loupe_2d",
+        "recon=cg_sense",
+        "datasets=brain_knee_balanced",
+        "sampler.accelerations=[8.0]",
+        "sampler.anatomy_conditioning=false",
+        "training.batch_size=16",
+        "output.out_dir=checkpoints/loupe2d_cgsense_r8_brain_knee_shared_cont",
+        "sampler.sens_upsample_method=bilinear",
+        "training.lr_scheduler=constant",
+        "training.num_epochs=50",
+        "sampler.init_mask_checkpoint=/home/bkadota/code/active_mri/SeqMRI/checkpoints/loupe2d_cgsense_r8_brain_knee_shared_bilinear_const_100ep/last_model.pt",
+        "output.pretrained_recon=/home/bkadota/code/active_mri/SeqMRI/checkpoints/loupe2d_cgsense_r8_brain_knee_shared_bilinear_const_100ep/last_model.pt",
+        "output.run_name=loupe2d_R8_cg_sense_shared_cont_brain+knee"
+      ],
+      "wandb_run_id": "l57hbia4",
+      "trained_at_commit": null,
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 3336098,
+          "modified": "2026-10-20T03:49:04+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 3336098,
+          "modified": "2026-10-20T06:58:06+00:00"
+        }
+      }
+    },
+    {
+      "name": "loupe2d_cgsense_r8_brain_knee_shared_seed43",
+      "path": "checkpoints/loupe2d_cgsense_r8_brain_knee_shared_seed43",
+      "config_sha256": "b1cb5db9c798912d",
+      "overrides": [
+        "sampler.sampler_type=loupe_2d",
+        "recon=cg_sense",
+        "datasets=brain_knee_balanced",
+        "training.batch_size=16",
+        "training.seed=43",
+        "output.out_dir=checkpoints/loupe2d_cgsense_r8_brain_knee_shared_seed43",
+        "sampler.accelerations=[8.0]",
+        "training.num_epochs=50",
+        "sampler.sens_upsample_method=conv"
+      ],
+      "wandb_run_id": "5qa8q3ls",
+      "trained_at_commit": null,
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 6649122,
+          "modified": "2026-10-20T10:52:29+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 6649122,
+          "modified": "2026-10-20T11:18:01+00:00"
+        }
+      }
+    },
+    {
+      "name": "loupe2d_varnet_r8_brain_knee_anatcond_100ep",
+      "path": "checkpoints/loupe2d_varnet_r8_brain_knee_anatcond_100ep",
+      "config_sha256": "5ac21495350bb66c",
+      "overrides": [
+        "sampler.sampler_type=loupe_2d",
+        "recon=varnet",
+        "datasets=brain_knee_balanced",
+        "sampler.accelerations=[8.0]",
+        "training.batch_size=16",
+        "output.out_dir=checkpoints/loupe2d_varnet_r8_brain_knee_anatcond_100ep",
+        "training.num_epochs=100",
+        "training.lr_step_size=90",
+        "sampler.anatomy_conditioning=true"
+      ],
+      "wandb_run_id": "xum09g7g",
+      "trained_at_commit": null,
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 361342454,
+          "modified": "2026-10-17T16:33:03+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 361342454,
+          "modified": "2026-10-17T16:33:02+00:00"
+        }
+      }
+    },
+    {
+      "name": "random_mask_varnet_r8_brain_knee",
+      "path": "checkpoints/random_mask_varnet_r8_brain_knee",
+      "config_sha256": "0809d9da435f7055",
+      "overrides": [
+        "sampler.sampler_type=loupe_2d",
+        "recon=varnet",
+        "datasets=brain_knee_balanced",
+        "training.num_step=1",
+        "sampler.accelerations=[8.0]",
+        "sampler.mask_train_mode=random",
+        "training.batch_size=16",
+        "training.seed=42",
+        "output.out_dir=checkpoints/random_mask_varnet_r8_brain_knee"
+      ],
+      "wandb_run_id": "fkg5xsd6",
+      "trained_at_commit": null,
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 360030512,
+          "modified": "2026-10-16T09:36:35+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 360030512,
+          "modified": "2026-10-16T09:51:12+00:00"
+        }
+      }
+    },
+    {
+      "name": "varnet_caipi2d_r4_promptmr_blind_seed42",
+      "path": "checkpoints/varnet_caipi2d_r4_promptmr_blind_seed42",
+      "config_sha256": "bb02afa95eed483e",
+      "overrides": [
+        "recon=varnet",
+        "recon.adaptive_input=true",
+        "recon.momentum_history=11",
+        "recon.prompt_conditioning=true",
+        "recon.label_blind=true",
+        "datasets=brain_knee_balanced",
+        "datasets.condition_classes=[brain,knee-PD,knee-PDFS]",
+        "training.num_step=1",
+        "sampler.sampler_type=caipi_2d",
+        "training.lr=0.001",
+        "training.lr_scheduler=step",
+        "training.lr_step_size=40",
+        "training.num_epochs=50",
+        "training.batch_size=4",
+        "training.seed=42",
+        "output.out_dir=/tmp/bkadota_checkpoints/varnet_caipi_promptmr_anatcond/varnet_caipi2d_r4_promptmr_blind_seed42"
+      ],
+      "wandb_run_id": "75gex8ds",
+      "trained_at_commit": null,
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 1004233400,
+          "modified": "2026-10-21T01:26:50+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 1004233400,
+          "modified": "2026-10-21T01:26:48+00:00"
+        }
+      }
+    },
+    {
+      "name": "varnet_caipi2d_r4_promptmr_cond_seed42",
+      "path": "checkpoints/varnet_caipi2d_r4_promptmr_cond_seed42",
+      "config_sha256": "690fab2fed5e7236",
+      "overrides": [
+        "recon=varnet",
+        "recon.adaptive_input=true",
+        "recon.momentum_history=11",
+        "recon.prompt_conditioning=true",
+        "recon.label_blind=false",
+        "datasets=brain_knee_balanced",
+        "datasets.condition_classes=[brain,knee-PD,knee-PDFS]",
+        "training.num_step=1",
+        "sampler.sampler_type=caipi_2d",
+        "training.lr=0.001",
+        "training.lr_scheduler=step",
+        "training.lr_step_size=40",
+        "training.num_epochs=50",
+        "training.batch_size=4",
+        "training.seed=42",
+        "output.out_dir=/tmp/bkadota_checkpoints/varnet_caipi_promptmr_anatcond/varnet_caipi2d_r4_promptmr_cond_seed42"
+      ],
+      "wandb_run_id": "ej68kqb7",
+      "trained_at_commit": null,
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 1004233400,
+          "modified": "2026-10-21T01:13:32+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 1004233400,
+          "modified": "2026-10-21T01:13:30+00:00"
+        }
+      }
+    },
+    {
+      "name": "varnet_caipi2d_r4_promptmr_cond_seed43",
+      "path": "checkpoints/varnet_caipi2d_r4_promptmr_cond_seed43",
+      "config_sha256": "44a93d479865564e",
+      "overrides": [
+        "recon=varnet",
+        "recon.adaptive_input=true",
+        "recon.momentum_history=11",
+        "recon.prompt_conditioning=true",
+        "recon.label_blind=false",
+        "datasets=brain_knee_balanced",
+        "datasets.condition_classes=[brain,knee-PD,knee-PDFS]",
+        "training.num_step=1",
+        "sampler.sampler_type=caipi_2d",
+        "training.lr=0.001",
+        "training.lr_scheduler=step",
+        "training.lr_step_size=40",
+        "training.num_epochs=50",
+        "training.batch_size=4",
+        "training.seed=43",
+        "output.out_dir=/tmp/bkadota_checkpoints/varnet_caipi_promptmr_anatcond/varnet_caipi2d_r4_promptmr_cond_seed43"
+      ],
+      "wandb_run_id": "m8hsaz22",
+      "trained_at_commit": null,
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 1004233400,
+          "modified": "2026-10-21T02:53:45+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 1004233400,
+          "modified": "2026-10-21T02:53:43+00:00"
+        }
+      }
+    }
+  ],
+  "commands": [
+    "python scripts/eval/reeval_metric_mask_r8.py --runs conv2d_varnet_r8_brain_knee_floor0.05 conv2d_varnet_r8_brain_knee_floor0.05_ahain conv2d_varnet_r8_brain_knee_floor0.05_clamp10_leak0.05 conv2d_varnet_r8_brain_knee_floor0.05_draws2 conv2d_varnet_r8_brain_knee_floor0.05_imginput conv2d_varnet_r8_brain_knee_floor0.05_imginput_headbias conv2d_varnet_r8_brain_knee_floor0.05_imginput_headmlp_ln_clipsplit loupe2d_cgsense_r4_brain_knee_anatcond loupe2d_cgsense_r4_brain_knee_shared loupe2d_cgsense_r8_brain_knee_anatcond loupe2d_cgsense_r8_brain_knee_anatcond_bilinear_const_100ep loupe2d_cgsense_r8_brain_knee_anatcond_sharedinit loupe2d_cgsense_r8_brain_knee_dcm_anatcond loupe2d_cgsense_r8_brain_knee_dcm_prototable loupe2d_cgsense_r8_brain_knee_dcm_shared loupe2d_cgsense_r8_brain_knee_ecalib_c10 loupe2d_cgsense_r8_brain_knee_ecalib_c24 loupe2d_cgsense_r8_brain_knee_prototable loupe2d_cgsense_r8_brain_knee_prototable_bilinear_const_100ep loupe2d_cgsense_r8_brain_knee_shared loupe2d_cgsense_r8_brain_knee_shared_bilinear_50ep loupe2d_cgsense_r8_brain_knee_shared_bilinear_50ep_seed43 loupe2d_cgsense_r8_brain_knee_shared_bilinear_const_100ep loupe2d_cgsense_r8_brain_knee_shared_bilinear_nomask_50ep loupe2d_cgsense_r8_brain_knee_shared_cont loupe2d_cgsense_r8_brain_knee_shared_seed43 loupe2d_varnet_r8_brain_knee_anatcond_100ep random_mask_varnet_r8_brain_knee varnet_caipi2d_r4_promptmr_blind_seed42 varnet_caipi2d_r4_promptmr_cond_seed42 varnet_caipi2d_r4_promptmr_cond_seed43 --device cuda:0 --out reports/metric_mask_reeval_r8",
+    "python scripts/eval/reeval_metric_mask_r8.py --table --out reports/metric_mask_reeval_r8 > reports/metric_mask_reeval_r8/table.md"
+  ],
+  "results": [
+    {
+      "path": "conv2d_varnet_r8_brain_knee_floor0.05.json",
+      "bytes": 765,
+      "sha256": "f78972c6d89fd539"
+    },
+    {
+      "path": "conv2d_varnet_r8_brain_knee_floor0.05_ahain.json",
+      "bytes": 773,
+      "sha256": "ce41abc14123b0f1"
+    },
+    {
+      "path": "conv2d_varnet_r8_brain_knee_floor0.05_clamp10_leak0.05.json",
+      "bytes": 785,
+      "sha256": "82972606165c86fa"
+    },
+    {
+      "path": "conv2d_varnet_r8_brain_knee_floor0.05_draws2.json",
+      "bytes": 766,
+      "sha256": "b1170b91cdefd13b"
+    },
+    {
+      "path": "conv2d_varnet_r8_brain_knee_floor0.05_imginput.json",
+      "bytes": 773,
+      "sha256": "cef5d59476ba4f78"
+    },
+    {
+      "path": "conv2d_varnet_r8_brain_knee_floor0.05_imginput_headbias.json",
+      "bytes": 782,
+      "sha256": "7a43a71e6b2cd5d4"
+    },
+    {
+      "path": "conv2d_varnet_r8_brain_knee_floor0.05_imginput_headmlp_ln_clipsplit.json",
+      "bytes": 796,
+      "sha256": "19062ae179a7f20c"
+    },
+    {
+      "path": "loupe2d_cgsense_r4_brain_knee_anatcond.json",
+      "bytes": 763,
+      "sha256": "4604652afe291bc6"
+    },
+    {
+      "path": "loupe2d_cgsense_r4_brain_knee_shared.json",
+      "bytes": 765,
+      "sha256": "afc2c3c3e3cbc541"
+    },
+    {
+      "path": "loupe2d_cgsense_r8_brain_knee_anatcond.json",
+      "bytes": 766,
+      "sha256": "7d083e1c32b8e33d"
+    },
+    {
+      "path": "loupe2d_cgsense_r8_brain_knee_anatcond_bilinear_const_100ep.json",
+      "bytes": 790,
+      "sha256": "adc5863931a7cfe8"
+    },
+    {
+      "path": "loupe2d_cgsense_r8_brain_knee_anatcond_sharedinit.json",
+      "bytes": 774,
+      "sha256": "b1828966423bc1e9"
+    },
+    {
+      "path": "loupe2d_cgsense_r8_brain_knee_dcm_anatcond.json",
+      "bytes": 769,
+      "sha256": "34b726967911d343"
+    },
+    {
+      "path": "loupe2d_cgsense_r8_brain_knee_dcm_prototable.json",
+      "bytes": 774,
+      "sha256": "b70dfaf1a21cb412"
+    },
+    {
+      "path": "loupe2d_cgsense_r8_brain_knee_dcm_shared.json",
+      "bytes": 768,
+      "sha256": "ce3ef1392f0a5faa"
+    },
+    {
+      "path": "loupe2d_cgsense_r8_brain_knee_ecalib_c10.json",
+      "bytes": 767,
+      "sha256": "0c95c6b1353a67f8"
+    },
+    {
+      "path": "loupe2d_cgsense_r8_brain_knee_ecalib_c24.json",
+      "bytes": 755,
+      "sha256": "fd441a31781e5aa7"
+    },
+    {
+      "path": "loupe2d_cgsense_r8_brain_knee_prototable.json",
+      "bytes": 767,
+      "sha256": "ccf6d11b9abb7753"
+    },
+    {
+      "path": "loupe2d_cgsense_r8_brain_knee_prototable_bilinear_const_100ep.json",
+      "bytes": 791,
+      "sha256": "fd57929f12e0db2d"
+    },
+    {
+      "path": "loupe2d_cgsense_r8_brain_knee_shared.json",
+      "bytes": 762,
+      "sha256": "51b905f30c6bcb84"
+    },
+    {
+      "path": "loupe2d_cgsense_r8_brain_knee_shared_bilinear_50ep.json",
+      "bytes": 780,
+      "sha256": "e7d1f118a40c0bee"
+    },
+    {
+      "path": "loupe2d_cgsense_r8_brain_knee_shared_bilinear_50ep_seed43.json",
+      "bytes": 785,
+      "sha256": "5a15110aad67a52b"
+    },
+    {
+      "path": "loupe2d_cgsense_r8_brain_knee_shared_bilinear_const_100ep.json",
+      "bytes": 783,
+      "sha256": "766cc55eb3d0f844"
+    },
+    {
+      "path": "loupe2d_cgsense_r8_brain_knee_shared_bilinear_nomask_50ep.json",
+      "bytes": 783,
+      "sha256": "06e8faf1a6fe69aa"
+    },
+    {
+      "path": "loupe2d_cgsense_r8_brain_knee_shared_cont.json",
+      "bytes": 765,
+      "sha256": "5666ad84fe24ee98"
+    },
+    {
+      "path": "loupe2d_cgsense_r8_brain_knee_shared_seed43.json",
+      "bytes": 770,
+      "sha256": "a017f4d16fb98edc"
+    },
+    {
+      "path": "loupe2d_varnet_r8_brain_knee_anatcond_100ep.json",
+      "bytes": 775,
+      "sha256": "134cdf95bc0effe0"
+    },
+    {
+      "path": "random_mask_varnet_r8_brain_knee.json",
+      "bytes": 760,
+      "sha256": "658865927b29871b"
+    },
+    {
+      "path": "table.md",
+      "bytes": 7458,
+      "sha256": "fe9edd4907c0cf5b"
+    },
+    {
+      "path": "varnet_caipi2d_r4_promptmr_blind_seed42.json",
+      "bytes": 769,
+      "sha256": "03641c1b99e5ea6c"
+    },
+    {
+      "path": "varnet_caipi2d_r4_promptmr_cond_seed42.json",
+      "bytes": 767,
+      "sha256": "a0b907c986c60965"
+    },
+    {
+      "path": "varnet_caipi2d_r4_promptmr_cond_seed43.json",
+      "bytes": 765,
+      "sha256": "b9be261a89907a24"
+    }
+  ]
+}

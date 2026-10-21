@@ -1,37 +1,3 @@
-# Metric mask re-evaluation (R=8 / R=4 checkpoints), 2026-10-20
-
-Every checkpoint's `last_model.pt` was run through the trainer's validation path on its own val set (688 slices: 344 brain, 344 knee), and the
-same outputs were scored twice: under the legacy mask (`target > 0.1 * max`) and under the new apodized per-anatomy metric mask
-(`activemri/utils/metric_mask.py`). One mask draw per run (the trainer's seeded eval generator). The legacy columns reproduce the final logged
-val metrics of the run (checked on `loupe2d_cgsense_r8_brain_knee_shared_bilinear_50ep`: brain 34.93 dB / 0.913 / 0.0174, knee 32.71 / 0.929 / 0.0172).
-
-Script: `scripts/eval/reeval_metric_mask_r8.py`; per-run JSON in `reports/metric_mask_reeval_r8/`.
-
-Not evaluated: the six `mnet_varnet_*` runs (no checkpoint saved). The `varnet_caipi2d_r4_promptmr_*` runs and
-`loupe2d_cgsense_r8_brain_knee_prototable_bilinear_const_100ep` were first scored mid-training and re-scored after they finished (all at their last epoch).
-
-## Findings
-
-- The new mask scores higher for every run. Brain PSNR rises 1.5 to 5.0 dB (the 0.7 dB gain of `shared_bilinear_nomask_50ep` is the exception, below) and knee
-  PSNR 1.1 to 3.9 dB. NMSE falls 40-80% in brain and 25-55% in knee. The legacy mask drops the dark interior and, on ghosted slices, covers the noisy
-  background, so absolute numbers are not comparable across the change.
-- Knee SSIM moves less and not uniformly: down (-0.002 to -0.010) for the learned-sense-net CG-SENSE LOUPE runs, up for ecalib CG-SENSE (+0.006) and for
-  VarNet runs (+0.004 to +0.007).
-- Same-sign comparisons, larger gaps (deltas are brain / knee, new minus shared):
-  CG-SENSE R=8 anatcond-shared: legacy +0.12 / -0.15 dB, new +0.22 / -0.24 dB; sharedinit: legacy +0.12 / -0.03, new +0.21 / -0.06.
-  VarNet LOUPE anatcond_100ep minus conv floor0.05: legacy +0.44 / +0.28 dB, new +1.00 / +0.66 dB.
-  Random-mask VarNet minus conv floor0.05: legacy -1.42 / -0.59 dB, new -2.72 / -1.22 dB.
-- One flip: CG-SENSE with ecalib sense maps (`ecalib_c10`) minus the shared learned-sense-net run on brain is +0.39 dB under the legacy mask and
-  -0.27 dB under the new one (knee: +0.61 -> +1.13 dB).
-- CAIPI PromptMR R=4 (new mask): cond seeds 42/43 reach 41.61 / 41.73 dB brain and 37.82 / 37.86 dB knee against 41.69 / 37.85 for the label-blind run, so the
-  cond-blind gap is inside the seed spread.
-- Seed spread is small (`shared` seeds 42/43/bilinear: brain 37.11-37.13, knee 34.08-34.12 under the new mask).
-- `shared_bilinear_nomask_50ep` (sense net with no body mask, `sense_mask_method=null`) scored 1.6 dB above `shared_bilinear_50ep` on brain under the legacy mask
-  (36.55 vs 34.93) but only +0.09 dB under the new one (37.22 vs 37.13); knee +1.05 dB (35.14 vs 34.09). This fits the earlier finding that sense-mask
-  support dominates val error, but it was not tested further here.
-
-## Table
-
 | run | epoch | anatomy | PSNR legacy | PSNR new | SSIM legacy | SSIM new | NMSE legacy | NMSE new |
 |---|---|---|---|---|---|---|---|---|
 | conv2d_varnet_r8_brain_knee_floor0.05 | 50/50 | brain | 36.28 | 39.80 | 0.9309 | 0.9800 | 0.0138 | 0.0042 |

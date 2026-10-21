@@ -22,8 +22,12 @@ for _pool in ('OMP_NUM_THREADS', 'MKL_NUM_THREADS', 'OPENBLAS_NUM_THREADS'):
     os.environ.setdefault(_pool, '8')
 
 import argparse
+import datetime
+import json
 import random
+import subprocess
 import sys
+from pathlib import Path
 
 import hydra
 import numpy as np
@@ -116,6 +120,18 @@ def build_overrides(parser: argparse.ArgumentParser, args: argparse.Namespace, r
     return list(merged.values()) + (['--cfg', 'job'] if args.print_config else [])
 
 
+def record_run_info(out_dir):
+    """Write the code state next to the checkpoints so a report manifest can state the commit the run trained at."""
+    def git(*args):
+        return subprocess.run(['git', *args], cwd=Path(__file__).parent, capture_output=True, text=True).stdout.rstrip('\n')
+    out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    info = {'commit': git('rev-parse', 'HEAD'), 'branch': git('branch', '--show-current'),
+            'dirty_tracked_files': [line[3:] for line in git('status', '--short', '--untracked-files=no').splitlines()],
+            'started_at': datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds'), 'argv': sys.argv}
+    (out_dir / 'run_info.json').write_text(json.dumps(info, indent=2) + '\n')
+
+
 def seed_everything(seed: int):
     random.seed(seed)
     np.random.seed(seed)
@@ -130,6 +146,7 @@ def run_sequential(cfg: DictConfig):
 
     print(OmegaConf.to_yaml(cfg))
     config = build_train_config(cfg)
+    record_run_info(cfg.output.out_dir)
     seed_everything(cfg.training.seed)
     train_loader, val_loader = build_dataloaders(cfg)
     trainer_class = MNetTrainer if config.sampler_type == 'mnet_2d' else Sequential_Trainer
