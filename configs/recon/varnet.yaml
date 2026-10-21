@@ -10,4 +10,6 @@ dc_mode: where  # where | multiply (multiply lets mask gradients flow through DC
 dc_weight_map: false  # learned DC weight per k-space location in every cascade, as NV-Raw2Insights-MRI; false = one scalar per cascade
 adaptive_input: false  # condition every cascade's U-Net on A^H A x, A^H y and a carried latent, as PromptMR+
 momentum_history: 0  # >0: PromptMR+'s momentum layer at every decoder level over this many earlier cascades (PromptMR+: num_cascades - 1)
+backbone: unet  # unet (fastMRI) | promptmr (PromptMR+ CAB U-Net with prompts; needs pools: 3, chans: 48 for PromptMR+'s widths)
+estimate_sense: false  # true: every cascade estimates its sensitivity maps from the ACS region of its own k-space, as SDUM's CSME; false = external maps
 checkpoint_cascades: false  # recompute cascades in backward to save memory

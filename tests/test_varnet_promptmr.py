@@ -73,3 +73,85 @@ def test_momentum_and_prompt_get_gradient_from_the_output():
     assert first_cascade.momentum[0].fuse[0].weight.grad.abs().sum() > 0
     assert first_cascade.prompts[0].anatomy_weights.weight.grad.abs().sum() > 0
     assert model.anatomy_embedding.embedding.weight.grad[1].abs().sum() == 0
+
+
+def promptmr_varnet(**kwargs):
+    torch.manual_seed(0)
+    return VarNet(num_cascades=3, chans=8, pools=3, backbone='promptmr', adaptive_input=True, momentum_history=2,
+                  **kwargs).eval()
+
+
+def test_promptmr_backbone_runs_without_labels_and_gives_prompt_gradient():
+    model = promptmr_varnet().train()
+    output = model(*inputs())
+    output.abs().mean().backward()
+
+    assert output.shape == (2, 1, HEIGHT, WIDTH)
+    assert model.cascades[0].model.unet.prompts[0].feature_weights.weight.grad.abs().sum() > 0
+    assert model.cascades[0].model.unet.momentum[0].fuse[0].weight.grad.abs().sum() > 0
+
+
+@pytest.mark.parametrize('injection', ['film', 'prompt', 'channels'])
+def test_promptmr_backbone_uses_the_anatomy_label(injection):
+    flags = {'film': injection == 'film', 'prompt': injection == 'prompt'}
+    model = promptmr_varnet(num_conditioning_classes=3, **flags)
+    torch.nn.init.normal_(model.anatomy_embedding.embedding.weight)
+    for parameter in model.parameters():
+        if parameter.dim() > 0 and parameter.abs().sum() == 0:
+            torch.nn.init.normal_(parameter, std=0.1)
+
+    with torch.no_grad():
+        first, second = (model(*inputs(), anatomy_labels=torch.tensor(labels)) for labels in ([0, 0], [2, 2]))
+
+    assert not torch.allclose(first, second)
+
+
+def test_promptmr_backbone_at_48_chans_matches_promptmr_plus_parameter_count():
+    from activemri.reconstructors.VarNet import PromptUnet
+    parameters = sum(p.numel() for p in PromptUnet(6, 6, chans=48).parameters())
+
+    # PromptMR+'s PromptUnet for 3 adjacent slices, measured from its repository; it shares one PReLU across its CABs.
+    assert abs(parameters - 6_632_081) < 100
+
+
+def line_mask(batch=2, centre_lines=4, stride=4):
+    mask = torch.zeros(batch, 1, HEIGHT, WIDTH)
+    mask[..., ::stride] = 1
+    mask[..., WIDTH // 2 - centre_lines // 2:WIDTH // 2 + centre_lines // 2] = 1
+    return mask
+
+
+def test_acs_region_is_the_central_block_of_acquired_columns():
+    from activemri.reconstructors.csme import acs_region_mask
+    region = acs_region_mask(line_mask(centre_lines=6, stride=8))
+
+    assert region[0, 0].sum() == HEIGHT * 6
+    assert region[0, 0, :, WIDTH // 2 - 3:WIDTH // 2 + 3].all()
+
+
+def test_acs_region_refuses_a_mask_without_the_centre():
+    from activemri.reconstructors.csme import acs_region_mask
+    mask = line_mask()
+    mask[..., WIDTH // 2] = 0
+
+    with pytest.raises(ValueError, match='centre'):
+        acs_region_mask(mask)
+
+
+@pytest.mark.parametrize('adaptive_input', [False, True])
+def test_estimated_sense_ignores_external_maps_and_trains_every_cascades_estimator(adaptive_input):
+    torch.manual_seed(0)
+    model = VarNet(num_cascades=2, chans=4, pools=2, estimate_sense=True, adaptive_input=adaptive_input).train()
+    kspace, sense, _ = inputs()
+    mask = line_mask()
+    other_sense = torch.randn_like(sense)
+
+    output = model(kspace * mask, sense, mask)
+    output.abs().mean().backward()
+
+    assert torch.equal(output, model(kspace * mask, other_sense, mask))
+    assert all(cascade.sense_model.unet.conv_0.conv_0.conv.weight.grad.abs().sum() > 0 for cascade in model.cascades)
+
+
+def test_external_sense_is_the_default_and_has_no_estimator():
+    assert all(cascade.sense_model is None for cascade in VarNet(num_cascades=2, chans=4, pools=2).cascades)

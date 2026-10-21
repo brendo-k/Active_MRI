@@ -96,7 +96,7 @@ class AnatomyPrompt(nn.Module):
 
     Args:
         chans: Channels of the features the selection is pooled from.
-        embed_dim: Width of the anatomy embedding.
+        embed_dim: Width of the anatomy embedding; 0 selects from the features alone, as PromptMR does.
         prompt_chans: Channels of the prompt map.
         prompt_len: Number of prompt maps mixed.
         prompt_size: Side of the stored prompt maps, before resizing to the features.
@@ -107,11 +107,13 @@ class AnatomyPrompt(nn.Module):
 
         self.prompts = nn.Parameter(torch.rand(prompt_len, prompt_chans, prompt_size, prompt_size))
         self.feature_weights = nn.Linear(chans, prompt_len)
-        self.anatomy_weights = nn.Linear(embed_dim, prompt_len, bias=False)
+        self.anatomy_weights = nn.Linear(embed_dim, prompt_len, bias=False) if embed_dim > 0 else None
         self.conv = nn.Conv2d(prompt_chans, prompt_chans, kernel_size=3, padding=1, bias=False)
 
-    def forward(self, features, embedding):
-        logits = self.feature_weights(features.mean(dim=(-2, -1))) + self.anatomy_weights(embedding)
+    def forward(self, features, embedding=None):
+        logits = self.feature_weights(features.mean(dim=(-2, -1)))
+        if self.anatomy_weights is not None:
+            logits = logits + self.anatomy_weights(embedding)
         prompt = torch.einsum('bk,kchw->bchw', logits.softmax(dim=1), self.prompts)
         prompt = F.interpolate(prompt, size=features.shape[-2:], mode='bilinear', align_corners=False)
         return self.conv(prompt)

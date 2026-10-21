@@ -60,6 +60,8 @@ class VarNetReconConfig(ReconConfig):
     adaptive_input: bool = False
     momentum_history: int = 0
     checkpoint_cascades: bool = False
+    backbone: str = 'unet'
+    estimate_sense: bool = False
 
 
 @dataclass

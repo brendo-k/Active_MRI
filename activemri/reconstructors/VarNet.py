@@ -14,9 +14,12 @@ import torch.utils.checkpoint
 import torch.nn.functional as F
 from fastmri.models import Unet
 
+from activemri.reconstructors.csme import CascadeSensitivityModel, acs_region_mask
 from activemri.utils.complex_conversion import complex_to_real, real_to_complex
 from activemri.utils.conditioning import DEFAULT_EMBED_DIM, AnatomyEmbedding, AnatomyPrompt, FiLM, broadcast_channels
 from activemri.utils.image_processing import fft_2d_img, ifft_2d_img
+
+BACKBONES = ("unet", "promptmr")
 
 # Side of the stored prompt maps at the coarsest decoder level, doubling per level (8 ... 64 for 4 pools).
 PROMPT_BASE_SIZE = 8
@@ -81,6 +84,97 @@ class FiLMBottleneck(nn.Module):
         return self.film(self.block(x), self.embedding)
 
 
+class PromptUnet(nn.Module):
+    """PromptMR+'s U-Net: CAB stacks instead of plain convs, strided-conv downsampling, a CAB on every skip,
+    bilinear upsampling, and at every decoder level a learned prompt (selected from the pooled features, plus the
+    anatomy embedding when there is one) fused with the level's input by CABs. It has three levels, as in PromptMR+.
+
+    Widths scale with `chans` (the first level); `chans=48` gives PromptMR+'s [48, 72, 96, 120] with prompt widths
+    [24, 48, 72]. The momentum layer, when `momentum_history > 0`, acts on each decoder level's input before the
+    prompt is fused; the prompt and the stored history come from the input before the momentum layer.
+
+    Args:
+        film_embed_dim: If > 0, FiLM from the embedding on the bottleneck features.
+        prompt_embed_dim: If > 0, the embedding also selects the prompt, in addition to the pooled features.
+    """
+
+    LEVELS = 3
+    ENCODER_CABS = (2, 3, 3)
+    # Per decoder level, coarsest first.
+    DECODER_CABS = (3, 2, 2)
+    BOTTLENECK_CABS = 3
+    PROMPT_LENGTH = 5
+    # Stored prompt side per decoder level, coarsest first.
+    PROMPT_SIZES = (16, 32, 64)
+
+    def __init__(self, in_chans: int, out_chans: int, chans: int, momentum_history: int = 0,
+                 film_embed_dim: int = 0, prompt_embed_dim: int = 0):
+        super().__init__()
+        widths = [chans, chans * 3 // 2, chans * 2, chans * 5 // 2]
+        prompt_widths = [chans // 2, chans, chans * 3 // 2]
+        self.extract = nn.Conv2d(in_chans, widths[0], kernel_size=3, padding=1, bias=False)
+        self.encoder = nn.ModuleList([
+            nn.Sequential(*[ChannelAttentionBlock(widths[level]) for _ in range(self.ENCODER_CABS[level])])
+            for level in range(self.LEVELS)
+        ])
+        self.down = nn.ModuleList([
+            nn.Conv2d(widths[level], widths[level + 1], kernel_size=3, stride=2, padding=1)
+            for level in range(self.LEVELS)
+        ])
+        self.skip = nn.ModuleList([ChannelAttentionBlock(widths[level]) for level in range(self.LEVELS)])
+        self.bottleneck = nn.Sequential(*[ChannelAttentionBlock(widths[-1]) for _ in range(self.BOTTLENECK_CABS)])
+        self.film = FiLM(film_embed_dim, widths[-1]) if film_embed_dim > 0 else None
+
+        # Decoder levels are indexed coarsest first, so level k pairs with encoder level LEVELS - 1 - k.
+        decoder_inputs = widths[::-1][:self.LEVELS]
+        decoder_outputs = widths[::-1][1:]
+        decoder_prompts = prompt_widths[::-1]
+        self.momentum = (
+            nn.ModuleList([MomentumLayer(c, momentum_history) for c in decoder_inputs]) if momentum_history > 0 else None
+        )
+        self.prompts = nn.ModuleList([
+            AnatomyPrompt(c, prompt_embed_dim, p, prompt_len=self.PROMPT_LENGTH, prompt_size=size)
+            for c, p, size in zip(decoder_inputs, decoder_prompts, self.PROMPT_SIZES)
+        ])
+        self.fuse = nn.ModuleList([
+            nn.Sequential(*[ChannelAttentionBlock(c + p) for _ in range(self.DECODER_CABS[level])])
+            for level, (c, p) in enumerate(zip(decoder_inputs, decoder_prompts))
+        ])
+        self.reduce = nn.ModuleList([
+            nn.Conv2d(c + p, c, kernel_size=1, bias=False) for c, p in zip(decoder_inputs, decoder_prompts)
+        ])
+        self.up = nn.ModuleList([
+            nn.Sequential(nn.Upsample(scale_factor=2, mode="bilinear", align_corners=False),
+                          nn.Conv2d(c, o, kernel_size=1, bias=False))
+            for c, o in zip(decoder_inputs, decoder_outputs)
+        ])
+        self.refine = nn.ModuleList([ChannelAttentionBlock(o) for o in decoder_outputs])
+        self.last = nn.Conv2d(widths[0], out_chans, kernel_size=5, padding=2, bias=False)
+
+    def forward(self, x: torch.Tensor, embedding: torch.Tensor = None, history=None):
+        """Returns the output image and the decoder history for the next cascade (empty without momentum)."""
+        x = self.extract(x)
+        skips = []
+        for encoder, down in zip(self.encoder, self.down):
+            features = encoder(x)
+            skips.append(features)
+            x = down(features)
+        x = self.bottleneck(x)
+        if self.film is not None:
+            x = self.film(x, embedding)
+
+        next_history = []
+        for level in range(self.LEVELS):
+            level_input = x
+            if self.momentum is not None:
+                x, level_history = self.momentum[level](level_input, history[level] if history else None)
+                next_history.append(level_history)
+            prompt = self.prompts[level](level_input, embedding)
+            x = self.reduce[level](self.fuse[level](torch.cat([x, prompt], dim=1)))
+            x = self.refine[level](self.up[level](x) + self.skip[self.LEVELS - 1 - level](skips[self.LEVELS - 1 - level]))
+        return self.last(x), next_history
+
+
 class NormUnet(nn.Module):
     """U-Net with input normalization operating on complex images.
 
@@ -112,10 +206,21 @@ class NormUnet(nn.Module):
         film_embed_dim: int = 0,
         momentum_history: int = 0,
         prompt_embed_dim: int = 0,
+        backbone: str = "unet",
     ):
         super().__init__()
+        if backbone not in BACKBONES:
+            raise ValueError(f"backbone must be one of {BACKBONES}, got {backbone!r}")
         self.conditioning_chans = conditioning_chans
         self.momentum_history = momentum_history
+        self.promptmr_backbone = backbone == "promptmr"
+        if self.promptmr_backbone:
+            if num_pools != PromptUnet.LEVELS:
+                raise ValueError(f"the promptmr backbone has {PromptUnet.LEVELS} levels, got num_pools={num_pools}")
+            self.unet = PromptUnet(in_chans + conditioning_chans, out_chans, chans, momentum_history,
+                                   film_embed_dim, prompt_embed_dim)
+            self.film = self.momentum = self.prompts = None
+            return
         self.unet = Unet(
             in_chans=in_chans + conditioning_chans,
             out_chans=out_chans,
@@ -179,20 +284,25 @@ class NormUnet(nn.Module):
             x = torch.cat(
                 [x, broadcast_channels(anatomy_embedding, x.shape[-2], x.shape[-1])], dim=1
             )
-        if self.film is not None:
-            if anatomy_embedding is None:
+        if self.promptmr_backbone:
+            if self.unet.film is not None and anatomy_embedding is None:
                 raise ValueError("NormUnet is FiLM-conditioned but no embedding was provided")
-            self.film.embedding = anatomy_embedding
-        if self.prompts is not None and anatomy_embedding is None:
-            raise ValueError("NormUnet is prompt-conditioned but no embedding was provided")
-        if self.momentum is None and self.prompts is None:
-            x = self.unet(x)
+            x, history = self.unet(x, anatomy_embedding, history)
         else:
-            x, history = self._unet_with_decoder_inputs(x, anatomy_embedding, history)
+            if self.film is not None:
+                if anatomy_embedding is None:
+                    raise ValueError("NormUnet is FiLM-conditioned but no embedding was provided")
+                self.film.embedding = anatomy_embedding
+            if self.prompts is not None and anatomy_embedding is None:
+                raise ValueError("NormUnet is prompt-conditioned but no embedding was provided")
+            if self.momentum is None and self.prompts is None:
+                x = self.unet(x)
+            else:
+                x, history = self._unet_with_decoder_inputs(x, anatomy_embedding, history)
         x = self.unpad(x, *pad_sizes)
         x = self.unnorm(x, mean, std)
         x = real_to_complex(x)
-        return (x, history) if self.momentum is not None else x
+        return (x, history) if self.momentum_history > 0 else x
 
     def _unet_with_decoder_inputs(self, x, anatomy_embedding, history):
         """fastMRI's U-Net forward with the momentum layer and the prompt applied to every decoder level's input.
@@ -244,9 +354,14 @@ class VarNetBlock(nn.Module):
 
     A cascade with ``adaptive_input`` or a momentum U-Net carries state to the next one: it takes
     and returns the latent and the decoder history (None where unused).
+
+    ``estimate_sense`` gives the cascade its own :class:`CascadeSensitivityModel` (SDUM's CSME), which estimates
+    the maps from the ACS region of the cascade's current k-space; the maps passed in are then ignored, and the
+    cascade returns the ones it used.
     """
 
-    def __init__(self, model: nn.Module, dc_mode: str = "where", dc_weight_shape=None, adaptive_input: bool = False):
+    def __init__(self, model: nn.Module, dc_mode: str = "where", dc_weight_shape=None, adaptive_input: bool = False,
+                 estimate_sense: bool = False):
         super().__init__()
         if dc_mode not in DC_MODES:
             raise ValueError(f"dc_mode must be one of {DC_MODES}, got {dc_mode!r}")
@@ -254,7 +369,8 @@ class VarNetBlock(nn.Module):
         self.dc_mode = dc_mode
         self.adaptive_input = adaptive_input
         self.has_momentum = getattr(model, "momentum_history", 0) > 0
-        self.carries_state = adaptive_input or self.has_momentum
+        self.sense_model = CascadeSensitivityModel() if estimate_sense else None
+        self.carries_state = adaptive_input or self.has_momentum or estimate_sense
         self.dc_weight = nn.Parameter(torch.ones(1, 1, *dc_weight_shape) if dc_weight_shape else torch.ones(1))
 
     def _load_from_state_dict(self, state_dict, prefix, *args, **kwargs):
@@ -263,6 +379,11 @@ class VarNetBlock(nn.Module):
         if key in state_dict and state_dict[key].dim() == 0 and self.dc_weight.dim() == 1:
             state_dict[key] = torch.sigmoid(state_dict[key]).reshape(1)
         super()._load_from_state_dict(state_dict, prefix, *args, **kwargs)
+
+    def estimate_sense_maps(self, kspace: torch.Tensor, acs_mask: torch.Tensor) -> torch.Tensor:
+        if self.training and torch.is_grad_enabled():
+            return torch.utils.checkpoint.checkpoint(self.sense_model, kspace, acs_mask, use_reentrant=False)
+        return self.sense_model(kspace, acs_mask)
 
     def sens_expand(self, image: torch.Tensor, sense_maps: torch.Tensor) -> torch.Tensor:
         return fft_2d_img(image * sense_maps)
@@ -281,8 +402,16 @@ class VarNetBlock(nn.Module):
         zero_filled: torch.Tensor = None,
         latent: torch.Tensor = None,
         history=None,
+        acs_mask: torch.Tensor = None,
     ):
-        """Returns the next k-space estimate, and if the cascade carries state also the next latent and history."""
+        """Returns the next k-space estimate; a cascade that carries state or estimates sense maps returns the
+        tuple (k-space, next latent, next history, sense maps used), with None where unused.
+
+        With ``estimate_sense`` the maps are estimated from ``current_kspace`` unless ``sense_maps`` is given, which
+        lets the caller reuse an estimate it has already made from the same k-space.
+        """
+        if self.sense_model is not None and sense_maps is None:
+            sense_maps = self.estimate_sense_maps(current_kspace, acs_mask)
         if self.dc_mode == "multiply":
             soft_dc = mask * (current_kspace - ref_kspace) * self.dc_weight
         else:
@@ -304,7 +433,7 @@ class VarNetBlock(nn.Module):
         if kspace_support is not None:
             model_term = model_term * kspace_support
         next_kspace = current_kspace - soft_dc - model_term
-        return (next_kspace, latent, history) if self.carries_state else next_kspace
+        return (next_kspace, latent, history, sense_maps) if self.carries_state else next_kspace
 
 
 class VarNet(nn.Module):
@@ -330,6 +459,11 @@ class VarNet(nn.Module):
         adaptive_input: Condition every cascade's U-Net on A^H A x and A^H y (PromptMR+).
         momentum_history: If > 0, PromptMR+'s momentum layer at every decoder level, over this many
             earlier cascades (PromptMR+ uses num_cascades - 1).
+        backbone: ``'unet'`` (fastMRI's U-Net) or ``'promptmr'`` (:class:`PromptUnet`, three levels; `chans=48` and
+            `pools=3` give PromptMR+'s widths).
+        estimate_sense: Every cascade estimates its sensitivity maps from the ACS region of its own k-space estimate
+            (SDUM's CSME, :class:`CascadeSensitivityModel`) and `sense_maps` is ignored. The mask must acquire the
+            k-space centre. The returned image is combined with the last cascade's maps.
         checkpoint_cascades: Recompute each cascade in the backward pass instead of storing its
             activations, trading compute for memory while training.
     """
@@ -349,12 +483,15 @@ class VarNet(nn.Module):
         adaptive_input: bool = False,
         momentum_history: int = 0,
         checkpoint_cascades: bool = False,
+        backbone: str = "unet",
+        estimate_sense: bool = False,
     ):
         super().__init__()
         if film and prompt:
             raise ValueError("choose one injection of the anatomy embedding: film or prompt")
         self.dc_mode = dc_mode
         self.adaptive_input = adaptive_input
+        self.estimate_sense = estimate_sense
         self.checkpoint_cascades = checkpoint_cascades
         self.label_blind = label_blind
         self.anatomy_embedding = (
@@ -372,8 +509,10 @@ class VarNet(nn.Module):
         self.cascades = nn.ModuleList(
             [VarNetBlock(NormUnet(chans, pools, in_chans=2 * unet_images[0], out_chans=2 * unet_images[1],
                                   conditioning_chans=conditioning_chans, film_embed_dim=film_embed_dim,
-                                  momentum_history=momentum_history, prompt_embed_dim=prompt_embed_dim),
-                         dc_mode=dc_mode, dc_weight_shape=dc_weight_shape, adaptive_input=adaptive_input)
+                                  momentum_history=momentum_history, prompt_embed_dim=prompt_embed_dim,
+                                  backbone=backbone),
+                         dc_mode=dc_mode, dc_weight_shape=dc_weight_shape, adaptive_input=adaptive_input,
+                         estimate_sense=estimate_sense)
              for _ in range(num_cascades)]
         )
 
@@ -425,15 +564,23 @@ class VarNet(nn.Module):
             return cascade(*inputs)
 
         kspace_pred = masked_kspace.clone()
-        if self.cascades[0].carries_state:
-            zero_filled = latent = history = None
-            if self.adaptive_input:
-                zero_filled = (ifft_2d_img(masked_kspace) * sense_maps.conj()).sum(dim=1, keepdim=True)
-                latent = zero_filled
-            for cascade in self.cascades:
-                kspace_pred, latent, history = run(cascade, kspace_pred, ref_kspace, mask, sense_maps, anatomy_embedding,
-                                                   kspace_support, zero_filled, latent, history)
-        else:
-            for cascade in self.cascades:
-                kspace_pred = run(cascade, kspace_pred, ref_kspace, mask, sense_maps, anatomy_embedding, kspace_support)
-        return (ifft_2d_img(kspace_pred) * sense_maps.conj()).sum(dim=1, keepdim=True)
+        acs_mask = None
+        if self.estimate_sense:
+            acs_mask = acs_region_mask(mask)
+            # Cascade 0 estimates from the same k-space as the zero-filled image, so the estimate is shared.
+            sense_maps = (self.cascades[0].estimate_sense_maps(masked_kspace, acs_mask)
+                          if self.adaptive_input else None)
+        zero_filled = latent = history = None
+        if self.adaptive_input:
+            zero_filled = (ifft_2d_img(masked_kspace) * sense_maps.conj()).sum(dim=1, keepdim=True)
+            latent = zero_filled
+        for cascade in self.cascades:
+            output = run(cascade, kspace_pred, ref_kspace, mask, sense_maps, anatomy_embedding, kspace_support,
+                         zero_filled, latent, history, acs_mask)
+            if cascade.carries_state:
+                kspace_pred, latent, history, used_maps = output
+            else:
+                kspace_pred, used_maps = output, sense_maps
+            if self.estimate_sense:
+                sense_maps = None
+        return (ifft_2d_img(kspace_pred) * used_maps.conj()).sum(dim=1, keepdim=True)

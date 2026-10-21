@@ -1080,6 +1080,8 @@ def build_model(options: TrainConfig):
             adaptive_input=getattr(recon_cfg, 'adaptive_input', False),
             momentum_history=getattr(recon_cfg, 'momentum_history', 0),
             checkpoint_cascades=getattr(recon_cfg, 'checkpoint_cascades', False),
+            backbone=getattr(recon_cfg, 'backbone', 'unet'),
+            estimate_sense=getattr(recon_cfg, 'estimate_sense', False),
         )
     elif isinstance(recon_cfg, SDUMReconConfig):
         reconstructor = SDUMRecon(

@@ -129,7 +129,10 @@ def _recon_tokens(options):
                    for key, default in VARNET_DEFAULTS.items() if recon.get(key, default) != default]
         tokens += [name for key, name in (('anatomy_conditioning', 'recon-cond'), ('film_conditioning', 'film'),
                                           ('prompt_conditioning', 'prompt-cond'), ('label_blind', 'blind'),
-                                          ('adaptive_input', 'aha-in'), ('dc_weight_map', 'dc-map')) if recon.get(key)]
+                                          ('adaptive_input', 'aha-in'), ('dc_weight_map', 'dc-map'),
+                                          ('estimate_sense', 'csme')) if recon.get(key)]
+        if recon.get('backbone', 'unet') != 'unet':
+            tokens.append(recon['backbone'])
         if recon.get('momentum_history'):
             tokens.append(f"mom{recon['momentum_history']}")
     if recon_type == 'sdum':
