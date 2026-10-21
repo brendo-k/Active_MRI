@@ -43,6 +43,8 @@ class Raw2InsightsRecon(nn.Module):
             (BlackBlood, Cine, Flow2d, LGE, Mapping, Perfusion, T1rho, T1w, T2w).
         autocast_dtype: bf16 autocast for the network; data consistency
             inside the model is always fp32.
+        pretrained: Load the checkpoint; False starts the same architecture from random weights.
+        trainable: Leave the weights trainable (the default freezes them and puts the network in eval mode).
     """
 
     def __init__(
@@ -53,32 +55,35 @@ class Raw2InsightsRecon(nn.Module):
         mask_type: str = "uniform",
         acq_type: str = "T2w",
         autocast_dtype: torch.dtype = torch.bfloat16,
+        pretrained: bool = True,
+        trainable: bool = False,
     ):
         super().__init__()
         repo = Path(repo_path)
         create_model, copy_model_state, self._zscore, load_config, resolve_ckpt = _import_nvidia_modules(repo)
 
         config = load_config(repo / "configs" / config_name)
-        checkpoint_path = resolve_ckpt(config.model_variant, checkpoint)
         self.network = create_model(config)
-        state = torch.load(checkpoint_path, map_location="cpu", weights_only=False)["net_state_dict"]
-        _, updated_keys, unchanged_keys = copy_model_state(self.network, state)
-        if unchanged_keys:
-            raise RuntimeError(f"{len(unchanged_keys)} parameters not found in checkpoint, e.g. {unchanged_keys[:3]}")
+        if pretrained:
+            checkpoint_path = resolve_ckpt(config.model_variant, checkpoint)
+            state = torch.load(checkpoint_path, map_location="cpu", weights_only=False)["net_state_dict"]
+            _, updated_keys, unchanged_keys = copy_model_state(self.network, state)
+            if unchanged_keys:
+                raise RuntimeError(f"{len(unchanged_keys)} parameters not found in checkpoint, e.g. {unchanged_keys[:3]}")
 
         self.num_frames = int(config.num_frames)
         self.mask_type = mask_type
         self.acq_type = acq_type
         self.autocast_dtype = autocast_dtype
-        self.network.eval()
-        for p in self.network.parameters():
-            p.requires_grad_(False)
+        if not trainable:
+            self.network.eval()
+            for p in self.network.parameters():
+                p.requires_grad_(False)
 
     @staticmethod
     def _nearest_acceleration(mask: torch.Tensor) -> int:
-        """Snap `width / sampled_columns` to the accelerations the model was conditioned on."""
-        sampled_columns = mask[:, 0, 0, :].sum(dim=-1).float().mean().clamp(min=1)
-        acceleration = mask.shape[-1] / sampled_columns.item()
+        """Snap the mean undersampling factor, for column and 2D point masks alike, to the accelerations the model was conditioned on."""
+        acceleration = 1.0 / mask.float().mean().clamp(min=1e-6).item()
         return min(_ACCELERATIONS, key=lambda a: abs(a - acceleration))
 
     def forward(
@@ -96,6 +101,9 @@ class Raw2InsightsRecon(nn.Module):
         Returns:
             Complex `[B, 1, H, W]` (RSS magnitude, zero imaginary part).
         """
+        return self._reconstruct(masked_kspace, mask, self.acq_type)
+
+    def _reconstruct(self, masked_kspace: torch.Tensor, mask: torch.Tensor, acq_type: str) -> torch.Tensor:
         b, c, h, w = masked_kspace.shape
         acceleration = self._nearest_acceleration(mask)
 
@@ -107,7 +115,7 @@ class Raw2InsightsRecon(nn.Module):
         window_mask = mask.bool().unsqueeze(-1).unsqueeze(1).expand(b, t, c, h, w, 2).contiguous()
 
         with torch.autocast("cuda", self.autocast_dtype, enabled=masked_kspace.is_cuda):
-            output = self.network(window, window_mask, self.mask_type, acceleration, self.acq_type)
+            output = self.network(window, window_mask, self.mask_type, acceleration, acq_type)
         centre = output[:, t // 2].float()  # [B, C, H, W, 2]
         centre = centre * std + mean
 

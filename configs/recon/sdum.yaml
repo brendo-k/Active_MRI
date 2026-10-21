@@ -1,0 +1,10 @@
+recon_type: sdum
+repo_path: ../NV-Raw2insights-MRI  # clone of NVIDIA-Medtech/NV-Raw2insights-MRI, relative to the working directory
+config_name: nv_raw2insights_mri_small.json  # small = 6 cascades, 230M; base = 18, 760M
+checkpoint: null  # local .pt; null downloads from Hugging Face (needs internet)
+pretrained: true  # false = same architecture from random weights
+mask_type: gaussian  # conditioning label: one of uniform / gaussian / radial
+acq_type: T2w  # conditioning label used for every sample unless anatomy_conditioning
+class_acq_types: [T2w, T1w]  # acquisition label per anatomy class [brain, knee], used when anatomy_conditioning
+anatomy_conditioning: false  # SDUM's universal conditioning gets each slice's anatomy through class_acq_types
+output_scale: 0.165  # the released weights return fastMRI images ~6x too large (zero-shot ratio 0.158-0.170)

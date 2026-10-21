@@ -1,5 +1,6 @@
 import argparse
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import List, Optional
 
 
 @dataclass
@@ -59,6 +60,20 @@ class VarNetReconConfig(ReconConfig):
     adaptive_input: bool = False
     momentum_history: int = 0
     checkpoint_cascades: bool = False
+
+
+@dataclass
+class SDUMReconConfig(ReconConfig):
+    recon_type: str = 'sdum'
+    repo_path: str = '../NV-Raw2insights-MRI'
+    config_name: str = 'nv_raw2insights_mri_small.json'
+    checkpoint: Optional[str] = None
+    pretrained: bool = True
+    mask_type: str = 'gaussian'
+    acq_type: str = 'T2w'
+    class_acq_types: List[str] = field(default_factory=lambda: ['T2w', 'T1w'])
+    anatomy_conditioning: bool = False
+    output_scale: float = 0.165
 
 
 @dataclass

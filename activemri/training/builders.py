@@ -4,7 +4,7 @@ from pathlib import Path
 from omegaconf import DictConfig
 
 from activemri.config import TrainConfig
-from activemri.reconstructors.config import UNetReconConfig, CGSenseReconConfig, VarNetReconConfig
+from activemri.reconstructors.config import UNetReconConfig, CGSenseReconConfig, SDUMReconConfig, VarNetReconConfig
 from activemri.datasets.fastmri_data import build_fastmri_dataloaders
 from activemri.datasets.siemens_space_data import build_siemens_space_dataloaders
 from activemri.samplers.sampler import CONV_2D_TYPES
@@ -12,6 +12,7 @@ from activemri.samplers.sampler import CONV_2D_TYPES
 RECON_CONFIGS = {
     'unet': UNetReconConfig,
     'varnet': VarNetReconConfig,
+    'sdum': SDUMReconConfig,
     'cg_sense': CGSenseReconConfig,
 }
 

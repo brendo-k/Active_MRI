@@ -253,7 +253,7 @@ class SequentialSampling(nn.Module):
             zero_filled_mag = zero_filled_complex.abs()
 
             # Full reconstruction
-            if self.recon_type in ('lls', 'cg_sense', 'varnet'):
+            if self.recon_type in ('lls', 'cg_sense', 'varnet', 'sdum'):
                 masked_kspace_complex = torch.view_as_complex(masked_kspace.contiguous())
                 recon_kwargs = {'anatomy_labels': anatomy_labels} if self.condition_reconstructor else {}
                 if getattr(self.reconstructor, 'dc_mode', None) == 'multiply':

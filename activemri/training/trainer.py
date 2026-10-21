@@ -24,10 +24,11 @@ from activemri.samplers.loupe import LineConstrainedProbMask, ProbMask
 from activemri.utils.util import compute_ssim_torch, compute_psnr_torch
 from activemri.config import TrainConfig
 from activemri.training.run_naming import run_group, run_name, run_tags
-from activemri.reconstructors.config import UNetReconConfig, CGSenseReconConfig, VarNetReconConfig
+from activemri.reconstructors.config import UNetReconConfig, CGSenseReconConfig, SDUMReconConfig, VarNetReconConfig
 from activemri.reconstructors.CG_Sense import CGSENSEReconstructor
 from activemri.reconstructors.UNet import LOUPEUNet
 from activemri.reconstructors.VarNet import VarNet
+from activemri.reconstructors.sdum import SDUMRecon
 
 PHASE_SCRAMBLE_VAL_SEED = 0
 REINFORCE_VAL_MASK_SEED = 0
@@ -1077,6 +1078,18 @@ def build_model(options: TrainConfig):
             adaptive_input=getattr(recon_cfg, 'adaptive_input', False),
             momentum_history=getattr(recon_cfg, 'momentum_history', 0),
             checkpoint_cascades=getattr(recon_cfg, 'checkpoint_cascades', False),
+        )
+    elif isinstance(recon_cfg, SDUMReconConfig):
+        reconstructor = SDUMRecon(
+            recon_cfg.repo_path,
+            class_acq_types=recon_cfg.class_acq_types,
+            anatomy_conditioning=recon_cfg.anatomy_conditioning,
+            config_name=recon_cfg.config_name,
+            checkpoint=recon_cfg.checkpoint,
+            pretrained=recon_cfg.pretrained,
+            mask_type=recon_cfg.mask_type,
+            acq_type=recon_cfg.acq_type,
+            output_scale=recon_cfg.output_scale,
         )
     elif isinstance(recon_cfg, CGSenseReconConfig):
         reconstructor = CGSENSEReconstructor(

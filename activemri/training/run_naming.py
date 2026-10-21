@@ -121,6 +121,9 @@ def _recon_tokens(options):
                    for key, default in VARNET_DEFAULTS.items() if recon.get(key, default) != default]
         tokens += [name for key, name in (('anatomy_conditioning', 'recon-cond'), ('film_conditioning', 'film'),
                                           ('adaptive_input', 'aha-in'), ('dc_weight_map', 'dc-map')) if recon.get(key)]
+    if recon_type == 'sdum':
+        tokens += [name for key, name in (('anatomy_conditioning', 'recon-cond'), ('pretrained', 'pretrained-sdum'))
+                   if recon.get(key)]
     if _get(options, 'freeze_recon'):
         tokens.append('frozen-recon')
     if _get(options, 'pretrained_recon'):
