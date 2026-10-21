@@ -84,9 +84,11 @@ Student-t 95% CI over volumes, the share of volumes where cond is better, and th
 | knee (pooled) | 10 | -0.008 [-0.064, +0.047] | -0.015 [-0.056, +0.026] | 50% / 20% | -0.025 / -0.015 |
 
 Every gap is within 0.08 dB, and all but the seed-42 brain trainer gap are within 0.031 dB. Averaged over seeds
-(per slice): brain +0.013 dB, knee-PD +0.012, knee-PDFS -0.027, knee -0.012, all with t-CIs spanning 0. Brain flips
-sign between metrics (per slice +0.007 / +0.019, trainer -0.077 / -0.014). Only knee-PDFS has the same sign in
-both seeds and both metrics, at -0.02 to -0.03 dB. SSIM gaps are all within 0.0003. The seed-to-seed gap
+(per slice): brain +0.013 dB, knee-PD +0.012, knee-PDFS -0.027, knee -0.012, all with t-CIs spanning 0. Brain's sign
+depends on the metric, not the seed. Per slice it is positive in both seeds (+0.007 / +0.019; seed 43's t-CI
+excludes 0). Under the trainer metric it is negative in both (-0.077 / -0.014). Only knee-PDFS has the same sign in
+both seeds and both metrics, at -0.02 to -0.03 dB. SSIM gaps are all within 0.0003. A few SSIM t-CIs exclude 0
+(knee-PDFS seed 43, knee pooled seed 42, brain seed 43) at 0.0001-0.0002. The seed-to-seed gap
 difference (up to 0.06 dB in the brain trainer metric) is as large as any gap.
 
 **The conditioned model does use the label.** PSNR (dB, per slice) when every slice is given one class, minus its
@@ -120,17 +122,18 @@ VarNet. The bottleneck-FiLM label cost 0.15 dB brain and 0.14 dB knee on plain V
 
 ## Conclusions
 - Feeding the class to this PromptMR+ VarNet on fixed CAIPI R=4 neither helps nor hurts by a measurable amount.
-  Every per-class gap over 2 seeds and 2 metrics is within ±0.08 dB, and the sign is not consistent across seeds or
-  metrics, except a -0.02 to -0.03 dB knee-PDFS deficit whose CIs include 0.
+  Every per-class gap over 2 seeds and 2 metrics is within ±0.08 dB. Brain is +0.01 to +0.02 dB per slice but
+  -0.01 to -0.08 dB under the pooled-MSE trainer metric. Knee-PDFS is -0.02 to -0.03 dB on both, with PSNR CIs that
+  include 0. SSIM differences are below 0.0003.
 - The null result is not the model ignoring the label: given a wrong label, the conditioned model loses 0.1 to
   0.8 dB. The label-blind model with the same parameters reaches the same quality without it. So the class adds
   nothing the network cannot get from the input. Why (e.g. that the anatomy and contrast are readable from the
   zero-filled image) is a hypothesis, untested.
 - How much the conditioned model relies on the label is not stable across seeds, but its accuracy is. Some
-  wrong-label costs differ by 2x or more between seeds. The label is one of several equivalent routes to the same
-  solution.
+  wrong-label costs differ by 2x or more between seeds. One reading is that the label is one of several
+  equivalent routes to the same solution (interpretation, untested).
 - For deployment the conditioned model is strictly worse. It has no accuracy gain and a 0.1 to 0.8 dB loss when the
-  class is wrong (e.g. a mislabelled body part or fat-suppression flag). It also refuses to run without a label.
+  class is wrong (e.g. a mislabelled body part or fat-suppression flag). It also needs a label at inference.
 - Consistent with the earlier plain-VarNet bottleneck-FiLM result (-0.15 dB, legacy mask, one seed): across two
   injection sites and two architectures, labelling the reconstructor has not helped on CAIPI R=4.
 
@@ -154,7 +157,14 @@ VarNet. The bottleneck-FiLM label cost 0.15 dB brain and 0.14 dB knee on plain V
   prompt fusion) was not tested.
 - One easy regime: fixed CAIPI R=4, brain about 42 dB. A label could matter at higher acceleration or with learned,
   per-anatomy masks; untested.
-- The plain-VarNet context runs were unseeded, single runs, scored with the legacy mask and not re-scorable.
+- The plain-VarNet context runs were unseeded, single runs, scored with the legacy mask and not re-scorable. They
+  ran on 2026-10-01/02. Since then `brain_knee_balanced.yaml` changed only in non-split fields (worker count, new
+  options defaulting to off), but the data loader code has changed. Whether their val split is identical was not
+  checked.
+- Trainer-logged per-class PSNR uses the last batch's target max as the data range. This applies to every run's
+  logged per-anatomy PSNR, not only these. Runs scored on the same val loader share R, so gaps between them are
+  unaffected. Absolute values depend on which batch came last, so they do not compare across classes, anatomies or
+  dataset configs.
 - This supersedes the CAIPI line in `reports/METRIC_MASK_REEVAL_R8.md`, which compared both cond seeds with the
   seed-42 blind run only.
 
