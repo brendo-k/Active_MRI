@@ -52,9 +52,12 @@ class VarNetReconConfig(ReconConfig):
     pools: int = 4
     anatomy_conditioning: bool = False
     film_conditioning: bool = False
+    prompt_conditioning: bool = False
+    label_blind: bool = False
     dc_mode: str = 'where'
     dc_weight_map: bool = False
     adaptive_input: bool = False
+    momentum_history: int = 0
     checkpoint_cascades: bool = False
 
 

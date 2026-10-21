@@ -407,7 +407,7 @@ class Sequential_Trainer:
         epoch_log['epoch'] = self.epoch
         epoch_log.update(anatomy_images)
         epoch_log.update(anatomy_stats.compute('train'))
-        mask_net = _unwrapped(self.model).sampler.mask_net
+        mask_net = getattr(_unwrapped(self.model).sampler, 'mask_net', None)  # caipi_2d has none
         if isinstance(mask_net, (ProbMask, LineConstrainedProbMask)):
             logit_log, self.previous_mask_logits = mask_logit_stats(mask_net, self.previous_mask_logits)
             epoch_log.update(logit_log)
@@ -1050,7 +1050,7 @@ def build_model(options: TrainConfig):
     )
     num_recon_conditioning_classes = (
         len(anatomy_classes)
-        if getattr(recon_cfg, 'anatomy_conditioning', False) or getattr(recon_cfg, 'film_conditioning', False)
+        if any(getattr(recon_cfg, key, False) for key in ('anatomy_conditioning', 'film_conditioning', 'prompt_conditioning'))
         else 0
     )
 
@@ -1070,9 +1070,12 @@ def build_model(options: TrainConfig):
             pools=recon_cfg.pools,
             num_conditioning_classes=num_recon_conditioning_classes,
             film=getattr(recon_cfg, 'film_conditioning', False),
+            prompt=getattr(recon_cfg, 'prompt_conditioning', False),
+            label_blind=getattr(recon_cfg, 'label_blind', False),
             dc_mode=getattr(recon_cfg, 'dc_mode', 'where'),
             dc_weight_shape=tuple(options.resolution) if getattr(recon_cfg, 'dc_weight_map', False) else None,
             adaptive_input=getattr(recon_cfg, 'adaptive_input', False),
+            momentum_history=getattr(recon_cfg, 'momentum_history', 0),
             checkpoint_cascades=getattr(recon_cfg, 'checkpoint_cascades', False),
         )
     elif isinstance(recon_cfg, CGSenseReconConfig):
