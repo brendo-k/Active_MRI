@@ -1,5 +1,7 @@
 # Why do the learned R=8 samplers end up near-static? Signal, sampler transport and reconstructor co-adaptation (2026-10-16)
 
+> **Not yet in the report-folder convention** (no `manifest.json`, `run.sh` or provenance block; see `reports/README.md`). The metric mask is not recorded here: runs logged before 2026-10-20 used the legacy mask (`target > 0.1 * max`), and scripts migrated on 2026-10-20 use the apodized per-anatomy mask. Numbers are not comparable across the two, nor with `reports/metric_mask_reeval_r8/report.md`. Check the cited script and result timestamps before comparing, and rewrite with the `experiment-report` skill before citing this report.
+
 ## Question
 Every input-adaptive sampler trained so far at R=8 on brain + knee ends with masks that barely change across slices.
 Across the conv_2d variants (k-space input, image input, bias head, two draws, logit clamp), a slice's map correlates

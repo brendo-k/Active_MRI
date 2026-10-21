@@ -1,5 +1,7 @@
 # LOUPE vs REINFORCE at R=8 (brain + knee, 12-cascade VarNet)
 
+> **Not yet in the report-folder convention** (no `manifest.json`, `run.sh` or provenance block; see `reports/README.md`). The metric mask is not recorded here: runs logged before 2026-10-20 used the legacy mask (`target > 0.1 * max`), and scripts migrated on 2026-10-20 use the apodized per-anatomy mask. Numbers are not comparable across the two, nor with `reports/metric_mask_reeval_r8/report.md`. Check the cited script and result timestamps before comparing, and rewrite with the `experiment-report` skill before citing this report.
+
 Runs: `checkpoints/loupe2d_varnet_r8_brain_knee` (wandb `azd6r64k`) vs
 `checkpoints/reinforce2d_varnet_r8_brain_knee_v2` (wandb `mj4759it`, policy lr 0.02,
 4 slices x 4 draws, entropy 0.005, normalized advantages). Same data, batch 16, 50 epochs,

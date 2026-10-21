@@ -1,5 +1,7 @@
 # Does a radial-profile REINFORCE policy beat the per-pixel one at R=8? (2026-10-06)
 
+> **Not yet in the report-folder convention** (no `manifest.json`, `run.sh` or provenance block; see `reports/README.md`). The metric mask is not recorded here: runs logged before 2026-10-20 used the legacy mask (`target > 0.1 * max`), and scripts migrated on 2026-10-20 use the apodized per-anatomy mask. Numbers are not comparable across the two, nor with `reports/metric_mask_reeval_r8/report.md`. Check the cited script and result timestamps before comparing, and rewrite with the `experiment-report` skill before citing this report.
+
 ## Question
 `LOUPE_VS_REINFORCE_R8.md` found that the per-pixel REINFORCE policy has no detectable per-pixel gradient
 signal, but a clear signal summed over k-space rings. Its proposed fix was a radially factored policy.

@@ -1,5 +1,7 @@
 # Are the CG-SENSE iteration count and Tikhonov weight tuned in the R=8 LOUPE runs? (2026-10-19)
 
+> **Not yet in the report-folder convention** (no `manifest.json`, `run.sh` or provenance block; see `reports/README.md`). The metric mask is not recorded here: runs logged before 2026-10-20 used the legacy mask (`target > 0.1 * max`), and scripts migrated on 2026-10-20 use the apodized per-anatomy mask. Numbers are not comparable across the two, nor with `reports/metric_mask_reeval_r8/report.md`. Check the cited script and result timestamps before comparing, and rewrite with the `experiment-report` skill before citing this report.
+
 ## Question
 The CG-SENSE LOUPE runs use 10 conjugate-gradient iterations and Tikhonov weight lamda = 0. No sweep of either was
 recorded. With a trained mask and sensitivity net held fixed, how sensitive is validation quality to these two

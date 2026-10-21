@@ -1,5 +1,7 @@
 # Does flooring the LOUPE sigmoid/STE gradient change performance or the learned mask? (2026-10-14)
 
+> **Not yet in the report-folder convention** (no `manifest.json`, `run.sh` or provenance block; see `reports/README.md`). The metric mask is not recorded here: runs logged before 2026-10-20 used the legacy mask (`target > 0.1 * max`), and scripts migrated on 2026-10-20 use the apodized per-anatomy mask. Numbers are not comparable across the two, nor with `reports/metric_mask_reeval_r8/report.md`. Check the cited script and result timestamps before comparing, and rewrite with the `experiment-report` skill before citing this report.
+
 ## Question
 LOUPE-2D logits saturate during training: once |slope * w| is large, the sigmoid derivative is near zero and
 that location stops receiving gradient. A *gradient floor* replaces the backward derivative

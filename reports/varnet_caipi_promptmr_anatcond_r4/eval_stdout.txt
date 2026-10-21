@@ -1,0 +1,158 @@
+Balanced train set (volumes, slices): {'brain': (89, 1350), 'knee': (40, 1350)}
+Balanced val set (volumes, slices): {'brain': (23, 344), 'knee': (10, 344)}
+Sampler: caipi_2d
+Number of sequential steps: 1
+Sparsity: 0.25
+checkpoints/varnet_caipi2d_r4_promptmr_cond_seed42 last_model.pt: epoch 49, classes ['brain', 'knee-PD', 'knee-PDFS']
+Sampler: caipi_2d
+Number of sequential steps: 1
+Sparsity: 0.25
+checkpoints/varnet_caipi2d_r4_promptmr_blind_seed42 last_model.pt: epoch 49, classes ['brain', 'knee-PD', 'knee-PDFS']
+
+seed 42: cond - blind
+  brain      psnr  cond 41.9220  blind 41.9146  diff +0.0074  95% CI [-0.0168, +0.0316]  t-CI [-0.0182, +0.0330]  cond better on 78% of 23 volumes
+  brain      ssim  cond 0.9864  blind 0.9865  diff -0.0000  95% CI [-0.0002, +0.0001]  t-CI [-0.0002, +0.0001]  cond better on 74% of 23 volumes
+  knee-PD    psnr  cond 40.7177  blind 40.6907  diff +0.0270  95% CI [-0.0664, +0.1204]  t-CI [-0.1247, +0.1786]  cond better on 50% of 4 volumes
+  knee-PD    ssim  cond 0.9661  blind 0.9661  diff -0.0000  95% CI [-0.0001, +0.0001]  t-CI [-0.0002, +0.0002]  cond better on 50% of 4 volumes
+  knee-PDFS  psnr  cond 39.3369  blind 39.3681  diff -0.0312  95% CI [-0.0821, +0.0197]  t-CI [-0.0980, +0.0355]  cond better on 50% of 6 volumes
+  knee-PDFS  ssim  cond 0.9556  blind 0.9559  diff -0.0003  95% CI [-0.0005, -0.0001]  t-CI [-0.0006, +0.0000]  cond better on 0% of 6 volumes
+  knee       psnr  cond 39.8788  blind 39.8872  diff -0.0084  95% CI [-0.0565, +0.0397]  t-CI [-0.0639, +0.0471]  cond better on 50% of 10 volumes
+  knee       ssim  cond 0.9597  blind 0.9599  diff -0.0002  95% CI [-0.0003, -0.0000]  t-CI [-0.0004, -0.0000]  cond better on 20% of 10 volumes
+
+seed 42: cond - blind (trainer metric: pooled MSE per group)
+  brain      nmse cond 0.0024 blind 0.0024 diff +0.0000  psnr cond 41.6124 blind 41.6898 diff -0.0774  ssim cond 0.9859 blind 0.9859 diff -0.0000
+  knee-PDFS  nmse cond 0.0055 blind 0.0055 diff +0.0000  psnr cond 42.1571 blind 42.1867 diff -0.0295  ssim cond 0.9583 blind 0.9585 diff -0.0003
+  knee-PD    nmse cond 0.0034 blind 0.0034 diff -0.0000  psnr cond 39.7959 blind 39.8090 diff -0.0132  ssim cond 0.9669 blind 0.9669 diff -0.0000
+  knee       nmse cond 0.0047 blind 0.0047 diff +0.0000  psnr cond 37.8224 blind 37.8478 diff -0.0254  ssim cond 0.9617 blind 0.9619 diff -0.0002
+
+seed 42: cond model given class brain for every slice - own class
+  brain      psnr  as-brain 41.9220  own 41.9220  diff +0.0000  95% CI [+0.0000, +0.0000]  t-CI [+0.0000, +0.0000]  as-brain better on 0% of 23 volumes
+  brain      ssim  as-brain 0.9864  own 0.9864  diff +0.0000  95% CI [+0.0000, +0.0000]  t-CI [+0.0000, +0.0000]  as-brain better on 0% of 23 volumes
+  knee-PD    psnr  as-brain 40.6289  own 40.7177  diff -0.0888  95% CI [-0.1441, -0.0335]  t-CI [-0.1786, +0.0009]  as-brain better on 0% of 4 volumes
+  knee-PD    ssim  as-brain 0.9653  own 0.9661  diff -0.0008  95% CI [-0.0012, -0.0004]  t-CI [-0.0014, -0.0001]  as-brain better on 0% of 4 volumes
+  knee-PDFS  psnr  as-brain 38.8904  own 39.3369  diff -0.4465  95% CI [-0.7669, -0.1261]  t-CI [-0.8667, -0.0263]  as-brain better on 0% of 6 volumes
+  knee-PDFS  ssim  as-brain 0.9542  own 0.9556  diff -0.0015  95% CI [-0.0027, -0.0003]  t-CI [-0.0031, +0.0001]  as-brain better on 17% of 6 volumes
+  knee       psnr  as-brain 39.5727  own 39.8788  diff -0.3061  95% CI [-0.5342, -0.0781]  t-CI [-0.5694, -0.0429]  as-brain better on 0% of 10 volumes
+  knee       ssim  as-brain 0.9585  own 0.9597  diff -0.0012  95% CI [-0.0020, -0.0004]  t-CI [-0.0021, -0.0003]  as-brain better on 10% of 10 volumes
+
+seed 42: cond model given class brain for every slice - own class (trainer metric: pooled MSE per group)
+  brain      nmse as-brain 0.0024 own 0.0024 diff +0.0000  psnr as-brain 41.6124 own 41.6124 diff +0.0000  ssim as-brain 0.9859 own 0.9859 diff +0.0000
+  knee-PDFS  nmse as-brain 0.0062 own 0.0055 diff +0.0007  psnr as-brain 41.6341 own 42.1571 diff -0.5230  ssim as-brain 0.9568 own 0.9583 diff -0.0014
+  knee-PD    nmse as-brain 0.0035 own 0.0034 diff +0.0000  psnr as-brain 39.7239 own 39.7959 diff -0.0719  ssim as-brain 0.9661 own 0.9669 diff -0.0008
+  knee       nmse as-brain 0.0051 own 0.0047 diff +0.0004  psnr as-brain 37.4075 own 37.8224 diff -0.4149  ssim as-brain 0.9605 own 0.9617 diff -0.0012
+
+seed 42: cond model given class knee-PD for every slice - own class
+  brain      psnr  as-knee-PD 41.5812  own 41.9220  diff -0.3408  95% CI [-0.3964, -0.2851]  t-CI [-0.3996, -0.2819]  as-knee-PD better on 0% of 23 volumes
+  brain      ssim  as-knee-PD 0.9856  own 0.9864  diff -0.0009  95% CI [-0.0011, -0.0006]  t-CI [-0.0011, -0.0006]  as-knee-PD better on 4% of 23 volumes
+  knee-PD    psnr  as-knee-PD 40.7177  own 40.7177  diff +0.0000  95% CI [+0.0000, +0.0000]  t-CI [+0.0000, +0.0000]  as-knee-PD better on 0% of 4 volumes
+  knee-PD    ssim  as-knee-PD 0.9661  own 0.9661  diff +0.0000  95% CI [+0.0000, +0.0000]  t-CI [+0.0000, +0.0000]  as-knee-PD better on 0% of 4 volumes
+  knee-PDFS  psnr  as-knee-PD 38.8923  own 39.3369  diff -0.4447  95% CI [-0.7082, -0.1811]  t-CI [-0.7903, -0.0990]  as-knee-PD better on 0% of 6 volumes
+  knee-PDFS  ssim  as-knee-PD 0.9543  own 0.9556  diff -0.0013  95% CI [-0.0022, -0.0005]  t-CI [-0.0024, -0.0003]  as-knee-PD better on 17% of 6 volumes
+  knee       psnr  as-knee-PD 39.6086  own 39.8788  diff -0.2702  95% CI [-0.4882, -0.0521]  t-CI [-0.5218, -0.0185]  as-knee-PD better on 0% of 10 volumes
+  knee       ssim  as-knee-PD 0.9589  own 0.9597  diff -0.0008  95% CI [-0.0015, -0.0001]  t-CI [-0.0016, -0.0000]  as-knee-PD better on 10% of 10 volumes
+
+seed 42: cond model given class knee-PD for every slice - own class (trainer metric: pooled MSE per group)
+  brain      nmse as-knee-PD 0.0026 own 0.0024 diff +0.0002  psnr as-knee-PD 41.2882 own 41.6124 diff -0.3242  ssim as-knee-PD 0.9849 own 0.9859 diff -0.0009
+  knee-PDFS  nmse as-knee-PD 0.0062 own 0.0055 diff +0.0007  psnr as-knee-PD 41.6243 own 42.1571 diff -0.5328  ssim as-knee-PD 0.9569 own 0.9583 diff -0.0013
+  knee-PD    nmse as-knee-PD 0.0034 own 0.0034 diff +0.0000  psnr as-knee-PD 39.7959 own 39.7959 diff +0.0000  ssim as-knee-PD 0.9669 own 0.9669 diff +0.0000
+  knee       nmse as-knee-PD 0.0051 own 0.0047 diff +0.0004  psnr as-knee-PD 37.4164 own 37.8224 diff -0.4060  ssim as-knee-PD 0.9609 own 0.9617 diff -0.0008
+
+seed 42: cond model given class knee-PDFS for every slice - own class
+  brain      psnr  as-knee-PDFS 41.1032  own 41.9220  diff -0.8188  95% CI [-0.9715, -0.6661]  t-CI [-0.9804, -0.6572]  as-knee-PDFS better on 4% of 23 volumes
+  brain      ssim  as-knee-PDFS 0.9856  own 0.9864  diff -0.0008  95% CI [-0.0011, -0.0004]  t-CI [-0.0012, -0.0004]  as-knee-PDFS better on 4% of 23 volumes
+  knee-PD    psnr  as-knee-PDFS 40.3948  own 40.7177  diff -0.3229  95% CI [-0.5359, -0.1098]  t-CI [-0.6688, +0.0231]  as-knee-PDFS better on 25% of 4 volumes
+  knee-PD    ssim  as-knee-PDFS 0.9646  own 0.9661  diff -0.0015  95% CI [-0.0019, -0.0011]  t-CI [-0.0021, -0.0009]  as-knee-PDFS better on 0% of 4 volumes
+  knee-PDFS  psnr  as-knee-PDFS 39.3369  own 39.3369  diff +0.0000  95% CI [+0.0000, +0.0000]  t-CI [+0.0000, +0.0000]  as-knee-PDFS better on 0% of 6 volumes
+  knee-PDFS  ssim  as-knee-PDFS 0.9556  own 0.9556  diff +0.0000  95% CI [+0.0000, +0.0000]  t-CI [+0.0000, +0.0000]  as-knee-PDFS better on 0% of 6 volumes
+  knee       psnr  as-knee-PDFS 39.7521  own 39.8788  diff -0.1267  95% CI [-0.2553, +0.0019]  t-CI [-0.2751, +0.0217]  as-knee-PDFS better on 10% of 10 volumes
+  knee       ssim  as-knee-PDFS 0.9592  own 0.9597  diff -0.0006  95% CI [-0.0011, -0.0001]  t-CI [-0.0011, -0.0000]  as-knee-PDFS better on 0% of 10 volumes
+
+seed 42: cond model given class knee-PDFS for every slice - own class (trainer metric: pooled MSE per group)
+  brain      nmse as-knee-PDFS 0.0028 own 0.0024 diff +0.0004  psnr as-knee-PDFS 41.0134 own 41.6124 diff -0.5990  ssim as-knee-PDFS 0.9851 own 0.9859 diff -0.0008
+  knee-PDFS  nmse as-knee-PDFS 0.0055 own 0.0055 diff +0.0000  psnr as-knee-PDFS 42.1571 own 42.1571 diff +0.0000  ssim as-knee-PDFS 0.9583 own 0.9583 diff +0.0000
+  knee-PD    nmse as-knee-PDFS 0.0036 own 0.0034 diff +0.0002  psnr as-knee-PDFS 39.4883 own 39.7959 diff -0.3075  ssim as-knee-PDFS 0.9654 own 0.9669 diff -0.0015
+  knee       nmse as-knee-PDFS 0.0048 own 0.0047 diff +0.0001  psnr as-knee-PDFS 37.7437 own 37.8224 diff -0.0787  ssim as-knee-PDFS 0.9611 own 0.9617 diff -0.0006
+Sampler: caipi_2d
+Number of sequential steps: 1
+Sparsity: 0.25
+checkpoints/varnet_caipi2d_r4_promptmr_cond_seed43 last_model.pt: epoch 49, classes ['brain', 'knee-PD', 'knee-PDFS']
+Sampler: caipi_2d
+Number of sequential steps: 1
+Sparsity: 0.25
+checkpoints/varnet_caipi2d_r4_promptmr_blind_seed43 last_model.pt: epoch 49, classes ['brain', 'knee-PD', 'knee-PDFS']
+
+seed 43: cond - blind
+  brain      psnr  cond 42.0609  blind 42.0423  diff +0.0186  95% CI [+0.0062, +0.0311]  t-CI [+0.0054, +0.0318]  cond better on 74% of 23 volumes
+  brain      ssim  cond 0.9866  blind 0.9866  diff +0.0001  95% CI [+0.0000, +0.0001]  t-CI [+0.0000, +0.0001]  cond better on 78% of 23 volumes
+  knee-PD    psnr  cond 40.7146  blind 40.7170  diff -0.0024  95% CI [-0.0893, +0.0845]  t-CI [-0.1435, +0.1387]  cond better on 25% of 4 volumes
+  knee-PD    ssim  cond 0.9663  blind 0.9663  diff +0.0000  95% CI [-0.0000, +0.0001]  t-CI [-0.0001, +0.0001]  cond better on 75% of 4 volumes
+  knee-PDFS  psnr  cond 39.3811  blind 39.4045  diff -0.0234  95% CI [-0.0478, +0.0009]  t-CI [-0.0554, +0.0085]  cond better on 17% of 6 volumes
+  knee-PDFS  ssim  cond 0.9560  blind 0.9561  diff -0.0001  95% CI [-0.0002, -0.0000]  t-CI [-0.0002, -0.0000]  cond better on 0% of 6 volumes
+  knee       psnr  cond 39.9044  blind 39.9196  diff -0.0152  95% CI [-0.0505, +0.0201]  t-CI [-0.0559, +0.0255]  cond better on 20% of 10 volumes
+  knee       ssim  cond 0.9600  blind 0.9601  diff -0.0001  95% CI [-0.0001, -0.0000]  t-CI [-0.0001, +0.0000]  cond better on 30% of 10 volumes
+
+seed 43: cond - blind (trainer metric: pooled MSE per group)
+  brain      nmse cond 0.0024 blind 0.0024 diff -0.0000  psnr cond 41.7332 blind 41.7476 diff -0.0144  ssim cond 0.9861 blind 0.9860 diff +0.0001
+  knee-PDFS  nmse cond 0.0055 blind 0.0055 diff +0.0000  psnr cond 42.1998 blind 42.2204 diff -0.0205  ssim cond 0.9586 blind 0.9587 diff -0.0001
+  knee-PD    nmse cond 0.0034 blind 0.0034 diff +0.0000  psnr cond 39.8316 blind 39.8306 diff +0.0010  ssim cond 0.9671 blind 0.9671 diff +0.0000
+  knee       nmse cond 0.0047 blind 0.0047 diff +0.0000  psnr cond 37.8634 blind 37.8785 diff -0.0151  ssim cond 0.9619 blind 0.9620 diff -0.0001
+
+seed 43: cond model given class brain for every slice - own class
+  brain      psnr  as-brain 42.0609  own 42.0609  diff +0.0000  95% CI [+0.0000, +0.0000]  t-CI [+0.0000, +0.0000]  as-brain better on 0% of 23 volumes
+  brain      ssim  as-brain 0.9866  own 0.9866  diff +0.0000  95% CI [+0.0000, +0.0000]  t-CI [+0.0000, +0.0000]  as-brain better on 0% of 23 volumes
+  knee-PD    psnr  as-brain 40.6162  own 40.7146  diff -0.0984  95% CI [-0.1773, -0.0195]  t-CI [-0.2266, +0.0297]  as-brain better on 0% of 4 volumes
+  knee-PD    ssim  as-brain 0.9658  own 0.9663  diff -0.0005  95% CI [-0.0010, -0.0001]  t-CI [-0.0012, +0.0002]  as-brain better on 0% of 4 volumes
+  knee-PDFS  psnr  as-brain 38.9760  own 39.3811  diff -0.4050  95% CI [-0.7308, -0.0792]  t-CI [-0.8323, +0.0223]  as-brain better on 0% of 6 volumes
+  knee-PDFS  ssim  as-brain 0.9546  own 0.9560  diff -0.0014  95% CI [-0.0025, -0.0004]  t-CI [-0.0028, -0.0001]  as-brain better on 0% of 6 volumes
+  knee       psnr  as-brain 39.6197  own 39.9044  diff -0.2847  95% CI [-0.5070, -0.0624]  t-CI [-0.5412, -0.0282]  as-brain better on 0% of 10 volumes
+  knee       ssim  as-brain 0.9590  own 0.9600  diff -0.0011  95% CI [-0.0018, -0.0004]  t-CI [-0.0019, -0.0002]  as-brain better on 0% of 10 volumes
+
+seed 43: cond model given class brain for every slice - own class (trainer metric: pooled MSE per group)
+  brain      nmse as-brain 0.0024 own 0.0024 diff +0.0000  psnr as-brain 41.7332 own 41.7332 diff +0.0000  ssim as-brain 0.9861 own 0.9861 diff +0.0000
+  knee-PDFS  nmse as-brain 0.0061 own 0.0055 diff +0.0006  psnr as-brain 41.7211 own 42.1998 diff -0.4788  ssim as-brain 0.9572 own 0.9586 diff -0.0014
+  knee-PD    nmse as-brain 0.0034 own 0.0034 diff +0.0000  psnr as-brain 39.7511 own 39.8316 diff -0.0805  ssim as-brain 0.9665 own 0.9671 diff -0.0005
+  knee       nmse as-brain 0.0051 own 0.0047 diff +0.0004  psnr as-brain 37.4806 own 37.8634 diff -0.3828  ssim as-brain 0.9609 own 0.9619 diff -0.0010
+
+seed 43: cond model given class knee-PD for every slice - own class
+  brain      psnr  as-knee-PD 41.9147  own 42.0609  diff -0.1462  95% CI [-0.1741, -0.1184]  t-CI [-0.1757, -0.1168]  as-knee-PD better on 4% of 23 volumes
+  brain      ssim  as-knee-PD 0.9863  own 0.9866  diff -0.0003  95% CI [-0.0004, -0.0002]  t-CI [-0.0004, -0.0002]  as-knee-PD better on 9% of 23 volumes
+  knee-PD    psnr  as-knee-PD 40.7146  own 40.7146  diff +0.0000  95% CI [+0.0000, +0.0000]  t-CI [+0.0000, +0.0000]  as-knee-PD better on 0% of 4 volumes
+  knee-PD    ssim  as-knee-PD 0.9663  own 0.9663  diff +0.0000  95% CI [+0.0000, +0.0000]  t-CI [+0.0000, +0.0000]  as-knee-PD better on 0% of 4 volumes
+  knee-PDFS  psnr  as-knee-PD 39.2386  own 39.3811  diff -0.1425  95% CI [-0.2883, +0.0033]  t-CI [-0.3337, +0.0487]  as-knee-PD better on 0% of 6 volumes
+  knee-PDFS  ssim  as-knee-PD 0.9558  own 0.9560  diff -0.0002  95% CI [-0.0006, +0.0001]  t-CI [-0.0007, +0.0002]  as-knee-PD better on 17% of 6 volumes
+  knee       psnr  as-knee-PD 39.8178  own 39.9044  diff -0.0866  95% CI [-0.1858, +0.0127]  t-CI [-0.2011, +0.0280]  as-knee-PD better on 0% of 10 volumes
+  knee       ssim  as-knee-PD 0.9599  own 0.9600  diff -0.0001  95% CI [-0.0004, +0.0001]  t-CI [-0.0004, +0.0001]  as-knee-PD better on 10% of 10 volumes
+
+seed 43: cond model given class knee-PD for every slice - own class (trainer metric: pooled MSE per group)
+  brain      nmse as-knee-PD 0.0024 own 0.0024 diff +0.0001  psnr as-knee-PD 41.6044 own 41.7332 diff -0.1288  ssim as-knee-PD 0.9857 own 0.9861 diff -0.0003
+  knee-PDFS  nmse as-knee-PD 0.0057 own 0.0055 diff +0.0002  psnr as-knee-PD 42.0194 own 42.1998 diff -0.1804  ssim as-knee-PD 0.9584 own 0.9586 diff -0.0002
+  knee-PD    nmse as-knee-PD 0.0034 own 0.0034 diff +0.0000  psnr as-knee-PD 39.8316 own 39.8316 diff +0.0000  ssim as-knee-PD 0.9671 own 0.9671 diff +0.0000
+  knee       nmse as-knee-PD 0.0048 own 0.0047 diff +0.0001  psnr as-knee-PD 37.7272 own 37.8634 diff -0.1361  ssim as-knee-PD 0.9618 own 0.9619 diff -0.0001
+
+seed 43: cond model given class knee-PDFS for every slice - own class
+  brain      psnr  as-knee-PDFS 41.6855  own 42.0609  diff -0.3754  95% CI [-0.4534, -0.2975]  t-CI [-0.4579, -0.2929]  as-knee-PDFS better on 4% of 23 volumes
+  brain      ssim  as-knee-PDFS 0.9863  own 0.9866  diff -0.0003  95% CI [-0.0005, -0.0001]  t-CI [-0.0005, -0.0001]  as-knee-PDFS better on 4% of 23 volumes
+  knee-PD    psnr  as-knee-PDFS 40.6946  own 40.7146  diff -0.0200  95% CI [-0.0933, +0.0533]  t-CI [-0.1390, +0.0990]  as-knee-PDFS better on 50% of 4 volumes
+  knee-PD    ssim  as-knee-PDFS 0.9661  own 0.9663  diff -0.0001  95% CI [-0.0003, -0.0000]  t-CI [-0.0003, +0.0001]  as-knee-PDFS better on 25% of 4 volumes
+  knee-PDFS  psnr  as-knee-PDFS 39.3811  own 39.3811  diff +0.0000  95% CI [+0.0000, +0.0000]  t-CI [+0.0000, +0.0000]  as-knee-PDFS better on 0% of 6 volumes
+  knee-PDFS  ssim  as-knee-PDFS 0.9560  own 0.9560  diff +0.0000  95% CI [+0.0000, +0.0000]  t-CI [+0.0000, +0.0000]  as-knee-PDFS better on 0% of 6 volumes
+  knee       psnr  as-knee-PDFS 39.8965  own 39.9044  diff -0.0079  95% CI [-0.0354, +0.0197]  t-CI [-0.0396, +0.0239]  as-knee-PDFS better on 20% of 10 volumes
+  knee       ssim  as-knee-PDFS 0.9600  own 0.9600  diff -0.0001  95% CI [-0.0001, +0.0000]  t-CI [-0.0001, +0.0000]  as-knee-PDFS better on 10% of 10 volumes
+
+seed 43: cond model given class knee-PDFS for every slice - own class (trainer metric: pooled MSE per group)
+  brain      nmse as-knee-PDFS 0.0025 own 0.0024 diff +0.0002  psnr as-knee-PDFS 41.4982 own 41.7332 diff -0.2350  ssim as-knee-PDFS 0.9858 own 0.9861 diff -0.0003
+  knee-PDFS  nmse as-knee-PDFS 0.0055 own 0.0055 diff +0.0000  psnr as-knee-PDFS 42.1998 own 42.1998 diff +0.0000  ssim as-knee-PDFS 0.9586 own 0.9586 diff +0.0000
+  knee-PD    nmse as-knee-PDFS 0.0034 own 0.0034 diff +0.0000  psnr as-knee-PDFS 39.8162 own 39.8316 diff -0.0154  ssim as-knee-PDFS 0.9669 own 0.9671 diff -0.0001
+  knee       nmse as-knee-PDFS 0.0047 own 0.0047 diff +0.0000  psnr as-knee-PDFS 37.8595 own 37.8634 diff -0.0038  ssim as-knee-PDFS 0.9619 own 0.9619 diff -0.0001
+
+cond - blind, per-slice difference averaged over seeds [42, 43]
+  brain      psnr  diff 0.0130  0 0.0000  diff +0.0130  95% CI [-0.0034, +0.0294]  t-CI [-0.0043, +0.0303]  diff better on 78% of 23 volumes
+  brain      ssim  diff 0.0000  0 0.0000  diff +0.0000  95% CI [-0.0001, +0.0001]  t-CI [-0.0001, +0.0001]  diff better on 78% of 23 volumes
+  knee-PD    psnr  diff 0.0123  0 0.0000  diff +0.0123  95% CI [-0.0611, +0.0857]  t-CI [-0.1069, +0.1314]  diff better on 25% of 4 volumes
+  knee-PD    ssim  diff -0.0000  0 0.0000  diff -0.0000  95% CI [-0.0001, +0.0000]  t-CI [-0.0001, +0.0001]  diff better on 50% of 4 volumes
+  knee-PDFS  psnr  diff -0.0273  0 0.0000  diff -0.0273  95% CI [-0.0616, +0.0070]  t-CI [-0.0723, +0.0177]  diff better on 33% of 6 volumes
+  knee-PDFS  ssim  diff -0.0002  0 0.0000  diff -0.0002  95% CI [-0.0004, -0.0001]  t-CI [-0.0004, -0.0000]  diff better on 0% of 6 volumes
+  knee       psnr  diff -0.0118  0 0.0000  diff -0.0118  95% CI [-0.0471, +0.0235]  t-CI [-0.0525, +0.0289]  diff better on 30% of 10 volumes
+  knee       ssim  diff -0.0001  0 0.0000  diff -0.0001  95% CI [-0.0002, -0.0000]  t-CI [-0.0003, -0.0000]  diff better on 20% of 10 volumes
+
+wrote analysis/varnet_caipi_anatcond/eval.json

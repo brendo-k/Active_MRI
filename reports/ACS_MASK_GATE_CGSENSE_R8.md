@@ -1,5 +1,7 @@
 # Can the 24 x 24 ACS choose a per-volume sampling mask for CG-SENSE at R=8? (2026-10-20)
 
+> **Not yet in the report-folder convention** (no `manifest.json`, `run.sh` or provenance block; see `reports/README.md`). The metric mask is not recorded here: runs logged before 2026-10-20 used the legacy mask (`target > 0.1 * max`), and scripts migrated on 2026-10-20 use the apodized per-anatomy mask. Numbers are not comparable across the two, nor with `reports/metric_mask_reeval_r8/report.md`. Check the cited script and result timestamps before comparing, and rewrite with the `experiment-report` skill before citing this report.
+
 ## Question
 The target pulse sequence (3D SPACE) acquires a fully sampled calibration centre (ACS) first, and the sampling
 pattern for the rest of the scan may depend on it. The pattern is then fixed for the whole volume, because every

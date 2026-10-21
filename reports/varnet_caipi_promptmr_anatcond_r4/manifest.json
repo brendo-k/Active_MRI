@@ -1,0 +1,215 @@
+{
+  "schema": 1,
+  "generated_at": "2026-10-21T21:33:22+00:00",
+  "code": {
+    "produced_at": "377128165ab51c68cd91dfc053ddd285107013c3",
+    "produced_at_subject": "Add PromptMR+ VarNet (momentum, anatomy prompt, label-blind control) and its CAIPI R=4 anatomy-label test",
+    "head": "83007c5608803ff2197963a4ebe27c130e13430d",
+    "branch": "main",
+    "dirty_tracked_files": [
+      "analysis/anatcond_cgsense/metric_apodized/run_mask_path.sh",
+      "scripts/eval/eval_varnet_caipi_anatcond.py"
+    ],
+    "scripts": [
+      {
+        "path": "scripts/eval/eval_varnet_caipi_anatcond.py",
+        "changed_since_produced_at": false
+      }
+    ]
+  },
+  "metric_mask": {
+    "version": "apodized",
+    "definition": "k-space-apodized per-anatomy mask (activemri/utils/metric_mask.py), the trainer metric since 2026-10-20",
+    "apodization_sigma": 16,
+    "params": {
+      "brain": {
+        "fraction": 0.15,
+        "radius": 6
+      },
+      "knee": {
+        "fraction": 0.06,
+        "radius": 12
+      }
+    }
+  },
+  "data": {
+    "config": {
+      "anatomy": [
+        "brain",
+        "knee"
+      ],
+      "data_root": "/home/bkadota/data/fastmri",
+      "data_dir": null,
+      "contrast": "T2",
+      "num_coils": 16,
+      "num_workers": 8,
+      "balance": true,
+      "condition_classes": [
+        "brain",
+        "knee-PD",
+        "knee-PDFS"
+      ],
+      "train_anatomies": [],
+      "train_slices": null,
+      "sense_cache_dir": null
+    },
+    "note": "Balanced brain T2 + knee val: 23 brain volumes / 344 slices, 10 knee volumes / 344 slices (4 knee-PD, 6 knee-PDFS); classes [brain, knee-PD, knee-PDFS]."
+  },
+  "runs": [
+    {
+      "name": "varnet_caipi2d_r4_promptmr_blind_seed42",
+      "path": "checkpoints/varnet_caipi2d_r4_promptmr_blind_seed42",
+      "config_sha256": "bb02afa95eed483e",
+      "overrides": [
+        "recon=varnet",
+        "recon.adaptive_input=true",
+        "recon.momentum_history=11",
+        "recon.prompt_conditioning=true",
+        "recon.label_blind=true",
+        "datasets=brain_knee_balanced",
+        "datasets.condition_classes=[brain,knee-PD,knee-PDFS]",
+        "training.num_step=1",
+        "sampler.sampler_type=caipi_2d",
+        "training.lr=0.001",
+        "training.lr_scheduler=step",
+        "training.lr_step_size=40",
+        "training.num_epochs=50",
+        "training.batch_size=4",
+        "training.seed=42",
+        "output.out_dir=/tmp/bkadota_checkpoints/varnet_caipi_promptmr_anatcond/varnet_caipi2d_r4_promptmr_blind_seed42"
+      ],
+      "wandb_run_id": "75gex8ds",
+      "trained_at_commit": null,
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 1004233400,
+          "modified": "2026-10-21T01:26:50+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 1004233400,
+          "modified": "2026-10-21T01:26:48+00:00"
+        }
+      }
+    },
+    {
+      "name": "varnet_caipi2d_r4_promptmr_blind_seed43",
+      "path": "checkpoints/varnet_caipi2d_r4_promptmr_blind_seed43",
+      "config_sha256": "510f63d265da13cc",
+      "overrides": [
+        "recon=varnet",
+        "recon.adaptive_input=true",
+        "recon.momentum_history=11",
+        "recon.prompt_conditioning=true",
+        "recon.label_blind=true",
+        "datasets=brain_knee_balanced",
+        "datasets.condition_classes=[brain,knee-PD,knee-PDFS]",
+        "training.num_step=1",
+        "sampler.sampler_type=caipi_2d",
+        "training.lr=0.001",
+        "training.lr_scheduler=step",
+        "training.lr_step_size=40",
+        "training.num_epochs=50",
+        "training.batch_size=4",
+        "training.seed=43",
+        "output.out_dir=/tmp/bkadota_checkpoints/varnet_caipi_promptmr_anatcond/varnet_caipi2d_r4_promptmr_blind_seed43"
+      ],
+      "wandb_run_id": "mgpv2b1j",
+      "trained_at_commit": null,
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 1004233400,
+          "modified": "2026-10-21T09:35:14+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 1004233400,
+          "modified": "2026-10-21T09:35:11+00:00"
+        }
+      }
+    },
+    {
+      "name": "varnet_caipi2d_r4_promptmr_cond_seed42",
+      "path": "checkpoints/varnet_caipi2d_r4_promptmr_cond_seed42",
+      "config_sha256": "690fab2fed5e7236",
+      "overrides": [
+        "recon=varnet",
+        "recon.adaptive_input=true",
+        "recon.momentum_history=11",
+        "recon.prompt_conditioning=true",
+        "recon.label_blind=false",
+        "datasets=brain_knee_balanced",
+        "datasets.condition_classes=[brain,knee-PD,knee-PDFS]",
+        "training.num_step=1",
+        "sampler.sampler_type=caipi_2d",
+        "training.lr=0.001",
+        "training.lr_scheduler=step",
+        "training.lr_step_size=40",
+        "training.num_epochs=50",
+        "training.batch_size=4",
+        "training.seed=42",
+        "output.out_dir=/tmp/bkadota_checkpoints/varnet_caipi_promptmr_anatcond/varnet_caipi2d_r4_promptmr_cond_seed42"
+      ],
+      "wandb_run_id": "ej68kqb7",
+      "trained_at_commit": null,
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 1004233400,
+          "modified": "2026-10-21T01:13:32+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 1004233400,
+          "modified": "2026-10-21T01:13:30+00:00"
+        }
+      }
+    },
+    {
+      "name": "varnet_caipi2d_r4_promptmr_cond_seed43",
+      "path": "checkpoints/varnet_caipi2d_r4_promptmr_cond_seed43",
+      "config_sha256": "44a93d479865564e",
+      "overrides": [
+        "recon=varnet",
+        "recon.adaptive_input=true",
+        "recon.momentum_history=11",
+        "recon.prompt_conditioning=true",
+        "recon.label_blind=false",
+        "datasets=brain_knee_balanced",
+        "datasets.condition_classes=[brain,knee-PD,knee-PDFS]",
+        "training.num_step=1",
+        "sampler.sampler_type=caipi_2d",
+        "training.lr=0.001",
+        "training.lr_scheduler=step",
+        "training.lr_step_size=40",
+        "training.num_epochs=50",
+        "training.batch_size=4",
+        "training.seed=43",
+        "output.out_dir=/tmp/bkadota_checkpoints/varnet_caipi_promptmr_anatcond/varnet_caipi2d_r4_promptmr_cond_seed43"
+      ],
+      "wandb_run_id": "m8hsaz22",
+      "trained_at_commit": null,
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 1004233400,
+          "modified": "2026-10-21T02:53:45+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 1004233400,
+          "modified": "2026-10-21T02:53:43+00:00"
+        }
+      }
+    }
+  ],
+  "commands": [
+    "CUDA_VISIBLE_DEVICES=2 python scripts/eval/eval_varnet_caipi_anatcond.py --seeds 42 43 2>&1 | tee reports/varnet_caipi_promptmr_anatcond_r4/eval_stdout.txt"
+  ],
+  "results": [
+    {
+      "path": "eval.json",
+      "bytes": 55176,
+      "sha256": "64d6787462b596aa"
+    },
+    {
+      "path": "eval_stdout.txt",
+      "bytes": 18069,
+      "sha256": "80f7d7c1b473135d"
+    }
+  ]
+}

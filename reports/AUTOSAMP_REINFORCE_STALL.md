@@ -1,5 +1,7 @@
 # Why AutoSamp and REINFORCE barely move from init (R=8, brain + knee VarNet)
 
+> **Not yet in the report-folder convention** (no `manifest.json`, `run.sh` or provenance block; see `reports/README.md`). The metric mask is not recorded here: runs logged before 2026-10-20 used the legacy mask (`target > 0.1 * max`), and scripts migrated on 2026-10-20 use the apodized per-anatomy mask. Numbers are not comparable across the two, nor with `reports/metric_mask_reeval_r8/report.md`. Check the cited script and result timestamps before comparing, and rewrite with the `experiment-report` skill before citing this report.
+
 Runs: `autosamp2d_varnet_r8_brain_knee` (uniform init, lr 0.01), `..._lr0.05`, `..._normalinit`,
 `reinforce2d_varnet_r8_brain_knee_v2`, `reinforce2d_varnet_r8_brain_knee_vd2.5_100ep`
 (the vd2.5 run is still in progress; best checkpoint epoch 58, logged through epoch 68 of 100).

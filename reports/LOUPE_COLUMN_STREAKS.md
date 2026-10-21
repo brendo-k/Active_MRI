@@ -1,5 +1,7 @@
 # Vertical streaks in learned brain LOUPE masks: where do they come from? (2026-10-05)
 
+> **Not yet in the report-folder convention** (no `manifest.json`, `run.sh` or provenance block; see `reports/README.md`). The metric mask is not recorded here: runs logged before 2026-10-20 used the legacy mask (`target > 0.1 * max`), and scripts migrated on 2026-10-20 use the apodized per-anatomy mask. Numbers are not comparable across the two, nor with `reports/metric_mask_reeval_r8/report.md`. Check the cited script and result timestamps before comparing, and rewrite with the `experiment-report` skill before citing this report.
+
 ## Question
 The learned brain LOUPE 2D mask has narrow vertical streaks: specific columns, spaced about 10-20 apart, carry
 consistently more probability. Are they noise, a property of the k-space data, or something the loss asks for?

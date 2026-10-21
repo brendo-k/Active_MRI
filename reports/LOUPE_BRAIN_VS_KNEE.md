@@ -1,5 +1,7 @@
 # Learned LOUPE 2D masks: brain vs knee
 
+> **Not yet in the report-folder convention** (no `manifest.json`, `run.sh` or provenance block; see `reports/README.md`). The metric mask is not recorded here: runs logged before 2026-10-20 used the legacy mask (`target > 0.1 * max`), and scripts migrated on 2026-10-20 use the apodized per-anatomy mask. Numbers are not comparable across the two, nor with `reports/metric_mask_reeval_r8/report.md`. Check the cited script and result timestamps before comparing, and rewrite with the `experiment-report` skill before citing this report.
+
 ## Setup
 - Separate zero-step LOUPE 2D samplers (`training.num_step=0`, `sampler_type=loupe_2d`) for brain and knee, VarNet (12 cascades, learned sensitivity net) as recon, R=4 (25% budget).
 - Full fastMRI training sets (T2 contrast for evaluation), 30 epochs, lr 1e-3 (step at 25), 3 seeds per anatomy, launched by `scripts/train_loupe_anatomy.sh` through the repo's `train_sequential.py`.

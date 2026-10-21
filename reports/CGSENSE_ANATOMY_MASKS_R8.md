@@ -1,5 +1,7 @@
 # Why does the per-anatomy CG-SENSE mask lose on knee at R=8? (2026-10-20)
 
+> **Not yet in the report-folder convention** (no `manifest.json`, `run.sh` or provenance block; see `reports/README.md`). The metric mask is not recorded here: runs logged before 2026-10-20 used the legacy mask (`target > 0.1 * max`), and scripts migrated on 2026-10-20 use the apodized per-anatomy mask. Numbers are not comparable across the two, nor with `reports/metric_mask_reeval_r8/report.md`. Check the cited script and result timestamps before comparing, and rewrite with the `experiment-report` skill before citing this report.
+
 ## Question
 With CG-SENSE at R=8, the learned parts are the LOUPE mask(s) and the sensitivity U-Net. The reconstructor uses
 10 CG iterations, lamda 0 and no learned prior. In that setup, one mask per anatomy beats the shared mask on brain but

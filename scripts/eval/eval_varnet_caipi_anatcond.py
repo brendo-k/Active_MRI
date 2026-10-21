@@ -16,7 +16,7 @@ The script reports:
   label swap      the conditioned model given each class for every slice, minus its own class: if this is ~0 the
                   model ignores the label, whatever the arm gap is
 
-    CUDA_VISIBLE_DEVICES=2 python scripts/eval/eval_varnet_caipi_anatcond.py --seeds 42 43
+    CUDA_VISIBLE_DEVICES=2 python scripts/eval/eval_varnet_caipi_anatcond.py --seeds 42 43 2>&1 | tee reports/varnet_caipi_promptmr_anatcond_r4/eval_stdout.txt
 """
 import os
 os.environ['HDF5_USE_FILE_LOCKING'] = 'FALSE'
@@ -137,7 +137,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--seeds', type=int, nargs='+', default=[42])
     parser.add_argument('--checkpoint', default='last_model.pt')
-    parser.add_argument('--out', type=Path, default=Path('analysis/varnet_caipi_anatcond/eval.json'))
+    parser.add_argument('--out', type=Path, default=Path('reports/varnet_caipi_promptmr_anatcond_r4/eval.json'))
     parser.add_argument('--device', default='cuda')
     args = parser.parse_args()
     device = torch.device(args.device)

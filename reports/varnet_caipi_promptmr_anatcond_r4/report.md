@@ -1,5 +1,15 @@
 # Does an anatomy label help a PromptMR+-style VarNet on fixed CAIPI R=4 sampling? (2026-10-21)
 
+| | |
+|---|---|
+| Code | results produced at `3771281` (Add PromptMR+ VarNet (momentum, anatomy prompt, label-blind control) and its CAIPI R=4 anatomy-label test); branch `main` |
+| Metric mask | **apodized**: k-space-apodized per-anatomy mask (activemri/utils/metric_mask.py), the trainer metric since 2026-10-20 |
+| Runs | 4 checkpoint directories under `checkpoints/` (untracked; names, overrides, wandb ids in `manifest.json`) |
+| Results | 2 files next to this report, hashed in `manifest.json` |
+| Reproduce | `bash run.sh` from the repo root |
+| Working tree | 2 tracked files were modified when the manifest was written |
+| Training commit | not recorded for these runs (they predate `run_info.json`) |
+
 ## Question
 A VarNet that can already adapt to its input (PromptMR+'s adaptive input, momentum layer and input-driven prompts)
 is trained on a fixed 2D-CAIPI pattern over brain, knee-PD and knee-PDFS. Does also giving it each slice's class
@@ -52,7 +62,7 @@ Final val loss (the training objective) per run: 0.05104 / 0.05095 (seed 42 cond
 
 ## Methods
 All numbers from `scripts/eval/eval_varnet_caipi_anatcond.py --seeds 42 43` (output
-`analysis/varnet_caipi_anatcond/eval.json`, log `eval.log`). Every val slice goes through the model and is scored
+`reports/varnet_caipi_promptmr_anatcond_r4/eval.json`, log `eval_stdout.txt`). Every val slice goes through the model and is scored
 inside the metric mask (`_apply_signal_mask` with `metric_mask_from_real_kspace`), two ways:
 - **per slice**: PSNR / SSIM of each slice with data range = that slice's max, averaged over slices;
 - **trainer**: the trainer's validation metric (`_AnatomyStats`): PSNR = 10 log10(R^2 / MSE pooled over the
@@ -167,6 +177,9 @@ VarNet. The bottleneck-FiLM label cost 0.15 dB brain and 0.14 dB knee on plain V
   dataset configs.
 - This supersedes the CAIPI line in `reports/metric_mask_reeval_r8/report.md`, which compared both cond seeds with the
   seed-42 blind run only.
+- The four runs trained on 2026-10-20/21 with the PromptMR+ VarNet code (`activemri/reconstructors/VarNet.py`, `conditioning.py`) that was
+  uncommitted at that time and first committed in `3771281`; the exact training commit is therefore not recoverable. The evaluation code
+  is `3771281`.
 
 ## Figures
 None. Per-run reconstructions and masks are in each run's wandb page (IDs above) and `visualizations/`.
@@ -180,3 +193,8 @@ None. Per-run reconstructions and masks are in each run's wandb page (IDs above)
    blind model instead of losing up to 0.8 dB.
 4. Re-train the plain-VarNet CAIPI baseline with seed 42 and score it under the new mask, to measure what the 2.8x
    larger PromptMR+ model buys.
+
+## Reproduce
+`bash reports/varnet_caipi_promptmr_anatcond_r4/run.sh` rescoring the four checkpoints (one GPU, `checkpoints/varnet_caipi2d_r4_promptmr_*`, untracked). Training
+commands for the four runs are commented in `run.sh`. Check this folder with
+`python scripts/report_manifest.py check reports/varnet_caipi_promptmr_anatcond_r4`.
