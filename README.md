@@ -42,4 +42,4 @@ Run from anywhere; each script finds `activemri` and its siblings through `scrip
 | `scripts/plots/` | Figures from finished runs |
 | `scripts/diagnostics/` | Probes of why a learned mask looks the way it does |
 | `scripts/oracle/` | CG-SENSE oracle and greedy-search studies |
-| `scripts/legacy/` | Superseded trainers (joint, EMA-DDQN, single-slice, tuned REINFORCE) |
+| `scripts/archive/` | Superseded trainers, early evals and finished queue launchers (see its README) |
