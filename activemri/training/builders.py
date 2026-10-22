@@ -68,6 +68,7 @@ def build_train_config(cfg: DictConfig) -> TrainConfig:
         logit_leak=cfg.sampler.get('logit_leak', 0.01),
         adapt_grid=cfg.sampler.get('adapt_grid', 16),
         adapt_hidden=cfg.sampler.get('adapt_hidden', 64),
+        bank_size=cfg.sampler.get('bank_size', 8),
         init_mask_checkpoint=cfg.sampler.get('init_mask_checkpoint', None),
         loupe_vd_init_power=cfg.sampler.get('loupe_vd_init_power', 0.0),
         sampler_lr=cfg.sampler.get('lr', None),
@@ -78,6 +79,8 @@ def build_train_config(cfg: DictConfig) -> TrainConfig:
         sampler_head_mlp_lr=cfg.sampler.get('head_mlp_lr', 1e-4),
         sampler_image_input=_sampler_image_input(cfg.sampler),
         caipi_keep_fraction=cfg.sampler.get('caipi_keep_fraction', 1.0),
+        caipi_accel_y=cfg.sampler.get('caipi_accel_y', 2),
+        caipi_accel_z=cfg.sampler.get('caipi_accel_z', 2),
         preselect_num=cfg.sampler.preselect_num,
         mask_train_mode=cfg.sampler.get('mask_train_mode', 'straight_through'),
         reinforce_weight=cfg.sampler.get('reinforce_weight', 1.0),
@@ -164,4 +167,6 @@ def build_dataloaders(cfg: DictConfig):
         train_slices=cfg.datasets.get('train_slices', None),
         sense_cache_dir=cfg.datasets.get('sense_cache_dir', None),
         balance_by=cfg.datasets.get('balance_by', 'anatomy'),
+        test_fraction=cfg.datasets.get('test_fraction', 0.0),
+        trim_to_smallest=cfg.datasets.get('trim_to_smallest', True),
     )

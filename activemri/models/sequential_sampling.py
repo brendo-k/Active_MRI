@@ -80,6 +80,8 @@ class SequentialSampling(nn.Module):
             sampler_head='none',
             sampler_image_input=False,
             caipi_keep_fraction=1.0,
+            caipi_accel_y=2,
+            caipi_accel_z=2,
             autosamp_init='uniform',
             mask_grad_floor=0.0,
             ste_grad_floor=0.0,
@@ -88,6 +90,7 @@ class SequentialSampling(nn.Module):
             logit_leak=0.01,
             adapt_grid=16,
             adapt_hidden=64,
+            bank_size=8,
             selection='bernoulli',
             dcm_vd_power=4.0,
             dcm_tau=5.0,
@@ -155,7 +158,10 @@ class SequentialSampling(nn.Module):
             reinforce_vd_power=reinforce_vd_power,
             reinforce_eval=reinforce_eval,
             caipi_keep_fraction=caipi_keep_fraction,
+            caipi_accel_y=caipi_accel_y,
+            caipi_accel_z=caipi_accel_z,
             autosamp_num_points=round(self.budget),
+            poisson_acceleration=1 / sparsity,
             autosamp_init=autosamp_init,
             mask_grad_floor=mask_grad_floor,
             ste_grad_floor=ste_grad_floor,
@@ -164,6 +170,7 @@ class SequentialSampling(nn.Module):
             logit_leak=logit_leak,
             adapt_grid=adapt_grid,
             adapt_hidden=adapt_hidden,
+            bank_size=bank_size,
             calibration_size=preselect_num,
             selection=selection,
             dcm_vd_power=dcm_vd_power,
@@ -278,7 +285,8 @@ class SequentialSampling(nn.Module):
             # Full reconstruction
             if self.recon_type in ('lls', 'cg_sense', 'varnet', 'sdum'):
                 masked_kspace_complex = torch.view_as_complex(masked_kspace.contiguous())
-                recon_kwargs = {'anatomy_labels': anatomy_labels} if self.condition_reconstructor else {}
+                recon_kwargs = {'anatomy_labels': anatomy_labels} \
+                    if self.condition_reconstructor or getattr(self.reconstructor, 'iters_by_label', None) else {}
                 if getattr(self.reconstructor, 'dc_mode', None) == 'multiply':
                     recon_kwargs['full_kspace'] = torch.view_as_complex(full_kspace.contiguous())
                 if kspace_support is not None and self.recon_type == 'varnet':

@@ -44,6 +44,7 @@ def conjugate_gradient_sense(
     num_iters: int = 10,
     lamda: float = 0.0,
     rhs: torch.Tensor = None,
+    iters_per_sample: torch.Tensor = None,
 ) -> torch.Tensor:
     """Solves the SENSE reconstruction via conjugate gradient.
 
@@ -59,6 +60,8 @@ def conjugate_gradient_sense(
         rhs: Optional right-hand side [B, H, W] complex, used instead of
             ``A^H y``. Lets callers solve against a vector that is not the
             adjoint of any k-space data, as the leverage probes do.
+        iters_per_sample: Optional [B] iteration count per sample, at most ``num_iters``; a sample's
+            image stops updating once it has had its own count (the batch still runs ``num_iters``).
 
     Returns:
         Reconstructed image [B, H, W] complex.
@@ -70,13 +73,15 @@ def conjugate_gradient_sense(
     p = r.clone()
     rTr = (r.conj() * r).real.sum(dim=(-2, -1), keepdim=True)  # [B, 1, 1]
 
-    for _ in range(num_iters):
+    for it in range(num_iters):
         Ap = _sense_normal(p, sense_maps, mask)
         if lamda > 0.0:
             Ap = Ap + lamda * p
 
         pTAp = (p.conj() * Ap).real.sum(dim=(-2, -1), keepdim=True)  # [B, 1, 1]
         alpha = rTr / pTAp.clamp(min=1e-12)
+        if iters_per_sample is not None:
+            alpha = alpha * (it < iters_per_sample).to(alpha.dtype).view(-1, 1, 1)
 
         x = x + alpha * p
         r = r - alpha * Ap
@@ -138,9 +143,12 @@ class CGSENSEReconstructor(nn.Module):
     Has no learnable parameters; reconstruction is purely data-driven.
     """
 
-    def __init__(self, num_iters: int = 10, lamda: float = 0.0):
+    def __init__(self, num_iters: int = 10, lamda: float = 0.0, iters_by_label=None):
+        """``iters_by_label``: optional CG iterations per anatomy-label index; the batch runs the largest
+        and each sample stops at its own count (``num_iters`` is then ignored)."""
         super().__init__()
-        self.num_iters = num_iters
+        self.iters_by_label = list(iters_by_label) if iters_by_label is not None else None
+        self.num_iters = max(self.iters_by_label) if self.iters_by_label is not None else num_iters
         self.lamda = lamda
 
     def forward(
@@ -148,17 +156,22 @@ class CGSENSEReconstructor(nn.Module):
         masked_kspace: torch.Tensor,
         sense_maps: torch.Tensor,
         mask: torch.Tensor,
+        anatomy_labels: torch.Tensor = None,
     ) -> torch.Tensor:
         """
         Args:
             masked_kspace: [B, C, H, W] complex.
             sense_maps: [B, C, H, W] complex.
             mask: [B, 1, H, W] binary float.
+            anatomy_labels: optional [B] label indices, used with ``iters_by_label``.
 
         Returns:
             Reconstructed image [B, 1, H, W] real (magnitude).
         """
+        per_sample = None
+        if self.iters_by_label is not None and anatomy_labels is not None:
+            per_sample = torch.tensor(self.iters_by_label, device=anatomy_labels.device)[anatomy_labels]
         x = conjugate_gradient_sense(
-            masked_kspace, sense_maps, mask, self.num_iters, self.lamda
+            masked_kspace, sense_maps, mask, self.num_iters, self.lamda, iters_per_sample=per_sample
         )
         return x.abs().unsqueeze(1)  # [B, 1, H, W]

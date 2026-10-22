@@ -10,16 +10,18 @@ from torch import nn
 
 from activemri.samplers.autosamp import AutoSampCoordinates
 from activemri.samplers.caipi import caipi_mask
+from activemri.samplers.poisson import poisson_mask
 from activemri.samplers.conv import KspaceLineConstrainedSampler, SampProb2D
 from activemri.samplers.loupe import LineConstrainedProbMask, ProbMask
 from activemri.samplers.oracle import plackett_luce_sample_and_logprob
+from activemri.samplers.mask_bank import MaskBank
 from activemri.samplers.smooth_adapt import SmoothAdaptiveMask
 from activemri.utils.image_processing import ifft_2d_img
 from activemri.utils.mask_binarization import (
     RescaleProbMap, stratified_thresholds, threshold_random_mask, topk_straight_through)
 
 
-SAMPLER_TYPES = ("conv_2d", "conv_1d", "loupe_2d", "loupe_1d", "caipi_2d", "autosamp_2d", "mnet_2d", "smooth_adapt_2d")
+SAMPLER_TYPES = ("conv_2d", "conv_1d", "loupe_2d", "loupe_1d", "caipi_2d", "poisson_2d", "autosamp_2d", "mnet_2d", "smooth_adapt_2d", "bank_adapt_2d")
 MASK_TRAIN_MODES = ("straight_through", "reinforce", "random")
 SELECTIONS = ("bernoulli", "dcm")
 
@@ -51,9 +53,11 @@ class Sampler(nn.Module):
         loupe_2d     learned mask, one weight per location        (input-independent)
         loupe_1d     learned mask, one weight per column          (input-independent)
         caipi_2d     fixed 2x2 CAIPI lattice, no parameters       (input-independent)
+        poisson_2d   fixed variable-density Poisson-disc mask, no parameters (input-independent)
         autosamp_2d  learned coordinates snapped to the grid      (input-independent)
         mnet_2d      the conv_2d U-Net with exact-budget top-k    (input-adaptive)
         smooth_adapt_2d  LOUPE mask + smooth offset from the calibration  (input-adaptive, smooth)
+        bank_adapt_2d    bank of LOUPE masks blended by a gate on the calibration (input-adaptive)
 
     `mnet_2d` is the sampler network of Huang & Ravishankar (TCI 2022), trained by the
     alternating scheme in :mod:`activemri.training.mnet_trainer`. It is `conv_2d`
@@ -106,7 +110,10 @@ class Sampler(nn.Module):
         reinforce_vd_power=0.0,
         reinforce_eval='sample',
         caipi_keep_fraction=1.0,
+        caipi_accel_y=2,
+        caipi_accel_z=2,
         autosamp_num_points=0,
+        poisson_acceleration=8.0,
         autosamp_init='uniform',
         mask_grad_floor=0.0,
         ste_grad_floor=0.0,
@@ -115,6 +122,7 @@ class Sampler(nn.Module):
         logit_leak=0.01,
         adapt_grid=16,
         adapt_hidden=64,
+        bank_size=8,
         calibration_size=10,
         selection="bernoulli",
         dcm_vd_power=4.0,
@@ -161,7 +169,9 @@ class Sampler(nn.Module):
         self.eval_generator: torch.Generator | None = None
 
         if sampler_type == "caipi_2d":
-            self.register_buffer("caipi_pattern", caipi_mask(shape, keep_fraction=caipi_keep_fraction)[None, None])
+            self.register_buffer("caipi_pattern", caipi_mask(shape, accel_y=caipi_accel_y, accel_z=caipi_accel_z, keep_fraction=caipi_keep_fraction)[None, None])
+        elif sampler_type == "poisson_2d":
+            self.register_buffer("poisson_pattern", poisson_mask(shape, poisson_acceleration, calibration_size)[None, None])
         elif sampler_type == "autosamp_2d":
             self.mask_net = AutoSampCoordinates(shape, autosamp_num_points, init=autosamp_init)
         elif sampler_type in CONV_2D_TYPES:
@@ -193,6 +203,9 @@ class Sampler(nn.Module):
             self.mask_net = SmoothAdaptiveMask(shape, slope, calibration_size, grid=adapt_grid, hidden=adapt_hidden,
                                                num_conditioning_classes=num_conditioning_classes,
                                                grad_floor=mask_grad_floor, logit_limit=logit_limit)
+        elif sampler_type == "bank_adapt_2d":
+            self.mask_net = MaskBank(shape, slope, calibration_size, bank_size=bank_size, hidden=adapt_hidden,
+                                     grad_floor=mask_grad_floor)
         elif sampler_type == "loupe_2d":
             self.mask_net = ProbMask(shape, slope, num_conditioning_classes=num_conditioning_classes,
                                      grad_floor=mask_grad_floor)
@@ -206,7 +219,7 @@ class Sampler(nn.Module):
         self.rescale = RescaleProbMap
         self.binarize = partial(threshold_random_mask, grad_floor=ste_grad_floor)
         self.exact_budget = sampler_type == "mnet_2d"
-        if mask_draws > 1 and (mask_train_mode != "straight_through" or self.exact_budget or sampler_type == "caipi_2d"):
+        if mask_draws > 1 and (mask_train_mode != "straight_through" or self.exact_budget or sampler_type in ("caipi_2d", "poisson_2d")):
             raise ValueError("mask_draws > 1 averages straight-through Bernoulli draws, so it needs "
                              f"mask_train_mode='straight_through' and a thresholding sampler, got {sampler_type!r}, {mask_train_mode!r}")
         self.mask_draws = mask_draws
@@ -269,7 +282,7 @@ class Sampler(nn.Module):
             prob, anatomy_logits = self.mask_net(input_kspace, old_mask, anatomy_labels=anatomy_labels)
             return prob, None, anatomy_logits
 
-        if self.sampler_type == "smooth_adapt_2d":
+        if self.sampler_type in ("smooth_adapt_2d", "bank_adapt_2d"):
             return self.mask_net(input_kspace, anatomy_labels) * (1 - old_mask), None, None
 
         prob, uncertainty, anatomy_logits = self.mask_net(
@@ -454,6 +467,15 @@ class Sampler(nn.Module):
             data_to_vis_sampler = {
                 'prob_mask': self.caipi_pattern[0, 0],
                 'rescaled_mask': self.caipi_pattern[0, 0],
+                'binarized_mask': binary_mask[0, 0].detach(),
+            }
+            return binary_mask, data_to_vis_sampler, None, None, None
+
+        if self.sampler_type == "poisson_2d":
+            binary_mask = torch.clamp(old_mask + self.poisson_pattern.to(old_mask.dtype), max=1)
+            data_to_vis_sampler = {
+                'prob_mask': self.poisson_pattern[0, 0],
+                'rescaled_mask': self.poisson_pattern[0, 0],
                 'binarized_mask': binary_mask[0, 0].detach(),
             }
             return binary_mask, data_to_vis_sampler, None, None, None

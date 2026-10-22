@@ -1,0 +1,6 @@
+anatomy: [brain, knee]
+data_root: /home/remote/bkadota/scratch/data/fastmri
+data_dir: /home/remote/bkadota/scratch/data/fastmri/balanced_pd_pdfs_t2  # train/val/{knee-PD,knee-PDFS,brain-T2}, built by scripts/make_balanced_pd_pdfs_t2.py
+num_coils: 16
+num_workers: 8
+condition_classes: [brain, knee-PD, knee-PDFS]  # brain here is AXT2

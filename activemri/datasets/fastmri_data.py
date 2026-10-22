@@ -174,9 +174,16 @@ class FastMRIDataset(torch.utils.data.Dataset):
         return kspace
 
     def _center_crop(self, data: torch.Tensor, shape: Tuple[int, int]) -> torch.Tensor:
-        w_from = (data.shape[-2] - shape[0]) // 2
-        h_from = (data.shape[-1] - shape[1]) // 2
-        return data[..., w_from:w_from + shape[0], h_from:h_from + shape[1]]
+        # Zero-pad a dimension that is smaller than the target (e.g. brain files with a 264-wide phase axis);
+        # a negative start index would otherwise slice from the far end and return a narrow, ragged batch element.
+        out = data.new_zeros(*data.shape[:-2], *shape)
+        src, dst = [], []
+        for n, target in zip(data.shape[-2:], shape):
+            offset = (n - target) // 2
+            src.append(slice(max(offset, 0), max(offset, 0) + min(n, target)))
+            dst.append(slice(max(-offset, 0), max(-offset, 0) + min(n, target)))
+        out[..., dst[0], dst[1]] = data[..., src[0], src[1]]
+        return out
 
     def _merge_prostate_averages(self, averages: np.ndarray) -> np.ndarray:
         """Merge the interleaved averages of a prostate slice into full k-space.
@@ -337,6 +344,34 @@ def _split_volumes(files: List[pathlib.Path], val_fraction: float, seed: int):
     return sorted(shuffled[n_val:]), sorted(shuffled[:n_val])
 
 
+def _flat_split(files: List[pathlib.Path], val_fraction: float, test_fraction: float, seed: int):
+    """(train, val, test) volumes of a flat directory. The test volumes are drawn first, with their own seed, so
+    they are the same whatever `val_fraction` is; val is then a fraction of what remains."""
+    rest, test = _split_volumes(files, test_fraction, seed + 1) if test_fraction else (list(files), [])
+    train, val = _split_volumes(rest, val_fraction, seed)
+    return train, val, test
+
+
+def held_out_test_volumes(
+    data_root: pathlib.Path,
+    anatomies: List[str],
+    contrast: Optional[str],
+    test_fraction: float,
+    seed: int = 1234,
+) -> Dict[str, List[str]]:
+    """File names of the held-out test volumes per condition class (brain, knee-PD, knee-PDFS), exactly the
+    volumes `build_fastmri_dataloaders(..., test_fraction=...)` keeps out of train and val."""
+    out = {}
+    for anatomy in anatomies:
+        train_dir, val_dir = _resolve_anatomy_dirs(data_root, anatomy, contrast)
+        if train_dir != val_dir:
+            raise ValueError(f"{anatomy} has a train/val split on disk; a test hold-out needs a flat directory")
+        _, _, test = _flat_split(list_anatomy_files(train_dir, anatomy), 0.0, test_fraction, seed)
+        for group, group_files in _group_files(anatomy, test, 'condition').items():
+            out[group] = sorted(f.name for f in group_files)
+    return out
+
+
 def _pick_volumes(files: List[pathlib.Path], anatomy: str, target_slices: int, seed: int) -> List[str]:
     """Random volumes of `files` until their raw slice count first reaches `target_slices`."""
     shuffled = list(files)
@@ -381,6 +416,8 @@ def _build_balanced_datasets(
     seed: int = 1234,
     train_slices: Optional[Dict[str, int]] = None,
     balance_by: str = 'anatomy',
+    test_fraction: float = 0.0,
+    trim_to_smallest: bool = True,
     **dataset_kwargs,
 ) -> Tuple[List[FastMRIDataset], List[FastMRIDataset]]:
     """Per-anatomy train/val datasets with an equal number of slices per anatomy.
@@ -403,9 +440,11 @@ def _build_balanced_datasets(
     for anatomy in anatomies:
         train_dir, val_dir = _resolve_anatomy_dirs(data_root, anatomy, contrast)
         if train_dir == val_dir:
-            train_files, val_files = _split_volumes(list_anatomy_files(train_dir, anatomy), val_fraction, seed)
+            train_files, val_files, _ = _flat_split(list_anatomy_files(train_dir, anatomy), val_fraction, test_fraction, seed)
             roots = {'train': train_dir, 'val': train_dir}
         else:
+            if test_fraction:
+                raise ValueError(f"{anatomy} has a train/val split on disk; a test hold-out needs a flat directory")
             train_files, val_files = list_anatomy_files(train_dir, anatomy), list_anatomy_files(val_dir, anatomy)
             roots = {'train': train_dir, 'val': val_dir}
         for split, split_files in (('train', train_files), ('val', val_files)):
@@ -427,7 +466,7 @@ def _build_balanced_datasets(
         overridden = {a: n for a, n in train_slices.items() if split == 'train' and a in files[split]}
         for group, (root, split_files) in files[split].items():
             # The energy filter drops slices, so an overridden anatomy starts from all its volumes and is trimmed after.
-            names = _pick_volumes(split_files, group_anatomy[group], raw_totals[group] if group in overridden else target, seed)
+            names = [f.name for f in split_files] if not trim_to_smallest else _pick_volumes(split_files, group_anatomy[group], raw_totals[group] if group in overridden else target, seed)
             built[group] = FastMRIDataset(
                 root=root, anatomy=group_anatomy[group], file_names=names, **dataset_kwargs,
             )
@@ -438,10 +477,10 @@ def _build_balanced_datasets(
                 )
         balanced = [ds for a, ds in built.items() if a not in overridden]
         num_examples = min(len(ds) for ds in balanced)
-        for anatomy, ds in built.items():
+        for anatomy, ds in built.items() if trim_to_smallest else ():
             _trim_examples(ds, overridden.get(anatomy, num_examples), seed)
         counts = {a: (len({e[0] for e in ds.examples}), len(ds)) for a, ds in built.items()}
-        print(f"Balanced {split} set (volumes, slices): {counts}")
+        print(f"{'Balanced' if trim_to_smallest else 'Unbalanced'} {split} set (volumes, slices): {counts}")
         datasets[split] = list(built.values())
 
     return datasets['train'], datasets['val']
@@ -479,6 +518,8 @@ def build_fastmri_dataloaders(
     train_slices: Optional[int] = None,
     sense_cache_dir: Optional[str] = None,
     balance_by: str = 'anatomy',
+    test_fraction: float = 0.0,
+    trim_to_smallest: bool = True,
 ) -> Tuple[torch.utils.data.DataLoader, torch.utils.data.DataLoader]:
     """Build train and val dataloaders from one or more anatomies.
 
@@ -491,6 +532,10 @@ def build_fastmri_dataloaders(
         num_coils: Number of coils to pad/crop to.
         num_workers: DataLoader workers.
         val_fraction: Fraction of data for validation when no train/val split exists.
+        trim_to_smallest: With balance, False keeps every volume of every group instead of trimming the larger
+            groups to the smallest one's slice count (the splits and condition classes are unchanged).
+        test_fraction: With balance, fraction of each anatomy's volumes held out of train and val (never loaded
+            here; `held_out_test_volumes` lists them). Drawn before the val split, so val is a fraction of the rest.
         contrast: Brain contrast to use (T2, Flair, T1POST). Defaults to T2.
         data_dir: If provided, use this directory directly (expects train/val subdirs).
             Bypasses anatomy-based directory resolution.
@@ -519,6 +564,8 @@ def build_fastmri_dataloaders(
             min_energy_fraction=min_energy_fraction,
             sense_cache=SenseCache(sense_cache_dir) if sense_cache_dir else None,
             balance_by=balance_by,
+            test_fraction=test_fraction,
+            trim_to_smallest=trim_to_smallest,
         )
     elif data_dir is not None:
         if sense_cache_dir:

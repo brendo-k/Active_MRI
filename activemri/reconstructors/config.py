@@ -84,6 +84,7 @@ class CGSenseReconConfig(ReconConfig):
     cg_iters: int = 10
     cg_lamda: float = 0.0
     sense_tikhonov_weight: float = 0.0
+    cg_iters_by_anatomy: Optional[dict] = None  # e.g. {brain: 8, knee: 5}: CG iterations per anatomy (a class like knee-PD matches 'knee'); overrides cg_iters
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser) -> None:

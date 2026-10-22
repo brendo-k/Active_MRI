@@ -1043,6 +1043,16 @@ def zero_coil_fraction(kspace):
     return (kspace.abs().sum(dim=(2, 3, 4)) == 0).float().mean().item()
 
 
+def _cg_iters_by_label(iters_by_anatomy, label_classes):
+    """CG iterations per label index from {anatomy: iters}; a class such as knee-PD takes its anatomy's count."""
+    if not iters_by_anatomy:
+        return None
+    missing = [c for c in label_classes if c.split('-')[0] not in iters_by_anatomy]
+    if missing:
+        raise ValueError(f"cg_iters_by_anatomy {dict(iters_by_anatomy)} has no entry for classes {missing}")
+    return [int(iters_by_anatomy[c.split('-')[0]]) for c in label_classes]
+
+
 def build_model(options: TrainConfig):
     recon_cfg = options.recon
 
@@ -1099,6 +1109,7 @@ def build_model(options: TrainConfig):
         reconstructor = CGSENSEReconstructor(
             num_iters=recon_cfg.cg_iters,
             lamda=recon_cfg.cg_lamda,
+            iters_by_label=_cg_iters_by_label(recon_cfg.cg_iters_by_anatomy, anatomy_classes),
         )
     else:
         raise ValueError(f"Unknown recon config type: {type(recon_cfg)}")
@@ -1136,6 +1147,8 @@ def build_model(options: TrainConfig):
         sampler_head=getattr(options, 'sampler_head', 'none'),
         sampler_image_input=getattr(options, 'sampler_image_input', False),
         caipi_keep_fraction=getattr(options, 'caipi_keep_fraction', 1.0),
+        caipi_accel_y=getattr(options, 'caipi_accel_y', 2),
+        caipi_accel_z=getattr(options, 'caipi_accel_z', 2),
         autosamp_init=getattr(options, 'autosamp_init', 'uniform'),
         mask_grad_floor=getattr(options, 'mask_grad_floor', 0.0),
         ste_grad_floor=getattr(options, 'ste_grad_floor', 0.0),
@@ -1144,6 +1157,7 @@ def build_model(options: TrainConfig):
         logit_leak=getattr(options, 'logit_leak', 0.01),
         adapt_grid=getattr(options, 'adapt_grid', 16),
         adapt_hidden=getattr(options, 'adapt_hidden', 64),
+        bank_size=getattr(options, 'bank_size', 8),
         selection=getattr(options, 'selection', 'bernoulli'),
         dcm_vd_power=getattr(options, 'dcm_vd_power', 4.0),
         dcm_tau=getattr(options, 'dcm_tau', 5.0),

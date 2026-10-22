@@ -56,7 +56,8 @@ class TrainConfig:
     logit_limit: float = 6.0  # conv_2d: scores are soft-clamped to +/- this before the sigmoid
     logit_leak: float = 0.01  # conv_2d: slope of the score beyond the clamp (keeps the gradient of pinned locations alive)
     adapt_grid: int = 16  # smooth_adapt_2d: side of the coarse offset grid (0 = no offset: a bounded LOUPE mask)
-    adapt_hidden: int = 64  # smooth_adapt_2d: width of the offset predictor
+    adapt_hidden: int = 64  # smooth_adapt_2d / bank_adapt_2d: width of the offset predictor / gate
+    bank_size: int = 8  # bank_adapt_2d: number of learned masks the calibration-block gate blends
     init_mask_checkpoint: Optional[str] = None  # loupe_2d / smooth_adapt_2d: start every class's mask from this loupe_2d run's mask (trainable)
     loupe_vd_init_power: float = 0.0  # loupe_2d straight-through: >0 starts the mask at the budget-matched VD prior clamp(c ((D - r) / D)^p) instead of uniform noise
     sampler_lr: Optional[float] = None  # lr of the sampler's parameters when it differs from training.lr
@@ -67,6 +68,8 @@ class TrainConfig:
     sampler_head_mlp_lr: float = 1e-4  # sampler_head=mlp: lr of the head's MLP alone (the per-location bias keeps `lr`)
     sampler_image_input: bool = False
     caipi_keep_fraction: float = 1.0
+    caipi_accel_y: int = 2
+    caipi_accel_z: int = 2
     preselect_num: int = 10
     mask_train_mode: str = 'straight_through'  # or 'reinforce'/'random' (loupe_2d/loupe_1d only)
     reinforce_weight: float = 1.0

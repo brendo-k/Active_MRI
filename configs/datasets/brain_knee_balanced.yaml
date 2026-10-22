@@ -9,3 +9,5 @@ condition_classes: []  # per-sample conditioning labels, e.g. [brain, knee-PD, k
 train_anatomies: []  # train on this subset only, still validating on every anatomy; empty = all
 train_slices: null  # with train_anatomies, train slices per trained anatomy instead of the balanced count
 sense_cache_dir: null  # BART ecalib maps cached by scripts/data/build_sense_cache.py; when set, the model uses them instead of the sensitivity net
+test_fraction: 0.0  # fraction of each anatomy's volumes held out of train and val (see held_out_test_volumes); 0 = none
+trim_to_smallest: true  # with balance: false keeps every volume instead of trimming each group to the smallest group's slice count

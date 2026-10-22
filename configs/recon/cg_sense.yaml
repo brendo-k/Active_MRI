@@ -2,3 +2,4 @@ recon_type: cg_sense
 cg_iters: 10
 cg_lamda: 0.0
 sense_tikhonov_weight: 0.0
+cg_iters_by_anatomy: null  # e.g. {brain: 8, knee: 5}: per-anatomy CG iterations (a class like knee-PD matches knee); overrides cg_iters
