@@ -21,17 +21,25 @@ class MaskBank(nn.Module):
         bank_size: number of masks in the bank.
         hidden: width of the gate's two hidden layers.
         grad_floor: floor on the sigmoid's backward derivative, as in ProbMask.
+        gate_temperature: the gate's logits are divided by this before the softmax (>1 flattens the weights).
+        gate_logit_limit: if > 0 the gate's logits are bounded to +/- this by `limit * tanh(logit / limit)` before the
+            temperature. Unbounded, the gate drives most of the bank's weights to ~e^-40 and those masks stop
+            receiving gradient for good; the bound keeps every mask's weight above a floor
+            (>= exp(-2 limit / temperature) relative to the largest).
     """
 
     calibration_features = SmoothAdaptiveMask.calibration_features
 
-    def __init__(self, shape, slope, calibration_size, bank_size=8, hidden=64, grad_floor=0.0, eps=1e-2):
+    def __init__(self, shape, slope, calibration_size, bank_size=8, hidden=64, grad_floor=0.0, eps=1e-2,
+                 gate_temperature=1.0, gate_logit_limit=0.0):
         super().__init__()
         self.shape = tuple(shape)
         self.slope = slope
         self.calibration_size = calibration_size
         self.bank_size = bank_size
         self.grad_floor = grad_floor
+        self.gate_temperature = gate_temperature
+        self.gate_logit_limit = gate_logit_limit
         uniform = torch.zeros(bank_size, *self.shape).uniform_(eps, 1 - eps)
         self.mask = nn.Parameter(-torch.log(1.0 / uniform - 1.0) / slope)
         width = calibration_size ** 2
@@ -43,7 +51,10 @@ class MaskBank(nn.Module):
 
     def weights(self, kspace):
         """[N, bank_size] softmax weights from the calibration block of NHWC k-space."""
-        return torch.softmax(self.gate_head(self.gate(self.calibration_features(kspace))), dim=-1)
+        logits = self.gate_head(self.gate(self.calibration_features(kspace)))
+        if self.gate_logit_limit > 0:
+            logits = self.gate_logit_limit * torch.tanh(logits / self.gate_logit_limit)
+        return torch.softmax(logits / self.gate_temperature, dim=-1)
 
     def forward(self, kspace, anatomy_labels=None):  # noqa: ARG002
         """Args: kspace NHWC. Returns: probabilities [N, 1, H, W]."""
