@@ -18,7 +18,7 @@ from fastmri.models.varnet import VarNet as ReferenceVarNet
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from activemri.reconstructors.VarNet import VarNet  # noqa: E402
+from activemri.reconstructors.VarNet import VarNet, center, uncenter  # noqa: E402
 from activemri.utils.image_processing import ifft_2d_img  # noqa: E402
 
 
@@ -63,11 +63,13 @@ def reference_cascade_outputs(reference, kspace, sense, mask):
 
 
 def our_cascade_outputs(ours, kspace, sense, mask):
+    # The cascades take and return uncentered k-space and maps; shifting in and out is exact.
+    kspace, sense, mask = uncenter(kspace), uncenter(sense), uncenter(mask)
     current = kspace.clone()
     outputs = []
     for cascade in ours.cascades:
         current = cascade(current, kspace, mask, sense)
-        outputs.append(torch.view_as_real(current))
+        outputs.append(torch.view_as_real(center(current)))
     return outputs
 
 

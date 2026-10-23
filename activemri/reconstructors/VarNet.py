@@ -17,9 +17,23 @@ from fastmri.models import Unet
 from activemri.reconstructors.csme import CascadeSensitivityModel, acs_region_mask
 from activemri.utils.complex_conversion import complex_to_real, real_to_complex
 from activemri.utils.conditioning import DEFAULT_EMBED_DIM, AnatomyEmbedding, AnatomyPrompt, FiLM, broadcast_channels
-from activemri.utils.image_processing import fft_2d_img, ifft_2d_img
 
 BACKBONES = ("unet", "promptmr")
+
+# The cascades keep k-space, masks and sensitivity maps uncentered (the centre at index 0, where the FFT puts it), so
+# their FFTs need no fftshift/ifftshift. A shift is a copy, not a view, and on the multi-coil tensors it costs about
+# as much as the FFT; only the single-coil images to and from each U-Net are still shifted. A shift only moves
+# elements, so the result is bit for bit that of fft_2d_img / ifft_2d_img, whose FFT axes these keep.
+FFT_AXES = (-1, -2)
+
+
+def uncenter(x: torch.Tensor) -> torch.Tensor:
+    """Moves the centre of the last two axes to index 0 (ifftshift); :func:`center` undoes it."""
+    return torch.fft.ifftshift(x, dim=FFT_AXES)
+
+
+def center(x: torch.Tensor) -> torch.Tensor:
+    return torch.fft.fftshift(x, dim=FFT_AXES)
 
 # Side of the stored prompt maps at the coarsest decoder level, doubling per level (8 ... 64 for 4 pools).
 PROMPT_BASE_SIZE = 8
@@ -358,6 +372,9 @@ class VarNetBlock(nn.Module):
     ``estimate_sense`` gives the cascade its own :class:`CascadeSensitivityModel` (SDUM's CSME), which estimates
     the maps from the ACS region of the cascade's current k-space; the maps passed in are then ignored, and the
     cascade returns the ones it used.
+
+    The k-space, mask, support and sensitivity maps it takes and returns are uncentered (see :func:`uncenter`); the
+    images given to and returned by the U-Net are centred.
     """
 
     def __init__(self, model: nn.Module, dc_mode: str = "where", dc_weight_shape=None, adaptive_input: bool = False,
@@ -381,15 +398,25 @@ class VarNetBlock(nn.Module):
         super()._load_from_state_dict(state_dict, prefix, *args, **kwargs)
 
     def estimate_sense_maps(self, kspace: torch.Tensor, acs_mask: torch.Tensor) -> torch.Tensor:
+        """Uncentered maps from uncentered `kspace` and `acs_mask`."""
         if self.training and torch.is_grad_enabled():
-            return torch.utils.checkpoint.checkpoint(self.sense_model, kspace, acs_mask, use_reentrant=False)
-        return self.sense_model(kspace, acs_mask)
+            return torch.utils.checkpoint.checkpoint(self._sense_maps, kspace, acs_mask, use_reentrant=False)
+        return self._sense_maps(kspace, acs_mask)
 
-    def sens_expand(self, image: torch.Tensor, sense_maps: torch.Tensor) -> torch.Tensor:
-        return fft_2d_img(image * sense_maps)
+    def _sense_maps(self, kspace: torch.Tensor, acs_mask: torch.Tensor) -> torch.Tensor:
+        coil_images = center(torch.fft.ifft2(kspace * acs_mask, dim=FFT_AXES, norm="ortho"))
+        return uncenter(self.sense_model.maps_from_coil_images(coil_images))
 
-    def sens_reduce(self, kspace: torch.Tensor, sense_maps: torch.Tensor) -> torch.Tensor:
-        return (ifft_2d_img(kspace) * sense_maps.conj()).sum(dim=1, keepdim=True)
+    @staticmethod
+    def sens_expand(image: torch.Tensor, sense_maps: torch.Tensor) -> torch.Tensor:
+        """Uncentered coil k-spaces of a centred image."""
+        return torch.fft.fft2(uncenter(image) * sense_maps, dim=FFT_AXES, norm="ortho")
+
+    @staticmethod
+    def sens_reduce(kspace: torch.Tensor, sense_maps: torch.Tensor) -> torch.Tensor:
+        """Centred coil-combined image of uncentered coil k-spaces."""
+        coil_images = torch.fft.ifft2(kspace, dim=FFT_AXES, norm="ortho")
+        return center((coil_images * sense_maps.conj()).sum(dim=1, keepdim=True))
 
     def forward(
         self,
@@ -412,11 +439,13 @@ class VarNetBlock(nn.Module):
         """
         if self.sense_model is not None and sense_maps is None:
             sense_maps = self.estimate_sense_maps(current_kspace, acs_mask)
+        # A per-location weight is stored centred, like the checkpoints that hold it.
+        dc_weight = uncenter(self.dc_weight) if self.dc_weight.dim() > 1 else self.dc_weight
         if self.dc_mode == "multiply":
-            soft_dc = mask * (current_kspace - ref_kspace) * self.dc_weight
+            soft_dc = mask * (current_kspace - ref_kspace) * dc_weight
         else:
             zero = torch.zeros(1, device=current_kspace.device, dtype=current_kspace.dtype)
-            soft_dc = torch.where(mask.bool(), current_kspace - ref_kspace, zero) * self.dc_weight
+            soft_dc = torch.where(mask.bool(), current_kspace - ref_kspace, zero) * dc_weight
         image = self.sens_reduce(current_kspace, sense_maps)
         if self.adaptive_input:
             normal = self.sens_reduce(mask * current_kspace, sense_maps)
@@ -551,12 +580,17 @@ class VarNet(nn.Module):
             if self.anatomy_embedding is not None else None
         )
 
-        if self.dc_mode == "multiply":
-            if full_kspace is None:
-                raise ValueError("dc_mode='multiply' needs full_kspace as the DC reference")
-            ref_kspace = full_kspace
-        else:
-            ref_kspace = masked_kspace
+        if self.dc_mode == "multiply" and full_kspace is None:
+            raise ValueError("dc_mode='multiply' needs full_kspace as the DC reference")
+
+        # The cascades work uncentered (see `uncenter`). The ACS region is found on the centred mask.
+        acs_mask = uncenter(acs_region_mask(mask)) if self.estimate_sense else None
+        masked_kspace, mask = uncenter(masked_kspace), uncenter(mask)
+        if not self.estimate_sense:
+            sense_maps = uncenter(sense_maps)
+        if kspace_support is not None:
+            kspace_support = uncenter(kspace_support)
+        ref_kspace = uncenter(full_kspace) if self.dc_mode == "multiply" else masked_kspace
 
         def run(cascade, *inputs):
             if self.checkpoint_cascades and self.training and torch.is_grad_enabled():
@@ -564,15 +598,13 @@ class VarNet(nn.Module):
             return cascade(*inputs)
 
         kspace_pred = masked_kspace.clone()
-        acs_mask = None
         if self.estimate_sense:
-            acs_mask = acs_region_mask(mask)
             # Cascade 0 estimates from the same k-space as the zero-filled image, so the estimate is shared.
             sense_maps = (self.cascades[0].estimate_sense_maps(masked_kspace, acs_mask)
                           if self.adaptive_input else None)
         zero_filled = latent = history = None
         if self.adaptive_input:
-            zero_filled = (ifft_2d_img(masked_kspace) * sense_maps.conj()).sum(dim=1, keepdim=True)
+            zero_filled = VarNetBlock.sens_reduce(masked_kspace, sense_maps)
             latent = zero_filled
         for cascade in self.cascades:
             output = run(cascade, kspace_pred, ref_kspace, mask, sense_maps, anatomy_embedding, kspace_support,
@@ -583,4 +615,4 @@ class VarNet(nn.Module):
                 kspace_pred, used_maps = output, sense_maps
             if self.estimate_sense:
                 sense_maps = None
-        return (ifft_2d_img(kspace_pred) * used_maps.conj()).sum(dim=1, keepdim=True)
+        return VarNetBlock.sens_reduce(kspace_pred, used_maps)

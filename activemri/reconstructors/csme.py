@@ -69,8 +69,12 @@ class CascadeSensitivityModel(nn.Module):
         Returns:
             [B, C, H, W] complex sensitivity maps.
         """
-        batch, coils, height, width = kspace.shape
-        images = ifft_2d_img(kspace * acs_mask).reshape(batch * coils, 1, height, width)
+        return self.maps_from_coil_images(ifft_2d_img(kspace * acs_mask))
+
+    def maps_from_coil_images(self, images: torch.Tensor) -> torch.Tensor:
+        """The maps from the centred coil images [B, C, H, W] of the ACS region, for callers that hold those."""
+        batch, coils, height, width = images.shape
+        images = images.reshape(batch * coils, 1, height, width)
         x = torch.view_as_real(images).squeeze(1).permute(0, 3, 1, 2)
         pad_h, pad_w = -height % PAD_MULTIPLE, -width % PAD_MULTIPLE
         padding = (pad_w // 2, pad_w - pad_w // 2, pad_h // 2, pad_h - pad_h // 2)
