@@ -371,16 +371,18 @@ class VarNetBlock(nn.Module):
 
     ``estimate_sense`` gives the cascade its own :class:`CascadeSensitivityModel` (SDUM's CSME), which estimates
     the maps from the ACS region of the cascade's current k-space; the maps passed in are then ignored, and the
-    cascade returns the ones it used.
+    cascade returns the ones it used. ``checkpoint_sense`` recomputes that estimate in the backward pass instead of
+    storing the estimator's activations, a full-resolution U-Net pass per coil.
 
     The k-space, mask, support and sensitivity maps it takes and returns are uncentered (see :func:`uncenter`); the
     images given to and returned by the U-Net are centred.
     """
 
     def __init__(self, model: nn.Module, dc_mode: str = "where", dc_weight_shape=None, adaptive_input: bool = False,
-                 estimate_sense: bool = False, bf16: bool = False):
+                 estimate_sense: bool = False, bf16: bool = False, checkpoint_sense: bool = True):
         super().__init__()
         self.bf16 = bf16
+        self.checkpoint_sense = checkpoint_sense
         if dc_mode not in DC_MODES:
             raise ValueError(f"dc_mode must be one of {DC_MODES}, got {dc_mode!r}")
         self.model = model
@@ -400,7 +402,7 @@ class VarNetBlock(nn.Module):
 
     def estimate_sense_maps(self, kspace: torch.Tensor, acs_mask: torch.Tensor) -> torch.Tensor:
         """Uncentered maps from uncentered `kspace` and `acs_mask`."""
-        if self.training and torch.is_grad_enabled():
+        if self.checkpoint_sense and self.training and torch.is_grad_enabled():
             return torch.utils.checkpoint.checkpoint(self._sense_maps, kspace, acs_mask, use_reentrant=False)
         return self._sense_maps(kspace, acs_mask)
 
@@ -498,9 +500,12 @@ class VarNet(nn.Module):
             (SDUM's CSME, :class:`CascadeSensitivityModel`) and `sense_maps` is ignored. The mask must acquire the
             k-space centre. The returned image is combined with the last cascade's maps.
         bf16: bf16 autocast on every cascade's U-Net, on CUDA only; data consistency and the FFTs stay fp32.
-        compile_unet: torch.compile each cascade's U-Net (dynamic shapes, since brain and knee differ in size).
+        compile_unet: torch.compile each cascade's U-Net and, with ``estimate_sense``, its sensitivity estimator's
+            U-Net (dynamic shapes, since brain and knee differ in size).
         checkpoint_cascades: Recompute each cascade in the backward pass instead of storing its
             activations, trading compute for memory while training.
+        checkpoint_sense: With ``estimate_sense``, recompute every cascade's sensitivity estimate in the backward
+            pass instead of storing its estimator's activations; see :class:`VarNetBlock`.
     """
 
     def __init__(
@@ -522,6 +527,7 @@ class VarNet(nn.Module):
         estimate_sense: bool = False,
         bf16: bool = False,
         compile_unet: bool = False,
+        checkpoint_sense: bool = True,
     ):
         super().__init__()
         if film and prompt:
@@ -549,13 +555,15 @@ class VarNet(nn.Module):
                                   momentum_history=momentum_history, prompt_embed_dim=prompt_embed_dim,
                                   backbone=backbone),
                          dc_mode=dc_mode, dc_weight_shape=dc_weight_shape, adaptive_input=adaptive_input,
-                         estimate_sense=estimate_sense, bf16=bf16)
+                         estimate_sense=estimate_sense, bf16=bf16, checkpoint_sense=checkpoint_sense)
              for _ in range(num_cascades)]
         )
         if compile_unet:
             for cascade in self.cascades:
-                # In place, so state_dict keys are unchanged. Only the real-valued U-Net: inductor handles complex tensors poorly.
+                # In place, so state_dict keys are unchanged. Only the real-valued U-Nets: inductor handles complex tensors poorly.
                 cascade.model.unet.compile(dynamic=True)
+                if cascade.sense_model is not None:
+                    cascade.sense_model.unet.compile(dynamic=True)
 
     def forward(
         self,

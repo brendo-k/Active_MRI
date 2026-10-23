@@ -153,5 +153,27 @@ def test_estimated_sense_ignores_external_maps_and_trains_every_cascades_estimat
     assert all(cascade.sense_model.unet.conv_0.conv_0.conv.weight.grad.abs().sum() > 0 for cascade in model.cascades)
 
 
+def test_sense_checkpointing_changes_neither_output_nor_gradients(monkeypatch):
+    checkpoint, calls = torch.utils.checkpoint.checkpoint, []
+    monkeypatch.setattr(torch.utils.checkpoint, 'checkpoint',
+                        lambda *args, **kwargs: calls.append(1) or checkpoint(*args, **kwargs))
+    results = {}
+    for checkpoint_sense in (True, False):
+        calls.clear()
+        torch.manual_seed(0)
+        model = VarNet(num_cascades=2, chans=4, pools=2, estimate_sense=True, checkpoint_sense=checkpoint_sense).train()
+        kspace, sense, _ = inputs()
+        output = model(kspace * line_mask(), sense, line_mask())
+        output.abs().mean().backward()
+        grads = {name: p.grad for name, p in model.named_parameters() if p.grad is not None}
+        results[checkpoint_sense] = output.detach(), grads, len(calls)
+
+    (checkpointed, checkpointed_grads, checkpoint_calls), (stored, stored_grads, stored_calls) = results.values()
+    assert (checkpoint_calls, stored_calls) == (2, 0)
+    assert torch.allclose(checkpointed, stored)
+    assert checkpointed_grads.keys() == stored_grads.keys()
+    assert all(torch.allclose(checkpointed_grads[name], stored_grads[name]) for name in stored_grads)
+
+
 def test_external_sense_is_the_default_and_has_no_estimator():
     assert all(cascade.sense_model is None for cascade in VarNet(num_cascades=2, chans=4, pools=2).cascades)

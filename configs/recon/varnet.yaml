@@ -13,5 +13,6 @@ momentum_history: 0  # >0: PromptMR+'s momentum layer at every decoder level ove
 backbone: unet  # unet (fastMRI) | promptmr (PromptMR+ CAB U-Net with prompts; needs pools: 3, chans: 48 for PromptMR+'s widths)
 estimate_sense: false  # true: every cascade estimates its sensitivity maps from the ACS region of its own k-space, as SDUM's CSME; false = external maps
 checkpoint_cascades: false  # recompute cascades in backward to save memory
+checkpoint_sense: true  # estimate_sense only: recompute each cascade's sensitivity estimate in backward to save memory (a full-resolution U-Net pass per coil)
 bf16: false  # bf16 autocast on each cascade's U-Net; data consistency, FFTs and sensitivity maps stay fp32
-compile_unet: false  # torch.compile each cascade's real-valued U-Net, unet or promptmr backbone (the complex FFT/DC code stays eager)
+compile_unet: false  # torch.compile each cascade's real-valued U-Nets (unet or promptmr backbone, and the estimate_sense estimator); the complex FFT/DC code stays eager
