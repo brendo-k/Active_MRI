@@ -953,7 +953,6 @@ def _sampler_type(options: TrainConfig) -> str:
     return 'conv_1d' if getattr(options, 'line_constrained', False) else 'conv_2d'
 
 
-GRAD_CLIP_NORM = 1.0
 # Positions' gradients scale with the k-space amplitude and are then shrunk by the global
 # clip, so they can fall below Adam's default eps (1e-8) and stall; this keeps Adam's
 # per-step move at ~lr whatever their scale.

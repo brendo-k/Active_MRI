@@ -18,7 +18,7 @@ import copy
 import torch
 import torch.nn.functional as F
 
-from activemri.training.trainer import GRAD_CLIP_NORM, Sequential_Trainer, build_model, zero_coil_fraction
+from activemri.training.trainer import Sequential_Trainer, build_model, zero_coil_fraction
 from activemri.utils.mask_binarization import topk_straight_through
 
 ACCEPT_MODES = ('q_check', 'always')
@@ -227,7 +227,7 @@ class MNetTrainer(Sequential_Trainer):
         for optimizer in optimizers:
             optimizer.zero_grad()
         loss.backward()
-        norm = torch.nn.utils.clip_grad_norm_(clip_params, GRAD_CLIP_NORM)
+        norm = torch.nn.utils.clip_grad_norm_(clip_params, self.options.grad_clip_norm)
         finite = bool(torch.isfinite(norm))
         if finite:
             for optimizer in optimizers:
