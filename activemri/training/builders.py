@@ -41,6 +41,7 @@ def build_train_config(cfg: DictConfig) -> TrainConfig:
         lr_scheduler=cfg.training.get('lr_scheduler', 'step'),
         lr_warmup_epochs=cfg.training.get('lr_warmup_epochs', 2),
         weight_decay=cfg.training.weight_decay,
+        grad_clip_norm=cfg.training.get('grad_clip_norm', 1.0),
         limit_batches=cfg.training.limit_batches,
         data_parallel=cfg.training.data_parallel,
         compile_unets=cfg.training.get('compile_unets', False),

@@ -185,6 +185,8 @@ def _training_tokens(options):
         tokens.append(_get(options, 'lr_scheduler').replace('_', '-'))
     if _get(options, 'weight_decay'):
         tokens.append(f"wd{_get(options, 'weight_decay'):g}")
+    if _get(options, 'grad_clip_norm') != _DEFAULTS.grad_clip_norm:
+        tokens.append(f"clip{_get(options, 'grad_clip_norm'):g}")
     if _get(options, 'num_epochs') != BASELINE['num_epochs']:
         tokens.append(f"ep{_get(options, 'num_epochs')}")
     if _get(options, 'batch_size') != BASELINE['batch_size']:

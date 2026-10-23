@@ -13,6 +13,7 @@ training:
   lr_scheduler: step  # step | constant | cosine | warmup_cosine
   lr_warmup_epochs: 2  # warmup_cosine only
   weight_decay: 0.0
+  grad_clip_norm: 1.0  # per-group global-norm clip of the gradients; PromptMR+ trains with 0.01
   limit_batches: 1.0
   data_parallel: false
   compile_unets: true  # torch.compile every U-Net body (VarNet cascades, sensitivity net); ~1 min of compiling at the start, needs gcc/g++
