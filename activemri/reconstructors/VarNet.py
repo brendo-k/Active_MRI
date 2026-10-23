@@ -20,9 +20,46 @@ from activemri.utils.conditioning import DEFAULT_EMBED_DIM, AnatomyEmbedding, An
 from activemri.utils.image_processing import fft_2d_img, ifft_2d_img
 
 BACKBONES = ("unet", "promptmr")
+# The U-Net body's autocast dtype; the normalisation around it, the FFTs and data consistency stay float32.
+UNET_PRECISIONS = {"fp32": None, "bf16": torch.bfloat16}
 
 # Side of the stored prompt maps at the coarsest decoder level, doubling per level (8 ... 64 for 4 pools).
 PROMPT_BASE_SIZE = 8
+
+
+class FastMRIUnet(Unet):
+    """fastMRI's U-Net (same modules, parameter names and outputs) with two speed fixes.
+
+    Its LeakyReLUs are out of place: in place on InstanceNorm's reshaped output, autograd copies each activation back
+    through the view in the backward pass (out of place keeps one more activation per conv). Its forward checks the
+    decoder's odd-size padding with Python ints; fastMRI's goes through a tensor, a torch.compile graph break at every
+    decoder level.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for layer in self.modules():
+            if isinstance(layer, nn.LeakyReLU):
+                layer.inplace = False
+
+    def forward(self, image: torch.Tensor) -> torch.Tensor:
+        stack = []
+        output = image
+        for layer in self.down_sample_layers:
+            output = layer(output)
+            stack.append(output)
+            output = F.avg_pool2d(output, kernel_size=2, stride=2, padding=0)
+        output = self.conv(output)
+        for transpose_conv, conv in zip(self.up_transpose_conv, self.up_conv):
+            downsample_layer = stack.pop()
+            output = transpose_conv(output)
+            # fastMRI's reflect pad on the right / bottom for odd input sizes
+            padding = [0, int(output.shape[-1] != downsample_layer.shape[-1]),
+                       0, int(output.shape[-2] != downsample_layer.shape[-2])]
+            if any(padding):
+                output = F.pad(output, padding, "reflect")
+            output = conv(torch.cat([output, downsample_layer], dim=1))
+        return output
 
 
 class ChannelAttentionBlock(nn.Module):
@@ -193,6 +230,8 @@ class NormUnet(nn.Module):
     (`momentum_history > 0`, fused with the same level's inputs from earlier cascades) and
     take an :class:`AnatomyPrompt` (`prompt_embed_dim > 0`), fused by a 1x1 conv. PromptMR+
     fuses its prompts with CABs; the 1x1 conv keeps the bottleneck's 288 + 144 channels cheap.
+
+    The `unet` backbone is fastMRI's U-Net (:class:`FastMRIUnet`). `precision='bf16'` autocasts the U-Net body.
     """
 
     def __init__(
@@ -207,10 +246,14 @@ class NormUnet(nn.Module):
         momentum_history: int = 0,
         prompt_embed_dim: int = 0,
         backbone: str = "unet",
+        precision: str = "fp32",
     ):
         super().__init__()
         if backbone not in BACKBONES:
             raise ValueError(f"backbone must be one of {BACKBONES}, got {backbone!r}")
+        if precision not in UNET_PRECISIONS:
+            raise ValueError(f"precision must be one of {tuple(UNET_PRECISIONS)}, got {precision!r}")
+        self.autocast_dtype = UNET_PRECISIONS[precision]
         self.conditioning_chans = conditioning_chans
         self.momentum_history = momentum_history
         self.promptmr_backbone = backbone == "promptmr"
@@ -221,7 +264,7 @@ class NormUnet(nn.Module):
                                    film_embed_dim, prompt_embed_dim)
             self.film = self.momentum = self.prompts = None
             return
-        self.unet = Unet(
+        self.unet = FastMRIUnet(
             in_chans=in_chans + conditioning_chans,
             out_chans=out_chans,
             chans=chans,
@@ -284,22 +327,23 @@ class NormUnet(nn.Module):
             x = torch.cat(
                 [x, broadcast_channels(anatomy_embedding, x.shape[-2], x.shape[-1])], dim=1
             )
-        if self.promptmr_backbone:
-            if self.unet.film is not None and anatomy_embedding is None:
-                raise ValueError("NormUnet is FiLM-conditioned but no embedding was provided")
-            x, history = self.unet(x, anatomy_embedding, history)
-        else:
-            if self.film is not None:
-                if anatomy_embedding is None:
+        with torch.autocast(x.device.type, dtype=self.autocast_dtype, enabled=self.autocast_dtype is not None):
+            if self.promptmr_backbone:
+                if self.unet.film is not None and anatomy_embedding is None:
                     raise ValueError("NormUnet is FiLM-conditioned but no embedding was provided")
-                self.film.embedding = anatomy_embedding
-            if self.prompts is not None and anatomy_embedding is None:
-                raise ValueError("NormUnet is prompt-conditioned but no embedding was provided")
-            if self.momentum is None and self.prompts is None:
-                x = self.unet(x)
+                x, history = self.unet(x, anatomy_embedding, history)
             else:
-                x, history = self._unet_with_decoder_inputs(x, anatomy_embedding, history)
-        x = self.unpad(x, *pad_sizes)
+                if self.film is not None:
+                    if anatomy_embedding is None:
+                        raise ValueError("NormUnet is FiLM-conditioned but no embedding was provided")
+                    self.film.embedding = anatomy_embedding
+                if self.prompts is not None and anatomy_embedding is None:
+                    raise ValueError("NormUnet is prompt-conditioned but no embedding was provided")
+                if self.momentum is None and self.prompts is None:
+                    x = self.unet(x)
+                else:
+                    x, history = self._unet_with_decoder_inputs(x, anatomy_embedding, history)
+        x = self.unpad(x.float(), *pad_sizes)
         x = self.unnorm(x, mean, std)
         x = real_to_complex(x)
         return (x, history) if self.momentum_history > 0 else x
@@ -466,6 +510,7 @@ class VarNet(nn.Module):
             k-space centre. The returned image is combined with the last cascade's maps.
         checkpoint_cascades: Recompute each cascade in the backward pass instead of storing its
             activations, trading compute for memory while training.
+        unet_precision: ``'fp32'`` or ``'bf16'``, the autocast dtype of every cascade's U-Net body.
     """
 
     def __init__(
@@ -485,6 +530,7 @@ class VarNet(nn.Module):
         checkpoint_cascades: bool = False,
         backbone: str = "unet",
         estimate_sense: bool = False,
+        unet_precision: str = "fp32",
     ):
         super().__init__()
         if film and prompt:
@@ -510,7 +556,7 @@ class VarNet(nn.Module):
             [VarNetBlock(NormUnet(chans, pools, in_chans=2 * unet_images[0], out_chans=2 * unet_images[1],
                                   conditioning_chans=conditioning_chans, film_embed_dim=film_embed_dim,
                                   momentum_history=momentum_history, prompt_embed_dim=prompt_embed_dim,
-                                  backbone=backbone),
+                                  backbone=backbone, precision=unet_precision),
                          dc_mode=dc_mode, dc_weight_shape=dc_weight_shape, adaptive_input=adaptive_input,
                          estimate_sense=estimate_sense)
              for _ in range(num_cascades)]

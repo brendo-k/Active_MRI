@@ -27,7 +27,8 @@ from activemri.training.run_naming import run_group, run_name, run_tags
 from activemri.reconstructors.config import UNetReconConfig, CGSenseReconConfig, SDUMReconConfig, VarNetReconConfig
 from activemri.reconstructors.CG_Sense import CGSENSEReconstructor
 from activemri.reconstructors.UNet import LOUPEUNet
-from activemri.reconstructors.VarNet import VarNet
+from activemri.reconstructors.SensetivityModel_mc import SensetivityModel_mc
+from activemri.reconstructors.VarNet import NormUnet, VarNet
 from activemri.reconstructors.sdum import SDUMRecon
 
 PHASE_SCRAMBLE_VAL_SEED = 0
@@ -62,6 +63,9 @@ class Sequential_Trainer:
             if getattr(options, 'loupe_vd_init_power', 0.0) > 0:
                 raise ValueError("init_mask_checkpoint and loupe_vd_init_power both set the starting mask; set one")
             self._init_mask_from(options.init_mask_checkpoint)
+
+        if options.compile_unets:
+            compile_unets(self.model)
 
         if options.data_parallel:
             if options.sampler_type == 'autosamp_2d':
@@ -1053,6 +1057,16 @@ def _cg_iters_by_label(iters_by_anatomy, label_classes):
     return [int(iters_by_anatomy[c.split('-')[0]]) for c in label_classes]
 
 
+def compile_unets(model: torch.nn.Module) -> None:
+    """torch.compile every U-Net body in place (the VarNet cascades' and the sensitivity net's), so state_dict keys
+    stay as they are. Shapes are static: each new batch shape (the smaller last batch, validation) compiles once."""
+    for module in list(model.modules()):
+        if isinstance(module, NormUnet):
+            module.unet.compile(dynamic=False)
+        elif isinstance(module, SensetivityModel_mc):
+            module.model.compile(dynamic=False)
+
+
 def build_model(options: TrainConfig):
     recon_cfg = options.recon
 
@@ -1092,6 +1106,7 @@ def build_model(options: TrainConfig):
             checkpoint_cascades=getattr(recon_cfg, 'checkpoint_cascades', False),
             backbone=getattr(recon_cfg, 'backbone', 'unet'),
             estimate_sense=getattr(recon_cfg, 'estimate_sense', False),
+            unet_precision=getattr(recon_cfg, 'unet_precision', 'fp32'),
         )
     elif isinstance(recon_cfg, SDUMReconConfig):
         reconstructor = SDUMRecon(
@@ -1131,6 +1146,7 @@ def build_model(options: TrainConfig):
         gfactor_replicas=getattr(options, 'gfactor_replicas', 16),
         sens_upsample_method=getattr(options, 'sens_upsample_method', 'conv'),
         sens_conv_after_upsample=getattr(options, 'sens_conv_after_upsample', False),
+        sens_resolution=getattr(options, 'sens_resolution', None),
         uncertainty_mode=getattr(options, 'uncertainty_mode', 'none'),
         num_anatomy_classes=num_anatomy_classes,
         num_conditioning_classes=num_sampler_conditioning_classes,

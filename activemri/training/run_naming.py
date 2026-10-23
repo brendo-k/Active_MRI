@@ -135,6 +135,8 @@ def _recon_tokens(options):
             tokens.append(recon['backbone'])
         if recon.get('momentum_history'):
             tokens.append(f"mom{recon['momentum_history']}")
+        if recon.get('unet_precision', 'fp32') != 'fp32':
+            tokens.append(recon['unet_precision'])
     if recon_type == 'sdum':
         tokens += [name for key, name in (('anatomy_conditioning', 'recon-cond'), ('pretrained', 'pretrained-sdum'))
                    if recon.get(key)]

@@ -3,11 +3,25 @@ import torch
 import math
 
 import torch.nn as nn
+import torch.nn.functional as F
 from activemri.utils.image_processing import ifft_2d_img, root_sum_of_squares
 from activemri.reconstructors.unet_backbone import Unet
 from activemri.utils.complex_conversion import real_to_complex, complex_to_real
 
 from typing import Optional, Tuple, Literal
+
+
+def upsample_centred(images: torch.Tensor, size) -> torch.Tensor:
+    """Bilinear upsampling of fftshift-centred images [N, C, h, w] to `size`, keeping the centre pixel (h // 2, w // 2)
+    on the output's centre pixel, as a centre crop of k-space places it (F.interpolate would shift it by a fraction
+    of a pixel)."""
+    (h, w), (out_h, out_w) = images.shape[-2:], size
+    ys = (torch.arange(out_h, device=images.device) - out_h // 2) * (h / out_h) + h // 2
+    xs = (torch.arange(out_w, device=images.device) - out_w // 2) * (w / out_w) + w // 2
+    grid = torch.stack(torch.meshgrid(2 * xs / (w - 1) - 1, 2 * ys / (h - 1) - 1, indexing='xy'), dim=-1)
+    grid = grid.to(images.dtype).expand(images.shape[0], -1, -1, -1)
+    return F.grid_sample(images, grid, mode='bilinear', padding_mode='border', align_corners=True)
+
 
 class SensetivityModel_mc(nn.Module):
     def __init__(
@@ -16,7 +30,8 @@ class SensetivityModel_mc(nn.Module):
             out_chans: int,
             chans: int,
             conv_after_upsample: bool = False,
-            upsample_method: Literal['conv', 'max', 'bilinear'] = 'conv'
+            upsample_method: Literal['conv', 'max', 'bilinear'] = 'conv',
+            resolution: Optional[int] = None,
             ):
 
         """Module used to estimate sensetivity maps based on masked k-space center
@@ -26,8 +41,12 @@ class SensetivityModel_mc(nn.Module):
             out_chans (int): _description_
             chans (int): Number of convolutional channels for U-Net estimator
             conv_after_upsample (bool): boolean flag for addition of 3x3 convolution after upsampling
-            upsample_method (str): upsampling method for U-Net ('bilinear', 'max', 'conv')        """
+            upsample_method (str): upsampling method for U-Net ('bilinear', 'max', 'conv')
+            resolution (int): run the U-Net on the resolution x resolution centre of k-space, which holds the whole
+                masked centre, and upsample its output bilinearly to the full image; None runs it at full resolution
+        """
         super().__init__()
+        self.resolution = resolution
         self.model = Unet(
             in_chans,
             out_chans,
@@ -58,8 +77,8 @@ class SensetivityModel_mc(nn.Module):
         """
         if torch.isnan(images).any():
             print(f"SensetivityModel input kspace has NaN")
-        images = self.mask_center(images)
-        images = ifft_2d_img(images, axes=[-1, -2])
+        kspace = self.mask_center(images)
+        images = ifft_2d_img(kspace, axes=[-1, -2])
         if torch.isnan(images).any():
             print(f"SensetivityModel after ifft has NaN")
         assert isinstance(images, torch.Tensor)
@@ -71,11 +90,17 @@ class SensetivityModel_mc(nn.Module):
             max_val = rss_zf.amax(dim=(-2, -1), keepdim=True)
             sense_mask = (rss_zf > mask_threshold * max_val).float().unsqueeze(1)
 
+        full_size = images.shape[-2:]
+        if self.resolution is not None:
+            images = ifft_2d_img(self.crop_center(kspace, self.resolution), axes=[-1, -2])
+
         images = einops.rearrange(images, 'b c h w -> (b c) 1 h w')
         images = complex_to_real(images)
         images, mean, std = self.norm(images)
         images = self.model(images)
         images = self.unnorm(images, mean, std)
+        if self.resolution is not None:
+            images = upsample_centred(images, full_size)
         images = real_to_complex(images)
         images = einops.rearrange(images, '(b c) 1 h w -> b c h w', c=number_of_coils)
 
@@ -102,7 +127,12 @@ class SensetivityModel_mc(nn.Module):
 
         return coil_k_spaces * mask
 
-        
+    def crop_center(self, coil_k_spaces, size):
+        top = coil_k_spaces.shape[-2] // 2 - size // 2
+        left = coil_k_spaces.shape[-1] // 2 - size // 2
+        return coil_k_spaces[..., top:top + size, left:left + size]
+
+
 
     def norm(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         # instance norm

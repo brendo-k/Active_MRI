@@ -35,6 +35,8 @@ class TrainConfig:
     # Device / parallelism
     device: str = 'cuda'
     data_parallel: bool = False
+    compile_unets: bool = False
+    cudnn_benchmark: bool = True
 
     # Paths
     out_dir: List[pathlib.Path] = field(default_factory=lambda: [pathlib.Path('checkpoints')])
@@ -106,6 +108,7 @@ class TrainConfig:
     gfactor_replicas: int = 16
     sens_upsample_method: str = 'conv'
     sens_conv_after_upsample: bool = False
+    sens_resolution: Optional[int] = None
     uncertainty_mode: str = 'none'
 
     # Data

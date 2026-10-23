@@ -130,11 +130,11 @@ class double_conv(nn.Module):
         self.layers = nn.Sequential(
             nn.Conv2d(in_chans, out_chans, kernel_size=3, padding=1, bias=False),
             nn.InstanceNorm2d(out_chans, affine=False),
-            nn.LeakyReLU(negative_slope=relu_slope, inplace=True),
+            nn.LeakyReLU(negative_slope=relu_slope),
             nn.Dropout2d(drop_prob),
             nn.Conv2d(out_chans, out_chans, kernel_size=3, padding=1, bias=False),
             nn.InstanceNorm2d(out_chans, affine=False),
-            nn.LeakyReLU(negative_slope=relu_slope, inplace=True),
+            nn.LeakyReLU(negative_slope=relu_slope),
             nn.Dropout2d(drop_prob),
         )
       
@@ -159,7 +159,7 @@ class up(nn.Module):
             self.layers = nn.Sequential(
             nn.ConvTranspose2d(in_chan, out_chan, stride=2, kernel_size=2, bias=False),
             nn.InstanceNorm2d(out_chan, affine=False),
-            nn.LeakyReLU(negative_slope=0.2, inplace=True),
+            nn.LeakyReLU(negative_slope=0.2),
             )
             final_chans = out_chan
         elif upsample_method == 'bilinear':
@@ -176,7 +176,7 @@ class up(nn.Module):
             self.layers = nn.Sequential(
             nn.ConvTranspose2d(in_chan, out_chan, stride=2, kernel_size=2, bias=False),
             nn.InstanceNorm2d(out_chan, affine=False),
-            nn.LeakyReLU(negative_slope=0.2, inplace=True),
+            nn.LeakyReLU(negative_slope=0.2),
             )
             final_chans = out_chan
         else: 
