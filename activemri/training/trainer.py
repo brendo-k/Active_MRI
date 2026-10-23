@@ -1138,6 +1138,7 @@ def build_model(options: TrainConfig):
             adaptive_input=getattr(recon_cfg, 'adaptive_input', False),
             momentum_history=getattr(recon_cfg, 'momentum_history', 0),
             checkpoint_cascades=getattr(recon_cfg, 'checkpoint_cascades', False),
+            checkpoint_sense=getattr(recon_cfg, 'checkpoint_sense', True),
             backbone=getattr(recon_cfg, 'backbone', 'unet'),
             csme=getattr(recon_cfg, 'csme', False),
             unet_precision=getattr(recon_cfg, 'unet_precision', 'fp32'),

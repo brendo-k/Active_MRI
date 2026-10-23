@@ -415,15 +415,17 @@ class VarNetBlock(nn.Module):
 
     ``csme`` gives the cascade its own :class:`CascadeSensitivityModel`, which estimates the maps from the
     cascade's current per-coil image. The first cascade sees the zero-filled coil images. The maps passed in are
-    then ignored, and the cascade returns the ones it used.
+    then ignored, and the cascade returns the ones it used. ``checkpoint_sense`` recomputes that estimate in the
+    backward pass instead of storing the estimator's activations, a full-resolution U-Net pass per coil.
 
     The k-space, mask, support and sensitivity maps it takes and returns are uncentered (see :func:`uncenter`); the
     images given to and returned by the U-Net are centred.
     """
 
     def __init__(self, model: nn.Module, dc_mode: str = "where", dc_weight_shape=None, adaptive_input: bool = False,
-                 csme: bool = False):
+                 csme: bool = False, checkpoint_sense: bool = True):
         super().__init__()
+        self.checkpoint_sense = checkpoint_sense
         if dc_mode not in DC_MODES:
             raise ValueError(f"dc_mode must be one of {DC_MODES}, got {dc_mode!r}")
         self.model = model
@@ -443,7 +445,7 @@ class VarNetBlock(nn.Module):
 
     def estimate_maps(self, kspace: torch.Tensor) -> torch.Tensor:
         """Uncentered maps from the current per-coil image of uncentered `kspace`."""
-        if self.training and torch.is_grad_enabled():
+        if self.checkpoint_sense and self.training and torch.is_grad_enabled():
             return torch.utils.checkpoint.checkpoint(self._sense_maps, kspace, use_reentrant=False)
         return self._sense_maps(kspace)
 
@@ -538,6 +540,8 @@ class VarNet(nn.Module):
             `sense_maps` is ignored. The returned image is combined with the last cascade's maps.
         checkpoint_cascades: Recompute each cascade in the backward pass instead of storing its
             activations, trading compute for memory while training.
+        checkpoint_sense: With ``csme``, recompute every cascade's sensitivity estimate in the backward
+            pass instead of storing its estimator's activations; see :class:`VarNetBlock`.
         unet_precision: ``'fp32'`` or ``'bf16'``, the autocast dtype of every cascade's U-Net body.
     """
 
@@ -559,6 +563,7 @@ class VarNet(nn.Module):
         backbone: str = "unet",
         csme: bool = False,
         unet_precision: str = "fp32",
+        checkpoint_sense: bool = True,
     ):
         super().__init__()
         if film and prompt:
@@ -586,7 +591,7 @@ class VarNet(nn.Module):
                                   momentum_history=momentum_history, prompt_embed_dim=prompt_embed_dim,
                                   backbone=backbone, precision=unet_precision),
                          dc_mode=dc_mode, dc_weight_shape=dc_weight_shape, adaptive_input=adaptive_input,
-                         csme=csme)
+                         csme=csme, checkpoint_sense=checkpoint_sense)
              for _ in range(num_cascades)]
         )
 
@@ -628,10 +633,9 @@ class VarNet(nn.Module):
         if self.dc_mode == "multiply" and full_kspace is None:
             raise ValueError("dc_mode='multiply' needs full_kspace as the DC reference")
 
-        # The cascades work uncentered (see `uncenter`). The ACS region is found on the centred mask.
-        acs_mask = uncenter(acs_region_mask(mask)) if self.estimate_sense else None
+        # The cascades work uncentered (see `uncenter`).
         masked_kspace, mask = uncenter(masked_kspace), uncenter(mask)
-        if not self.estimate_sense:
+        if not self.csme:
             sense_maps = uncenter(sense_maps)
         if kspace_support is not None:
             kspace_support = uncenter(kspace_support)

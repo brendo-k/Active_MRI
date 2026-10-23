@@ -60,6 +60,7 @@ class VarNetReconConfig(ReconConfig):
     adaptive_input: bool = False
     momentum_history: int = 0
     checkpoint_cascades: bool = False
+    checkpoint_sense: bool = True
     backbone: str = 'unet'
     csme: bool = False
     unet_precision: str = 'fp32'
