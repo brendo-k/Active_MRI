@@ -110,6 +110,9 @@ def _family_tokens(options, sampler):
     elif sampler == 'autosamp_2d':
         fields = [('autosamp_init', 'init-'), ('autosamp_lr', 'plr'), ('autosamp_kernel_sigma_start', 'anneal')]
         tokens = []
+    elif sampler == 'bank_adapt_2d':
+        fields = [('bank_size', 'bank'), ('gate_temperature', 'gT'), ('gate_logit_limit', 'glim'), ('gate_lr', 'glr')]
+        tokens = []
     elif sampler == 'mnet_2d':
         fields = [('mnet_accept', 'accept-'), ('mnet_label_steps', 'T'), ('mnet_sampler_steps', 'c'),
                   ('mnet_init_margin', 'margin'), ('mnet_sparsity_weight', 'sp'), ('mnet_consistency_weight', 'cons'),

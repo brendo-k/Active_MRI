@@ -138,6 +138,8 @@ class Sampler(nn.Module):
         adapt_grid=16,
         adapt_hidden=64,
         bank_size=8,
+        gate_temperature=1.0,
+        gate_logit_limit=0.0,
         calibration_size=10,
         selection="bernoulli",
         dcm_vd_power=4.0,
@@ -225,7 +227,8 @@ class Sampler(nn.Module):
                                                grad_floor=mask_grad_floor, logit_limit=logit_limit)
         elif sampler_type == "bank_adapt_2d":
             self.mask_net = MaskBank(shape, slope, calibration_size, bank_size=bank_size, hidden=adapt_hidden,
-                                     grad_floor=mask_grad_floor)
+                                     grad_floor=mask_grad_floor, gate_temperature=gate_temperature,
+                                     gate_logit_limit=gate_logit_limit)
         elif sampler_type == "cnn_router_2d":
             self.mask_net = CNNRoutedMaskBank(shape, slope, calibration_size, bank_size=bank_size,
                                               hidden=adapt_hidden, grad_floor=mask_grad_floor)

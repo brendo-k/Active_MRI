@@ -20,6 +20,7 @@ class TrainConfig:
     lr_scheduler: str = 'step'  # step | constant | cosine | warmup_cosine
     lr_warmup_epochs: int = 2  # warmup_cosine only: linear ramp from 10% of lr
     weight_decay: float = 0.0
+    grad_clip_norm: float = 1.0  # per-group global-norm clip; PromptMR+ trains with 0.01
     limit_batches: float = 1.0
 
     # Loss
@@ -61,6 +62,9 @@ class TrainConfig:
     adapt_grid: int = 16  # smooth_adapt_2d: side of the coarse offset grid (0 = no offset: a bounded LOUPE mask)
     adapt_hidden: int = 64  # smooth_adapt_2d / bank_adapt_2d: width of the offset predictor / gate
     bank_size: int = 8  # bank_adapt_2d: number of learned masks the calibration-block gate blends
+    gate_temperature: float = 1.0  # bank_adapt_2d: gate logits are divided by this before the softmax (>1 flattens the weights)
+    gate_lr: Optional[float] = None  # bank_adapt_2d: lr of the gate network (the bank's masks keep lr); None = lr for everything
+    gate_logit_limit: float = 0.0  # bank_adapt_2d: >0 bounds the gate logits to +/- this (tanh), so no bank mask's weight can vanish
     init_mask_checkpoint: Optional[str] = None  # loupe_2d / smooth_adapt_2d: start every class's mask from this loupe_2d run's mask (trainable)
     loupe_vd_init_power: float = 0.0  # loupe_2d straight-through: >0 starts the mask at the budget-matched VD prior clamp(c ((D - r) / D)^p) instead of uniform noise
     loupe_same_start: bool = False  # per-anatomy loupe masks: every anatomy's mask starts from the first one's random draw

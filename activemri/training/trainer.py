@@ -175,6 +175,11 @@ class Sequential_Trainer:
             head_ids = {id(p) for p in head_mlp}
             rest = [p for p in trainable if id(p) not in head_ids]
             return [{'params': rest}, {'params': head_mlp, 'lr': getattr(self.options, 'sampler_head_mlp_lr', 1e-4)}]
+        gate_lr = getattr(self.options, 'gate_lr', None)
+        if self.options.sampler_type == 'bank_adapt_2d' and gate_lr is not None:
+            gate = [p for name, p in _unwrapped(self.model).sampler.mask_net.named_parameters() if name != 'mask' and p.requires_grad]
+            gate_ids = {id(p) for p in gate}
+            return [{'params': [p for p in trainable if id(p) not in gate_ids]}, {'params': gate, 'lr': gate_lr}]
         if self.options.sampler_type == 'autosamp_2d':
             policy_lr = self.options.autosamp_lr
         elif self.options.mask_train_mode == 'reinforce':
@@ -434,9 +439,9 @@ class Sequential_Trainer:
         """Back-propagate `loss` and take an optimizer step; returns the step's gradient log, or None if the step was skipped."""
         self.optimizer.zero_grad()
         loss.backward()
-        grad_log = gradient_stats(self.model, GRAD_CLIP_NORM)
+        grad_log = gradient_stats(self.model, self.options.grad_clip_norm)
         bad_params = nonfinite_gradient_params(self.model) if grad_log['grad/nonfinite'] else []
-        clip_gradients_per_group(self.model, GRAD_CLIP_NORM)
+        clip_gradients_per_group(self.model, self.options.grad_clip_norm)
         grad_log['data/zero_coil_frac'] = zero_coil_fraction(kspace)
         grad_log['train/lr'] = self.optimizer.param_groups[0]['lr']
         if self.options.mask_train_mode == 'reinforce':
@@ -673,12 +678,17 @@ class Sequential_Trainer:
             'optimizer': self.optimizer.state_dict(),
             'best_val_loss': self.best_val_loss,
         }
-        torch.save(checkpoint, f=self.exp_dir / 'last_model.pt')
+        # Write then rename, so a job killed mid-save leaves the previous checkpoint intact for the resume.
+        last_tmp = self.exp_dir / 'last_model.pt.tmp'
+        torch.save(checkpoint, f=last_tmp)
+        last_tmp.replace(self.exp_dir / 'last_model.pt')
         if not is_new_best:
             return
 
         best_path = self.exp_dir / 'best_model.pt'
-        torch.save(checkpoint, f=best_path)
+        best_tmp = self.exp_dir / 'best_model.pt.tmp'
+        torch.save(checkpoint, f=best_tmp)
+        best_tmp.replace(best_path)
         for old_checkpoint in self.exp_dir.glob('model_epoch_*.pt'):
             old_checkpoint.unlink()
 
@@ -1200,6 +1210,8 @@ def build_model(options: TrainConfig):
         adapt_grid=getattr(options, 'adapt_grid', 16),
         adapt_hidden=getattr(options, 'adapt_hidden', 64),
         bank_size=getattr(options, 'bank_size', 8),
+        gate_temperature=getattr(options, 'gate_temperature', 1.0),
+        gate_logit_limit=getattr(options, 'gate_logit_limit', 0.0),
         selection=getattr(options, 'selection', 'bernoulli'),
         dcm_vd_power=getattr(options, 'dcm_vd_power', 4.0),
         dcm_tau=getattr(options, 'dcm_tau', 5.0),
