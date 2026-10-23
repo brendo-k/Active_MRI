@@ -378,8 +378,9 @@ class VarNetBlock(nn.Module):
     """
 
     def __init__(self, model: nn.Module, dc_mode: str = "where", dc_weight_shape=None, adaptive_input: bool = False,
-                 estimate_sense: bool = False):
+                 estimate_sense: bool = False, bf16: bool = False):
         super().__init__()
+        self.bf16 = bf16
         if dc_mode not in DC_MODES:
             raise ValueError(f"dc_mode must be one of {DC_MODES}, got {dc_mode!r}")
         self.model = model
@@ -450,10 +451,13 @@ class VarNetBlock(nn.Module):
         if self.adaptive_input:
             normal = self.sens_reduce(mask * current_kspace, sense_maps)
             image = torch.cat([image, normal, latent, zero_filled], dim=1)
-        if self.has_momentum:
-            output, history = self.model(image, anatomy_embedding, history)
-        else:
-            output = self.model(image, anatomy_embedding)
+        # The output is complex64 even under bf16 autocast: NormUnet's unnorm promotes the U-Net's bf16 output to
+        # float32 before it becomes complex, so data consistency and the FFTs stay in fp32.
+        with torch.autocast("cuda", torch.bfloat16, enabled=self.bf16 and image.is_cuda):
+            if self.has_momentum:
+                output, history = self.model(image, anatomy_embedding, history)
+            else:
+                output = self.model(image, anatomy_embedding)
         if self.adaptive_input:
             correction, latent = output.chunk(ADAPTIVE_OUTPUT_IMAGES, dim=1)
         else:
@@ -493,6 +497,8 @@ class VarNet(nn.Module):
         estimate_sense: Every cascade estimates its sensitivity maps from the ACS region of its own k-space estimate
             (SDUM's CSME, :class:`CascadeSensitivityModel`) and `sense_maps` is ignored. The mask must acquire the
             k-space centre. The returned image is combined with the last cascade's maps.
+        bf16: bf16 autocast on every cascade's U-Net, on CUDA only; data consistency and the FFTs stay fp32.
+        compile_unet: torch.compile each cascade's U-Net (dynamic shapes, since brain and knee differ in size).
         checkpoint_cascades: Recompute each cascade in the backward pass instead of storing its
             activations, trading compute for memory while training.
     """
@@ -514,6 +520,8 @@ class VarNet(nn.Module):
         checkpoint_cascades: bool = False,
         backbone: str = "unet",
         estimate_sense: bool = False,
+        bf16: bool = False,
+        compile_unet: bool = False,
     ):
         super().__init__()
         if film and prompt:
@@ -541,9 +549,13 @@ class VarNet(nn.Module):
                                   momentum_history=momentum_history, prompt_embed_dim=prompt_embed_dim,
                                   backbone=backbone),
                          dc_mode=dc_mode, dc_weight_shape=dc_weight_shape, adaptive_input=adaptive_input,
-                         estimate_sense=estimate_sense)
+                         estimate_sense=estimate_sense, bf16=bf16)
              for _ in range(num_cascades)]
         )
+        if compile_unet:
+            for cascade in self.cascades:
+                # In place, so state_dict keys are unchanged. Only the real-valued U-Net: inductor handles complex tensors poorly.
+                cascade.model.unet.compile(dynamic=True)
 
     def forward(
         self,
