@@ -65,6 +65,7 @@ class SequentialSampling(nn.Module):
             sens_upsample_method='conv',
             sens_conv_after_upsample=False,
             sens_resolution=None,
+            sens_precision='fp32',
             uncertainty_mode='none',
             num_anatomy_classes=0,
             num_conditioning_classes=0,
@@ -181,7 +182,7 @@ class SequentialSampling(nn.Module):
         # Sensitivity estimation
         self.sensetivity_net = SensetivityModel_mc(
             2, 2, 8, conv_after_upsample=sens_conv_after_upsample, upsample_method=sens_upsample_method,
-            resolution=sens_resolution)
+            resolution=sens_resolution, precision=sens_precision)
 
         if loupe_vd_init_power > 0:
             self.sampler.init_loupe_variable_density(

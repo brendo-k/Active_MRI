@@ -1,6 +1,7 @@
 """Custom torchmetrics metrics for MRI reconstruction evaluation."""
 
 import torch
+import torch.nn.functional as F
 from torchmetrics import Metric
 import skimage.metrics
 
@@ -127,8 +128,51 @@ class MaskedSSIM(Metric):
         return self.sum_ssim / self.count
 
 
+SKIMAGE_SSIM_WINDOW = 7
+SKIMAGE_SSIM_K1 = 0.01
+SKIMAGE_SSIM_K2 = 0.03
+
+
+def ssim_map(preds: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+    """skimage.metrics.structural_similarity's SSIM map of each [B, 1, H, W] slice pair, with its defaults and the
+    target slice's maximum as the data range (a 7x7 uniform window, sample covariance, K1 0.01, K2 0.03), on the region
+    skimage averages: the window's half-width cropped from every edge, [B, 1, H - 6, W - 6].
+
+    Batched, on the inputs' device, in float64. Inside the cropped region every window lies within the image, so a
+    stride-1 average pool is skimage's uniform filter there (a convolution would run in TF32 on the GPU).
+    """
+    x, y = preds.double(), target.double()
+    data_range = y.amax(dim=(1, 2, 3), keepdim=True)
+
+    def local_mean(image):
+        return F.avg_pool2d(image, SKIMAGE_SSIM_WINDOW, stride=1)
+
+    cov_norm = SKIMAGE_SSIM_WINDOW ** 2 / (SKIMAGE_SSIM_WINDOW ** 2 - 1)
+    ux, uy = local_mean(x), local_mean(y)
+    vx = cov_norm * (local_mean(x * x) - ux * ux)
+    vy = cov_norm * (local_mean(y * y) - uy * uy)
+    vxy = cov_norm * (local_mean(x * y) - ux * uy)
+    c1 = (SKIMAGE_SSIM_K1 * data_range) ** 2
+    c2 = (SKIMAGE_SSIM_K2 * data_range) ** 2
+    return (2 * ux * uy + c1) * (2 * vxy + c2) / ((ux ** 2 + uy ** 2 + c1) * (vx + vy + c2))
+
+
+def masked_ssim(preds: torch.Tensor, target: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
+    """SSIM [B] (float64) of each [B, 1, H, W] slice pair over its [B, 1, H, W] mask: `ssim_map` averaged over the
+    mask's pixels in the map's region. A slice with no mask pixels there scores 0."""
+    half = SKIMAGE_SSIM_WINDOW // 2
+    weights = mask[..., half:-half, half:-half].double()
+    count = weights.sum(dim=(1, 2, 3))
+    total = (ssim_map(preds, target) * weights).sum(dim=(1, 2, 3))
+    return torch.where(count > 0, total / count.clamp(min=1), 0.0)
+
+
 class MaskedMetricAccumulator:
-    """Simple accumulator for masked PSNR/SSIM computed only over foreground voxels."""
+    """Per-slice PSNR and SSIM over the metric mask, averaged over every slice seen.
+
+    Before 2026-10-23 SSIM_Masked was the SSIM of the whole slice, background included: it called skimage's
+    structural_similarity, which has no mask argument and silently ignored the `mask=` passed to it.
+    """
 
     def __init__(self, device="cpu"):
         self.device = device
@@ -136,62 +180,13 @@ class MaskedMetricAccumulator:
         self.ssim_values = []
 
     def update(self, preds: torch.Tensor, target: torch.Tensor, mask: torch.Tensor):
-        """Update metrics with batch, computing only over masked regions."""
-        batch_size = target.shape[0]
-
-        if preds.dim() == 3:
-            preds = preds.unsqueeze(1)
-        if target.dim() == 3:
-            target = target.unsqueeze(1)
-        if mask.dim() == 3:
-            mask = mask.unsqueeze(1)
-
-        for i in range(batch_size):
-            pred = preds[i]
-            tgt = target[i]
-            msk = mask[i]
-
-            self._update_psnr(pred, tgt, msk)
-            self._update_ssim(pred, tgt, msk)
-
-    def _update_psnr(self, pred: torch.Tensor, tgt: torch.Tensor, mask: torch.Tensor):
-        """Compute PSNR over masked region."""
-        diff = (tgt - pred) ** 2
-        masked_diff = (diff * mask).sum()
-        masked_count = mask.sum()
-        masked_count = torch.clamp(masked_count, min=1.0)
-
-        mse = masked_diff / masked_count
-        data_range = tgt.max()
-        psnr = 10 * torch.log10((data_range ** 2) / mse)
-        self.psnr_values.append(psnr.item())
-
-    def _update_ssim(self, pred: torch.Tensor, tgt: torch.Tensor, mask: torch.Tensor):
-        """Compute SSIM over masked region using skimage."""
-        pred_np = pred.cpu().numpy()
-        tgt_np = tgt.cpu().numpy()
-        mask_np = mask.cpu().numpy()
-
-        if pred_np.ndim == 3:
-            pred_np = pred_np.squeeze(0)
-        if tgt_np.ndim == 3:
-            tgt_np = tgt_np.squeeze(0)
-        if mask_np.ndim == 3:
-            mask_np = mask_np.squeeze(0)
-
-        data_range = tgt_np.max()
-
-        if mask_np.sum() == 0:
-            ssim = 0.0
-        else:
-            ssim = skimage.metrics.structural_similarity(
-                pred_np,
-                tgt_np,
-                data_range=float(data_range),
-                mask=mask_np > 0.5,
-            )
-
-        self.ssim_values.append(ssim)
+        """Add the batch's slices: preds, target and mask are [B, 1, H, W] or [B, H, W]."""
+        preds, target, mask = (x.unsqueeze(1) if x.dim() == 3 else x for x in (preds, target, mask))
+        mse = ((target - preds) ** 2 * mask).sum(dim=(1, 2, 3)) / mask.sum(dim=(1, 2, 3)).clamp(min=1.0)
+        psnr = 10 * torch.log10(target.amax(dim=(1, 2, 3)) ** 2 / mse)
+        psnr, ssim = torch.stack([psnr.double(), masked_ssim(preds, target, mask)]).tolist()
+        self.psnr_values += psnr
+        self.ssim_values += ssim
 
     def compute(self):
         """Return mean PSNR and SSIM over accumulated batches."""

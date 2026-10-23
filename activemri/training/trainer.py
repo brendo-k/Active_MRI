@@ -52,6 +52,7 @@ class Sequential_Trainer:
         self.model = build_model(self.options).to(device)
         self.val_mask_generator = torch.Generator(device=device)
         self.model.sampler.eval_generator = self.val_mask_generator
+        self.metric_mask_cache = {}  # (anatomy, fname, slice_id) -> [1, H, W] bool, filled by _metric_mask
 
         if options.pretrained_recon is not None:
             self._load_pretrained_recon(options.pretrained_recon)
@@ -384,7 +385,8 @@ class Sequential_Trainer:
             signal_mask = self._metric_mask(batch)
             masked_output, masked_target = _apply_signal_mask(output.detach(), target_for_metrics, signal_mask)
             metrics.update(masked_output, masked_target)
-            masked_metrics.update(output.detach(), target_for_metrics, signal_mask)
+            if iter_idx % self.options.train_masked_metrics_every == 0:
+                masked_metrics.update(output.detach(), target_for_metrics, signal_mask)
             anatomy_stats.update(anatomies, masked_output, masked_target, pred_dict['mask'].detach())
 
             step_log = {'train/loss': loss.item(), 'train/step': global_step_offset + iter_idx, **grad_log}
@@ -563,8 +565,20 @@ class Sequential_Trainer:
         return images
 
     def _metric_mask(self, batch):
-        """The run-independent metric support mask of the batch's slices, from their fully sampled k-space."""
-        return metric_mask_from_real_kspace(batch['kspace'].to(self.device), batch['anatomy'])
+        """The run-independent metric support mask of the batch's slices, from their fully sampled k-space.
+
+        A slice's mask depends on that slice alone, so it is computed the first time the slice is seen and kept on the
+        CPU. Self-supervised batches are not cached: their k-space is a fresh holdout split at every training draw.
+        """
+        if 'holdout_mask' in batch:
+            return metric_mask_from_real_kspace(batch['kspace'].to(self.device), batch['anatomy'])
+        keys = list(zip(batch['anatomy'], batch['fname'], batch['slice_id'].tolist()))
+        unseen = [i for i, key in enumerate(keys) if key not in self.metric_mask_cache]
+        if unseen:
+            masks = metric_mask_from_real_kspace(batch['kspace'][unseen].to(self.device),
+                                                 [batch['anatomy'][i] for i in unseen])
+            self.metric_mask_cache.update(zip([keys[i] for i in unseen], masks.bool().cpu()))
+        return torch.stack([self.metric_mask_cache[key] for key in keys]).to(self.device).float()
 
     def _load_kspace(self, batch, generator=None):
         """The batch's k-space on the device, phase-scrambled when the run asks for it."""
@@ -1147,6 +1161,7 @@ def build_model(options: TrainConfig):
         sens_upsample_method=getattr(options, 'sens_upsample_method', 'conv'),
         sens_conv_after_upsample=getattr(options, 'sens_conv_after_upsample', False),
         sens_resolution=getattr(options, 'sens_resolution', None),
+        sens_precision=getattr(options, 'sens_precision', 'fp32'),
         uncertainty_mode=getattr(options, 'uncertainty_mode', 'none'),
         num_anatomy_classes=num_anatomy_classes,
         num_conditioning_classes=num_sampler_conditioning_classes,

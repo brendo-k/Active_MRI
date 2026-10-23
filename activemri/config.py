@@ -37,6 +37,7 @@ class TrainConfig:
     data_parallel: bool = False
     compile_unets: bool = False
     cudnn_benchmark: bool = True
+    train_masked_metrics_every: int = 10
 
     # Paths
     out_dir: List[pathlib.Path] = field(default_factory=lambda: [pathlib.Path('checkpoints')])
@@ -109,6 +110,7 @@ class TrainConfig:
     sens_upsample_method: str = 'conv'
     sens_conv_after_upsample: bool = False
     sens_resolution: Optional[int] = None
+    sens_precision: str = 'fp32'
     uncertainty_mode: str = 'none'
 
     # Data

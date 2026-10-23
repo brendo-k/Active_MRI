@@ -6,6 +6,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from activemri.utils.image_processing import ifft_2d_img, root_sum_of_squares
 from activemri.reconstructors.unet_backbone import Unet
+from activemri.reconstructors.VarNet import UNET_PRECISIONS
 from activemri.utils.complex_conversion import real_to_complex, complex_to_real
 
 from typing import Optional, Tuple, Literal
@@ -32,6 +33,7 @@ class SensetivityModel_mc(nn.Module):
             conv_after_upsample: bool = False,
             upsample_method: Literal['conv', 'max', 'bilinear'] = 'conv',
             resolution: Optional[int] = None,
+            precision: str = 'fp32',
             ):
 
         """Module used to estimate sensetivity maps based on masked k-space center
@@ -44,8 +46,13 @@ class SensetivityModel_mc(nn.Module):
             upsample_method (str): upsampling method for U-Net ('bilinear', 'max', 'conv')
             resolution (int): run the U-Net on the resolution x resolution centre of k-space, which holds the whole
                 masked centre, and upsample its output bilinearly to the full image; None runs it at full resolution
+            precision (str): 'fp32' or 'bf16', the autocast dtype of the U-Net body; its input normalisation and
+                everything after it stay float32
         """
         super().__init__()
+        if precision not in UNET_PRECISIONS:
+            raise ValueError(f"precision must be one of {tuple(UNET_PRECISIONS)}, got {precision!r}")
+        self.autocast_dtype = UNET_PRECISIONS[precision]
         self.resolution = resolution
         self.model = Unet(
             in_chans,
@@ -97,8 +104,9 @@ class SensetivityModel_mc(nn.Module):
         images = einops.rearrange(images, 'b c h w -> (b c) 1 h w')
         images = complex_to_real(images)
         images, mean, std = self.norm(images)
-        images = self.model(images)
-        images = self.unnorm(images, mean, std)
+        with torch.autocast(images.device.type, dtype=self.autocast_dtype, enabled=self.autocast_dtype is not None):
+            images = self.model(images)
+        images = self.unnorm(images.float(), mean, std)
         if self.resolution is not None:
             images = upsample_centred(images, full_size)
         images = real_to_complex(images)
