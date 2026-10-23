@@ -1,0 +1,30 @@
+Balanced train set (volumes, slices): {'brain': (89, 1350), 'knee': (40, 1350)}
+Balanced val set (volumes, slices): {'brain': (23, 344), 'knee': (10, 344)}
+Sampler: autosamp_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+static_vd_lr0.001_step_50ep_seed42 last_model.pt (epoch 49): brain PSNR 38.668 SSIM 0.9773  knee PSNR 37.970 SSIM 0.9476
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+varnet12_r8_lite_bf16_seed42 last_model.pt (epoch 49): brain PSNR 38.561 SSIM 0.9772  knee PSNR 38.003 SSIM 0.9475
+
+seed 42: lite_bf16 - base
+  brain  psnr -0.1067 [-0.1499, -0.0635] (better on 22% of 23 vols)  ssim -0.0001 [-0.0002, +0.0000] (better on 35% of 23 vols)
+  knee   psnr +0.0339 [-0.1252, +0.1930] (better on 40% of 10 vols)  ssim -0.0001 [-0.0005, +0.0002] (better on 20% of 10 vols)
+
+lite_bf16 - base, per-slice difference averaged over seeds [42]
+  brain  psnr -0.1067 [-0.1499, -0.0635] (better on 22% of 23 vols)  ssim -0.0001 [-0.0002, +0.0000] (better on 35% of 23 vols)
+  knee   psnr +0.0339 [-0.1252, +0.1930] (better on 40% of 10 vols)  ssim -0.0001 [-0.0005, +0.0002] (better on 20% of 10 vols)
+
+seed spread: per-anatomy mean over seeds (min, max)
+  base       brain  psnr  mean 38.6681  range [38.6681, 38.6681]  spread 0.0000
+  base       brain  ssim  mean 0.9773  range [0.9773, 0.9773]  spread 0.0000
+  base       knee   psnr  mean 37.9695  range [37.9695, 37.9695]  spread 0.0000
+  base       knee   ssim  mean 0.9476  range [0.9476, 0.9476]  spread 0.0000
+  lite_bf16  brain  psnr  mean 38.5614  range [38.5614, 38.5614]  spread 0.0000
+  lite_bf16  brain  ssim  mean 0.9772  range [0.9772, 0.9772]  spread 0.0000
+  lite_bf16  knee   psnr  mean 38.0035  range [38.0035, 38.0035]  spread 0.0000
+  lite_bf16  knee   ssim  mean 0.9475  range [0.9475, 0.9475]  spread 0.0000
+
+wrote reports/unet_speed_varnet2_r8/eval_12cascades.json

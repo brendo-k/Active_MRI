@@ -1,0 +1,43 @@
+unet  fastMRI (in-place LeakyReLU)     56.3 ms   367.1 GFLOP  2.454 M  peak 1.97 GiB
+unet  base                             47.1 ms   367.1 GFLOP  2.454 M  peak 2.31 GiB
+unet  bf16                             33.6 ms   367.1 GFLOP  2.454 M  peak 1.21 GiB
+unet  lite                             36.9 ms   312.1 GFLOP  2.446 M  peak 1.82 GiB
+unet  lite_bf16                        25.9 ms   312.1 GFLOP  2.446 M  peak 0.96 GiB
+varnet  2 cascades original     155.4 ms  peak  4.65 GiB
+varnet  2 cascades base         137.0 ms  peak  5.72 GiB
+varnet  2 cascades bf16         110.5 ms  peak  3.55 GiB
+varnet  2 cascades lite         116.7 ms  peak  4.73 GiB
+varnet  2 cascades lite_bf16     95.0 ms  peak  3.06 GiB
+varnet 12 cascades original     933.1 ms  peak 22.95 GiB
+varnet 12 cascades base         819.7 ms  peak 29.39 GiB
+varnet 12 cascades bf16         659.0 ms  peak 16.40 GiB
+varnet 12 cascades lite         696.7 ms  peak 23.48 GiB
+varnet 12 cascades lite_bf16    564.3 ms  peak 13.44 GiB
+Balanced train set (volumes, slices): {'brain': (89, 1350), 'knee': (40, 1350)}
+Balanced val set (volumes, slices): {'brain': (23, 344), 'knee': (10, 344)}
+loader  8 workers     151 ms/batch
+Balanced train set (volumes, slices): {'brain': (89, 1350), 'knee': (40, 1350)}
+Balanced val set (volumes, slices): {'brain': (23, 344), 'knee': (10, 344)}
+loader 12 workers     176 ms/batch
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+pipeline train step original     555.5 ms  peak 20.90 GiB
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+pipeline train step base         472.7 ms  peak 22.18 GiB
+sensitivity net fwd+bwd   302.3 ms (in-place LeakyReLU, as before:   367.3 ms)
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+pipeline train step bf16         446.8 ms  peak 20.00 GiB
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+pipeline train step lite         452.5 ms  peak 21.19 GiB
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+pipeline train step lite_bf16    430.6 ms  peak 19.52 GiB
+wrote reports/unet_speed_varnet2_r8/speed_cudnn_benchmark.json
