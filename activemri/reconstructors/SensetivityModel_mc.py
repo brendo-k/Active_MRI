@@ -11,6 +11,8 @@ from activemri.utils.complex_conversion import real_to_complex, complex_to_real
 
 from typing import Optional, Tuple, Literal
 
+COIL_BUCKET = 16
+
 
 def upsample_centred(images: torch.Tensor, size) -> torch.Tensor:
     """Bilinear upsampling of fftshift-centred images [N, C, h, w] to `size`, keeping the centre pixel (h // 2, w // 2)
@@ -102,14 +104,17 @@ class SensetivityModel_mc(nn.Module):
             images = ifft_2d_img(self.crop_center(kspace, self.resolution), axes=[-1, -2])
 
         images = einops.rearrange(images, 'b c h w -> (b c) 1 h w')
-        images = complex_to_real(images)
-        images, mean, std = self.norm(images)
-        with torch.autocast(images.device.type, dtype=self.autocast_dtype, enabled=self.autocast_dtype is not None):
-            images = self.model(images)
-        images = self.unnorm(images.float(), mean, std)
+        coils = self.coils_to_run(images)
+        coil_images = complex_to_real(images.index_select(0, coils))
+        coil_images, mean, std = self.norm(coil_images)
+        torch._dynamo.maybe_mark_dynamic(coil_images, 0)
+        with torch.autocast(coil_images.device.type, dtype=self.autocast_dtype, enabled=self.autocast_dtype is not None):
+            coil_images = self.model(coil_images)
+        coil_images = self.unnorm(coil_images.float(), mean, std)
         if self.resolution is not None:
-            images = upsample_centred(images, full_size)
-        images = real_to_complex(images)
+            coil_images = upsample_centred(coil_images, full_size)
+        coil_images = real_to_complex(coil_images)
+        images = coil_images.new_zeros(images.shape[0], *coil_images.shape[1:]).index_copy(0, coils, coil_images)
         images = einops.rearrange(images, '(b c) 1 h w -> b c h w', c=number_of_coils)
 
 
@@ -126,6 +131,19 @@ class SensetivityModel_mc(nn.Module):
 
         sense_maps = sense_maps * sense_mask
         return sense_maps, sense_mask
+
+    @staticmethod
+    def coils_to_run(coil_images: torch.Tensor) -> torch.Tensor:
+        """Indices into the [(B C), 1, h, w] coil images the U-Net has to see: every coil with a nonzero pixel, topped
+        up with all-zero coils to a multiple of COIL_BUCKET (at most all of them). An all-zero coil (one the loader
+        padded) has instance-norm mean and std 0, so unnorm maps whatever the U-Net makes of it to exactly 0, with zero
+        gradient: skipping it is exact. The bucket bounds the distinct batch sizes, each of which costs a cuDNN
+        autotune of the backward convolutions (~4 s on an A6000); torch.compile keeps one graph, as forward marks the
+        batch dim dynamic."""
+        is_live = coil_images.flatten(1).ne(0).any(dim=1)
+        num_live = int(is_live.sum())
+        num_run = min(-(-num_live // COIL_BUCKET) * COIL_BUCKET, len(is_live))
+        return torch.argsort(~is_live, stable=True)[:num_run]
 
     def mask_center(self, coil_k_spaces):
         mask = torch.zeros_like(coil_k_spaces)
