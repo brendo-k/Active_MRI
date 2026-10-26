@@ -31,6 +31,8 @@ SEED="${SEED:-42}"
 CASCADES="${CASCADES:-2}"
 OUT_ROOT="${OUT_ROOT:-$HOME/data/seqmri_checkpoints/unet_speed/runs}"
 MASK="${MASK:-$HOME/data/seqmri_checkpoints/unet_speed/static_vd_r8_mask_seed42.pt}"
+# The repo defaults are now bf16 U-Nets and compiled U-Nets; every arm starts from fp32 eager, as the study ran.
+STUDY_BASE=(recon.unet_precision=fp32 sampler.sens_precision=fp32 training.compile_unets=false)
 case "$ARM" in
     base) KNOBS=() ;;
     bf16) KNOBS=(recon.unet_precision=bf16) ;;
@@ -44,6 +46,7 @@ mkdir -p "$OUT_ROOT"
 CMD=(env CUDA_VISIBLE_DEVICES="$GPU" python train.py --model sequential \
     recon=varnet \
     recon.num_cascades="$CASCADES" \
+    "${STUDY_BASE[@]}" \
     "${KNOBS[@]}" \
     datasets=brain_knee_balanced \
     datasets.num_workers=12 \

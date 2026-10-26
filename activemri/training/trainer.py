@@ -4,6 +4,7 @@ import logging
 import math
 import os
 import random
+import shutil
 import warnings
 
 import torch
@@ -1073,12 +1074,21 @@ def _cg_iters_by_label(iters_by_anatomy, label_classes):
 
 def compile_unets(model: torch.nn.Module) -> None:
     """torch.compile every U-Net body in place (the VarNet cascades' and the sensitivity net's), so state_dict keys
-    stay as they are. Shapes are static: each new batch shape (the smaller last batch, validation) compiles once."""
+    stay as they are. Shapes are static: each new batch shape (the smaller last batch, validation) compiles once, except
+    the sensitivity net's batch of live coils, which it marks dynamic."""
+    use_system_compilers_if_missing()
     for module in list(model.modules()):
         if isinstance(module, NormUnet):
             module.unet.compile(dynamic=False)
         elif isinstance(module, SensetivityModel_mc):
             module.model.compile(dynamic=False)
+
+
+def use_system_compilers_if_missing() -> None:
+    """Inductor builds its kernels with $CC / $CXX; a conda activation can point them at compilers the env lacks."""
+    for variable, system_compiler in (('CC', 'gcc'), ('CXX', 'g++')):
+        if os.environ.get(variable) and shutil.which(os.environ[variable]) is None:
+            os.environ[variable] = system_compiler
 
 
 def build_model(options: TrainConfig):
