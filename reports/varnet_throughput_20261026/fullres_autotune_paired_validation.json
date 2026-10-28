@@ -1,0 +1,33 @@
+{
+  "slice_count": 688,
+  "anatomy_volume_arrays_match": true,
+  "comparison": "cudnn benchmark_limit 0 minus limit 10, same saved validation slice ordering",
+  "brain": {
+    "psnr": {
+      "n": 344,
+      "mean_delta": 0.00013762851094090663,
+      "min_delta": -0.01619720458984375,
+      "max_delta": 0.0135040283203125
+    },
+    "ssim": {
+      "n": 344,
+      "mean_delta": 2.5885754913784626e-06,
+      "min_delta": -0.00013585631190626835,
+      "max_delta": 0.00018578076764885765
+    }
+  },
+  "knee": {
+    "psnr": {
+      "n": 344,
+      "mean_delta": -0.0001721992049106332,
+      "min_delta": -0.01381683349609375,
+      "max_delta": 0.0108184814453125
+    },
+    "ssim": {
+      "n": 344,
+      "mean_delta": 5.467979107528214e-07,
+      "min_delta": -0.00023461586117834443,
+      "max_delta": 0.0001606419144210003
+    }
+  }
+}

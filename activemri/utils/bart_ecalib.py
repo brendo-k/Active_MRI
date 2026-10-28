@@ -9,7 +9,7 @@ import torch
 
 # Tuned on train volumes, confirmed on val (scripts/diagnostics/tune_ecalib.py); 24x24 calibration, soft-SENSE maps with an eigenvalue crop.
 PRESETS = {
-    'brain': dict(calib=24, kernel=5, threshold=0.001, crop=0.95, soft=True),
+    'brain': dict(calib=24, kernel=5, threshold=0.001, crop=0.93, soft=True),
     'knee': dict(calib=24, kernel=6, threshold=0.001, crop=0.8, soft=True),
 }
 

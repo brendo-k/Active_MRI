@@ -1,0 +1,96 @@
+{
+  "date": "2026-10-26",
+  "scope": {
+    "model": "two-cascade VarNet",
+    "resolution": "256x256",
+    "gpu": "NVIDIA RTX A6000; shared with four user training jobs",
+    "checkpoint": "epoch 49, seed 42",
+    "validation": "688 held-out slices; masked-pixel PSNR/SSIM; same weights; no retraining"
+  },
+  "shared_gpu_timing_ms_per_step": {
+    "baseline_before": 673.524,
+    "baseline_after": 655.910,
+    "baseline_bracket_mean": 664.717,
+    "cudnn_benchmark_limit_0": 664.071,
+    "spatial_moments_norm": 611.674,
+    "group_norm_one_group": 679.323,
+    "fused_fft_shifts": 638.964,
+    "timing_caveat": "Directional shared-GPU results only; workload varied and timed samples included long stalls. Do not treat differences as clean speedup estimates."
+  },
+  "idle_two_cascade_repeat": {
+    "schedule": {"skip": 10, "profiled": 6, "timed": 20, "replay": 1},
+    "baseline_before_ms": 302.036,
+    "baseline_after_ms": 303.370,
+    "arms": {
+      "baseline_before": {"step_ms": 302.036, "gpu_ms_per_step": 293.640, "sensitivity_forward_backward_gpu_ms": 146.900},
+      "cudnn_benchmark_limit_0": {"step_ms": 299.150, "gpu_ms_per_step": 292.820, "sensitivity_forward_backward_gpu_ms": 144.940},
+      "spatial_moments_norm": {"step_ms": 274.100, "gpu_ms_per_step": 265.150, "sensitivity_forward_backward_gpu_ms": 117.220},
+      "fused_fft_shifts": {"step_ms": 294.010, "gpu_ms_per_step": 282.700, "sensitivity_forward_backward_gpu_ms": 147.070},
+      "baseline_after": {"step_ms": 303.370, "gpu_ms_per_step": 295.160, "sensitivity_forward_backward_gpu_ms": 148.060}
+    },
+    "comparison_note": "All arms serial on idle GPU 2; baseline bracket mean 302.703ms. Moments latency -9.4% (throughput +10.4%); fused latency -2.9% (throughput +3.0%); exhaustive cuDNN showed no practical gain."
+  },
+  "idle_twelve_cascade_repeat": {
+    "schedule": {"skip": 6, "profiled": 4, "timed": 12, "replay": 1, "override": "recon.num_cascades=12"},
+    "arms": {
+      "baseline": {"step_ms": 825.698, "gpu_ms_per_step": 811.370, "sensitivity_forward_backward_gpu_ms": 147.481, "steady_peak_gib": 19.5471, "process_highwater_gib": 19.5508},
+      "fused_fft_shifts": {"step_ms": 780.445, "gpu_ms_per_step": 767.196, "sensitivity_forward_backward_gpu_ms": 146.758, "steady_peak_gib": 19.5471, "process_highwater_gib": 19.5538},
+      "spatial_moments_norm_plus_fused_fft_shifts": {"step_ms": 752.285, "gpu_ms_per_step": 738.899, "sensitivity_forward_backward_gpu_ms": 117.317, "steady_peak_gib": 19.5422, "process_highwater_gib": 19.5521}
+    },
+    "comparison_note": "All arms serial on idle GPU 2; one short profile per arm. Relative to baseline, fused latency -5.5% (throughput +5.8%), combined latency -8.9% (throughput +9.8%). Combined arm was not separately held-out validated or retrained."
+  },
+  "peak_allocated_gib": {
+    "baseline": 8.733,
+    "spatial_moments_norm": 17.890,
+    "group_norm_one_group": 19.090,
+    "fused_fft_shifts": 8.735
+  },
+  "isolated_sensitivity_body_ms": {
+    "instance_norm": 291.139,
+    "spatial_moments_norm": 224.131,
+    "group_norm_one_group": 291.287,
+    "caveat": "Shared-GPU microbenchmark; moments parameter-gradient relative L2 difference 0.02947, group 0.04020."
+  },
+  "validation": {
+    "spatial_moments_norm": {
+      "brain_mean_psnr_delta_db": -0.000189,
+      "knee_mean_psnr_delta_db": -0.000161,
+      "worst_slice_psnr_delta_db": -0.023243,
+      "max_output_abs_difference": 0.1034646
+    },
+    "group_norm_one_group": {
+      "brain_mean_psnr_delta_db": 0.000027,
+      "knee_mean_psnr_delta_db": 0.000143,
+      "worst_slice_psnr_delta_db": -0.021345,
+      "max_output_abs_difference": 0.0974445
+    },
+    "fused_fft_shifts": {
+      "brain_mean_psnr_delta_db": 0.0,
+      "knee_mean_psnr_delta_db": 0.0,
+      "max_output_abs_difference": 0.0,
+      "bitwise_equal_outputs_on_all_validation_slices": true,
+      "bitwise_equal_tested_full_pass_gradients": true
+    },
+    "cudnn_benchmark_limit_0": {
+      "paired_quality_comparison_to_limit_10": true,
+      "anatomy_and_volume_ordering_asserted_equal": true,
+      "delta_direction": "benchmark_limit 0 minus default limit 10",
+      "brain_psnr_db": {"mean": 0.000137629, "min_slice": -0.016197205, "max_slice": 0.013504028},
+      "brain_ssim": {"mean": 0.000002589, "min_slice": -0.000135856, "max_slice": 0.000185781},
+      "knee_psnr_db": {"mean": -0.000172199, "min_slice": -0.013816833, "max_slice": 0.010818481},
+      "knee_ssim": {"mean": 0.000000547, "min_slice": -0.000234616, "max_slice": 0.000160642}
+    }
+  },
+  "memory_method": {
+    "peak_gib": "Process high-water; may include compilation, autotuning, and profiler work.",
+    "steady_peak_gib": "Measured after synchronizing and resetting CUDA peak allocation immediately before the final timed steps."
+  },
+  "recommendation": {
+    "production_change": "none",
+    "candidate": "spatial_moments_norm_plus_fused_fft_shifts",
+    "reason": "Lowest idle-GPU 12-cascade short-profile latency with no measured steady-memory increase; requires a controlled quality and convergence run before production use.",
+    "fused_fft_shifts": "Bitwise equal in tested outputs/gradients; improved idle-GPU timing.",
+    "exhaustive_cudnn_search": "No measured benefit.",
+    "twelve_cascade_profiled": true
+  }
+}

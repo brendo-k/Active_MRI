@@ -92,7 +92,7 @@ wandb logs are offline. Sync them later with `wandb sync runs/<arm>-<jobid>/wand
 | 7 | `white_loupe_s1` | same | mask seed 1 | `pd_loupe_s1` |
 | 8 | `topk_loupe` (optional) | VarNet only on a fixed mask | the 8,092 highest-probability locations, deterministic | `white_loupe_s0` |
 
-All arms share the reference recipe: `--model loupe --recon varnet --dataset brain_knee_balanced --acceleration 8`, batch 16, 50 epochs, lr 1e-3 with a step at epoch 40, L1 loss, slope 5, grad floors 0.05, a 10 x 10 fully sampled centre, and 8,192 samples (Sparsity 0.125). In the fixed-mask arms the LOUPE sampler is only a placeholder: the saved mask replaces it in training and validation, and only the VarNet (with its sensitivity net) trains.
+All arms share the reference recipe: `--model loupe --recon varnet --dataset brain_knee_balanced_legacy --acceleration 8`, batch 16, 50 epochs, lr 1e-3 with a step at epoch 40, L1 loss, slope 5, grad floors 0.05, a 10 x 10 fully sampled centre, and 8,192 samples (Sparsity 0.125). In the fixed-mask arms the LOUPE sampler is only a placeholder: the saved mask replaces it in training and validation, and only the VarNet (with its sensitivity net) trains.
 
 ### The masks
 

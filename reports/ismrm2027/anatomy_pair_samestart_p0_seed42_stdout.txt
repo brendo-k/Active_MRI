@@ -1,0 +1,19 @@
+Balanced train set (volumes, slices): {'brain': (89, 1350), 'knee': (40, 1350)}
+Balanced val set (volumes, slices): {'brain': (23, 344), 'knee': (10, 344)}
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+shared: /home/bkadota/data/seqmri_checkpoints/vdinit_anatomy/runs/loupe2d_varnet_r8_brain_knee_shared_100ep_vdinit_p0_seed42 last_model.pt epoch 99
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+anatcond: /home/bkadota/data/seqmri_checkpoints/vdinit_anatomy/runs/loupe2d_varnet_r8_brain_knee_anatomy_samestart_100ep_vdinit_p0_seed42 last_model.pt epoch 99
+shared recon PSNR {'shared': {'brain': 39.708, 'knee': 38.632}, 'own': {'brain': 39.571, 'knee': 38.651}, 'other': {'brain': 39.628, 'knee': 38.489}}
+anatcond recon PSNR {'shared': {'brain': 39.715, 'knee': 38.675}, 'own': {'brain': 39.688, 'knee': 38.757}, 'other': {'brain': 39.659, 'knee': 38.584}}
+run_minus_run                    brain -0.019 [-0.033, -0.002]  knee +0.125 [+0.071, +0.179]  knee-PD +0.116 [+0.088, +0.139]  knee-PDFS +0.131 [+0.047, +0.214]
+mask_effect_on_shared_recon      brain -0.137 [-0.157, -0.113]  knee +0.019 [+0.009, +0.033]  knee-PD +0.039 [+0.029, +0.054]  knee-PDFS +0.006 [-0.001, +0.014]
+mask_effect_on_anatcond_recon    brain -0.027 [-0.038, -0.014]  knee +0.082 [+0.063, +0.094]  knee-PD +0.096 [+0.081, +0.109]  knee-PDFS +0.073 [+0.046, +0.091]
+label_swap_on_anatcond_recon     brain -0.029 [-0.061, -0.007]  knee -0.174 [-0.195, -0.143]  knee-PD -0.187 [-0.204, -0.165]  knee-PDFS -0.165 [-0.202, -0.118]
+label_swap_on_shared_recon       brain +0.057 [+0.024, +0.081]  knee -0.162 [-0.181, -0.135]  knee-PD -0.161 [-0.173, -0.147]  knee-PDFS -0.163 [-0.196, -0.120]
+recon_effect_on_shared_map       brain +0.008 [+0.000, +0.020]  knee +0.043 [-0.010, +0.101]  knee-PD +0.020 [-0.007, +0.048]  knee-PDFS +0.058 [-0.026, +0.151]
+recon_effect_on_own_map          brain +0.117 [+0.097, +0.136]  knee +0.106 [+0.047, +0.166]  knee-PD +0.077 [+0.059, +0.094]  knee-PDFS +0.124 [+0.034, +0.209]

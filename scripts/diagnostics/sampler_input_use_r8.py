@@ -62,7 +62,7 @@ def collect(model, val_loader, device):
                                               mask_method=model.sense_mask_method)
         old_mask, valid_mask = model._initial_masks(full_kspace)
         observed = torch.view_as_complex((full_kspace * old_mask.unsqueeze(-1)).contiguous())
-        combined = (torch_ifft2(observed) * sense_maps).sum(dim=1)
+        combined = (torch_ifft2(observed) * sense_maps.conj()).sum(dim=1)
         rows['kspace_in'].append(torch.view_as_real(torch_fft2(combined)).cpu())
         rows['old_mask'].append(old_mask.cpu())
         rows['valid_mask'].append(valid_mask.cpu())

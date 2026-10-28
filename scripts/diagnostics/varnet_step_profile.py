@@ -24,7 +24,7 @@ validation afterwards; the first epoch includes compiling the eval graphs and fi
 `--what-if` swaps in stand-ins that time a candidate speed-up (the metrics they log are meaningless):
   cached_metric_mask       the first batch's metric mask, kept in pinned memory, for every later batch: the cost of a
                            warm per-slice cache
-  no_train_masked_metrics  the train loop's MaskedMetricAccumulator.update (CPU skimage SSIM per slice) does nothing
+  no_train_masked_metrics  the train loop's MaskedMetricAccumulator.update (batched masked PSNR and SSIM) does nothing
   sens_bf16                the sensitivity net's U-Net under bf16 autocast, as recon.unet_precision does the cascades'
 
     CUDA_VISIBLE_DEVICES=3 CC=gcc CXX=g++ python scripts/diagnostics/varnet_step_profile.py --name bf16_compiled \
@@ -105,10 +105,13 @@ class LabelledLoader:
     """The train loader, stopped after `steps` batches, with each step and each wait for a batch labelled; it steps the
     profiler at every step boundary and records each step's wall time."""
 
-    def __init__(self, loader, steps, replay=0):
+    def __init__(self, loader, steps, replay=0, steady_steps=0):
         self.loader = loader
         self.steps = steps
         self.replay = replay
+        self.steady_steps = steady_steps
+        self.overall_peak_before_steady_gib = None
+        self.steady_peak_gib = None
         self.profiler = None
         self.step_seconds = []
         self.wait_seconds = []
@@ -124,7 +127,11 @@ class LabelledLoader:
         if self.replay:
             batches = itertools.cycle([next(batches) for _ in range(self.replay)])
         previous = None
-        for _ in range(self.steps):
+        for index in range(self.steps):
+            if self.steady_steps and index == self.steps - self.steady_steps:
+                torch.cuda.synchronize()
+                self.overall_peak_before_steady_gib = torch.cuda.max_memory_allocated() / 2 ** 30
+                torch.cuda.reset_peak_memory_stats()
             start = time.perf_counter()
             with record_function('loader_wait'):
                 batch = next(batches)
@@ -390,7 +397,7 @@ def main():
     train_loader, val_loader = build_dataloaders(cfg)
 
     steps = args.skip + PROFILER_WARMUP + args.active + args.timed
-    loader = LabelledLoader(train_loader, steps, args.replay)
+    loader = LabelledLoader(train_loader, steps, args.replay, steady_steps=args.timed)
     trainer = trainer_module.Sequential_Trainer(config, loader, torch.device(config.device), val_loader=val_loader)
     apply_what_ifs(trainer, args.what_if)
     label_trainer(trainer)
@@ -405,11 +412,15 @@ def main():
     first_profiled = args.skip + PROFILER_WARMUP - 1
     profiled = loader.step_seconds[first_profiled:first_profiled + args.active]
     timed = loader.step_seconds[first_profiled + args.active + 1:]
+    steady_peak_gib = torch.cuda.max_memory_allocated() / 2 ** 30
+    overall_peak_gib = max(steady_peak_gib, loader.overall_peak_before_steady_gib or 0.0)
     result = {'name': args.name, 'overrides': overrides, 'what_ifs': args.what_if, 'gpu': torch.cuda.get_device_name(), 'torch': torch.__version__,
               'step_ms_unprofiled': statistics.median(timed) * 1e3, 'step_ms_profiled': statistics.median(profiled) * 1e3,
               'loader_wait_ms': statistics.median(loader.wait_seconds[args.skip:]) * 1e3,
               'step_ms_all': [s * 1e3 for s in loader.step_seconds],
-              'peak_gib': torch.cuda.max_memory_allocated() / 2 ** 30}
+              'peak_gib': overall_peak_gib,
+              'overall_peak_before_steady_gib': loader.overall_peak_before_steady_gib,
+              'steady_peak_gib': steady_peak_gib}
     result['val_epoch_s'] = [trainer.val_epoch()[2] for _ in range(args.val_epochs)]
     result |= analyse(trace_path, args.active)
     (args.out_dir / f'{args.name}.json').write_text(json.dumps(result, indent=2))

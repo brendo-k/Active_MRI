@@ -94,12 +94,25 @@ UNCONFIRMED, must be checked with the PI before submission]]); the same shared/p
 - SPACE: per-anatomy minus shared held-out k-space error [[...]] in [[n]] held-out subjects (Fig. 5).
 
 ### Discussion and conclusion
-A per-anatomy mask is a population-level specialisation: [[effect]] at no cost in scan time or reconstruction, and
-deployable by a protocol lookup. Scan-level adaptation from the calibration region, in a single pass, was worth at most
-0.11 dB within each adaptive model and did not close its 0.07-0.64 dB gap to the static mask, consistent with matched-twin
-comparisons in the literature [5,7-9]. Limitations: two training seeds,
-retrospective undersampling of 2D fastMRI slices, one acceleration, and SPACE scored against held-out k-space rather than
-a fully sampled reference.
+(User's paragraph, 2026-10-23, with the "can't learn the optimum" sentences added. The user wrote "~0.2 dB brain /
+~0.1 dB knee"; replaced with the matched VarNet pair numbers until they say which run theirs came from.)
+
+Here we show that learning an anatomy-specific sampling mask yields modest gains: +0.13 and +0.18 dB PSNR in the knee
+in two training seeds, and a seed-dependent effect in the brain (−0.05 and +0.13 dB). The knee result is consistent with
+our initial hypothesis, since different anatomies have different underlying k-space energy distributions, and prior
+k-space sampling studies have reported distinct optimal sampling patterns for brain and knee imaging [1]. The main
+limitation is that the gain from an anatomy-specific mask is modest. Masks optimised on each slice's fully sampled data
+reconstruct that slice better still, but this scan-specific optimum cannot be learned in the current single-pass setup,
+where the mask is fixed before acquisition. Adjacent slices have nearly identical calibration data (correlation 0.97),
+yet the slice-specific parts of their optimised masks are almost uncorrelated (r = 0.06), and samplers given each scan's
+calibration data converged to near-static masks. Previous studies have increased adaptability by sampling k-space
+sequentially, building the mask up over multiple acquisition steps so that later samples are chosen from data already
+acquired [4-7]. However, prospective implementation of such approaches must account for k-space reordering and for the
+signal evolution of the variable-flip-angle echo train. Addressing these acquisition constraints is a necessary step
+toward translating learned sampling strategies to prospective scans.
+
+[[Old draft also listed: two training seeds, retrospective undersampling of 2D fastMRI slices, one acceleration, SPACE
+scored against held-out k-space. Keep?]]
 
 ---
 
@@ -123,6 +136,9 @@ a fully sampled reference.
 | 50-epoch table vs LOUPE | `scripts/eval/paired_vs_reference.py` → `reports/ismrm2027/paired_50ep_vs_loupe.json` | done 2026-10-20 |
 | Shuffle control, adaptivity | `scripts/eval/eval_adaptive_samplers_r8.py --tag ismrm_conv` | done 2026-10-20 |
 | Oracle per-slice gain is not predictable (optional, Discussion) | `reports/ADAPTIVITY_MECHANISMS_R8.md` | legacy metric: re-score or state as loss/correlation |
+| Discussion: adjacent slices' ACS correlation 0.97, oracle-mask deviations r = 0.06 (no dB numbers; oracle labels fitted on training slices through the frozen conv ep50 VarNet, not the LOUPE pair) | `scripts/diagnostics/acs_vs_label_similarity_r8.py` → `reports/label_gonogo_r8/acs_vs_label_similarity.json` (`same volume, 1 slices apart`: `acs_complex` mean 0.971, `label_unsplit` mean 0.059, 513 pairs) | used 2026-10-23 |
+| Discussion: knee +0.13 / +0.18, brain −0.05 / +0.13 (run − run) | `reports/ismrm2027/anatomy_pair_seed42.json`, `..._seed43.json` (`contrasts.run_minus_run.psnr`) | used 2026-10-23 |
+| "Distinct optimal patterns for brain and knee" | LOUPE [1] abstract: "significantly different for brain vs knee MRI scans" (arXiv:1907.11374, checked 2026-10-23) | done |
 | SPACE pair | user's runs (rsync to `/tmp/bkadota_space/`) | due Oct 23; IRB unconfirmed |
 
 ## References (checked against arXiv/primary records 2026-10-20 unless marked [[verify]])

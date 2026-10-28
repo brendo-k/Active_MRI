@@ -1,0 +1,202 @@
+{
+  "schema": 1,
+  "generated_at": "2026-10-26T20:15:41+00:00",
+  "code": {
+    "produced_at": "a84b2ba84eb85825b745bed486e99c2853342a1f",
+    "produced_at_subject": "Skip the zero-padded coils in the sensitivity net's U-Net",
+    "head": "a84b2ba84eb85825b745bed486e99c2853342a1f",
+    "branch": "main",
+    "dirty_tracked_files": [
+      "activemri/config.py",
+      "activemri/datasets/fastmri_data.py",
+      "activemri/models/sequential_sampling.py",
+      "activemri/samplers/sampler.py",
+      "activemri/training/builders.py",
+      "activemri/training/run_naming.py",
+      "activemri/training/trainer.py",
+      "activemri/utils/evaluate.py",
+      "activemri/utils/metrics.py",
+      "activemri/utils/util.py",
+      "configs/config.yaml",
+      "configs/recon/varnet.yaml",
+      "docs/ISMRM_2027_ABSTRACT.md",
+      "reports/README.md",
+      "reports/unet_speed_varnet2_r8/epoch_times.json",
+      "scripts/diagnostics/varnet_step_profile.py",
+      "scripts/launch/train_unet_speed_varnet2_r8.sh"
+    ],
+    "scripts": []
+  },
+  "metric_mask": {
+    "version": "apodized",
+    "definition": "k-space-apodized per-anatomy mask (activemri/utils/metric_mask.py), the trainer metric since 2026-10-20",
+    "apodization_sigma": 16,
+    "params": {
+      "brain": {
+        "fraction": 0.15,
+        "radius": 6
+      },
+      "knee": {
+        "fraction": 0.06,
+        "radius": 12
+      }
+    }
+  },
+  "data": {
+    "config": {
+      "anatomy": [
+        "brain",
+        "knee"
+      ],
+      "data_root": "/home/bkadota/data/fastmri",
+      "data_dir": null,
+      "contrast": "T2",
+      "num_coils": 16,
+      "num_workers": 8,
+      "balance": true,
+      "condition_classes": [],
+      "train_anatomies": [],
+      "train_slices": null
+    },
+    "note": "Planning report assembled at HEAD; produced_at is the assembly commit, not the origin of historical metrics. No new training or reconstruction. Three historical JSONs copied from reports/ismrm2027; original training commits and metric provenance are not established by this manifest. Proposed evaluation uses apodized support. Source evaluations use paired per-slice summaries over brain and knee validation volumes."
+  },
+  "runs": [
+    {
+      "name": "loupe2d_varnet_r8_brain_knee_anatcond_100ep",
+      "path": "checkpoints/loupe2d_varnet_r8_brain_knee_anatcond_100ep",
+      "config_sha256": "5ac21495350bb66c",
+      "overrides": [
+        "sampler.sampler_type=loupe_2d",
+        "recon=varnet",
+        "datasets=brain_knee_balanced",
+        "sampler.accelerations=[8.0]",
+        "training.batch_size=16",
+        "output.out_dir=checkpoints/loupe2d_varnet_r8_brain_knee_anatcond_100ep",
+        "training.num_epochs=100",
+        "training.lr_step_size=90",
+        "sampler.anatomy_conditioning=true"
+      ],
+      "wandb_run_id": "xum09g7g",
+      "trained_at_commit": null,
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 120515162,
+          "modified": "2026-10-17T16:33:03+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 120515162,
+          "modified": "2026-10-17T16:33:02+00:00"
+        }
+      }
+    },
+    {
+      "name": "loupe2d_varnet_r8_brain_knee_anatcond_100ep_lr1e-3_seed43",
+      "path": "checkpoints/loupe2d_varnet_r8_brain_knee_anatcond_100ep_lr1e-3_seed43",
+      "config_sha256": "798b0ab3a6f3c4bb",
+      "overrides": [
+        "sampler.sampler_type=loupe_2d",
+        "recon=varnet",
+        "datasets=brain_knee_balanced",
+        "sampler.accelerations=[8.0]",
+        "training.batch_size=16",
+        "output.out_dir=/tmp/bkadota_checkpoints/loupe2d_varnet_r8_brain_knee_anatcond_100ep_lr1e-3_seed43",
+        "training.num_epochs=100",
+        "training.lr_step_size=90",
+        "sampler.anatomy_conditioning=true",
+        "training.seed=43"
+      ],
+      "wandb_run_id": "0s2p4wc2",
+      "trained_at_commit": null,
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 120515482,
+          "modified": "2026-10-21T09:37:30+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 120515482,
+          "modified": "2026-10-21T09:52:58+00:00"
+        }
+      }
+    },
+    {
+      "name": "loupe2d_varnet_r8_brain_knee_shared_100ep_lr1e-3",
+      "path": "checkpoints/loupe2d_varnet_r8_brain_knee_shared_100ep_lr1e-3",
+      "config_sha256": "9278bc23ed1e5eb8",
+      "overrides": [
+        "sampler.sampler_type=loupe_2d",
+        "recon=varnet",
+        "datasets=brain_knee_balanced",
+        "sampler.accelerations=[8.0]",
+        "training.batch_size=16",
+        "output.out_dir=/tmp/bkadota_checkpoints/loupe2d_varnet_r8_brain_knee_shared_100ep_lr1e-3",
+        "training.num_epochs=100",
+        "training.lr_step_size=90",
+        "sampler.anatomy_conditioning=false",
+        "training.seed=42"
+      ],
+      "wandb_run_id": "mvotp8c6",
+      "trained_at_commit": null,
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 120253338,
+          "modified": "2026-10-21T06:32:37+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 120253338,
+          "modified": "2026-10-21T07:03:48+00:00"
+        }
+      }
+    },
+    {
+      "name": "loupe2d_varnet_r8_brain_knee_shared_100ep_lr1e-3_seed43",
+      "path": "checkpoints/loupe2d_varnet_r8_brain_knee_shared_100ep_lr1e-3_seed43",
+      "config_sha256": "336c92807dee063c",
+      "overrides": [
+        "sampler.sampler_type=loupe_2d",
+        "recon=varnet",
+        "datasets=brain_knee_balanced",
+        "sampler.accelerations=[8.0]",
+        "training.batch_size=16",
+        "output.out_dir=/tmp/bkadota_checkpoints/loupe2d_varnet_r8_brain_knee_shared_100ep_lr1e-3_seed43",
+        "training.num_epochs=100",
+        "training.lr_step_size=90",
+        "sampler.anatomy_conditioning=false",
+        "training.seed=43"
+      ],
+      "wandb_run_id": "zitz5kda",
+      "trained_at_commit": null,
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 120253338,
+          "modified": "2026-10-21T09:29:47+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 120253338,
+          "modified": "2026-10-21T10:11:27+00:00"
+        }
+      }
+    }
+  ],
+  "commands": [
+    "rtk proxy cp reports/ismrm2027/anatomy_pair_seed42.json reports/future_work/anatomy_pair_seed42.json",
+    "rtk proxy cp reports/ismrm2027/anatomy_pair_seed43.json reports/future_work/anatomy_pair_seed43.json",
+    "rtk proxy cp reports/ismrm2027/vdinit_summary.json reports/future_work/vdinit_summary.json"
+  ],
+  "results": [
+    {
+      "path": "anatomy_pair_seed42.json",
+      "bytes": 14105,
+      "sha256": "7cba6060da4f8559"
+    },
+    {
+      "path": "anatomy_pair_seed43.json",
+      "bytes": 14095,
+      "sha256": "8274a98c1f293a24"
+    },
+    {
+      "path": "vdinit_summary.json",
+      "bytes": 8711,
+      "sha256": "c831b83b3b707dc7"
+    }
+  ]
+}

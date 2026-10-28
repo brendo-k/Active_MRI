@@ -63,6 +63,7 @@ class VarNetReconConfig(ReconConfig):
     backbone: str = 'unet'
     estimate_sense: bool = False
     unet_precision: str = 'fp32'
+    restrict_to_extent: bool = False
 
 
 @dataclass

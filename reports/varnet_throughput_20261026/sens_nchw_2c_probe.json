@@ -1,0 +1,5 @@
+{
+  "sens_layout": "nchw",
+  "sens_chunk": 0,
+  "capture_sens": "/tmp/seqmri_sens_probe.pt"
+}

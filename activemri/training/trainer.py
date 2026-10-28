@@ -34,6 +34,7 @@ from activemri.reconstructors.sdum import SDUMRecon
 
 PHASE_SCRAMBLE_VAL_SEED = 0
 REINFORCE_VAL_MASK_SEED = 0
+HEAD_MLP_PARAMETERS = ('.location_head.mlp.', '.encoder_head.')  # trained at sampler_head_mlp_lr
 
 
 class Sequential_Trainer:
@@ -169,7 +170,7 @@ class Sequential_Trainer:
         """
         trainable = [p for p in self.model.parameters() if p.requires_grad]
         head_mlp = [p for name, p in _unwrapped(self.model).sampler.named_parameters()
-                    if '.location_head.mlp.' in f'.{name}' and p.requires_grad]
+                    if any(key in f'.{name}' for key in HEAD_MLP_PARAMETERS) and p.requires_grad]
         if head_mlp:
             head_ids = {id(p) for p in head_mlp}
             rest = [p for p in trainable if id(p) not in head_ids]
@@ -1205,7 +1206,11 @@ def build_model(options: TrainConfig):
         ppo_policy=getattr(options, 'ppo_policy', None),
         fixed_mask_path=getattr(options, 'fixed_mask_path', None),
         loupe_vd_init_power=getattr(options, 'loupe_vd_init_power', 0.0),
+        loupe_same_start=getattr(options, 'loupe_same_start', False),
         acquired_only=getattr(options, 'ssdu', False),
+        budget_over=getattr(options, 'budget_over', 'grid'),
+        sampler_coil_combine=getattr(options, 'sampler_coil_combine', 'sense'),
+        restrict_recon_to_extent=getattr(recon_cfg, 'restrict_to_extent', False),
     )
 
     return model

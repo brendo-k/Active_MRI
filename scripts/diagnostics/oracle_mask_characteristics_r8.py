@@ -162,7 +162,7 @@ def pair_agreement(label_dir, sigma):
 
 def combined_kspace(kspace, sense_maps):
     """SENSE-combined k-space in the sampler's convention (oracle_labels_r8.sampler_input without the centre mask)."""
-    return fft_2d_img((ifft_2d_img(torch.view_as_complex(kspace.contiguous())) * sense_maps).sum(dim=1))
+    return fft_2d_img((ifft_2d_img(torch.view_as_complex(kspace.contiguous())) * sense_maps.conj()).sum(dim=1))
 
 
 def log_mean(residual, unsampled, floor):

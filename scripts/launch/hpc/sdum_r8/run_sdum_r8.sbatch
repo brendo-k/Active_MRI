@@ -70,7 +70,7 @@ nvidia-smi --query-gpu=name,memory.total --format=csv,noheader || true
 cd "$EXP_DIR/code"
 python train.py --model loupe recon=sdum \
     "recon.repo_path=$SDUM_REPO" "recon.checkpoint=$SDUM_CKPT" \
-    datasets=brain_knee_balanced \
+    datasets=brain_knee_balanced_legacy \
     "datasets.data_root=$DATA_ROOT" \
     datasets.num_workers=16 \
     'sampler.accelerations=[8.0]' \

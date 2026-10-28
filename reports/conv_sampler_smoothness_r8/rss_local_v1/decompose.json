@@ -1,0 +1,65 @@
+{
+  "all": {
+    "logit_variance_share": {
+      "residual_input_term": 3.5902448871638626e-06,
+      "network_term": 1.0004661083221436,
+      "corr_residual_vs_logits": -0.12205352634191513
+    },
+    "high_frequency_fraction": {
+      "white_noise_reference": 0.9507843369019215,
+      "input_image_real": 8.274758155915278e-07,
+      "last_features_weighted_by_final_conv": 0.0005916968802921474,
+      "last_features_max_channel": 0.00574873061850667,
+      "network_term": 0.0003379451040994446,
+      "logits": 0.0003380957840654744,
+      "loupe_logits": 0.10582329261255201
+    },
+    "roughness_effective_probability_in_acquired": {
+      "conv": 0.022114794701337814,
+      "loupe": 0.8488279581069946
+    },
+    "logit_corr_between_slices_in_acquired": 0.8682737042506535
+  },
+  "brain": {
+    "logit_variance_share": {
+      "residual_input_term": 4.077192443219246e-06,
+      "network_term": 1.000548243522644,
+      "corr_residual_vs_logits": -0.13477475941181183
+    },
+    "high_frequency_fraction": {
+      "white_noise_reference": 0.9510822275842401,
+      "input_image_real": 4.724853481625882e-07,
+      "last_features_weighted_by_final_conv": 0.0006364101427607238,
+      "last_features_max_channel": 0.006989747751504183,
+      "network_term": 0.0003482667768894792,
+      "logits": 0.0003484537741629641,
+      "loupe_logits": 0.10582329261255201
+    },
+    "roughness_effective_probability_in_acquired": {
+      "conv": 0.023373859003186226,
+      "loupe": 0.844703733921051
+    },
+    "logit_corr_between_slices_in_acquired": 0.9401963587318148
+  },
+  "knee": {
+    "logit_variance_share": {
+      "residual_input_term": 3.0474930099444464e-06,
+      "network_term": 1.0003845691680908,
+      "corr_residual_vs_logits": -0.1092454046010971
+    },
+    "high_frequency_fraction": {
+      "white_noise_reference": 0.9513625229940216,
+      "input_image_real": 1.3601937322742496e-06,
+      "last_features_weighted_by_final_conv": 0.0005433853366412222,
+      "last_features_max_channel": 0.0043427306227386,
+      "network_term": 0.00032756068589797515,
+      "logits": 0.0003276767737480774,
+      "loupe_logits": 0.10582329261255201
+    },
+    "roughness_effective_probability_in_acquired": {
+      "conv": 0.0208557341247797,
+      "loupe": 0.8529521226882935
+    },
+    "logit_corr_between_slices_in_acquired": 0.8278413138219288
+  }
+}

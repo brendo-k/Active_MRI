@@ -5,7 +5,7 @@ from omegaconf import DictConfig
 
 from activemri.config import TrainConfig
 from activemri.reconstructors.config import UNetReconConfig, CGSenseReconConfig, SDUMReconConfig, VarNetReconConfig
-from activemri.datasets.fastmri_data import build_fastmri_dataloaders
+from activemri.datasets.fastmri_data import build_fastmri_dataloaders, build_manifest_dataloaders
 from activemri.datasets.siemens_space_data import build_siemens_space_dataloaders
 from activemri.samplers.sampler import CONV_2D_TYPES
 
@@ -45,7 +45,7 @@ def build_train_config(cfg: DictConfig) -> TrainConfig:
         data_parallel=cfg.training.data_parallel,
         compile_unets=cfg.training.get('compile_unets', False),
         cudnn_benchmark=cfg.training.get('cudnn_benchmark', True),
-        train_masked_metrics_every=cfg.training.get('train_masked_metrics_every', 10),
+        train_masked_metrics_every=cfg.training.get('train_masked_metrics_every', 1),
         loss_type=cfg.loss.loss_type,
         uncertainty_loss=cfg.loss.uncertainty_loss,
         uncertainty_weight=cfg.loss.uncertainty_weight,
@@ -74,6 +74,7 @@ def build_train_config(cfg: DictConfig) -> TrainConfig:
         bank_size=cfg.sampler.get('bank_size', 8),
         init_mask_checkpoint=cfg.sampler.get('init_mask_checkpoint', None),
         loupe_vd_init_power=cfg.sampler.get('loupe_vd_init_power', 0.0),
+        loupe_same_start=cfg.sampler.get('loupe_same_start', False),
         sampler_lr=cfg.sampler.get('lr', None),
         adapt_head_lr=cfg.sampler.get('adapt_head_lr', 1e-4),
         sampler_chans=cfg.sampler.get('chans', 64),
@@ -114,6 +115,8 @@ def build_train_config(cfg: DictConfig) -> TrainConfig:
         mnet_label_lr=cfg.sampler.get('mnet_label_lr', None),
         freeze_recon=cfg.sampler.get('freeze_recon', False),
         fixed_mask_checkpoints=dict(cfg.sampler.fixed_mask_checkpoints) if cfg.sampler.get('fixed_mask_checkpoints') else None,
+        budget_over=cfg.sampler.get('budget_over', 'grid'),
+        sampler_coil_combine=cfg.sampler.get('coil_combine', 'sense'),
         sense_mask_method=cfg.sampler.get('sense_mask_method', 'pre_network'),
         with_recon=cfg.sampler.get('with_recon', False),
         with_gfactor=cfg.sampler.get('with_gfactor', False),
@@ -154,9 +157,31 @@ def build_siemens_space_loaders(cfg: DictConfig):
     )
 
 
+def uses_manifest(cfg: DictConfig) -> bool:
+    return cfg.datasets.get('loader', 'fastmri') == 'fastmri_manifest'
+
+
+def build_manifest_loaders(cfg: DictConfig, image_shape: list, shuffle_seed=None):
+    return build_manifest_dataloaders(
+        manifest=cfg.datasets.manifest,
+        roots=dict(cfg.datasets.roots),
+        classes=list(cfg.datasets.classes),
+        image_shape=image_shape,
+        batch_size=cfg.training.batch_size,
+        num_coils=cfg.datasets.num_coils,
+        train_tier=cfg.datasets.get('train_tier', 'S'),
+        num_workers=cfg.datasets.num_workers,
+        min_energy_fraction=cfg.datasets.get('min_energy_fraction', 0.2),
+        shuffle_seed=shuffle_seed,
+        train_anatomies=list(cfg.datasets.get('train_anatomies', [])),
+    )
+
+
 def build_dataloaders(cfg: DictConfig):
     if cfg.datasets.get('loader', 'fastmri') == 'siemens_space':
         return build_siemens_space_loaders(cfg)
+    if uses_manifest(cfg):
+        return build_manifest_loaders(cfg, list(cfg.misc.resolution), shuffle_seed=cfg.training.seed)
     return build_fastmri_dataloaders(
         data_root=Path(cfg.datasets.data_root),
         anatomies=list(cfg.datasets.anatomy),
@@ -174,4 +199,5 @@ def build_dataloaders(cfg: DictConfig):
         balance_by=cfg.datasets.get('balance_by', 'anatomy'),
         test_fraction=cfg.datasets.get('test_fraction', 0.0),
         trim_to_smallest=cfg.datasets.get('trim_to_smallest', True),
+        shuffle_seed=cfg.training.seed,
     )

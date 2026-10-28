@@ -3,7 +3,6 @@
 import torch
 import torch.nn.functional as F
 from torchmetrics import Metric
-import skimage.metrics
 
 
 class NMSE(Metric):
@@ -26,106 +25,6 @@ class NMSE(Metric):
 
     def compute(self):
         return self.sum_nmse / self.count
-
-
-class MaskedPSNR(Metric):
-    """Peak Signal-to-Noise Ratio computed only over masked (foreground) voxels."""
-
-    full_state_update = False
-
-    def __init__(self, data_range=1.0, **kwargs):
-        super().__init__(**kwargs)
-        self.data_range = data_range
-        self.add_state("sum_psnr", default=torch.tensor(0.0), dist_reduce_fx="sum")
-        self.add_state("count", default=torch.tensor(0), dist_reduce_fx="sum")
-
-    def update(self, preds: torch.Tensor, target: torch.Tensor, mask: torch.Tensor = None):
-        if mask is None:
-            raise ValueError("mask must be provided for MaskedPSNR")
-
-        batch_size = target.shape[0]
-
-        if preds.dim() == 3:
-            preds = preds.unsqueeze(1)
-        if target.dim() == 3:
-            target = target.unsqueeze(1)
-        if mask.dim() == 3:
-            mask = mask.unsqueeze(1)
-
-        for i in range(batch_size):
-            pred = preds[i]
-            tgt = target[i]
-            msk = mask[i]
-
-            diff = (tgt - pred) ** 2
-            masked_diff = (diff * msk).sum()
-            masked_count = msk.sum()
-            masked_count = torch.clamp(masked_count, min=1.0)
-
-            mse = masked_diff / masked_count
-            data_range = self.data_range if self.data_range > 0 else tgt.max()
-
-            psnr = 10 * torch.log10((data_range ** 2) / mse)
-            self.sum_psnr += psnr
-            self.count += 1
-
-    def compute(self):
-        return self.sum_psnr / self.count
-
-
-class MaskedSSIM(Metric):
-    """Structural Similarity Index Measure computed only over masked (foreground) voxels."""
-
-    full_state_update = False
-
-    def __init__(self, data_range=1.0, **kwargs):
-        super().__init__(**kwargs)
-        self.data_range = data_range
-        self.add_state("sum_ssim", default=torch.tensor(0.0), dist_reduce_fx="sum")
-        self.add_state("count", default=torch.tensor(0), dist_reduce_fx="sum")
-
-    def update(self, preds: torch.Tensor, target: torch.Tensor, mask: torch.Tensor = None):
-        if mask is None:
-            raise ValueError("mask must be provided for MaskedSSIM")
-
-        batch_size = target.shape[0]
-
-        if preds.dim() == 3:
-            preds = preds.unsqueeze(1)
-        if target.dim() == 3:
-            target = target.unsqueeze(1)
-        if mask.dim() == 3:
-            mask = mask.unsqueeze(1)
-
-        for i in range(batch_size):
-            pred = preds[i].cpu().numpy()
-            tgt = target[i].cpu().numpy()
-            msk = mask[i].cpu().numpy()
-
-            if pred.ndim == 3:
-                pred = pred.squeeze(0)
-            if tgt.ndim == 3:
-                tgt = tgt.squeeze(0)
-            if msk.ndim == 3:
-                msk = msk.squeeze(0)
-
-            data_range = self.data_range if self.data_range > 0 else tgt.max()
-
-            if msk.sum() == 0:
-                ssim = torch.tensor(0.0, device=self.device)
-            else:
-                ssim = skimage.metrics.structural_similarity(
-                    pred, tgt,
-                    data_range=float(data_range),
-                    mask=msk > 0.5,
-                )
-                ssim = torch.tensor(ssim, dtype=torch.float32, device=self.device)
-
-            self.sum_ssim += ssim
-            self.count += 1
-
-    def compute(self):
-        return self.sum_ssim / self.count
 
 
 SKIMAGE_SSIM_WINDOW = 7

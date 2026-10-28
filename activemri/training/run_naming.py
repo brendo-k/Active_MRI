@@ -67,6 +67,8 @@ def _sampler_tokens(options):
     tokens = []
     if _get(options, 'loupe_vd_init_power') > 0:
         tokens.append(f"vdinit-p{_get(options, 'loupe_vd_init_power'):g}")
+    if _get(options, 'loupe_same_start'):
+        tokens.append('samestart')
     if sampler in IMAGE_INPUT_SAMPLERS and not _get(options, 'sampler_image_input'):
         tokens.append('kspace-in')
     if _get(options, 'sampler_head') != 'none':
@@ -92,6 +94,10 @@ def _sampler_tokens(options):
         tokens.append(f"clamp{_get(options, 'logit_limit'):g}-{_get(options, 'logit_leak'):g}")
     if _get(options, 'caipi_keep_fraction') != 1.0:
         tokens.append(f"pf{_get(options, 'caipi_keep_fraction'):g}")
+    if _differs(options, 'budget_over'):
+        tokens.append(f"R-of-{_get(options, 'budget_over')}")
+    if _differs(options, 'sampler_coil_combine') and sampler not in NON_ADAPTIVE_SAMPLERS:
+        tokens.append(f"{_get(options, 'sampler_coil_combine')}-in")
     return tokens + _family_tokens(options, sampler)
 
 
@@ -130,7 +136,8 @@ def _recon_tokens(options):
         tokens += [name for key, name in (('anatomy_conditioning', 'recon-cond'), ('film_conditioning', 'film'),
                                           ('prompt_conditioning', 'prompt-cond'), ('label_blind', 'blind'),
                                           ('adaptive_input', 'aha-in'), ('dc_weight_map', 'dc-map'),
-                                          ('estimate_sense', 'csme')) if recon.get(key)]
+                                          ('estimate_sense', 'csme'), ('restrict_to_extent', 'recon-in-extent'))
+                   if recon.get(key)]
         if recon.get('backbone', 'unet') != 'unet':
             tokens.append(recon['backbone'])
         if recon.get('momentum_history'):

@@ -1,0 +1,137 @@
+{
+  "checkpoint": "/home/bkadota/data/seqmri_checkpoints/unet_speed/runs/varnet2_r8_bf16_sensbf16_seed42/last_model.pt",
+  "epoch": 49,
+  "scope": "same weights; no retraining; masked pixel PSNR/SSIM, slice averaged",
+  "max_output_abs_difference": {
+    "baseline": 0.0,
+    "group": 0.09744453430175781,
+    "moments": 0.10346460342407227,
+    "fused": 0.0
+  },
+  "anatomies": {
+    "brain": {
+      "slices": 344,
+      "volumes": 23,
+      "arms": {
+        "baseline": {
+          "psnr": {
+            "mean": 31.48730775921844,
+            "delta_mean": 0.0,
+            "delta_min_slice": 0.0,
+            "delta_max_slice": 0.0
+          },
+          "ssim": {
+            "mean": 0.9148445548369198,
+            "delta_mean": 0.0,
+            "delta_min_slice": 0.0,
+            "delta_max_slice": 0.0
+          }
+        },
+        "group": {
+          "psnr": {
+            "mean": 31.487334999927256,
+            "delta_mean": 2.7240708816883176e-05,
+            "delta_min_slice": -0.021345138549804688,
+            "delta_max_slice": 0.015716552734375
+          },
+          "ssim": {
+            "mean": 0.9148442193227936,
+            "delta_mean": -3.3551412627083545e-07,
+            "delta_min_slice": -0.0004029397455033168,
+            "delta_max_slice": 0.0005164874261947006
+          }
+        },
+        "moments": {
+          "psnr": {
+            "mean": 31.48711863229441,
+            "delta_mean": -0.00018912692402684413,
+            "delta_min_slice": -0.0206146240234375,
+            "delta_max_slice": 0.015087127685546875
+          },
+          "ssim": {
+            "mean": 0.91484157276129,
+            "delta_mean": -2.9820756299369555e-06,
+            "delta_min_slice": -0.00035598885079424214,
+            "delta_max_slice": 0.0003687450562032124
+          }
+        },
+        "fused": {
+          "psnr": {
+            "mean": 31.48730775921844,
+            "delta_mean": 0.0,
+            "delta_min_slice": 0.0,
+            "delta_max_slice": 0.0
+          },
+          "ssim": {
+            "mean": 0.9148445548369198,
+            "delta_mean": 0.0,
+            "delta_min_slice": 0.0,
+            "delta_max_slice": 0.0
+          }
+        }
+      }
+    },
+    "knee": {
+      "slices": 344,
+      "volumes": 10,
+      "arms": {
+        "baseline": {
+          "psnr": {
+            "mean": 33.10612702924152,
+            "delta_mean": 0.0,
+            "delta_min_slice": 0.0,
+            "delta_max_slice": 0.0
+          },
+          "ssim": {
+            "mean": 0.893145483273225,
+            "delta_mean": 0.0,
+            "delta_min_slice": 0.0,
+            "delta_max_slice": 0.0
+          }
+        },
+        "group": {
+          "psnr": {
+            "mean": 33.106270329896795,
+            "delta_mean": 0.00014330065527627634,
+            "delta_min_slice": -0.014562606811523438,
+            "delta_max_slice": 0.021059036254882812
+          },
+          "ssim": {
+            "mean": 0.8931487190265814,
+            "delta_mean": 3.235753356409566e-06,
+            "delta_min_slice": -0.0002814353309377182,
+            "delta_max_slice": 0.000313822072337655
+          }
+        },
+        "moments": {
+          "psnr": {
+            "mean": 33.10596620204837,
+            "delta_mean": -0.0001608271931493005,
+            "delta_min_slice": -0.023242950439453125,
+            "delta_max_slice": 0.018659591674804688
+          },
+          "ssim": {
+            "mean": 0.8931481457948777,
+            "delta_mean": 2.662521652599844e-06,
+            "delta_min_slice": -0.0002869164473513486,
+            "delta_max_slice": 0.00022633374060643252
+          }
+        },
+        "fused": {
+          "psnr": {
+            "mean": 33.10612702924152,
+            "delta_mean": 0.0,
+            "delta_min_slice": 0.0,
+            "delta_max_slice": 0.0
+          },
+          "ssim": {
+            "mean": 0.893145483273225,
+            "delta_mean": 0.0,
+            "delta_min_slice": 0.0,
+            "delta_max_slice": 0.0
+          }
+        }
+      }
+    }
+  }
+}

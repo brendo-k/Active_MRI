@@ -37,7 +37,7 @@ class TrainConfig:
     data_parallel: bool = False
     compile_unets: bool = False
     cudnn_benchmark: bool = True
-    train_masked_metrics_every: int = 10
+    train_masked_metrics_every: int = 1
 
     # Paths
     out_dir: List[pathlib.Path] = field(default_factory=lambda: [pathlib.Path('checkpoints')])
@@ -63,12 +63,13 @@ class TrainConfig:
     bank_size: int = 8  # bank_adapt_2d: number of learned masks the calibration-block gate blends
     init_mask_checkpoint: Optional[str] = None  # loupe_2d / smooth_adapt_2d: start every class's mask from this loupe_2d run's mask (trainable)
     loupe_vd_init_power: float = 0.0  # loupe_2d straight-through: >0 starts the mask at the budget-matched VD prior clamp(c ((D - r) / D)^p) instead of uniform noise
+    loupe_same_start: bool = False  # per-anatomy loupe masks: every anatomy's mask starts from the first one's random draw
     sampler_lr: Optional[float] = None  # lr of the sampler's parameters when it differs from training.lr
     adapt_head_lr: float = 1e-4  # smooth_adapt_2d: lr of the offset predictor (the base mask keeps sampler_lr)
     sampler_chans: int = 64
     sampler_depth: int = 4
-    sampler_head: str = 'none'  # conv_2d/mnet_2d: 'none', 'bias' or 'mlp' location-specific head on the U-Net scores
-    sampler_head_mlp_lr: float = 1e-4  # sampler_head=mlp: lr of the head's MLP alone (the per-location bias keeps `lr`)
+    sampler_head: str = 'none'  # conv_2d/mnet_2d: 'none', 'bias', 'mlp' or 'encoder_mlp' location-specific head on the U-Net scores
+    sampler_head_mlp_lr: float = 1e-4  # sampler_head=mlp/encoder_mlp: lr of the head's MLP alone (the per-location bias keeps `lr`)
     sampler_image_input: bool = False
     caipi_keep_fraction: float = 1.0
     caipi_accel_y: int = 2
@@ -103,6 +104,8 @@ class TrainConfig:
     mnet_label_lr: Optional[float] = 0.02  # mnet_2d: lr of the label logits in mask-backward; None = same as `lr`
     freeze_recon: bool = False
     fixed_mask_checkpoints: Optional[Dict[str, str]] = None  # anatomy -> loupe_2d checkpoint whose learned mask is copied into that anatomy's slot and frozen; needs anatomy_conditioning
+    budget_over: str = 'grid'  # 'acquired': 1/R of each slice's acquired k-space; 'grid' (older runs): 1/R of the grid, spent inside the acquired region
+    sampler_coil_combine: str = 'sense'  # sampler input image: 'sense' (maps' free common phase makes it phase-random) or 'rss' of the coil images
     sense_mask_method: Optional[str] = 'pre_network'
     with_recon: bool = False
     with_gfactor: bool = False

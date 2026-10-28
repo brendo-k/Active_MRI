@@ -28,6 +28,17 @@ DEFAULT_BRAIN_CONTRAST = 'T2'
 SLICE_ENERGY_CACHE_DIR = '.slice_energy'
 
 
+def crop_readout_oversampling(kspace: torch.Tensor) -> torch.Tensor:
+    """Drop the 2x readout oversampling (axis -2, DC at the centre) by keeping the central half of the image along the readout.
+
+    A 1D transform only, so phase-encode columns the scanner never acquired stay exactly zero.
+    """
+    readout = kspace.shape[-2]
+    image = torch.fft.fftshift(torch.fft.ifft(torch.fft.ifftshift(kspace, dim=-2), dim=-2, norm='ortho'), dim=-2)
+    image = image[..., readout // 4: readout // 4 + readout // 2, :]
+    return torch.fft.fftshift(torch.fft.fft(torch.fft.ifftshift(image, dim=-2), dim=-2, norm='ortho'), dim=-2)
+
+
 def condition_name(anatomy: str, attrs: Dict) -> str:
     """Conditioning label: the anatomy, split by knee fat saturation (PD vs PDFS)."""
     if anatomy != 'knee':
@@ -71,8 +82,12 @@ class FastMRIDataset(torch.utils.data.Dataset):
         file_names: Optional[Sequence[str]] = None,
         slice_ids: Optional[Sequence[int]] = None,
         sense_cache=None,
+        readout_crop: bool = False,
     ):
+        """`readout_crop` removes the readout oversampling by an image crop (`crop_readout_oversampling`) for every
+        anatomy, instead of decimating the longer axis of non-knee k-space by 2; precomputed 'sense' maps are then not loaded."""
         self.root = pathlib.Path(root)
+        self.readout_crop = readout_crop
         self.sense_cache = sense_cache
         self.sense_signature = cache_signature(anatomy, image_shape, num_coils) if sense_cache is not None else None
         self.anatomy = anatomy
@@ -233,7 +248,7 @@ class FastMRIDataset(torch.utils.data.Dataset):
             # 'sense_maps' key, but it is degenerate (support over a third to a half as many
             # rows as 'sense' in the same file) -- 'sense' is the only key actually used.
             espirit_maps = None
-            if 'sense' in data:
+            if 'sense' in data and not self.readout_crop:
                 raw = data['sense']
                 if self.anatomy == 'prostate':
                     # (averages, slices, coils, H, W) — average across the averages axis
@@ -241,8 +256,10 @@ class FastMRIDataset(torch.utils.data.Dataset):
                 else:
                     espirit_maps = torch.from_numpy(raw[slice_id])
 
+        if self.readout_crop:
+            kspace = crop_readout_oversampling(kspace)
         # Downsample the largest spatial dimension by 2 before cropping
-        if self.anatomy not in ('knee', 'prostate'):
+        elif self.anatomy not in ('knee', 'prostate'):
             if kspace.shape[-2] > kspace.shape[-1]:
                 kspace = kspace[..., ::2, :]
                 if espirit_maps is not None:
@@ -520,10 +537,13 @@ def build_fastmri_dataloaders(
     balance_by: str = 'anatomy',
     test_fraction: float = 0.0,
     trim_to_smallest: bool = True,
+    shuffle_seed: Optional[int] = None,
 ) -> Tuple[torch.utils.data.DataLoader, torch.utils.data.DataLoader]:
     """Build train and val dataloaders from one or more anatomies.
 
     Args:
+        shuffle_seed: Seeds the train loader's own shuffle generator, so the batch order depends on this seed alone and
+            not on how much of the global RNG model construction used. None shuffles from the global RNG.
         data_root: Root directory containing anatomy subdirs (e.g. ~/data/fastmri/).
         anatomies: List of anatomy names (brain, knee, breast, prostate).
         image_shape: Target image dimensions [H, W].
@@ -652,6 +672,10 @@ def build_fastmri_dataloaders(
             ds for ds, anatomy in zip(train_datasets, anatomies) if anatomy in train_anatomies
         ]
 
+    return _dataloaders(train_datasets, val_datasets, batch_size, num_workers, shuffle_seed)
+
+
+def _dataloaders(train_datasets, val_datasets, batch_size, num_workers, shuffle_seed):
     loader_kwargs = dict(
         batch_size=batch_size,
         num_workers=num_workers,
@@ -666,6 +690,7 @@ def build_fastmri_dataloaders(
     train_loader = torch.utils.data.DataLoader(
         torch.utils.data.ConcatDataset(train_datasets),
         shuffle=True,
+        generator=None if shuffle_seed is None else torch.Generator().manual_seed(shuffle_seed),
         **loader_kwargs,
     )
     val_loader = torch.utils.data.DataLoader(
@@ -675,3 +700,71 @@ def build_fastmri_dataloaders(
     )
 
     return train_loader, val_loader
+
+
+MANIFEST_TRAIN_TIERS = {'S': ('S',), 'L': ('S', 'L-only')}
+REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
+
+
+def _manifest_datasets(rows: List[Dict], roots: Dict[str, str], split: str, **dataset_kwargs) -> List[FastMRIDataset]:
+    """One FastMRIDataset per (anatomy, directory) of the manifest rows; prints the volumes and slices per condition."""
+    groups: Dict[Tuple[str, pathlib.Path], List[str]] = {}
+    for row in rows:
+        path = pathlib.Path(roots[row['source']].format(anatomy=row['anatomy'])).expanduser() / row['hpc_relpath']
+        groups.setdefault((row['anatomy'], path.parent), []).append(path.name)
+    datasets = [FastMRIDataset(root=root, anatomy=anatomy, file_names=names, **dataset_kwargs)
+                for (anatomy, root), names in groups.items()]
+    condition_of = {row['file']: condition_name(row['anatomy'], row) for row in rows}
+    volumes: Dict[str, set] = {}
+    slices: Dict[str, int] = {}
+    for ds in datasets:
+        for fname, _ in ds.examples:
+            condition = condition_of[fname.name]
+            volumes.setdefault(condition, set()).add(fname.name)
+            slices[condition] = slices.get(condition, 0) + 1
+    print(f"Manifest {split} set (volumes, slices): { {c: (len(volumes[c]), slices[c]) for c in sorted(slices)} }")
+    return datasets
+
+
+def build_manifest_dataloaders(
+    manifest: str,
+    roots: Dict[str, str],
+    classes: Sequence[str],
+    image_shape: List[int],
+    batch_size: int,
+    num_coils: int,
+    train_tier: str = 'S',
+    num_workers: int = 4,
+    min_energy_fraction: float = 0.2,
+    shuffle_seed: Optional[int] = None,
+    transform: Optional[Callable] = None,
+    train_anatomies: Sequence[str] = (),
+) -> Tuple[torch.utils.data.DataLoader, torch.utils.data.DataLoader]:
+    """Train and val loaders over the raw h5 volumes a subset manifest lists (scripts/data/select_fastmri_subset.py).
+
+    Train is `train_tier` (S, or L = S plus the L-only rows) of each class in `classes` (the manifest's `cls`: knee, T2,
+    FLAIR); val is its val rows. Test rows are never loaded. `roots` maps the manifest's `source` to the directory its
+    `hpc_relpath` is relative to, with `{anatomy}` filled in. Every slice keeps all its coils (zero-padded to `num_coils`)
+    and has its readout oversampling cropped away. A relative `manifest` is relative to the repository root.
+    `train_anatomies`, when given, trains on those anatomies' rows alone while val keeps every class.
+    """
+    import csv
+    with open(REPO_ROOT / pathlib.Path(manifest).expanduser()) as f:
+        rows = [row for row in csv.DictReader(f) if row['cls'] in classes]
+    unknown = set(classes) - {row['cls'] for row in rows}
+    if unknown:
+        raise ValueError(f"classes {sorted(unknown)} are not in {manifest}")
+    most_coils = max(int(row['coils']) for row in rows)
+    if most_coils > num_coils:
+        raise ValueError(f"{manifest} has volumes with {most_coils} coils; num_coils={num_coils} would drop some")
+    unknown = set(train_anatomies) - {row['anatomy'] for row in rows}
+    if unknown:
+        raise ValueError(f"train_anatomies {sorted(unknown)} are not among the anatomies of classes {list(classes)}")
+    train_rows = [row for row in rows if row['split'] == 'train' and row['tier'] in MANIFEST_TRAIN_TIERS[train_tier]
+                  and (not train_anatomies or row['anatomy'] in train_anatomies)]
+    val_rows = [row for row in rows if row['split'] == 'val']
+    dataset_kwargs = dict(image_shape=image_shape, transform=transform, num_coils=num_coils,
+                          min_energy_fraction=min_energy_fraction, readout_crop=True)
+    return _dataloaders(_manifest_datasets(train_rows, roots, 'train', **dataset_kwargs),
+                        _manifest_datasets(val_rows, roots, 'val', **dataset_kwargs),
+                        batch_size, num_workers, shuffle_seed)

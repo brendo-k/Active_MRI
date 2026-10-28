@@ -7,9 +7,11 @@
 # and seed sees the same mask; the seed sets the initialisation and data order. Arms differ only in the U-Nets:
 #   base       fastMRI's U-Net with its LeakyReLUs out of place (VarNet.FastMRIUnet; same outputs)
 #   bf16       base under bf16 autocast (normalisation around it, FFTs and DC stay fp32)
-#   sens64     base with the sensitivity net's U-Net run on the 64x64 centre of k-space (its input is only the 10x10
-#              centre) and its output upsampled to the full image; the cascades are base's. Half the epoch time, but
-#              -0.10 dB brain, -0.21 dB knee over 3 seeds (eval_sens64.json)
+#   sens<N>    base with the sensitivity net's U-Net run on the NxN centre of k-space (its input is only the 10x10
+#              centre) and its output upsampled to the full image; the cascades are base's. sens64: half the epoch
+#              time, but -0.10 dB brain, -0.21 dB knee over 3 seeds (eval_sens64.json)
+#   bf16_sensbf16  bf16 with the sensitivity net's U-Net under bf16 autocast too (sampler.sens_precision=bf16), the
+#              cuDNN autotuner off as it was for the base and bf16 runs, so sens precision is the only difference from bf16
 # Compare arms paired by seed. One run needs ~21-27 GB, so one run per A6000. The lite and lite_bf16 arms (one 3x3 conv
 # in the full-resolution blocks, full-resolution skip added: -0.17 dB brain) ran on the code snapshot at commit 370899b
 # of ~/data/seqmri_checkpoints/unet_speed/code; their options are gone.
@@ -25,7 +27,7 @@ set -euo pipefail
 cd "$(dirname "$0")/../.."
 export PYTHONPATH="${PYTHONPATH:-}:$(pwd)"
 
-ARM="${ARM:?set ARM=base, bf16 or sens64}"
+ARM="${ARM:?set ARM=base, bf16, bf16_sensbf16 or sens<N> (e.g. sens64)}"
 GPU="${GPU:-0}"
 SEED="${SEED:-42}"
 CASCADES="${CASCADES:-2}"
@@ -36,8 +38,9 @@ STUDY_BASE=(recon.unet_precision=fp32 sampler.sens_precision=fp32 training.compi
 case "$ARM" in
     base) KNOBS=() ;;
     bf16) KNOBS=(recon.unet_precision=bf16) ;;
-    sens64) KNOBS=(sampler.sens_resolution=64) ;;
-    *) echo "ARM must be base, bf16 or sens64, got $ARM" >&2; exit 1 ;;
+    bf16_sensbf16) KNOBS=(recon.unet_precision=bf16 sampler.sens_precision=bf16 training.cudnn_benchmark=false) ;;
+    sens[0-9]*) KNOBS=(sampler.sens_resolution="${ARM#sens}") ;;
+    *) echo "ARM must be base, bf16, bf16_sensbf16 or sens<N>, got $ARM" >&2; exit 1 ;;
 esac
 
 OUT="$OUT_ROOT/varnet${CASCADES}_r8_${ARM}_seed${SEED}"

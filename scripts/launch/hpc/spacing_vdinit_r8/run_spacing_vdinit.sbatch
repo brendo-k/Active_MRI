@@ -57,7 +57,7 @@ nvidia-smi --query-gpu=name,memory.total --format=csv,noheader || true
 python -c "import sys, torch, hydra; print('python', sys.version.split()[0], 'torch', torch.__version__, 'hydra', hydra.__version__, 'cuda', torch.cuda.is_available())"
 
 cd "$EXP_DIR/code"
-python train.py --model loupe --recon varnet --dataset brain_knee_balanced --acceleration 8 \
+python train.py --model loupe --recon varnet --dataset brain_knee_balanced_legacy --acceleration 8 \
     --batch-size 16 --epochs 50 \
     "datasets.data_root=$DATA_ROOT" \
     datasets.num_workers=16 \
