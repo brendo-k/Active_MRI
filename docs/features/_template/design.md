@@ -1,7 +1,6 @@
 # <Feature name> — Design
 
 Status: draft | active | blocked (<reason>) | done
-Roadmap step: <1 anatomy routing | 2 ACS budget | 3 multi-step>
 Last verdict: <YYYY-MM-DD, report link>
 
 ## Question
@@ -15,7 +14,6 @@ Last verdict: <YYYY-MM-DD, report link>
 - Reconstructor: <E2E VarNet, backbone, lr>
 - Metric path: <trainer apodized metric mask; PSNR / NMSE / SSIM_Masked>
 - Controls: <non-adaptive twin; seed-swap control; seeds>
-- Noise floor: <seed spread in dB; smallest effect we call real>
 
 ## Decisions
 
@@ -37,7 +35,7 @@ Last verdict: <YYYY-MM-DD, report link>
 
 ## Constraints
 
-- <Hard constraints from AGENTS.md gotchas that apply here>
+- <Hard constraints that may not be in Agents.md, Gotchas that apply here>
 
 ## Links
 

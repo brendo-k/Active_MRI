@@ -23,7 +23,7 @@ Main operating point is R=8, E2E VarNet reconstructor, fastMRI brain + knee. See
 - `configs/` — Hydra configs (`config.yaml`, `datasets/`, `recon/`).
 - `scripts/` — `launch/`, `eval/`, `plots/`, `diagnostics/`, `oracle/`, `archive/`; each uses `scripts/_path.py` to find `activemri`.
 - `reports/<name>/` — one folder per experiment write-up (use the `experiment-report` skill).
-- `docs/` — design notes and the ISMRM 2027 abstract.
+- `docs/` — design notes.
 
 ## Conventions
 
@@ -42,11 +42,10 @@ branch; failure commits everything on the branch, removes the worktree, and leav
 
 - **Metrics:** trainer scores inside an apodized per-anatomy metric mask (changed 2026-10-20; `SSIM_Masked` fixed 2026-10-23). Don't compare numbers across those dates, and don't use eval scripts that score full images. Healthy SSIM ≈ 0.88–0.93; **< 0.80 means a bug** — debug before reporting.
 - **Sampler input:** conj bug fixed 2026-10-27; older conv/adaptive checkpoints see a different input.
-- **Effect sizes are tiny** (0.05–0.2 dB) vs. 0.3–0.5 dB seed spread of joint LOUPE+VarNet training — use seed-swap controls and multiple seeds. The main goal is to expand this.
-- **Sense maps:** BART ecalib (tuned crop + soft) is the default; no post-hoc smoothing of maps.
+- **Effect sizes are tiny** (0.05–0.2 dB) vs. 0.3–0.5 dB seed spread of joint LOUPE+VarNet training — use seed-swap controls and multiple seeds. The main goal is to expand this seperation.
+- **Sense maps:** BART ecalib maps are gold standard, but for dl we use SensetivityModel_mc.py
 - **PromptMR backbone:** diverges at lr 1e-3, use 2e-4. REINFORCE policy lr ≈ 0.01–0.05.
-- **Oracle noise 0.02 is ~100× real noise** — kills PI-like masks in CG-SENSE oracle.
 - **Brain val outlier:** AXT2_201_2010571 (~25 dB); pick figure slices by PSNR rank.
 - **Checkpoints:** optimizer state stripped (no resume); they live in `~/data/seqmri_checkpoints`.
 - **Data:** new fastMRI data goes to `/export/scratch/bkadota/fastmri_raw` via the manifest loader (default since 10-27). `~/data` is an NFS symlink, not `/home` (which is nearly full).
-- **Compute:** no compute on the HPC login node (rsync/ls only); crashed runs are rerun in full (no resume).
+- **Compute:** no compute on the HPC login node (rsync/ls only); Yippee server has 4 a6000 and 1TB of vram; resume crashed runs.
