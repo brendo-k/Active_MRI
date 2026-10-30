@@ -1,0 +1,221 @@
+{
+  "run": "/home/bkadota/data/seqmri_checkpoints/patient_specific_r8_local_v1/runs/patient_specific_loupe_r8_flair_knee_100ep_seed42",
+  "summary": {
+    "brain": {
+      "psnr_masked": {
+        "mean": 31.249620100289338,
+        "median": 31.29886245727539
+      },
+      "ssim_masked": {
+        "mean": 0.8463787882288626,
+        "median": 0.8773531913757324
+      },
+      "nmse_masked": {
+        "mean": 0.007611280600232465,
+        "median": 0.005898063536733389
+      },
+      "psnr_masked_pseudo_complex": {
+        "mean": 30.062697396396604,
+        "median": 30.201290130615234
+      },
+      "ssim_masked_pseudo_complex": {
+        "mean": 0.8370950761905387,
+        "median": 0.8726320862770081
+      },
+      "frac_grid_sense": {
+        "mean": 0.43912828266004883,
+        "median": 0.46116209030151367
+      },
+      "frac_grid_M": {
+        "mean": 0.6224099001362304,
+        "median": 0.653369128704071
+      },
+      "xabs_l1_outside_sense_over_total": {
+        "mean": 0.02247990024514681,
+        "median": 0.014609255827963352
+      },
+      "phase_circstd_full_vs_espirit": {
+        "mean": 0.950727157085395,
+        "median": 0.9327879548072815
+      },
+      "phase_circstd_recon_vs_espirit": {
+        "mean": 1.5398058972082846,
+        "median": 1.5026661157608032
+      },
+      "phase_jump_frac_full_vs_espirit": {
+        "mean": 0.00032984193722535385,
+        "median": 9.58799064392224e-05
+      },
+      "phase_jump_frac_espirit_itself": {
+        "mean": 0.008663537099932572,
+        "median": 0.00448979577049613
+      },
+      "phase_jump_frac_full_learned_itself": {
+        "mean": 0.008660521774307064,
+        "median": 0.00454314611852169
+      }
+    },
+    "knee-PD": {
+      "psnr_masked": {
+        "mean": 34.00620189570389,
+        "median": 34.31382369995117
+      },
+      "ssim_masked": {
+        "mean": 0.9007420318441972,
+        "median": 0.907273530960083
+      },
+      "nmse_masked": {
+        "mean": 0.0038778492205265636,
+        "median": 0.003435243619605899
+      },
+      "psnr_masked_pseudo_complex": {
+        "mean": 28.8856850095525,
+        "median": 29.038793563842773
+      },
+      "ssim_masked_pseudo_complex": {
+        "mean": 0.8726364016355767,
+        "median": 0.8857050538063049
+      },
+      "frac_grid_sense": {
+        "mean": 0.6434962969013167,
+        "median": 0.73036128282547
+      },
+      "frac_grid_M": {
+        "mean": 0.8478713289102509,
+        "median": 0.9514257311820984
+      },
+      "xabs_l1_outside_sense_over_total": {
+        "mean": 0.015325745646904096,
+        "median": 0.011272354051470757
+      },
+      "phase_circstd_full_vs_espirit": {
+        "mean": 0.5237133516687872,
+        "median": 0.5401318073272705
+      },
+      "phase_circstd_recon_vs_espirit": {
+        "mean": 0.52613412782572,
+        "median": 0.5476660132408142
+      },
+      "phase_jump_frac_full_vs_espirit": {
+        "mean": 0.0013956491317168255,
+        "median": 0.0010752390371635556
+      },
+      "phase_jump_frac_espirit_itself": {
+        "mean": 0.006655753378969196,
+        "median": 0.006226925645023584
+      },
+      "phase_jump_frac_full_learned_itself": {
+        "mean": 0.0061637747084047215,
+        "median": 0.005766294896602631
+      }
+    },
+    "knee-PDFS": {
+      "psnr_masked": {
+        "mean": 31.346627866860594,
+        "median": 31.502710342407227
+      },
+      "ssim_masked": {
+        "mean": 0.7698593719890623,
+        "median": 0.7869620025157928
+      },
+      "nmse_masked": {
+        "mean": 0.012222271736104493,
+        "median": 0.008917818311601877
+      },
+      "psnr_masked_pseudo_complex": {
+        "mean": 24.212068169044727,
+        "median": 24.16081714630127
+      },
+      "ssim_masked_pseudo_complex": {
+        "mean": 0.6684622922284302,
+        "median": 0.716872900724411
+      },
+      "frac_grid_sense": {
+        "mean": 0.6446741838911266,
+        "median": 0.7009374797344208
+      },
+      "frac_grid_M": {
+        "mean": 0.8690032587132671,
+        "median": 0.9646435081958771
+      },
+      "xabs_l1_outside_sense_over_total": {
+        "mean": 0.0391498157130131,
+        "median": 0.03206910192966461
+      },
+      "phase_circstd_full_vs_espirit": {
+        "mean": 0.5230121144629789,
+        "median": 0.5377360880374908
+      },
+      "phase_circstd_recon_vs_espirit": {
+        "mean": 0.5582238596271385,
+        "median": 0.5801399946212769
+      },
+      "phase_jump_frac_full_vs_espirit": {
+        "mean": 0.0048866876500996475,
+        "median": 0.003880340722389519
+      },
+      "phase_jump_frac_espirit_itself": {
+        "mean": 0.016446434961152123,
+        "median": 0.01502830907702446
+      },
+      "phase_jump_frac_full_learned_itself": {
+        "mean": 0.013978730112880425,
+        "median": 0.012467486783862114
+      }
+    },
+    "all": {
+      "psnr_masked": {
+        "mean": 32.23992178978935,
+        "median": 32.382469177246094
+      },
+      "ssim_masked": {
+        "mean": 0.8391980081642867,
+        "median": 0.869507759809494
+      },
+      "nmse_masked": {
+        "mean": 0.007885096302571715,
+        "median": 0.0055223016534000635
+      },
+      "psnr_masked_pseudo_complex": {
+        "mean": 27.66148757885361,
+        "median": 28.279356002807617
+      },
+      "ssim_masked_pseudo_complex": {
+        "mean": 0.7920082209838921,
+        "median": 0.8432984054088593
+      },
+      "frac_grid_sense": {
+        "mean": 0.5800983385923939,
+        "median": 0.5868359208106995
+      },
+      "frac_grid_M": {
+        "mean": 0.784683975588119,
+        "median": 0.8346679508686066
+      },
+      "xabs_l1_outside_sense_over_total": {
+        "mean": 0.025672572156485513,
+        "median": 0.016725334338843822
+      },
+      "phase_circstd_full_vs_espirit": {
+        "mean": 0.6567786435785985,
+        "median": 0.5904695093631744
+      },
+      "phase_circstd_recon_vs_espirit": {
+        "mean": 0.8535080408625558,
+        "median": 0.6195413768291473
+      },
+      "phase_jump_frac_full_vs_espirit": {
+        "mean": 0.002251826670140624,
+        "median": 0.000929650675971061
+      },
+      "phase_jump_frac_espirit_itself": {
+        "mean": 0.010616826132025735,
+        "median": 0.008364543318748474
+      },
+      "phase_jump_frac_full_learned_itself": {
+        "mean": 0.009604642893040884,
+        "median": 0.007639945717528462
+      }
+    }
+  }
+}

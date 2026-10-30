@@ -1,0 +1,112 @@
+{
+  "brain/1.5T": {
+    "n": 154,
+    "recon_outside_M_l1_frac": 0.0015820150692416536,
+    "recon_outside_M_max_ratio": 0.10911195546195104,
+    "Simage_outside_M_l1_frac": 0.0016223427305172284,
+    "xtilde_vs_target_maxabs_on_metric": 2.333870181789646e-07,
+    "psnr_masked": 29.43258588964289,
+    "psnr_pseudo_xtilde": 29.432585963955173,
+    "ssim_masked": 0.7634242631785282,
+    "recon_outside_M_max_ratio_max": 1.0
+  },
+  "brain/3T": {
+    "n": 451,
+    "recon_outside_M_l1_frac": 0.0012720505940116453,
+    "recon_outside_M_max_ratio": 0.0926977673779343,
+    "Simage_outside_M_l1_frac": 0.0012403416467596101,
+    "xtilde_vs_target_maxabs_on_metric": 2.2559895483723238e-07,
+    "psnr_masked": 31.870070806363735,
+    "psnr_pseudo_xtilde": 31.870070785217962,
+    "ssim_masked": 0.8747047236119035,
+    "recon_outside_M_max_ratio_max": 1.0
+  },
+  "knee-PD/1.5T": {
+    "n": 322,
+    "recon_outside_M_l1_frac": 0.0001444481899372522,
+    "recon_outside_M_max_ratio": 0.009514292378140532,
+    "Simage_outside_M_l1_frac": 0.00016776727035214422,
+    "xtilde_vs_target_maxabs_on_metric": 2.0620985801175516e-07,
+    "psnr_masked": 33.88568537575858,
+    "psnr_pseudo_xtilde": 33.885685440916454,
+    "ssim_masked": 0.8922886241296804,
+    "recon_outside_M_max_ratio_max": 0.10410348325967789
+  },
+  "knee-PD/3T": {
+    "n": 351,
+    "recon_outside_M_l1_frac": 6.306847253161949e-05,
+    "recon_outside_M_max_ratio": 0.005748129086277084,
+    "Simage_outside_M_l1_frac": 6.853106682206802e-05,
+    "xtilde_vs_target_maxabs_on_metric": 1.908707143234731e-07,
+    "psnr_masked": 34.11676121029759,
+    "psnr_pseudo_xtilde": 34.11676122659971,
+    "ssim_masked": 0.9084970098615033,
+    "recon_outside_M_max_ratio_max": 0.09706411510705948
+  },
+  "knee-PDFS/1.5T": {
+    "n": 312,
+    "recon_outside_M_l1_frac": 5.714071097337672e-05,
+    "recon_outside_M_max_ratio": 0.00239749097575744,
+    "Simage_outside_M_l1_frac": 5.782524213734574e-05,
+    "xtilde_vs_target_maxabs_on_metric": 0.0028190238353533624,
+    "psnr_masked": 30.53549971947303,
+    "psnr_pseudo_xtilde": 30.530567915011677,
+    "ssim_masked": 0.7237190226904857,
+    "recon_outside_M_max_ratio_max": 0.2262519896030426
+  },
+  "knee-PDFS/3T": {
+    "n": 348,
+    "recon_outside_M_l1_frac": 1.902860368454117e-05,
+    "recon_outside_M_max_ratio": 0.0018566368768612544,
+    "Simage_outside_M_l1_frac": 2.1687731333812914e-05,
+    "xtilde_vs_target_maxabs_on_metric": 2.1392586587489336e-07,
+    "psnr_masked": 32.073846205897716,
+    "psnr_pseudo_xtilde": 32.0738462113786,
+    "ssim_masked": 0.8112265817050276,
+    "recon_outside_M_max_ratio_max": 0.17116276919841766
+  },
+  "brain/all": {
+    "n": 605,
+    "recon_outside_M_l1_frac": 0.001350950642252011,
+    "recon_outside_M_max_ratio": 0.09687592434477492,
+    "Simage_outside_M_l1_frac": 0.0013375782862615493,
+    "xtilde_vs_target_maxabs_on_metric": 2.275813709605824e-07,
+    "psnr_masked": 31.249620100289338,
+    "psnr_pseudo_xtilde": 31.24962010344198,
+    "ssim_masked": 0.8463787882288626,
+    "recon_outside_M_max_ratio_max": 1.0
+  },
+  "knee-PD/all": {
+    "n": 673,
+    "recon_outside_M_l1_frac": 0.00010200497922495341,
+    "recon_outside_M_max_ratio": 0.007550067540927946,
+    "Simage_outside_M_l1_frac": 0.00011601109287954876,
+    "xtilde_vs_target_maxabs_on_metric": 1.982097994165293e-07,
+    "psnr_masked": 34.00620189570389,
+    "psnr_pseudo_xtilde": 34.00620193538127,
+    "ssim_masked": 0.9007420318441972,
+    "recon_outside_M_max_ratio_max": 0.10410348325967789
+  },
+  "knee-PDFS/all": {
+    "n": 660,
+    "recon_outside_M_l1_frac": 3.704523622108161e-05,
+    "recon_outside_M_max_ratio": 0.002112313359975815,
+    "Simage_outside_M_l1_frac": 3.877091825911934e-05,
+    "xtilde_vs_target_maxabs_on_metric": 0.0013327422467145052,
+    "psnr_masked": 31.346627866860594,
+    "psnr_pseudo_xtilde": 31.34429647127787,
+    "ssim_masked": 0.7698593719890623,
+    "recon_outside_M_max_ratio_max": 0.2262519896030426
+  },
+  "all/all": {
+    "n": 1938,
+    "recon_outside_M_l1_frac": 0.0004697752040695429,
+    "recon_outside_M_max_ratio": 0.03358372368483869,
+    "Simage_outside_M_l1_frac": 0.0004710521851120704,
+    "xtilde_vs_target_maxabs_on_metric": 0.0004540149456945366,
+    "psnr_masked": 32.23992178978935,
+    "psnr_pseudo_xtilde": 32.239127830824245,
+    "ssim_masked": 0.8391980081642867,
+    "recon_outside_M_max_ratio_max": 1.0
+  }
+}
