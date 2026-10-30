@@ -369,6 +369,7 @@ class Sequential_Trainer:
                 'recon_weight': 1.0, 'kspace_weight': 0.0,
                 'uncertainty_weight': self.options.uncertainty_weight,
                 'anatomy_weight': self.options.anatomy_weight,
+                'support_mask': self.options.loss_support_mask,
             }
             loss, log_dict = self.model.loss(pred_dict, target_dict, meta, self.options.loss_type)
 
@@ -513,6 +514,7 @@ class Sequential_Trainer:
                     'recon_weight': 1.0, 'kspace_weight': 0.0,
                     'uncertainty_weight': self.options.uncertainty_weight,
                     'anatomy_weight': self.options.anatomy_weight,
+                    'support_mask': self.options.loss_support_mask,
                 }
                 loss, _ = self.model.loss(pred_dict, target_dict, meta, self.options.loss_type)
 
@@ -607,8 +609,11 @@ class Sequential_Trainer:
         return inputs
 
     def _target_dict(self, batch, target, kspace):
-        """What the loss is scored against: the image target, plus the held-out k-space for self-supervised data."""
+        """What the loss is scored against: the image target, plus the held-out k-space for self-supervised data and
+        the cached ESPIRiT complex image [B, 1, H, W] when the data ships it."""
         target_dict = {'target': target, 'kspace': kspace}
+        if 'complex_target' in batch:
+            target_dict['complex_target'] = torch.view_as_complex(batch['complex_target'].to(self.device).contiguous()).unsqueeze(1)
         anatomy_labels = self._anatomy_labels(batch)
         if anatomy_labels is not None:
             target_dict['anatomy_labels'] = anatomy_labels

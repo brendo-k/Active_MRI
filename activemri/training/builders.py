@@ -47,6 +47,7 @@ def build_train_config(cfg: DictConfig) -> TrainConfig:
         cudnn_benchmark=cfg.training.get('cudnn_benchmark', True),
         train_masked_metrics_every=cfg.training.get('train_masked_metrics_every', 1),
         loss_type=cfg.loss.loss_type,
+        loss_support_mask=cfg.loss.get('support_mask', False),
         uncertainty_loss=cfg.loss.uncertainty_loss,
         uncertainty_weight=cfg.loss.uncertainty_weight,
         anatomy_weight=cfg.loss.get('anatomy_weight', 0.0),
@@ -174,6 +175,7 @@ def build_manifest_loaders(cfg: DictConfig, image_shape: list, shuffle_seed=None
         min_energy_fraction=cfg.datasets.get('min_energy_fraction', 0.2),
         shuffle_seed=shuffle_seed,
         train_anatomies=list(cfg.datasets.get('train_anatomies', [])),
+        complex_cache_dir=cfg.datasets.get('complex_cache_dir', None),
     )
 
 

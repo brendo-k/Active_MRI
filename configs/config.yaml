@@ -21,7 +21,8 @@ training:
   seed: 42
 
 loss:
-  loss_type: l1
+  loss_type: l1  # l1 (RSS image) | complex_l1 | kspace_sense_l1 | kspace_rss_l1 (the last three: docs/experiments/loss_domain); ssim | nmse | psnr
+  support_mask: false  # complex_l1 / kspace_*_l1: multiply both sides by M = |cached ESPIRiT image| > 0 (needs datasets.complex_cache_dir)
   uncertainty_loss: false
   uncertainty_weight: 0.0
   anatomy_weight: 0.0

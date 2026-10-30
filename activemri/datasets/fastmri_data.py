@@ -10,6 +10,7 @@ import numpy as np
 import torch
 import torch.utils.data
 
+from activemri.datasets import complex_image_cache
 from activemri.datasets.sense_cache import SenseCache, cache_signature
 
 ifft_2d_img = lambda x, dim=(-1, -2): np.fft.fftshift(
@@ -83,13 +84,20 @@ class FastMRIDataset(torch.utils.data.Dataset):
         slice_ids: Optional[Sequence[int]] = None,
         sense_cache=None,
         readout_crop: bool = False,
+        complex_cache: Optional[complex_image_cache.ComplexImageCache] = None,
     ):
         """`readout_crop` removes the readout oversampling by an image crop (`crop_readout_oversampling`) for every
-        anatomy, instead of decimating the longer axis of non-knee k-space by 2; precomputed 'sense' maps are then not loaded."""
+        anatomy, instead of decimating the longer axis of non-knee k-space by 2; precomputed 'sense' maps are then not loaded.
+        `complex_cache` adds each slice's cached ESPIRiT complex image as 'complex_target' [H, W, 2] (real view)."""
         self.root = pathlib.Path(root)
         self.readout_crop = readout_crop
         self.sense_cache = sense_cache
         self.sense_signature = cache_signature(anatomy, image_shape, num_coils) if sense_cache is not None else None
+        self.complex_cache = complex_cache
+        self.complex_signature = (
+            complex_image_cache.cache_signature(anatomy, image_shape, num_coils, min_energy_fraction)
+            if complex_cache is not None else None
+        )
         self.anatomy = anatomy
         self.image_shape = image_shape
         self.transform = transform
@@ -300,6 +308,9 @@ class FastMRIDataset(torch.utils.data.Dataset):
 
         if self.sense_cache is not None:
             sample['sense_maps'] = self.sense_cache.load(self.anatomy, fname, slice_id, self.sense_signature)
+        if self.complex_cache is not None:
+            sample['complex_target'] = torch.view_as_real(
+                self.complex_cache.load(self.anatomy, fname, slice_id, self.complex_signature))
 
         if self.transform is not None:
             sample = self.transform(sample)
@@ -739,6 +750,7 @@ def build_manifest_dataloaders(
     shuffle_seed: Optional[int] = None,
     transform: Optional[Callable] = None,
     train_anatomies: Sequence[str] = (),
+    complex_cache_dir: Optional[str] = None,
 ) -> Tuple[torch.utils.data.DataLoader, torch.utils.data.DataLoader]:
     """Train and val loaders over the raw h5 volumes a subset manifest lists (scripts/data/select_fastmri_subset.py).
 
@@ -747,6 +759,7 @@ def build_manifest_dataloaders(
     `hpc_relpath` is relative to, with `{anatomy}` filled in. Every slice keeps all its coils (zero-padded to `num_coils`)
     and has its readout oversampling cropped away. A relative `manifest` is relative to the repository root.
     `train_anatomies`, when given, trains on those anatomies' rows alone while val keeps every class.
+    `complex_cache_dir` adds each slice's cached ESPIRiT complex image (scripts/data/build_complex_image_cache.py).
     """
     import csv
     with open(REPO_ROOT / pathlib.Path(manifest).expanduser()) as f:
@@ -763,8 +776,10 @@ def build_manifest_dataloaders(
     train_rows = [row for row in rows if row['split'] == 'train' and row['tier'] in MANIFEST_TRAIN_TIERS[train_tier]
                   and (not train_anatomies or row['anatomy'] in train_anatomies)]
     val_rows = [row for row in rows if row['split'] == 'val']
+    complex_cache = (complex_image_cache.ComplexImageCache(pathlib.Path(complex_cache_dir).expanduser())
+                     if complex_cache_dir else None)
     dataset_kwargs = dict(image_shape=image_shape, transform=transform, num_coils=num_coils,
-                          min_energy_fraction=min_energy_fraction, readout_crop=True)
+                          min_energy_fraction=min_energy_fraction, readout_crop=True, complex_cache=complex_cache)
     return _dataloaders(_manifest_datasets(train_rows, roots, 'train', **dataset_kwargs),
                         _manifest_datasets(val_rows, roots, 'val', **dataset_kwargs),
                         batch_size, num_workers, shuffle_seed)

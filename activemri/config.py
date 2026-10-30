@@ -23,7 +23,8 @@ class TrainConfig:
     limit_batches: float = 1.0
 
     # Loss
-    loss_type: str = 'l1'
+    loss_type: str = 'l1'  # see activemri.models.sequential_sampling.LOSS_TYPES
+    loss_support_mask: bool = False  # complex_l1 / kspace_*_l1: restrict both sides to M = |cached ESPIRiT image| > 0
     uncertainty_loss: bool = False
     uncertainty_weight: float = 0.0
     anatomy_weight: float = 0.0

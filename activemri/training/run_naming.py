@@ -158,6 +158,8 @@ def _recon_tokens(options):
 
 def _loss_tokens(options):
     tokens = [] if _get(options, 'loss_type') == 'l1' else [f"loss-{_get(options, 'loss_type')}"]
+    if _get(options, 'loss_support_mask'):
+        tokens.append('loss-in-M')
     if _get(options, 'uncertainty_loss'):
         tokens.append('unc')
     if _get(options, 'anatomy_weight') > 0:

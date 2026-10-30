@@ -24,6 +24,8 @@ from activemri.utils.util import compute_gaussian_nll_loss, compute_psnr_torch, 
 
 RSS_EPSILON = 1e-12
 BUDGET_REGIONS = ('grid', 'acquired')
+# Mean |error| in another domain than the RSS image (`SequentialSampling.loss_domain_l1`, docs/experiments/loss_domain).
+LOSS_DOMAINS = ('complex_l1', 'kspace_sense_l1', 'kspace_rss_l1')
 SAMPLER_COIL_COMBINES = ('sense', 'rss')
 
 
@@ -579,6 +581,7 @@ class SequentialSampling(nn.Module):
             'zero_filled_recon': zero_filled,
             'uncertainty_maps': uncertainty_maps,
             'sense_maps': sense_maps,
+            'kspace_extent': output_extent,
             'reinforce_logp': reinforce_logp,
             'reinforce_entropy': reinforce_entropy,
             'anatomy_logits': anatomy_logits,
@@ -621,6 +624,10 @@ class SequentialSampling(nn.Module):
         elif loss_type == 'l1':
             reconstruction_loss = F.l1_loss(pred, target, size_average=True)
             zero_loss = F.l1_loss(zero_filled, target, size_average=True)
+        elif loss_type in LOSS_DOMAINS:
+            reconstruction_loss = self.loss_domain_l1(
+                pred_dict, target, target_dict.get('complex_target'), loss_type, meta.get('support_mask', False))
+            zero_loss = torch.tensor(0.0, device=pred.device)
         elif loss_type == 'ssim':
             reconstruction_loss = -torch.mean(compute_ssim_torch(pred, target))
             zero_loss = -torch.mean(compute_ssim_torch(zero_filled, target))
@@ -753,6 +760,40 @@ class SequentialSampling(nn.Module):
             log_dict['Uncertainty Loss'] = nll_loss.item()
 
         return loss, log_dict
+
+    @staticmethod
+    def loss_domain_l1(pred_dict, target, complex_target, loss_type, support_mask=False):
+        """Mean |error| of the reconstruction in the domain `loss_type` names. The reconstruction is the coil k-space
+        the scored RSS output is built from, k_c = F(S_c x) E (x = `recon_complex`, E = the acquired extent):
+
+        - complex_l1: the coil-combined image sum_c conj(S_c) F^-1(k_c) against the cached ESPIRiT image.
+        - kspace_sense_l1: k_c against F(S_c x_espirit) E, with the maps detached on the target so the loss cannot
+          shrink by editing it.
+        - kspace_rss_l1: F of the scored RSS output against F of the RSS target; no maps, phase-blind.
+
+        `support_mask` multiplies both images by M = |x_espirit| > 0 first (before the expansion through the maps).
+        """
+        needs_espirit = loss_type in ('complex_l1', 'kspace_sense_l1') or support_mask
+        if needs_espirit and complex_target is None:
+            raise ValueError(f"loss_type={loss_type} with support_mask={support_mask} needs the cached ESPIRiT image: "
+                             "set datasets.complex_cache_dir")
+        support = (complex_target.abs() > 0).to(target.dtype) if support_mask else None
+
+        def masked(image):
+            return image if support is None else image * support
+
+        if loss_type == 'kspace_rss_l1':
+            error = torch_fft2(masked(pred_dict['output'])) - torch_fft2(masked(target))
+            return error.abs().mean()
+        recon, maps, extent = pred_dict['recon_complex'], pred_dict['sense_maps'], pred_dict['kspace_extent']
+        if loss_type == 'kspace_sense_l1':
+            coil_kspace = torch_fft2(maps * masked(recon)) * extent
+            reference = torch_fft2(maps.detach() * masked(complex_target)) * extent
+            return (coil_kspace - reference).abs().mean()
+        if loss_type == 'complex_l1':
+            combined = (torch_ifft2(torch_fft2(maps * recon) * extent) * maps.conj()).sum(dim=1, keepdim=True)
+            return (masked(combined) - masked(complex_target)).abs().mean()
+        raise NotImplementedError(f"Unknown loss domain: {loss_type}")
 
     @staticmethod
     def ssdu_loss(pred_dict, target_dict):
