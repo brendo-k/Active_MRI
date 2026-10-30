@@ -114,42 +114,45 @@ def test_promptmr_backbone_at_48_chans_matches_promptmr_plus_parameter_count():
     assert abs(parameters - 6_632_081) < 100
 
 
-def line_mask(batch=2, centre_lines=4, stride=4):
-    mask = torch.zeros(batch, 1, HEIGHT, WIDTH)
-    mask[..., ::stride] = 1
-    mask[..., WIDTH // 2 - centre_lines // 2:WIDTH // 2 + centre_lines // 2] = 1
-    return mask
+def _record_csme_images(model):
+    seen = []
+    for cascade in model.cascades:
+        original = cascade.sense_model.forward
 
+        def spy(images, _original=original):
+            seen.append(images.detach().clone())
+            return _original(images)
 
-def test_acs_region_is_the_central_block_of_acquired_columns():
-    from activemri.reconstructors.csme import acs_region_mask
-    region = acs_region_mask(line_mask(centre_lines=6, stride=8))
-
-    assert region[0, 0].sum() == HEIGHT * 6
-    assert region[0, 0, :, WIDTH // 2 - 3:WIDTH // 2 + 3].all()
-
-
-def test_acs_region_refuses_a_mask_without_the_centre():
-    from activemri.reconstructors.csme import acs_region_mask
-    mask = line_mask()
-    mask[..., WIDTH // 2] = 0
-
-    with pytest.raises(ValueError, match='centre'):
-        acs_region_mask(mask)
+        cascade.sense_model.forward = spy
+    return seen
 
 
 @pytest.mark.parametrize('adaptive_input', [False, True])
-def test_estimated_sense_ignores_external_maps_and_trains_every_cascades_estimator(adaptive_input):
+def test_csme_reads_the_zero_filled_coil_images_then_the_updated_image(adaptive_input):
+    from activemri.utils.image_processing import ifft_2d_img
+
+    model = VarNet(num_cascades=2, chans=4, pools=2, csme=True, adaptive_input=adaptive_input).eval()
+    seen = _record_csme_images(model)
+    masked, sense, mask = inputs()
+
+    with torch.no_grad():
+        model(masked, sense, mask)
+
+    assert torch.allclose(seen[0], ifft_2d_img(masked))
+    assert not torch.allclose(seen[1], seen[0])
+
+
+@pytest.mark.parametrize('adaptive_input', [False, True])
+def test_csme_ignores_external_maps_and_trains_every_cascades_estimator(adaptive_input):
     torch.manual_seed(0)
-    model = VarNet(num_cascades=2, chans=4, pools=2, estimate_sense=True, adaptive_input=adaptive_input).train()
-    kspace, sense, _ = inputs()
-    mask = line_mask()
+    model = VarNet(num_cascades=2, chans=4, pools=2, csme=True, adaptive_input=adaptive_input).train()
+    masked, sense, mask = inputs()
     other_sense = torch.randn_like(sense)
 
-    output = model(kspace * mask, sense, mask)
+    output = model(masked, sense, mask)
     output.abs().mean().backward()
 
-    assert torch.equal(output, model(kspace * mask, other_sense, mask))
+    assert torch.equal(output, model(masked, other_sense, mask))
     assert all(cascade.sense_model.unet.conv_0.conv_0.conv.weight.grad.abs().sum() > 0 for cascade in model.cascades)
 
 

@@ -61,7 +61,7 @@ class VarNetReconConfig(ReconConfig):
     momentum_history: int = 0
     checkpoint_cascades: bool = False
     backbone: str = 'unet'
-    estimate_sense: bool = False
+    csme: bool = False
     unet_precision: str = 'fp32'
     restrict_to_extent: bool = False
 

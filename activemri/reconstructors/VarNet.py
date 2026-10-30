@@ -14,7 +14,7 @@ import torch.utils.checkpoint
 import torch.nn.functional as F
 from fastmri.models import Unet
 
-from activemri.reconstructors.csme import CascadeSensitivityModel, acs_region_mask
+from activemri.reconstructors.csme import CascadeSensitivityModel
 from activemri.utils.complex_conversion import complex_to_real, real_to_complex
 from activemri.utils.conditioning import DEFAULT_EMBED_DIM, AnatomyEmbedding, AnatomyPrompt, FiLM, broadcast_channels
 from activemri.utils.image_processing import fft_2d_img, ifft_2d_img
@@ -399,13 +399,13 @@ class VarNetBlock(nn.Module):
     A cascade with ``adaptive_input`` or a momentum U-Net carries state to the next one: it takes
     and returns the latent and the decoder history (None where unused).
 
-    ``estimate_sense`` gives the cascade its own :class:`CascadeSensitivityModel` (SDUM's CSME), which estimates
-    the maps from the ACS region of the cascade's current k-space; the maps passed in are then ignored, and the
-    cascade returns the ones it used.
+    ``csme`` gives the cascade its own :class:`CascadeSensitivityModel`, which estimates the maps from the
+    cascade's current per-coil image. The first cascade sees the zero-filled coil images. The maps passed in are
+    then ignored, and the cascade returns the ones it used.
     """
 
     def __init__(self, model: nn.Module, dc_mode: str = "where", dc_weight_shape=None, adaptive_input: bool = False,
-                 estimate_sense: bool = False):
+                 csme: bool = False):
         super().__init__()
         if dc_mode not in DC_MODES:
             raise ValueError(f"dc_mode must be one of {DC_MODES}, got {dc_mode!r}")
@@ -413,8 +413,8 @@ class VarNetBlock(nn.Module):
         self.dc_mode = dc_mode
         self.adaptive_input = adaptive_input
         self.has_momentum = getattr(model, "momentum_history", 0) > 0
-        self.sense_model = CascadeSensitivityModel() if estimate_sense else None
-        self.carries_state = adaptive_input or self.has_momentum or estimate_sense
+        self.sense_model = CascadeSensitivityModel() if csme else None
+        self.carries_state = adaptive_input or self.has_momentum or csme
         self.dc_weight = nn.Parameter(torch.ones(1, 1, *dc_weight_shape) if dc_weight_shape else torch.ones(1))
 
     def _load_from_state_dict(self, state_dict, prefix, *args, **kwargs):
@@ -424,10 +424,10 @@ class VarNetBlock(nn.Module):
             state_dict[key] = torch.sigmoid(state_dict[key]).reshape(1)
         super()._load_from_state_dict(state_dict, prefix, *args, **kwargs)
 
-    def estimate_sense_maps(self, kspace: torch.Tensor, acs_mask: torch.Tensor) -> torch.Tensor:
+    def estimate_maps(self, coil_images: torch.Tensor) -> torch.Tensor:
         if self.training and torch.is_grad_enabled():
-            return torch.utils.checkpoint.checkpoint(self.sense_model, kspace, acs_mask, use_reentrant=False)
-        return self.sense_model(kspace, acs_mask)
+            return torch.utils.checkpoint.checkpoint(self.sense_model, coil_images, use_reentrant=False)
+        return self.sense_model(coil_images)
 
     def sens_expand(self, image: torch.Tensor, sense_maps: torch.Tensor) -> torch.Tensor:
         return fft_2d_img(image * sense_maps)
@@ -446,16 +446,15 @@ class VarNetBlock(nn.Module):
         zero_filled: torch.Tensor = None,
         latent: torch.Tensor = None,
         history=None,
-        acs_mask: torch.Tensor = None,
     ):
         """Returns the next k-space estimate; a cascade that carries state or estimates sense maps returns the
         tuple (k-space, next latent, next history, sense maps used), with None where unused.
 
-        With ``estimate_sense`` the maps are estimated from ``current_kspace`` unless ``sense_maps`` is given, which
-        lets the caller reuse an estimate it has already made from the same k-space.
+        With CSME the maps are estimated from the current per-coil image, the inverse FFT of ``current_kspace``,
+        unless ``sense_maps`` is given, which lets the caller reuse an estimate it has already made from the same image.
         """
         if self.sense_model is not None and sense_maps is None:
-            sense_maps = self.estimate_sense_maps(current_kspace, acs_mask)
+            sense_maps = self.estimate_maps(ifft_2d_img(current_kspace))
         if self.dc_mode == "multiply":
             soft_dc = mask * (current_kspace - ref_kspace) * self.dc_weight
         else:
@@ -505,9 +504,9 @@ class VarNet(nn.Module):
             earlier cascades (PromptMR+ uses num_cascades - 1).
         backbone: ``'unet'`` (fastMRI's U-Net) or ``'promptmr'`` (:class:`PromptUnet`, three levels; `chans=48` and
             `pools=3` give PromptMR+'s widths).
-        estimate_sense: Every cascade estimates its sensitivity maps from the ACS region of its own k-space estimate
-            (SDUM's CSME, :class:`CascadeSensitivityModel`) and `sense_maps` is ignored. The mask must acquire the
-            k-space centre. The returned image is combined with the last cascade's maps.
+        csme: Every cascade estimates its sensitivity maps from its current per-coil image
+            (:class:`CascadeSensitivityModel`). The first cascade sees the zero-filled coil images, and
+            `sense_maps` is ignored. The returned image is combined with the last cascade's maps.
         checkpoint_cascades: Recompute each cascade in the backward pass instead of storing its
             activations, trading compute for memory while training.
         unet_precision: ``'fp32'`` or ``'bf16'``, the autocast dtype of every cascade's U-Net body.
@@ -529,7 +528,7 @@ class VarNet(nn.Module):
         momentum_history: int = 0,
         checkpoint_cascades: bool = False,
         backbone: str = "unet",
-        estimate_sense: bool = False,
+        csme: bool = False,
         unet_precision: str = "fp32",
     ):
         super().__init__()
@@ -537,7 +536,7 @@ class VarNet(nn.Module):
             raise ValueError("choose one injection of the anatomy embedding: film or prompt")
         self.dc_mode = dc_mode
         self.adaptive_input = adaptive_input
-        self.estimate_sense = estimate_sense
+        self.csme = csme
         self.checkpoint_cascades = checkpoint_cascades
         self.label_blind = label_blind
         self.anatomy_embedding = (
@@ -558,7 +557,7 @@ class VarNet(nn.Module):
                                   momentum_history=momentum_history, prompt_embed_dim=prompt_embed_dim,
                                   backbone=backbone, precision=unet_precision),
                          dc_mode=dc_mode, dc_weight_shape=dc_weight_shape, adaptive_input=adaptive_input,
-                         estimate_sense=estimate_sense)
+                         csme=csme)
              for _ in range(num_cascades)]
         )
 
@@ -610,23 +609,22 @@ class VarNet(nn.Module):
             return cascade(*inputs)
 
         kspace_pred = masked_kspace.clone()
-        acs_mask = None
-        if self.estimate_sense:
-            acs_mask = acs_region_mask(mask)
-            # Cascade 0 estimates from the same k-space as the zero-filled image, so the estimate is shared.
-            sense_maps = (self.cascades[0].estimate_sense_maps(masked_kspace, acs_mask)
-                          if self.adaptive_input else None)
+        if self.csme and self.adaptive_input:
+            # Cascade 0 estimates from the same zero-filled coil images as the adaptive input, so the estimate is shared.
+            sense_maps = self.cascades[0].estimate_maps(ifft_2d_img(masked_kspace))
+        elif self.csme:
+            sense_maps = None
         zero_filled = latent = history = None
         if self.adaptive_input:
             zero_filled = (ifft_2d_img(masked_kspace) * sense_maps.conj()).sum(dim=1, keepdim=True)
             latent = zero_filled
         for cascade in self.cascades:
             output = run(cascade, kspace_pred, ref_kspace, mask, sense_maps, anatomy_embedding, kspace_support,
-                         zero_filled, latent, history, acs_mask)
+                         zero_filled, latent, history)
             if cascade.carries_state:
                 kspace_pred, latent, history, used_maps = output
             else:
                 kspace_pred, used_maps = output, sense_maps
-            if self.estimate_sense:
+            if self.csme:
                 sense_maps = None
         return (ifft_2d_img(kspace_pred) * used_maps.conj()).sum(dim=1, keepdim=True)

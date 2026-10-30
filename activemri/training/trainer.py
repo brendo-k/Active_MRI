@@ -1130,7 +1130,7 @@ def build_model(options: TrainConfig):
             momentum_history=getattr(recon_cfg, 'momentum_history', 0),
             checkpoint_cascades=getattr(recon_cfg, 'checkpoint_cascades', False),
             backbone=getattr(recon_cfg, 'backbone', 'unet'),
-            estimate_sense=getattr(recon_cfg, 'estimate_sense', False),
+            csme=getattr(recon_cfg, 'csme', False),
             unet_precision=getattr(recon_cfg, 'unet_precision', 'fp32'),
         )
     elif isinstance(recon_cfg, SDUMReconConfig):

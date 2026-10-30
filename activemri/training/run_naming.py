@@ -136,7 +136,7 @@ def _recon_tokens(options):
         tokens += [name for key, name in (('anatomy_conditioning', 'recon-cond'), ('film_conditioning', 'film'),
                                           ('prompt_conditioning', 'prompt-cond'), ('label_blind', 'blind'),
                                           ('adaptive_input', 'aha-in'), ('dc_weight_map', 'dc-map'),
-                                          ('estimate_sense', 'csme'), ('restrict_to_extent', 'recon-in-extent'))
+                                          ('csme', 'csme'), ('restrict_to_extent', 'recon-in-extent'))
                    if recon.get(key)]
         if recon.get('backbone', 'unet') != 'unet':
             tokens.append(recon['backbone'])

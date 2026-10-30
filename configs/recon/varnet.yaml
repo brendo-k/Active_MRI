@@ -11,7 +11,7 @@ dc_weight_map: false  # learned DC weight per k-space location in every cascade,
 adaptive_input: false  # condition every cascade's U-Net on A^H A x, A^H y and a carried latent, as PromptMR+
 momentum_history: 0  # >0: PromptMR+'s momentum layer at every decoder level over this many earlier cascades (PromptMR+: num_cascades - 1)
 backbone: unet  # unet (fastMRI) | promptmr (PromptMR+ CAB U-Net with prompts; needs pools: 3, chans: 48 for PromptMR+'s widths)
-estimate_sense: false  # true: every cascade estimates its sensitivity maps from the ACS region of its own k-space, as SDUM's CSME; false = external maps
+csme: false  # true: every cascade estimates its sensitivity maps from its current per-coil image, starting from the zero-filled image; false = external maps
 checkpoint_cascades: false  # recompute cascades in backward to save memory
 unet_precision: bf16  # fp32 | bf16: autocast dtype of the cascade U-Nets (their input normalisation, the FFTs and DC stay fp32); bf16 vs fp32 at 2 cascades, 3 seeds: brain -0.03 dB, knee +0.01 dB
 restrict_to_extent: false  # true: the regularizer writes only inside the acquired k-space extent (data without a kspace_support); VarNets trained without it lose ~1.5 dB on FLAIR if confined at eval
