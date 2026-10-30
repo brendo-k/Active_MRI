@@ -249,12 +249,30 @@ merge or park recommended, and wait for the user's verdict.
 
 ## 9. Status at handoff (2026-10-30)
 
-- Branch commits: proposal `73bb128`; loss code `6187b24`; launcher and checks `a7da95c`; queue, sbatch and eval
-  `f4a1e12`.
-- Checks passed on yippee: 12 unit tests (`tests/test_loss_domain.py`), cache coverage (5,867 slices, 0 missing), seed
-  pairing (same batch, init and mask; finite gradients; 42 GiB peak for every arm).
-- 1-epoch smoke tests through the real launcher: `complex` and `kspace_sense` passed (train + full val, exit 0). The
-  other three arms are running.
-- CoreHPC: cache copied, data verified, folder created. Next: ship `code/` (git archive of the branch tip +
-  `SNAPSHOT.txt`), run the DEBUG smoke task, then submit the array.
-- Local queue: not started yet (waiting for the smoke tests).
+- Branch commits:
+  - proposal `73bb128`;
+  - loss code `6187b24`;
+  - launcher and checks `a7da95c`;
+  - queue, sbatch and eval `f4a1e12`;
+  - this handoff `1ba1ccf`. That is the code shipped to `~/scratch/loss_domain/code` and the code the local runs use.
+- Checks passed on yippee:
+  - 12 unit tests (`tests/test_loss_domain.py`);
+  - cache coverage: 5,867 slices, 0 missing;
+  - seed pairing: same batch, init and mask; finite gradients; 42 GiB peak for every arm.
+- 1-epoch smoke tests through the real launcher (seed 42, 2% of the train batches + a full val pass, A6000), all exit 0:
+
+  | ARM | TrainLoss | ValLoss | val PSNR brain / knee (unmasked, after 5 steps) | ValTime |
+  |---|---|---|---|---|
+  | rss | 0.1688 | 0.1745 | 21.6 / 17.2 | 128 s |
+  | complex | 0.2899 | 0.2616 | 15.5 / 11.8 | 136 s |
+  | kspace_sense | 0.02592 | 0.01652 | 15.7 / 12.2 | 140 s |
+  | kspace_rss | 0.08591 | 0.05857 | 15.8 / 12.5 | 132 s |
+  | kspace_rss_M | 0.08548 | 0.05769 | 15.8 / 12.4 | 135 s |
+
+- **Local queue running since 14:31**, from the detached worktree `~/code/active_mri/SeqMRI-worktrees/run-loss_domain`
+  (pinned at `1ba1ccf`). Seed-42 `rss` is on GPU 0 and `complex` on GPU 1; `kspace_rss` and `kspace_rss_M` follow at
+  about 03:30 on 10-31. The log is `~/data/seqmri_checkpoints/loss_domain/queue_local.log`, and the runs are in
+  `~/data/seqmri_checkpoints/loss_domain/runs/`.
+- CoreHPC:
+  - done: cache copied, data verified, `code/` shipped (`SNAPSHOT.txt` = `1ba1ccf`);
+  - **nothing submitted yet**. Next: the DEBUG smoke task (step 1 in section 7), then the array.
