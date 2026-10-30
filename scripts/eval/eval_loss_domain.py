@@ -11,6 +11,7 @@ Per-run results are cached in OUT/runs/, so runs that finish later can be added 
         --out reports/loss_domain/eval
 """
 import argparse
+import itertools
 import json
 import math
 import sys
@@ -68,7 +69,7 @@ def neighbour_jump_fraction(phase, mask):
 
 
 @torch.no_grad()
-def score_run(path, val_loader, cache, device):
+def score_run(path, val_loader, cache, device, max_batches=None):
     checkpoint = torch.load(path / 'last_model.pt', map_location='cpu', weights_only=False)
     model = build_model(checkpoint['options']).to(device)
     model.load_state_dict({k.removeprefix('module.'): v for k, v in checkpoint['model'].items()})
@@ -80,7 +81,7 @@ def score_run(path, val_loader, cache, device):
               'phase_circstd': [], 'phase_jump': [], **{m: [[] for _ in MASK_DRAW_SEEDS] for m in METRICS}}
     for draw, draw_seed in enumerate(MASK_DRAW_SEEDS):
         torch.manual_seed(draw_seed)
-        for batch in val_loader:
+        for batch in itertools.islice(val_loader, max_batches):
             kspace_real = batch['kspace'].to(device)
             kspace = torch.view_as_complex(kspace_real.contiguous())
             target = batch['target'].to(device)
@@ -204,6 +205,7 @@ def main():
     parser.add_argument('--out', type=Path, default=Path('reports/loss_domain/eval'))
     parser.add_argument('--epochs', type=int, default=100, help='the runs\' epoch count, as in their folder names')
     parser.add_argument('--device', default='cuda')
+    parser.add_argument('--max-batches', type=int, help='score only this many val batches (to test the script)')
     args = parser.parse_args()
     device = torch.device(args.device)
     (args.out / 'runs').mkdir(parents=True, exist_ok=True)
@@ -224,7 +226,7 @@ def main():
             if cached.exists() and cached.stat().st_mtime > (path / 'last_model.pt').stat().st_mtime:
                 results[arm, seed] = torch.load(cached, weights_only=False)
             else:
-                results[arm, seed] = score_run(path, val_loader, cache, device)
+                results[arm, seed] = score_run(path, val_loader, cache, device, args.max_batches)
                 torch.save(results[arm, seed], cached)
             r = results[arm, seed]
             print(f"{name}: epoch {r['epoch'] + 1}  PSNR_Masked {r['psnr'].mean():.3f}  SSIM_Masked {r['ssim'].mean():.4f}  "
