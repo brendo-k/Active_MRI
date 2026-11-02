@@ -1,0 +1,217 @@
+{
+  "schema": 1,
+  "generated_at": "2026-11-02T07:20:58+00:00",
+  "code": {
+    "produced_at": "975316edb852f8d218f9c3963e348b6a46947408",
+    "produced_at_subject": "sense_mask_varnet: script for the final validation metrics of the offline wandb runs",
+    "head": "ddf0eeb8960336316d99de07a39e5fcb15faba7b",
+    "branch": "exp/sense_mask_varnet",
+    "dirty_tracked_files": [],
+    "scripts": [
+      {
+        "path": "scripts/eval/wandb_final_val_metrics.py",
+        "changed_since_produced_at": false
+      }
+    ]
+  },
+  "metric_mask": {
+    "version": "apodized",
+    "definition": "k-space-apodized per-anatomy mask (activemri/utils/metric_mask.py), the trainer metric since 2026-10-20",
+    "apodization_sigma": 16,
+    "params": {
+      "brain": {
+        "fraction": 0.15,
+        "radius": 6
+      },
+      "knee": {
+        "fraction": 0.06,
+        "radius": 12
+      }
+    }
+  },
+  "data": {
+    "config": {
+      "loader": "fastmri_manifest",
+      "manifest": "configs/datasets/fastmri_local_v1/manifest.csv",
+      "roots": {
+        "local_batch2": "/home/remote/bkadota/scratch/data/fastmri/knee/data",
+        "hpc": "/home/remote/bkadota/scratch/data/fastmri/{anatomy}/data"
+      },
+      "train_tier": "S",
+      "limit_volumes": 0.5,
+      "train_anatomies": [],
+      "condition_classes": [
+        "brain",
+        "knee-PD",
+        "knee-PDFS"
+      ],
+      "classes": [
+        "FLAIR",
+        "knee"
+      ],
+      "anatomy": [
+        "brain",
+        "knee"
+      ],
+      "num_coils": 20,
+      "num_workers": 8
+    },
+    "note": "local v1 FLAIR+knee-PD+knee-PDFS, limit_volumes=0.5, train tier S; validation brain n=304, knee n=657 slices"
+  },
+  "runs": [
+    {
+      "name": "sense_mask_varnet_null_seed42",
+      "path": "checkpoints/sense_mask_varnet_null_seed42",
+      "config_sha256": "8b3f1b61806c3bca",
+      "overrides": [
+        "recon=varnet",
+        "recon.num_cascades=12",
+        "recon.csme=false",
+        "misc.resolution=[320,320]",
+        "datasets.limit_volumes=0.5",
+        "datasets.roots.hpc=\"/home/remote/bkadota/scratch/data/fastmri/{anatomy}/data\"",
+        "datasets.roots.local_batch2=/home/remote/bkadota/scratch/data/fastmri/knee/data",
+        "training.num_step=1",
+        "training.batch_size=16",
+        "training.num_epochs=50",
+        "training.lr=0.001",
+        "training.lr_scheduler=step",
+        "training.lr_step_size=40",
+        "training.seed=42",
+        "loss.loss_type=l1",
+        "sampler.sampler_type=loupe_2d",
+        "sampler.mask_train_mode=straight_through",
+        "sampler.loupe_vd_init_power=0",
+        "sampler.accelerations=[8.0]",
+        "sampler.budget_over=acquired",
+        "sampler.anatomy_conditioning=false",
+        "sampler.coil_combine=sense",
+        "+sampler.sense_mask_method=null",
+        "output.out_dir=/home/remote/bkadota/scratch/logs/active_mri/sense_mask_varnet_null_seed42",
+        "output.run_name=sense_mask_null_seed42"
+      ],
+      "trained_at_commit": "955bfb114747259d9a1d7f768fa8d296fc029041",
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 361003723,
+          "modified": "2026-11-02T07:11:48+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 361003723,
+          "modified": "2026-11-02T07:15:20+00:00"
+        }
+      }
+    },
+    {
+      "name": "sense_mask_varnet_post_network_seed42",
+      "path": "checkpoints/sense_mask_varnet_post_network_seed42",
+      "config_sha256": "67713442a85947a9",
+      "overrides": [
+        "recon=varnet",
+        "recon.num_cascades=12",
+        "recon.csme=false",
+        "misc.resolution=[320,320]",
+        "datasets.limit_volumes=0.5",
+        "datasets.roots.hpc=\"/home/remote/bkadota/scratch/data/fastmri/{anatomy}/data\"",
+        "datasets.roots.local_batch2=/home/remote/bkadota/scratch/data/fastmri/knee/data",
+        "training.num_step=1",
+        "training.batch_size=16",
+        "training.num_epochs=50",
+        "training.lr=0.001",
+        "training.lr_scheduler=step",
+        "training.lr_step_size=40",
+        "training.seed=42",
+        "loss.loss_type=l1",
+        "sampler.sampler_type=loupe_2d",
+        "sampler.mask_train_mode=straight_through",
+        "sampler.loupe_vd_init_power=0",
+        "sampler.accelerations=[8.0]",
+        "sampler.budget_over=acquired",
+        "sampler.anatomy_conditioning=false",
+        "sampler.coil_combine=sense",
+        "+sampler.sense_mask_method=post_network",
+        "output.out_dir=/home/remote/bkadota/scratch/logs/active_mri/sense_mask_varnet_post_network_seed42",
+        "output.run_name=sense_mask_post_network_seed42"
+      ],
+      "trained_at_commit": "955bfb114747259d9a1d7f768fa8d296fc029041",
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 361003787,
+          "modified": "2026-11-02T05:53:46+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 361003787,
+          "modified": "2026-11-02T07:16:22+00:00"
+        }
+      }
+    },
+    {
+      "name": "sense_mask_varnet_pre_network_seed42",
+      "path": "checkpoints/sense_mask_varnet_pre_network_seed42",
+      "config_sha256": "18fb71561cfd7761",
+      "overrides": [
+        "recon=varnet",
+        "recon.num_cascades=12",
+        "recon.csme=false",
+        "misc.resolution=[320,320]",
+        "datasets.limit_volumes=0.5",
+        "datasets.roots.hpc=\"/home/remote/bkadota/scratch/data/fastmri/{anatomy}/data\"",
+        "datasets.roots.local_batch2=/home/remote/bkadota/scratch/data/fastmri/knee/data",
+        "training.num_step=1",
+        "training.batch_size=16",
+        "training.num_epochs=50",
+        "training.lr=0.001",
+        "training.lr_scheduler=step",
+        "training.lr_step_size=40",
+        "training.seed=42",
+        "loss.loss_type=l1",
+        "sampler.sampler_type=loupe_2d",
+        "sampler.mask_train_mode=straight_through",
+        "sampler.loupe_vd_init_power=0",
+        "sampler.accelerations=[8.0]",
+        "sampler.budget_over=acquired",
+        "sampler.anatomy_conditioning=false",
+        "sampler.coil_combine=sense",
+        "+sampler.sense_mask_method=pre_network",
+        "output.out_dir=/home/remote/bkadota/scratch/logs/active_mri/sense_mask_varnet_pre_network_seed42",
+        "output.run_name=sense_mask_pre_network_seed42"
+      ],
+      "trained_at_commit": "955bfb114747259d9a1d7f768fa8d296fc029041",
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 361003787,
+          "modified": "2026-11-02T07:15:19+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 361003787,
+          "modified": "2026-11-02T07:17:07+00:00"
+        }
+      }
+    }
+  ],
+  "commands": [
+    "python scripts/eval/wandb_final_val_metrics.py --control pre_network --out reports/sense_mask_varnet --run pre_network=$LOGS/sense_mask_varnet_pre_network_seed42 --run null=$LOGS/sense_mask_varnet_null_seed42 --run post_network=$LOGS/sense_mask_varnet_post_network_seed42"
+  ],
+  "results": [
+    {
+      "path": "launch.sh",
+      "bytes": 1697,
+      "sha256": "ca9bff4d6be1331a"
+    },
+    {
+      "path": "metrics.json",
+      "bytes": 2660,
+      "sha256": "3fff137dba0122cc"
+    },
+    {
+      "path": "proposal.md",
+      "bytes": 2613,
+      "sha256": "6202796f9be0be32"
+    },
+    {
+      "path": "table.md",
+      "bytes": 736,
+      "sha256": "ed60f43414427bd7"
+    }
+  ]
+}

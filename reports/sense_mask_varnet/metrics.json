@@ -1,0 +1,83 @@
+{
+ "pre_network": {
+  "validated_epochs": 50,
+  "val/PSNR_Masked": 31.257427215576172,
+  "val/SSIM_Masked": 0.8153955936431885,
+  "val/NMSE": 0.012663406319916248,
+  "val/PSNR": 29.493244171142578,
+  "val/SSIM": 0.9253818392753601,
+  "val/brain/PSNR": 35.79415512084961,
+  "val/brain/NMSE": 0.010543105192482471,
+  "val/brain/SSIM": 0.9487199187278748,
+  "val/knee/PSNR": 28.99471092224121,
+  "val/knee/NMSE": 0.013644506223499775,
+  "val/knee/SSIM": 0.9145832061767578,
+  "delta_vs_control": {
+   "val/PSNR_Masked": 0.0,
+   "val/SSIM_Masked": 0.0,
+   "val/NMSE": 0.0,
+   "val/PSNR": 0.0,
+   "val/SSIM": 0.0,
+   "val/brain/PSNR": 0.0,
+   "val/brain/NMSE": 0.0,
+   "val/brain/SSIM": 0.0,
+   "val/knee/PSNR": 0.0,
+   "val/knee/NMSE": 0.0,
+   "val/knee/SSIM": 0.0
+  }
+ },
+ "null": {
+  "validated_epochs": 50,
+  "val/PSNR_Masked": 32.519535064697266,
+  "val/SSIM_Masked": 0.8395466804504395,
+  "val/NMSE": 0.006785012781620026,
+  "val/PSNR": 31.523881912231445,
+  "val/SSIM": 0.9343220591545105,
+  "val/brain/PSNR": 38.00941467285156,
+  "val/brain/NMSE": 0.005746519658714533,
+  "val/brain/SSIM": 0.9623798727989197,
+  "val/knee/PSNR": 30.97072982788086,
+  "val/knee/NMSE": 0.00726553937420249,
+  "val/knee/SSIM": 0.9213392734527588,
+  "delta_vs_control": {
+   "val/PSNR_Masked": 1.2621078491210938,
+   "val/SSIM_Masked": 0.024151086807250977,
+   "val/NMSE": -0.005878393538296223,
+   "val/PSNR": 2.030637741088867,
+   "val/SSIM": 0.00894021987915039,
+   "val/brain/PSNR": 2.215259552001953,
+   "val/brain/NMSE": -0.004796585533767939,
+   "val/brain/SSIM": 0.013659954071044922,
+   "val/knee/PSNR": 1.9760189056396484,
+   "val/knee/NMSE": -0.006378966849297285,
+   "val/knee/SSIM": 0.0067560672760009766
+  }
+ },
+ "post_network": {
+  "validated_epochs": 50,
+  "val/PSNR_Masked": 31.924394607543945,
+  "val/SSIM_Masked": 0.8281369209289551,
+  "val/NMSE": 0.00883209053426981,
+  "val/PSNR": 30.561643600463867,
+  "val/SSIM": 0.9303176403045654,
+  "val/brain/PSNR": 37.35422134399414,
+  "val/brain/NMSE": 0.007043005432933569,
+  "val/brain/SSIM": 0.9578492045402527,
+  "val/knee/PSNR": 29.923999786376953,
+  "val/knee/NMSE": 0.009659921750426292,
+  "val/knee/SSIM": 0.9175787568092346,
+  "delta_vs_control": {
+   "val/PSNR_Masked": 0.6669673919677734,
+   "val/SSIM_Masked": 0.012741327285766602,
+   "val/NMSE": -0.0038313157856464386,
+   "val/PSNR": 1.068399429321289,
+   "val/SSIM": 0.004935801029205322,
+   "val/brain/PSNR": 1.5600662231445312,
+   "val/brain/NMSE": -0.0035000997595489025,
+   "val/brain/SSIM": 0.00912928581237793,
+   "val/knee/PSNR": 0.9292888641357422,
+   "val/knee/NMSE": -0.0039845844730734825,
+   "val/knee/SSIM": 0.0029955506324768066
+  }
+ }
+}
