@@ -29,6 +29,13 @@ DEFAULT_BRAIN_CONTRAST = 'T2'
 SLICE_ENERGY_CACHE_DIR = '.slice_energy'
 
 
+def flip_rows_about_centre(tensor: torch.Tensor) -> torch.Tensor:
+    """Reflects row i to (H - i) mod H, keeping row H // 2 (the DC row of a centred FFT) in place. In k-space this flips
+    the image upside down with no phase change; a plain flip on an even grid moves DC to row H // 2 - 1, which puts a
+    one-cycle-per-FOV phase ramp on the image."""
+    return torch.roll(tensor.flip(-2), 1, -2)
+
+
 def crop_readout_oversampling(kspace: torch.Tensor) -> torch.Tensor:
     """Drop the 2x readout oversampling (axis -2, DC at the centre) by keeping the central half of the image along the readout.
 
@@ -284,9 +291,9 @@ class FastMRIDataset(torch.utils.data.Dataset):
             espirit_maps = self._pad_or_crop_coils(espirit_maps)
 
         if self.anatomy == 'brain':
-            kspace = kspace.flip(-2)
+            kspace = flip_rows_about_centre(kspace)
             if espirit_maps is not None:
-                espirit_maps = espirit_maps.flip(-2)
+                espirit_maps = flip_rows_about_centre(espirit_maps)
 
         center_k = self._get_center_kspace(kspace)
         norm_factor = np.max(rss(ifft_2d_img(center_k.numpy())))

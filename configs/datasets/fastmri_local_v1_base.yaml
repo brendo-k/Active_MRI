@@ -16,6 +16,6 @@ roots:
   local_batch2: /export/scratch/bkadota/fastmri_knee/batch2
   hpc: /export/scratch/bkadota/fastmri_raw/{anatomy}
 train_tier: S
-complex_cache_dir: null  # /export/scratch/bkadota/fastmri_complex_espirit: adds each slice's ESPIRiT complex image (loss.loss_type=complex_l1 / kspace_sense_l1, loss.support_mask)
+complex_cache_dir: null  # /export/scratch/bkadota/fastmri_complex_espirit_v2: adds each slice's ESPIRiT complex image (loss.loss_type=complex_l1 / kspace_sense_l1, loss.support_mask)
 train_anatomies: []  # train on these anatomies only, still validating on every class; empty = all
 condition_classes: []  # per-sample conditioning labels, e.g. [brain, knee-PD, knee-PDFS]; empty = use anatomy

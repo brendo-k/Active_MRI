@@ -14,7 +14,7 @@ import torch
 
 from activemri.utils.bart_ecalib import PRESETS
 
-CACHE_VERSION = 1
+CACHE_VERSION = 2  # 2: brain rows flipped about the centre (DC stays on row H // 2)
 
 
 def cache_signature(anatomy: str, image_shape: Sequence[int], num_coils: int, min_energy_fraction: float) -> str:
