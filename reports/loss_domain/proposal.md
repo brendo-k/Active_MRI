@@ -120,3 +120,66 @@ with `recon.checkpoint_cascades=true`. Any other crash is rerun once from scratc
 - One branch for items 1-3, with shared A twins.
 - Follow-up raised by the user: test the maps' support mask on and off (`sense_mask_method`). With full-support maps,
   `M` would act on the complex and SENSE k-space losses.
+
+## Amendment 2026-11-01: round 2 (user decisions after the seed-42 diagnosis)
+
+Round 1 (seed 42 only, `reports/loss_domain/eval/summary.json`, `diag/`) found three defects, so its numbers are not
+reused:
+- K_rss compared the full-FOV FFT of the RSS target, whose noise-floor pedestal sits everywhere, against an output that
+  is zero outside the learned maps' support. L1 in k-space then removes the pedestal through DC (`diag/floor_*.py`).
+- B and K_sense mixed conventions. The learned and ESPIRiT maps differ by a common phase field, and `S_learned · x`
+  disagrees with the measured coil data by 136-140% (`diag/kspace_consistency.py`, `diag/complex_phase.py`).
+- Loader bug: brain k-space was flipped with `flip(-2)` on the even 320 grid, which moved DC to row 159. That put a
+  ~1 cycle/FOV phase ramp on every brain image and shifted the 10x10 centre crops (sensitivity-net input, LOUPE
+  centre, normalisation) by one row. The RSS magnitude is unchanged.
+
+Changes:
+- The brain flip now reflects rows about the centre (`flip_rows_about_centre`), so DC stays on row 160. Both cache
+  versions are bumped (2). The ESPIRiT cache was rebuilt into `/export/scratch/bkadota/fastmri_complex_espirit_v2`:
+  10,270 slices with 0 failures, and recomputed slices match exactly. With the rebuilt cache, the brain phase ramp of
+  `x_L · conj x_E` is −0.16 (×2π/320 per px), down from 0.80; knee is 0.19-0.24.
+- New arm set, trained from scratch on the fixed loader. Runs go to `~/data/seqmri_checkpoints/loss_domain/runs_v2`
+  and the eval to `reports/loss_domain/eval_v2`.
+- The sensitivity-net support mask Ω is off in every arm (`+sampler.sense_mask_method=null`), at the user's request
+  after `diag/mask_overlap.py` and `diag/masks.png`.
+  - Ω was the 0.1-max threshold of the 10x10-centre image, with no hole filling. It nested as metric ⊂ Ω ⊂ M, but had
+    holes inside the anatomy wherever that blurry image is dark: FLAIR ventricles, PDFS marrow, dark PD tissue.
+  - In knee the output was exactly 0 in those holes. They are 1% of the metric mask (10% on the worst PDFS slice) and
+    took 7% (PD) / 4% (PDFS) of the scored L1 error.
+  - The maps now cover the whole grid, so the output can represent the background as well.
+
+| Arm | Loss | Role |
+|---|---|---|
+| rss (A) | `mean |rss − t|` (production `loss_type=l1`) | twin / control |
+| rss_M | `mean |M·rss − M·t|` (`l1` + `support_mask`) | image RSS with the ESPIRiT support mask |
+| kspace_gt | `mean |(F(S_c·x̂) − k_c)·E|` (`kspace_gt_l1`) | coil k-space against the measured, fully sampled k-space; no masking, no maps on the target, so the maps train on it |
+| complex (B) | `mean |x̂_E − x|` (`complex_l1`) | complex image against the ESPIRiT image, unchanged |
+
+Success criteria:
+- The bars, thresholds and per-condition relative health gate above are unchanged.
+- The loss bar applies to rss_M, kspace_gt and complex, each against A.
+- The mask bar becomes rss_M minus A.
+- The check that the A twin lands within 0.01 of the old control's 0.839 becomes informational only. That control had
+  Ω on, so it is a different recipe. The AGENTS.md rule (SSIM < 0.80 = bug) still applies.
+
+Expected outcomes:
+- **A:** maybe slightly above round 1 (32.1 dB / 0.836), most likely in knee, where the holes in Ω were forcing 0.
+  Brain may also move by about 0.1 dB from the loader fix.
+- **rss_M:** within ±0.1 dB of A, sign unknown. With Ω off, `M` is a real change: the output extends over the whole
+  grid, and `M` drops the background outside the ESPIRiT crop from the loss. That background holds the RSS noise floor
+  and is never scored.
+- **kspace_gt:** sign unknown. It fits the coil data linearly, so like B it lacks the RSS noise bias, and |x̂| reads
+  darker than `t` in low-SNR tissue (PDFS most). The per-slice gain+offset PSNR (`diag/intensity_fit.py`) is reported
+  alongside, so that this bias is not read as a worse reconstruction. Data consistency at the sampled points should
+  stay at rss's level (19-50%).
+- **complex:** still well below A. The ESPIRiT common phase (BART rotates it to the first principal component, no -P)
+  can't be produced by the per-coil learned maps. Knee, which never had the flip, showed the same 118-135% data
+  inconsistency in round 1. The health-gate miss is expected.
+- **Masks:** correlation with the twin stays inside the A seed-to-seed range.
+
+Compute: 4 arms × about 12.7 h.
+- Seed 42 runs locally on GPUs 0-1, about 26 h: rss then rss_M on one GPU, kspace_gt then complex on the other.
+- Seeds 43-44 (8 runs) wait for CoreHPC. They are on hold until the user approves; `HANDOFF.md` describes round 1 and
+  is superseded.
+- Pre-launch: 18 unit tests, and a 1-epoch smoke test of each arm through the real launcher, run with Ω on and again
+  with Ω off.

@@ -1,5 +1,10 @@
 # Loss domain at R=8: CoreHPC handoff
 
+> **Superseded 2026-11-01. Do not submit this array.** It covers round 1 (arms rss / complex / kspace_sense /
+> kspace_rss / kspace_rss_M, the old brain flip, and the v1 cache). Round 2 changes the arms (rss / rss_M /
+> kspace_gt / complex), the loader and the cache (`fastmri_complex_espirit_v2`); see the 2026-11-01 amendment in
+> `reports/loss_domain/proposal.md`. A new handoff will be written once seed 42 has passed locally.
+
 Written 2026-10-30 for whoever runs the CoreHPC share of this experiment. It covers the question, the design and the
 decisions behind it, what runs where, how to run and check the CoreHPC jobs, and how the results come back to be
 scored. Everything is on git branch `exp/loss_domain` of SeqMRI. The local worktree is

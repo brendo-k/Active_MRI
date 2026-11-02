@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Local share of the loss-domain runs (reports/loss_domain/proposal.md): seed 42 on two GPUs, one chain per GPU.
-#   GPU_A: rss, then kspace_rss        GPU_B: complex, then kspace_rss_M
+#   GPU_A: rss, then rss_M        GPU_B: kspace_gt, then complex
 # Each run waits for its GPU to be idle. A run that runs out of GPU memory is rerun with
 # recon.checkpoint_cascades=true; any other stop is rerun once from scratch, keeping the failed log.
 # Run it from a code snapshot (a detached worktree at the launch commit) so later edits cannot reach the runs:
@@ -15,7 +15,7 @@ SEED="${SEED:-42}"
 EPOCHS="${EPOCHS:-100}"
 GPU_A="${GPU_A:-0}"
 GPU_B="${GPU_B:-1}"
-OUT_ROOT="${OUT_ROOT:-$HOME/data/seqmri_checkpoints/loss_domain/runs}"
+OUT_ROOT="${OUT_ROOT:-$HOME/data/seqmri_checkpoints/loss_domain/runs_v2}"
 LAST_EPOCH="Epoch = \[ *$EPOCHS/ *$EPOCHS\]"
 mkdir -p "$OUT_ROOT"
 
@@ -58,8 +58,8 @@ chain() {
     for arm in "$@"; do train "$arm" "$gpu"; done
 }
 
-echo "$(stamp) queue start: GPU $GPU_A rss -> kspace_rss, GPU $GPU_B complex -> kspace_rss_M, seed $SEED"
-chain "$GPU_A" rss kspace_rss &
-chain "$GPU_B" complex kspace_rss_M &
+echo "$(stamp) queue start: GPU $GPU_A rss -> rss_M, GPU $GPU_B kspace_gt -> complex, seed $SEED"
+chain "$GPU_A" rss rss_M &
+chain "$GPU_B" kspace_gt complex &
 wait
 echo "$(stamp) queue finished"

@@ -7,8 +7,8 @@ Every run is scored from `last_model.pt` on the same val slices with the same tw
 - the learned LOUPE probability map, sigmoid(slope * w).
 Per-run results are cached in OUT/runs/, so runs that finish later can be added by running the script again.
 
-    CUDA_VISIBLE_DEVICES=0 python scripts/eval/eval_loss_domain.py --runs-root ~/data/seqmri_checkpoints/loss_domain/runs \
-        --out reports/loss_domain/eval
+    CUDA_VISIBLE_DEVICES=0 python scripts/eval/eval_loss_domain.py --runs-root ~/data/seqmri_checkpoints/loss_domain/runs_v2 \
+        --out reports/loss_domain/eval_v2
 """
 import argparse
 import itertools
@@ -29,18 +29,21 @@ from activemri.utils.image_processing import ifft_2d_img  # noqa: E402
 from activemri.utils.metric_mask import metric_support_mask  # noqa: E402
 from activemri.utils.metrics import masked_ssim  # noqa: E402
 
-ARMS = ('rss', 'complex', 'kspace_sense', 'kspace_rss', 'kspace_rss_M')
+ARMS = ('rss', 'rss_M', 'kspace_gt', 'complex')
 TWIN = 'rss'
+MASK_PAIR = ('rss_M', 'rss')
 SEEDS = (42, 43, 44)
 MASK_DRAW_SEEDS = (1234, 4321)
 METRICS = ('psnr', 'ssim', 'nmse')
 LOSS_BAR_DB = 0.10
 MASK_BAR_DB = 0.10
 SSIM_GATE = 0.01
-CONTROL_SSIM = 0.839  # patient_specific_loupe_r8_flair_knee_100ep_seed42, the 10-27 RSS-L1 control (reports/loss_domain/qc)
+CONTROL_SSIM = 0.839  # patient_specific_loupe_r8_flair_knee_100ep_seed42, the 10-27 RSS-L1 control (reports/loss_domain/qc);
+                     # informational since round 2, whose maps are unmasked
+BUG_SSIM = 0.80  # AGENTS.md: SSIM_Masked below this means a bug
 BOOTSTRAP = 2000
 ROOTS = {'local_batch2': '/export/scratch/bkadota/fastmri_knee/batch2', 'hpc': '/export/scratch/bkadota/fastmri_raw/{anatomy}'}
-CACHE = '/export/scratch/bkadota/fastmri_complex_espirit'
+CACHE = '/export/scratch/bkadota/fastmri_complex_espirit_v2'
 
 
 def run_name(arm, seed, epochs=100):
@@ -175,10 +178,10 @@ def summarise(results, rng):
                              'pass': len(per_seed) == len(SEEDS) and mean >= LOSS_BAR_DB and all(d > 0 for d in per_seed.values())}
     mask_seeds = {}
     for seed in SEEDS:
-        a, b = results.get(run_name('kspace_rss_M', seed)), results.get(run_name('kspace_rss', seed))
+        a, b = (results.get(run_name(arm, seed)) for arm in MASK_PAIR)
         if a is not None and b is not None:
-            pairs[f'kspace_rss_M - kspace_rss seed{seed}'] = compare(a, b, rng)
-            mask_seeds[seed] = pairs[f'kspace_rss_M - kspace_rss seed{seed}']['psnr']['all']['mean']
+            pairs[f'{MASK_PAIR[0]} - {MASK_PAIR[1]} seed{seed}'] = compare(a, b, rng)
+            mask_seeds[seed] = pairs[f'{MASK_PAIR[0]} - {MASK_PAIR[1]} seed{seed}']['psnr']['all']['mean']
     mask_bar = None
     if mask_seeds:
         mean = float(np.mean(list(mask_seeds.values())))
@@ -186,7 +189,8 @@ def summarise(results, rng):
         mask_bar = {'per_seed': mask_seeds, 'mean': mean, 'complete': len(mask_seeds) == len(SEEDS),
                     'pass': len(mask_seeds) == len(SEEDS) and abs(mean) >= MASK_BAR_DB and len(signs) == 1}
     twins = {seed: runs[run_name(TWIN, seed)]['ssim']['all'] for seed in SEEDS if run_name(TWIN, seed) in runs}
-    health['twins'] = {'ssim': twins, 'pass': all(abs(s - CONTROL_SSIM) <= SSIM_GATE for s in twins.values())}
+    health['twins'] = {'ssim': twins, 'near_old_control': all(abs(s - CONTROL_SSIM) <= SSIM_GATE for s in twins.values()),
+                       'below_bug_floor': any(s < BUG_SSIM for s in twins.values())}
     mask_correlation = {f'{arm} vs {TWIN} seed{seed}': correlation(results[run_name(arm, seed)]['probability'],
                                                                  results[run_name(TWIN, seed)]['probability'])
                         for arm in ARMS[1:] for seed in SEEDS
@@ -201,8 +205,8 @@ def summarise(results, rng):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument('--runs-root', type=Path, nargs='+', default=[Path.home() / 'data/seqmri_checkpoints/loss_domain/runs'])
-    parser.add_argument('--out', type=Path, default=Path('reports/loss_domain/eval'))
+    parser.add_argument('--runs-root', type=Path, nargs='+', default=[Path.home() / 'data/seqmri_checkpoints/loss_domain/runs_v2'])
+    parser.add_argument('--out', type=Path, default=Path('reports/loss_domain/eval_v2'))
     parser.add_argument('--epochs', type=int, default=100, help='the runs\' epoch count, as in their folder names')
     parser.add_argument('--device', default='cuda')
     parser.add_argument('--max-batches', type=int, help='score only this many val batches (to test the script)')
@@ -241,7 +245,7 @@ def main():
     if summary['mask_bar']:
         bar = summary['mask_bar']
         seeds = '  '.join(f's{s} {d:+.3f}' for s, d in bar['per_seed'].items())
-        print(f"Mask bar (kspace_rss_M - kspace_rss): {seeds}  mean {bar['mean']:+.3f}  {'PASS' if bar['pass'] else 'miss'}")
+        print(f"Mask bar ({MASK_PAIR[0]} - {MASK_PAIR[1]}): {seeds}  mean {bar['mean']:+.3f}  {'PASS' if bar['pass'] else 'miss'}")
     print('Health:', json.dumps(summary['health'], indent=None))
     print('Mask correlation:', json.dumps(summary['mask_correlation'], indent=None))
 

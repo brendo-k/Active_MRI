@@ -7,7 +7,7 @@ import torch
 from activemri.models.sequential_sampling import SequentialSampling
 from activemri.utils.image_processing import fft_2d_img, ifft_2d_img
 
-CACHE = pathlib.Path('/export/scratch/bkadota/fastmri_complex_espirit')
+CACHE = pathlib.Path('/export/scratch/bkadota/fastmri_complex_espirit_v2')
 VAL_BRAIN = pathlib.Path('/export/scratch/bkadota/fastmri_raw/brain/multicoil_val')
 
 
@@ -102,6 +102,32 @@ def test_gradients_are_finite_where_the_error_is_exactly_zero(loss_type):
     SequentialSampling.loss_domain_l1(pred, target, espirit, loss_type).backward()
     assert torch.isfinite(torch.view_as_real(recon.grad)).all()
     assert torch.isfinite(torch.view_as_real(maps.grad)).all()
+
+
+def test_ground_truth_kspace_loss_is_zero_on_the_measured_data_and_needs_no_espirit_image():
+    maps, espirit, _, extent = _example()
+    extent[..., :, :6] = 0
+    pred = _pred(espirit, maps, extent)
+    measured = fft_2d_img(maps * espirit) + 5.0 * (1 - extent)
+    loss = SequentialSampling.loss_domain_l1(pred, pred['output'], None, 'kspace_gt_l1', kspace=measured)
+    assert loss.item() < 1e-6
+
+
+def test_ground_truth_kspace_loss_trains_the_maps():
+    maps, espirit, _, extent = _example()
+    maps.requires_grad_(True)
+    pred = _pred(espirit, maps, extent)
+    measured = fft_2d_img(maps.detach() * espirit) + 0.1
+    SequentialSampling.loss_domain_l1(pred, pred['output'], None, 'kspace_gt_l1', kspace=measured).backward()
+    assert maps.grad.abs().max().item() > 0
+
+
+def test_ground_truth_kspace_loss_refuses_the_support_mask():
+    maps, espirit, _, extent = _example()
+    pred = _pred(espirit, maps, extent)
+    with pytest.raises(ValueError, match='kspace_gt_l1'):
+        SequentialSampling.loss_domain_l1(pred, pred['output'], espirit, 'kspace_gt_l1', support_mask=True,
+                                          kspace=fft_2d_img(maps * espirit))
 
 
 def test_missing_espirit_image_raises():
