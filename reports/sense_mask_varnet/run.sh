@@ -1,6 +1,6 @@
 #!/bin/bash
 # Usage: sbatch --job-name=sense_mask_$ARM --export=ALL,ARM=<pre_network|null|post_network> sense_mask_varnet.sh
-#SBATCH --gres=gpu:nvidia_h100_nvl:1
+#SBATCH --gres=gpu:1
 #SBATCH --partition=gpu
 #SBATCH --mem=64GB
 #SBATCH --time=08:00:00
