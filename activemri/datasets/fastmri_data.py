@@ -3,6 +3,7 @@ import math
 import os
 import pathlib
 import warnings
+import zlib
 from typing import Callable, Dict, List, Optional, Sequence, Tuple
 
 import h5py
@@ -703,7 +704,41 @@ def _dataloaders(train_datasets, val_datasets, batch_size, num_workers, shuffle_
 
 
 MANIFEST_TRAIN_TIERS = {'S': ('S',), 'L': ('S', 'L-only')}
+LIMIT_VOLUMES_SEED = 1234  # fixed; a training seed must not change which volumes a cap keeps
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
+
+
+def _volumes_to_keep(n: int, fraction: float) -> int:
+    """Volumes to keep out of `n`. 1 keeps them all. A smaller fraction keeps at least one, rounded to the nearest count."""
+    if fraction == 1:
+        return n
+    return min(n, max(1, int(round(fraction * n))))
+
+
+def _limit_volume_rows(rows: List[Dict], fraction: Optional[float], seed: int = LIMIT_VOLUMES_SEED) -> List[Dict]:
+    """Keep `fraction` of the volumes of each condition. `None` and 1 keep every row.
+
+    Volumes of a condition are sorted by filename, then drawn from one seeded shuffle. The same call returns the same
+    files, and a smaller fraction is a prefix of a larger one. Each condition is shuffled on its own, so the files kept
+    for one condition do not move when another condition is added or removed.
+    """
+    if fraction is None:
+        return rows
+    fraction = float(fraction)
+    if not 0 < fraction <= 1:
+        raise ValueError(f"limit_volumes must be in (0, 1], got {fraction}")
+    if fraction == 1:
+        return rows
+    groups: Dict[str, List[Dict]] = {}
+    for row in rows:
+        groups.setdefault(condition_name(row['anatomy'], row), []).append(row)
+    kept: List[Dict] = []
+    for condition in sorted(groups):
+        group = sorted(groups[condition], key=lambda row: row['file'])
+        rng = np.random.RandomState(zlib.crc32(f"{seed}:{condition}".encode()))
+        order = rng.permutation(len(group))
+        kept.extend(group[i] for i in order[:_volumes_to_keep(len(group), fraction)])
+    return kept
 
 
 def _manifest_datasets(rows: List[Dict], roots: Dict[str, str], split: str, **dataset_kwargs) -> List[FastMRIDataset]:
@@ -739,6 +774,7 @@ def build_manifest_dataloaders(
     shuffle_seed: Optional[int] = None,
     transform: Optional[Callable] = None,
     train_anatomies: Sequence[str] = (),
+    limit_volumes: Optional[float] = None,
 ) -> Tuple[torch.utils.data.DataLoader, torch.utils.data.DataLoader]:
     """Train and val loaders over the raw h5 volumes a subset manifest lists (scripts/data/select_fastmri_subset.py).
 
@@ -747,6 +783,8 @@ def build_manifest_dataloaders(
     `hpc_relpath` is relative to, with `{anatomy}` filled in. Every slice keeps all its coils (zero-padded to `num_coils`)
     and has its readout oversampling cropped away. A relative `manifest` is relative to the repository root.
     `train_anatomies`, when given, trains on those anatomies' rows alone while val keeps every class.
+    `limit_volumes` is the fraction of each condition kept in train and again in val (`_limit_volume_rows`). 1 and
+    `None` keep the whole tier. The choice does not depend on `shuffle_seed`.
     """
     import csv
     with open(REPO_ROOT / pathlib.Path(manifest).expanduser()) as f:
@@ -763,6 +801,10 @@ def build_manifest_dataloaders(
     train_rows = [row for row in rows if row['split'] == 'train' and row['tier'] in MANIFEST_TRAIN_TIERS[train_tier]
                   and (not train_anatomies or row['anatomy'] in train_anatomies)]
     val_rows = [row for row in rows if row['split'] == 'val']
+    if limit_volumes is not None and float(limit_volumes) != 1:
+        train_rows = _limit_volume_rows(train_rows, limit_volumes)
+        val_rows = _limit_volume_rows(val_rows, limit_volumes)
+        print(f"limit_volumes={float(limit_volumes):g} of each condition (seed {LIMIT_VOLUMES_SEED})")
     dataset_kwargs = dict(image_shape=image_shape, transform=transform, num_coils=num_coils,
                           min_energy_fraction=min_energy_fraction, readout_crop=True)
     return _dataloaders(_manifest_datasets(train_rows, roots, 'train', **dataset_kwargs),

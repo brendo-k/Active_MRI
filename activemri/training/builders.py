@@ -174,6 +174,7 @@ def build_manifest_loaders(cfg: DictConfig, image_shape: list, shuffle_seed=None
         min_energy_fraction=cfg.datasets.get('min_energy_fraction', 0.2),
         shuffle_seed=shuffle_seed,
         train_anatomies=list(cfg.datasets.get('train_anatomies', [])),
+        limit_volumes=cfg.datasets.get('limit_volumes', None),
     )
 
 
