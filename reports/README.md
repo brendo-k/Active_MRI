@@ -13,6 +13,12 @@ data, runs, commands, result hashes), `run.sh` (regenerates every result file) a
 | `metric_mask_reeval_r8/` | Does the new metric mask change the ranking of the R=8 / R=4 checkpoints? |
 | `varnet_caipi_promptmr_anatcond_r4/` | Does an anatomy label help a PromptMR+-style VarNet on fixed CAIPI R=4 sampling? |
 
+## Planning reports
+
+| Folder | Scope |
+|---|---|
+| [future_work/](future_work/report.md) | Future Work: simple ACS CNN routing, adaptive mask optimization, sequential acquisition, and RL. Synthesis and proposals; historical evaluation snapshots, no new training results. |
+
 ## Earlier flat reports
 
 The other `reports/*.md` files predate the convention. Each experiment report carries a banner saying so and that its metric mask is not

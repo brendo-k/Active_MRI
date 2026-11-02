@@ -1,0 +1,86 @@
+Balanced train set (volumes, slices): {'brain': (89, 1350), 'knee': (40, 1350)}
+Balanced val set (volumes, slices): {'brain': (23, 344), 'knee': (10, 344)}
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+varnet2_r8_base_seed42 last_model.pt (epoch 49): brain PSNR 36.400 SSIM 0.9680  knee PSNR 37.183 SSIM 0.9417
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+varnet2_r8_sens64_seed42 last_model.pt (epoch 49): brain PSNR 36.370 SSIM 0.9680  knee PSNR 36.893 SSIM 0.9406
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+varnet2_r8_sens128_seed42 last_model.pt (epoch 49): brain PSNR 36.405 SSIM 0.9682  knee PSNR 37.009 SSIM 0.9411
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+varnet2_r8_base_seed43 last_model.pt (epoch 49): brain PSNR 36.484 SSIM 0.9685  knee PSNR 37.134 SSIM 0.9415
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+varnet2_r8_sens64_seed43 last_model.pt (epoch 49): brain PSNR 36.428 SSIM 0.9682  knee PSNR 36.983 SSIM 0.9409
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+varnet2_r8_sens128_seed43 last_model.pt (epoch 49): brain PSNR 36.346 SSIM 0.9678  knee PSNR 37.068 SSIM 0.9412
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+varnet2_r8_base_seed44 last_model.pt (epoch 49): brain PSNR 36.533 SSIM 0.9686  knee PSNR 37.168 SSIM 0.9417
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+varnet2_r8_sens64_seed44 last_model.pt (epoch 49): brain PSNR 36.332 SSIM 0.9677  knee PSNR 36.993 SSIM 0.9409
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+varnet2_r8_sens128_seed44 last_model.pt (epoch 49): brain PSNR 36.343 SSIM 0.9678  knee PSNR 37.042 SSIM 0.9411
+
+seed 42: sens64 - base
+  brain  psnr -0.0302 [-0.0690, +0.0086] (better on 48% of 23 vols)  ssim -0.0001 [-0.0003, +0.0001] (better on 48% of 23 vols)
+  knee   psnr -0.2905 [-0.4389, -0.1420] (better on 0% of 10 vols)  ssim -0.0011 [-0.0018, -0.0004] (better on 0% of 10 vols)
+
+seed 43: sens64 - base
+  brain  psnr -0.0553 [-0.0869, -0.0238] (better on 17% of 23 vols)  ssim -0.0003 [-0.0005, -0.0002] (better on 9% of 23 vols)
+  knee   psnr -0.1519 [-0.2280, -0.0758] (better on 20% of 10 vols)  ssim -0.0005 [-0.0010, -0.0001] (better on 20% of 10 vols)
+
+seed 44: sens64 - base
+  brain  psnr -0.2005 [-0.2339, -0.1670] (better on 4% of 23 vols)  ssim -0.0009 [-0.0011, -0.0006] (better on 0% of 23 vols)
+  knee   psnr -0.1754 [-0.2789, -0.0719] (better on 10% of 10 vols)  ssim -0.0008 [-0.0012, -0.0004] (better on 0% of 10 vols)
+
+sens64 - base, per-slice difference averaged over seeds [42, 43, 44]
+  brain  psnr -0.0953 [-0.1229, -0.0678] (better on 9% of 23 vols)  ssim -0.0004 [-0.0006, -0.0003] (better on 0% of 23 vols)
+  knee   psnr -0.2059 [-0.2979, -0.1139] (better on 0% of 10 vols)  ssim -0.0008 [-0.0012, -0.0004] (better on 10% of 10 vols)
+
+seed 42: sens128 - base
+  brain  psnr +0.0051 [-0.0234, +0.0337] (better on 57% of 23 vols)  ssim +0.0001 [-0.0000, +0.0003] (better on 61% of 23 vols)
+  knee   psnr -0.1742 [-0.3369, -0.0115] (better on 0% of 10 vols)  ssim -0.0006 [-0.0012, +0.0001] (better on 10% of 10 vols)
+
+seed 43: sens128 - base
+  brain  psnr -0.1381 [-0.1683, -0.1078] (better on 4% of 23 vols)  ssim -0.0007 [-0.0008, -0.0005] (better on 0% of 23 vols)
+  knee   psnr -0.0663 [-0.1434, +0.0107] (better on 10% of 10 vols)  ssim -0.0003 [-0.0006, -0.0000] (better on 10% of 10 vols)
+
+seed 44: sens128 - base
+  brain  psnr -0.1901 [-0.2301, -0.1501] (better on 4% of 23 vols)  ssim -0.0008 [-0.0010, -0.0006] (better on 4% of 23 vols)
+  knee   psnr -0.1255 [-0.1846, -0.0664] (better on 10% of 10 vols)  ssim -0.0006 [-0.0008, -0.0004] (better on 10% of 10 vols)
+
+sens128 - base, per-slice difference averaged over seeds [42, 43, 44]
+  brain  psnr -0.1077 [-0.1310, -0.0843] (better on 9% of 23 vols)  ssim -0.0004 [-0.0005, -0.0004] (better on 0% of 23 vols)
+  knee   psnr -0.1220 [-0.1733, -0.0707] (better on 0% of 10 vols)  ssim -0.0005 [-0.0007, -0.0003] (better on 0% of 10 vols)
+
+seed spread: per-anatomy mean over seeds (min, max)
+  base       brain  psnr  mean 36.4721  range [36.4000, 36.5327]  spread 0.1327
+  base       brain  ssim  mean 0.9684  range [0.9680, 0.9686]  spread 0.0005
+  base       knee   psnr  mean 37.1619  range [37.1344, 37.1834]  spread 0.0490
+  base       knee   ssim  mean 0.9416  range [0.9415, 0.9417]  spread 0.0002
+  sens64     brain  psnr  mean 36.3768  range [36.3322, 36.4282]  spread 0.0960
+  sens64     brain  ssim  mean 0.9680  range [0.9677, 0.9682]  spread 0.0005
+  sens64     knee   psnr  mean 36.9560  range [36.8929, 36.9925]  spread 0.0996
+  sens64     knee   ssim  mean 0.9408  range [0.9406, 0.9409]  spread 0.0004
+  sens128    brain  psnr  mean 36.3644  range [36.3426, 36.4051]  spread 0.0626
+  sens128    brain  ssim  mean 0.9679  range [0.9678, 0.9682]  spread 0.0004
+  sens128    knee   psnr  mean 37.0399  range [37.0092, 37.0681]  spread 0.0589
+  sens128    knee   ssim  mean 0.9411  range [0.9411, 0.9412]  spread 0.0001
+
+wrote reports/unet_speed_varnet2_r8/eval_sens128.json

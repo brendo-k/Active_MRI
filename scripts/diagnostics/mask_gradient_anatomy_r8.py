@@ -115,7 +115,7 @@ def conv_input(model, kspace):
     sense_maps, _ = model.sensetivity_net(torch.view_as_complex(kspace.contiguous()), mask_method=model.sense_mask_method)
     old_mask, _ = model._initial_masks(kspace)
     observed = torch.view_as_complex((kspace * old_mask.unsqueeze(-1)).contiguous())
-    combined = torch.view_as_real(fft_2d_img((ifft_2d_img(observed) * sense_maps).sum(dim=1)))
+    combined = torch.view_as_real(fft_2d_img((ifft_2d_img(observed) * sense_maps.conj()).sum(dim=1)))
     stacked = torch.cat([combined, combined * old_mask.permute(0, 2, 3, 1)], dim=-1)
     if model.sampler.image_domain_input:
         stacked = model.sampler._to_image_domain(stacked)

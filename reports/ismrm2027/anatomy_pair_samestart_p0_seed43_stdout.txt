@@ -1,0 +1,19 @@
+Balanced train set (volumes, slices): {'brain': (89, 1350), 'knee': (40, 1350)}
+Balanced val set (volumes, slices): {'brain': (23, 344), 'knee': (10, 344)}
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+shared: /home/bkadota/data/seqmri_checkpoints/vdinit_anatomy/runs/loupe2d_varnet_r8_brain_knee_shared_100ep_vdinit_p0_seed43 last_model.pt epoch 99
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+anatcond: /home/bkadota/data/seqmri_checkpoints/vdinit_anatomy/runs/loupe2d_varnet_r8_brain_knee_anatomy_samestart_100ep_vdinit_p0_seed43 last_model.pt epoch 99
+shared recon PSNR {'shared': {'brain': 39.66, 'knee': 38.423}, 'own': {'brain': 39.426, 'knee': 38.337}, 'other': {'brain': 39.499, 'knee': 38.203}}
+anatcond recon PSNR {'shared': {'brain': 39.377, 'knee': 38.152}, 'own': {'brain': 39.351, 'knee': 38.164}, 'other': {'brain': 39.372, 'knee': 38.033}}
+run_minus_run                    brain -0.309 [-0.381, -0.223]  knee -0.259 [-0.405, -0.152]  knee-PD -0.160 [-0.191, -0.127]  knee-PDFS -0.323 [-0.535, -0.150]
+mask_effect_on_shared_recon      brain -0.234 [-0.304, -0.150]  knee -0.086 [-0.120, -0.049]  knee-PD -0.126 [-0.161, -0.065]  knee-PDFS -0.060 [-0.091, -0.027]
+mask_effect_on_anatcond_recon    brain -0.026 [-0.060, +0.014]  knee +0.012 [-0.003, +0.028]  knee-PD -0.007 [-0.022, +0.022]  knee-PDFS +0.024 [+0.012, +0.038]
+label_swap_on_anatcond_recon     brain +0.021 [-0.003, +0.038]  knee -0.132 [-0.155, -0.101]  knee-PD -0.159 [-0.178, -0.138]  knee-PDFS -0.114 [-0.146, -0.073]
+label_swap_on_shared_recon       brain +0.074 [+0.044, +0.095]  knee -0.135 [-0.157, -0.105]  knee-PD -0.158 [-0.177, -0.126]  knee-PDFS -0.119 [-0.147, -0.080]
+recon_effect_on_shared_map       brain -0.282 [-0.322, -0.231]  knee -0.271 [-0.416, -0.154]  knee-PD -0.153 [-0.173, -0.136]  knee-PDFS -0.347 [-0.570, -0.173]
+recon_effect_on_own_map          brain -0.075 [-0.098, -0.054]  knee -0.173 [-0.330, -0.057]  knee-PD -0.034 [-0.067, -0.010]  knee-PDFS -0.263 [-0.486, -0.093]

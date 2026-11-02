@@ -1,0 +1,30 @@
+runs: {'pd_loupe_s0': '/home/bkadota/data/seqmri_checkpoints/spacing_r8/runs/varnet_r8_brain_knee_fixedmask_pd_loupe_s0_50ep_seed42', 'pd_loupe_s1': '/home/bkadota/data/seqmri_checkpoints/spacing_r8/runs/varnet_r8_brain_knee_fixedmask_pd_loupe_s1_50ep_seed42', 'white_loupe_s0': '/home/bkadota/data/seqmri_checkpoints/spacing_r8/runs/varnet_r8_brain_knee_fixedmask_white_loupe_s0_50ep_seed42', 'white_loupe_s1': '/home/bkadota/data/seqmri_checkpoints/spacing_r8/runs/varnet_r8_brain_knee_fixedmask_white_loupe_s1_50ep_seed42'}
+Balanced train set (volumes, slices): {'brain': (89, 1350), 'knee': (40, 1350)}
+Balanced val set (volumes, slices): {'brain': (23, 344), 'knee': (10, 344)}
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+pd_loupe_s0: /home/bkadota/data/seqmri_checkpoints/spacing_r8/runs/varnet_r8_brain_knee_fixedmask_pd_loupe_s0_50ep_seed42 last_model.pt epoch 49
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+pd_loupe_s1: /home/bkadota/data/seqmri_checkpoints/spacing_r8/runs/varnet_r8_brain_knee_fixedmask_pd_loupe_s1_50ep_seed42 last_model.pt epoch 49
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+white_loupe_s0: /home/bkadota/data/seqmri_checkpoints/spacing_r8/runs/varnet_r8_brain_knee_fixedmask_white_loupe_s0_50ep_seed42 last_model.pt epoch 49
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+white_loupe_s1: /home/bkadota/data/seqmri_checkpoints/spacing_r8/runs/varnet_r8_brain_knee_fixedmask_white_loupe_s1_50ep_seed42 last_model.pt epoch 49
+pd_loupe_s0 recon PSNR {'pd_loupe_s0': {'brain': 39.692, 'knee': 38.676}, 'pd_loupe_s1': {'brain': 39.681, 'knee': 38.67}, 'white_loupe_s0': {'brain': 39.131, 'knee': 38.458}, 'white_loupe_s1': {'brain': 39.156, 'knee': 38.462}}
+pd_loupe_s1 recon PSNR {'pd_loupe_s0': {'brain': 39.57, 'knee': 38.581}, 'pd_loupe_s1': {'brain': 39.586, 'knee': 38.581}, 'white_loupe_s0': {'brain': 39.02, 'knee': 38.352}, 'white_loupe_s1': {'brain': 39.033, 'knee': 38.292}}
+white_loupe_s0 recon PSNR {'pd_loupe_s0': {'brain': 39.499, 'knee': 38.521}, 'pd_loupe_s1': {'brain': 39.499, 'knee': 38.519}, 'white_loupe_s0': {'brain': 39.219, 'knee': 38.449}, 'white_loupe_s1': {'brain': 39.14, 'knee': 38.348}}
+white_loupe_s1 recon PSNR {'pd_loupe_s0': {'brain': 39.618, 'knee': 38.624}, 'pd_loupe_s1': {'brain': 39.608, 'knee': 38.61}, 'white_loupe_s0': {'brain': 39.222, 'knee': 38.453}, 'white_loupe_s1': {'brain': 39.287, 'knee': 38.479}}
+run_minus_run_s0                 brain +0.472 [+0.392, +0.550]  knee +0.228 [+0.144, +0.279]  knee-PD +0.212 [+0.144, +0.258]  knee-PDFS +0.238 [+0.104, +0.315]
+mask_effect_on_pd_recon_s0       brain +0.561 [+0.496, +0.617]  knee +0.219 [+0.184, +0.252]  knee-PD +0.241 [+0.171, +0.297]  knee-PDFS +0.204 [+0.171, +0.232]
+mask_effect_on_white_recon_s0    brain +0.279 [+0.229, +0.318]  knee +0.073 [+0.042, +0.108]  knee-PD +0.094 [+0.046, +0.144]  knee-PDFS +0.059 [+0.021, +0.105]
+run_minus_run_s1                 brain +0.299 [+0.242, +0.339]  knee +0.102 [+0.053, +0.132]  knee-PD +0.108 [+0.065, +0.151]  knee-PDFS +0.099 [+0.024, +0.144]
+mask_effect_on_pd_recon_s1       brain +0.553 [+0.488, +0.604]  knee +0.289 [+0.241, +0.327]  knee-PD +0.258 [+0.210, +0.309]  knee-PDFS +0.309 [+0.237, +0.361]
+mask_effect_on_white_recon_s1    brain +0.322 [+0.266, +0.366]  knee +0.131 [+0.113, +0.148]  knee-PD +0.129 [+0.098, +0.160]  knee-PDFS +0.132 [+0.112, +0.153]
+run_minus_run_seed_mean          brain +0.386 [+0.319, +0.440]  knee +0.165 [+0.102, +0.202]  knee-PD +0.160 [+0.106, +0.203]  knee-PDFS +0.168 [+0.071, +0.224]

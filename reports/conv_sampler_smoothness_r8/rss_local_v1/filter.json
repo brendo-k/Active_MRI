@@ -1,0 +1,117 @@
+{
+  "sigma_0px": {
+    "direction_high_frequency_fraction": 0.9517580441080059,
+    "trained_all_weights": {
+      "corr_with_requested": 0.006904476593169076,
+      "high_frequency_fraction": 0.04490804918976094
+    },
+    "trained_final_1x1_conv_only": {
+      "corr_with_requested": 0.003343802823502834,
+      "high_frequency_fraction": 0.018870491946692467
+    },
+    "random_init_all_weights": {
+      "corr_with_requested": 0.019646101442518007,
+      "high_frequency_fraction": 0.13352106813314124
+    },
+    "random_init_fourier_features": {
+      "corr_with_requested": 0.15075969978914489,
+      "high_frequency_fraction": 0.2765283019473449
+    },
+    "loupe": {
+      "corr_with_requested": 0.708899549412611,
+      "high_frequency_fraction": 0.9518460272278841
+    }
+  },
+  "sigma_1px": {
+    "direction_high_frequency_fraction": 0.5456138789775294,
+    "trained_all_weights": {
+      "corr_with_requested": 0.02360676513177564,
+      "high_frequency_fraction": 0.04733895394171022
+    },
+    "trained_final_1x1_conv_only": {
+      "corr_with_requested": 0.010258988469753233,
+      "high_frequency_fraction": 0.018434580659876427
+    },
+    "random_init_all_weights": {
+      "corr_with_requested": 0.06321679030983027,
+      "high_frequency_fraction": 0.12477621111050084
+    },
+    "random_init_fourier_features": {
+      "corr_with_requested": 0.2411678097729204,
+      "high_frequency_fraction": 0.15157518014527355
+    },
+    "loupe": {
+      "corr_with_requested": 0.7075644427951555,
+      "high_frequency_fraction": 0.5455873915140222
+    }
+  },
+  "sigma_2px": {
+    "direction_high_frequency_fraction": 0.0892863707266965,
+    "trained_all_weights": {
+      "corr_with_requested": 0.043706444399765516,
+      "high_frequency_fraction": 0.050081475991457285
+    },
+    "trained_final_1x1_conv_only": {
+      "corr_with_requested": 0.02138977047685236,
+      "high_frequency_fraction": 0.018466558868755166
+    },
+    "random_init_all_weights": {
+      "corr_with_requested": 0.10717580133131074,
+      "high_frequency_fraction": 0.11590027943685162
+    },
+    "random_init_fourier_features": {
+      "corr_with_requested": 0.3060534493855318,
+      "high_frequency_fraction": 0.1109183491892053
+    },
+    "loupe": {
+      "corr_with_requested": 0.7044158597604522,
+      "high_frequency_fraction": 0.08937789925748059
+    }
+  },
+  "sigma_4px": {
+    "direction_high_frequency_fraction": 0.004061208608726629,
+    "trained_all_weights": {
+      "corr_with_requested": 0.0766932875125859,
+      "high_frequency_fraction": 0.05530337123732307
+    },
+    "trained_final_1x1_conv_only": {
+      "corr_with_requested": 0.05174597210630122,
+      "high_frequency_fraction": 0.018867013610136495
+    },
+    "random_init_all_weights": {
+      "corr_with_requested": 0.15838021866809224,
+      "high_frequency_fraction": 0.10697604951394032
+    },
+    "random_init_fourier_features": {
+      "corr_with_requested": 0.35685290085594834,
+      "high_frequency_fraction": 0.08920908418712152
+    },
+    "loupe": {
+      "corr_with_requested": 0.6903703319005908,
+      "high_frequency_fraction": 0.004443771327676926
+    }
+  },
+  "sigma_8px": {
+    "direction_high_frequency_fraction": 0.0032923939030536824,
+    "trained_all_weights": {
+      "corr_with_requested": 0.1341956642038012,
+      "high_frequency_fraction": 0.0619911025977018
+    },
+    "trained_final_1x1_conv_only": {
+      "corr_with_requested": 0.13437063836975646,
+      "high_frequency_fraction": 0.013944056293650885
+    },
+    "random_init_all_weights": {
+      "corr_with_requested": 0.2045693907629272,
+      "high_frequency_fraction": 0.08651505813967666
+    },
+    "random_init_fourier_features": {
+      "corr_with_requested": 0.392794702378071,
+      "high_frequency_fraction": 0.07329377054781323
+    },
+    "loupe": {
+      "corr_with_requested": 0.6755690306569279,
+      "high_frequency_fraction": 0.004249756337394434
+    }
+  }
+}

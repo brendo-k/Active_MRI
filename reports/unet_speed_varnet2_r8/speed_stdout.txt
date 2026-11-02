@@ -1,0 +1,47 @@
+unet  fastMRI (in-place LeakyReLU)     58.0 ms   367.1 GFLOP  2.454 M  peak 1.97 GiB
+unet  base                             48.8 ms   367.1 GFLOP  2.454 M  peak 2.31 GiB
+unet  bf16                             52.7 ms   367.1 GFLOP  2.454 M  peak 1.21 GiB
+unet  lite                             38.5 ms   312.1 GFLOP  2.446 M  peak 1.81 GiB
+unet  lite_bf16                        36.0 ms   312.1 GFLOP  2.446 M  peak 0.96 GiB
+varnet  2 cascades original     159.2 ms  peak  4.65 GiB
+varnet  2 cascades base         140.6 ms  peak  5.72 GiB
+varnet  2 cascades bf16         149.9 ms  peak  3.55 GiB
+varnet  2 cascades lite         120.6 ms  peak  4.73 GiB
+varnet  2 cascades lite_bf16    116.1 ms  peak  3.06 GiB
+varnet 12 cascades original     955.2 ms  peak 22.95 GiB
+varnet 12 cascades base         842.6 ms  peak 29.39 GiB
+varnet 12 cascades bf16         898.9 ms  peak 16.40 GiB
+varnet 12 cascades lite         718.7 ms  peak 23.48 GiB
+varnet 12 cascades lite_bf16    692.7 ms  peak 13.44 GiB
+Balanced train set (volumes, slices): {'brain': (89, 1350), 'knee': (40, 1350)}
+Balanced val set (volumes, slices): {'brain': (23, 344), 'knee': (10, 344)}
+loader  8 workers     134 ms/batch
+Balanced train set (volumes, slices): {'brain': (89, 1350), 'knee': (40, 1350)}
+Balanced val set (volumes, slices): {'brain': (23, 344), 'knee': (10, 344)}
+loader 12 workers     122 ms/batch
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+pipeline train step original     667.1 ms  peak 17.29 GiB
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+pipeline train step base         584.5 ms  peak 22.18 GiB
+sensitivity net fwd+bwd   412.6 ms (in-place LeakyReLU, as before:   477.1 ms)
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+pipeline train step bf16         597.5 ms  peak 20.01 GiB
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+pipeline train step lite         567.6 ms  peak 21.19 GiB
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+pipeline train step lite_bf16    562.4 ms  peak 19.52 GiB
+compile unet base          41.3 ms  peak  1.80 GiB
+compile unet lite          32.0 ms  peak  1.46 GiB
+wrote reports/unet_speed_varnet2_r8/speed.json
+Exception ignored in: <_io.BufferedWriter name=48>
+BrokenPipeError: [Errno 32] Broken pipe

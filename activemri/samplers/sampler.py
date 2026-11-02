@@ -10,18 +10,18 @@ from torch import nn
 
 from activemri.samplers.autosamp import AutoSampCoordinates
 from activemri.samplers.caipi import caipi_mask
-from activemri.samplers.poisson import poisson_mask
 from activemri.samplers.conv import KspaceLineConstrainedSampler, SampProb2D
 from activemri.samplers.loupe import LineConstrainedProbMask, ProbMask
 from activemri.samplers.oracle import plackett_luce_sample_and_logprob
 from activemri.samplers.mask_bank import MaskBank
+from activemri.samplers.cnn_router import CNNRoutedMaskBank
 from activemri.samplers.smooth_adapt import SmoothAdaptiveMask
 from activemri.utils.image_processing import ifft_2d_img
 from activemri.utils.mask_binarization import (
     RescaleProbMap, stratified_thresholds, threshold_random_mask, topk_straight_through)
 
 
-SAMPLER_TYPES = ("conv_2d", "conv_1d", "loupe_2d", "loupe_1d", "caipi_2d", "poisson_2d", "autosamp_2d", "mnet_2d", "smooth_adapt_2d", "bank_adapt_2d")
+SAMPLER_TYPES = ("conv_2d", "conv_1d", "loupe_2d", "loupe_1d", "caipi_2d", "poisson_2d", "autosamp_2d", "mnet_2d", "smooth_adapt_2d", "bank_adapt_2d", "cnn_router_2d")
 MASK_TRAIN_MODES = ("straight_through", "reinforce", "random")
 SELECTIONS = ("bernoulli", "dcm")
 
@@ -43,6 +43,20 @@ def is_line_constrained(sampler_type):
     return sampler_type.endswith("_1d")
 
 
+def single_budget(budget, selection):
+    """`budget` as one number, for a `selection` that draws the same count for every slice of a batch.
+
+    A per-slice budget (a [B] tensor, from `SequentialSampling.mask_budget` with budget_over='acquired') must then
+    be equal across the batch, which fails when slices acquire different amounts of k-space (e.g. FLAIR next to knee).
+    """
+    if not torch.is_tensor(budget):
+        return budget
+    if not torch.all(budget == budget.flatten()[0]):
+        raise ValueError(f"{selection} takes one budget per batch, but these slices' acquired k-space differs "
+                         "(budgets {}); use sampler.budget_over=grid".format(budget.tolist()))
+    return float(budget.flatten()[0])
+
+
 class Sampler(nn.Module):
     """Generates sampling masks for sequential k-space acquisition.
 
@@ -58,6 +72,7 @@ class Sampler(nn.Module):
         mnet_2d      the conv_2d U-Net with exact-budget top-k    (input-adaptive)
         smooth_adapt_2d  LOUPE mask + smooth offset from the calibration  (input-adaptive, smooth)
         bank_adapt_2d    bank of LOUPE masks blended by a gate on the calibration (input-adaptive)
+        cnn_router_2d   ACS CNN selects one LOUPE mask by index (input-adaptive)
 
     `mnet_2d` is the sampler network of Huang & Ravishankar (TCI 2022), trained by the
     alternating scheme in :mod:`activemri.training.mnet_trainer`. It is `conv_2d`
@@ -173,7 +188,12 @@ class Sampler(nn.Module):
         if sampler_type == "caipi_2d":
             self.register_buffer("caipi_pattern", caipi_mask(shape, accel_y=caipi_accel_y, accel_z=caipi_accel_z, keep_fraction=caipi_keep_fraction)[None, None])
         elif sampler_type == "poisson_2d":
+            from activemri.samplers.poisson import poisson_mask
+
             self.register_buffer("poisson_pattern", poisson_mask(shape, poisson_acceleration, calibration_size)[None, None])
+            self.poisson_acceleration = poisson_acceleration
+            self.calibration_size = calibration_size
+            self._poisson_by_extent = {}
         elif sampler_type == "autosamp_2d":
             self.mask_net = AutoSampCoordinates(shape, autosamp_num_points, init=autosamp_init)
         elif sampler_type in CONV_2D_TYPES:
@@ -209,6 +229,9 @@ class Sampler(nn.Module):
             self.mask_net = MaskBank(shape, slope, calibration_size, bank_size=bank_size, hidden=adapt_hidden,
                                      grad_floor=mask_grad_floor, gate_temperature=gate_temperature,
                                      gate_logit_limit=gate_logit_limit)
+        elif sampler_type == "cnn_router_2d":
+            self.mask_net = CNNRoutedMaskBank(shape, slope, calibration_size, bank_size=bank_size,
+                                              hidden=adapt_hidden, grad_floor=mask_grad_floor)
         elif sampler_type == "loupe_2d":
             self.mask_net = ProbMask(shape, slope, num_conditioning_classes=num_conditioning_classes,
                                      grad_floor=mask_grad_floor)
@@ -230,6 +253,42 @@ class Sampler(nn.Module):
         self.dcm_tau = dcm_tau
         if selection == "dcm":
             self.register_buffer("dcm_acceptance", variable_density_prior(shape, dcm_vd_power), persistent=False)
+
+    def fixed_pattern(self, valid_mask=None):
+        """The caipi_2d / poisson_2d pattern [B or 1, 1, H, W] confined to each slice's acquired k-space (`valid_mask`).
+
+        The CAIPI lattice is uniform, so cutting it to the acquired region keeps its acceleration there. The Poisson-disc
+        mask is variable-density, so it is drawn again over each acquired rectangle at the same acceleration, with its
+        calibration block at the rectangle's centre; the draw is cached per rectangle.
+        """
+        if valid_mask is None:
+            return self.caipi_pattern if self.sampler_type == "caipi_2d" else self.poisson_pattern
+        if self.sampler_type == "caipi_2d":
+            return self.caipi_pattern * valid_mask
+        return torch.stack([self._poisson_over(valid[0]) for valid in valid_mask]) * valid_mask
+
+    def _poisson_over(self, valid):
+        from activemri.samplers.poisson import poisson_mask
+
+        rows, cols = valid.any(dim=1).nonzero().flatten(), valid.any(dim=0).nonzero().flatten()
+        box = (int(rows[0]), int(rows[-1]) + 1, int(cols[0]), int(cols[-1]) + 1)
+        if box not in self._poisson_by_extent:
+            if box == (0, self.shape[0], 0, self.shape[1]):
+                pattern = self.poisson_pattern[0, 0]
+            else:
+                pattern = torch.zeros(self.shape, device=valid.device)
+                pattern[box[0]:box[1], box[2]:box[3]] = poisson_mask(
+                    (box[1] - box[0], box[3] - box[2]), self.poisson_acceleration, self.calibration_size)
+            self._poisson_by_extent[box] = pattern.to(valid.device)
+        return self._poisson_by_extent[box].unsqueeze(0)
+
+    def start_masks_from_first(self):
+        """Start every anatomy's LOUPE mask from the first one's random draw: the shared mask's draw at the same seed."""
+        if not self.is_loupe or self.mask_net.mask.shape[0] < 2:
+            raise ValueError("a common start needs a LOUPE sampler with one mask per anatomy")
+        with torch.no_grad():
+            first = self.mask_net.mask[:1].clone()
+            self.mask_net.mask.copy_(first.expand_as(self.mask_net.mask))
 
     def init_loupe_variable_density(self, power, available, budget, eps=1e-2):
         """Start a straight-through loupe_2d mask at the variable-density prior instead of uniform noise.
@@ -285,7 +344,7 @@ class Sampler(nn.Module):
             prob, anatomy_logits = self.mask_net(input_kspace, old_mask, anatomy_labels=anatomy_labels)
             return prob, None, anatomy_logits
 
-        if self.sampler_type in ("smooth_adapt_2d", "bank_adapt_2d"):
+        if self.sampler_type in ("smooth_adapt_2d", "bank_adapt_2d", "cnn_router_2d"):
             return self.mask_net(input_kspace, anatomy_labels) * (1 - old_mask), None, None
 
         prob, uncertainty, anatomy_logits = self.mask_net(
@@ -349,6 +408,7 @@ class Sampler(nn.Module):
         # per-example valid regions differ (e.g. padded mixed-anatomy data),
         # cap k at the tightest example rather than crash or silently pick a
         # different budget per row.
+        budget = single_budget(budget, f"mask_train_mode={self.mask_train_mode!r}")
         k = min(int(round(float(budget))), int((~taken).sum(dim=1).min().item()))
         # In eval there is nothing to credit, so no log-prob is returned -- which also
         # keeps the REINFORCE term out of the validation loss that picks the best
@@ -401,7 +461,7 @@ class Sampler(nn.Module):
         """Turn unscaled per-location probabilities into this step's binary mask.
 
         Rescales to the sparsity `budget` implies over the still-available locations, then
-        binarizes: a Bernoulli draw, or the exact top-k for `mnet_2d`.
+        binarizes: a Bernoulli draw, or the exact top-k for `mnet_2d`. `budget` is one count, or one per slice.
 
         Returns:
             (rescaled probabilities, old_mask union the new locations), both NCHW.
@@ -418,11 +478,12 @@ class Sampler(nn.Module):
             available = available * valid_mask
 
         if self.selection == "dcm":
-            return self._decoupled_comparison(samp_prob_unscaled, old_mask, budget, available)
+            return self._decoupled_comparison(samp_prob_unscaled, old_mask, single_budget(budget, "selection='dcm'"),
+                                              available)
 
         samp_prob = self.rescale(samp_prob_unscaled, sparsity, available)
         if self.exact_budget:
-            binary_mask = topk_straight_through(samp_prob, int(round(float(budget))), available)
+            binary_mask = topk_straight_through(samp_prob, int(round(single_budget(budget, self.sampler_type))), available)
         else:
             binary_mask = self.binarize(samp_prob, threshold=self._draw_thresholds(samp_prob))
 
@@ -465,25 +526,18 @@ class Sampler(nn.Module):
         if self.detach_kspace:
             observed_kspace = observed_kspace.detach()
 
-        if self.sampler_type == "caipi_2d":
-            binary_mask = torch.clamp(old_mask + self.caipi_pattern.to(old_mask.dtype), max=1)
+        if self.sampler_type in ("caipi_2d", "poisson_2d"):
+            pattern = self.fixed_pattern(valid_mask).to(old_mask.dtype)
+            binary_mask = torch.clamp(old_mask + pattern, max=1)
             data_to_vis_sampler = {
-                'prob_mask': self.caipi_pattern[0, 0],
-                'rescaled_mask': self.caipi_pattern[0, 0],
-                'binarized_mask': binary_mask[0, 0].detach(),
-            }
-            return binary_mask, data_to_vis_sampler, None, None, None
-
-        if self.sampler_type == "poisson_2d":
-            binary_mask = torch.clamp(old_mask + self.poisson_pattern.to(old_mask.dtype), max=1)
-            data_to_vis_sampler = {
-                'prob_mask': self.poisson_pattern[0, 0],
-                'rescaled_mask': self.poisson_pattern[0, 0],
+                'prob_mask': pattern[0, 0],
+                'rescaled_mask': pattern[0, 0],
                 'binarized_mask': binary_mask[0, 0].detach(),
             }
             return binary_mask, data_to_vis_sampler, None, None, None
 
         if self.sampler_type == "autosamp_2d":
+            single_budget(budget, "autosamp_2d's fixed point count")
             new_mask, soft_mask = self.mask_net(old_mask, valid_mask)
             binary_mask = torch.clamp(old_mask + new_mask, min=0, max=1)
             data_to_vis_sampler = {

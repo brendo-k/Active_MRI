@@ -1,0 +1,10 @@
+# Brain AXFLAIR + knee PD/PDFS of the fastMRI local subset v1 (fastmri_local_v1_base.yaml), with one condition class per
+# protocol. Use with misc.resolution=[320,320].
+defaults:
+  - fastmri_local_v1_base
+  - _self_
+classes: [FLAIR, knee]
+anatomy: [brain, knee]
+condition_classes: [brain, knee-PD, knee-PDFS]  # brain is AXFLAIR here
+num_coils: 20
+num_workers: 8

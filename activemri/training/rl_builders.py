@@ -7,6 +7,7 @@ from torch.utils.data import DataLoader, Subset
 
 from activemri.datasets.fastmri_data import build_fastmri_dataloaders
 from activemri.envs.mri_env import MRIEnv
+from activemri.training.builders import build_manifest_loaders, uses_manifest
 from activemri.training.dqn_trainer import DQNTrainConfig
 from activemri.training.ppo_trainer import PPOTrainConfig
 
@@ -37,7 +38,7 @@ def evenly_spaced_val_loader(loader: DataLoader, num_slices: int) -> DataLoader:
 
 
 def build_ppo_envs(cfg: DictConfig) -> tuple[MRIEnv, MRIEnv]:
-    train_loader, val_loader = build_fastmri_dataloaders(
+    train_loader, val_loader = build_manifest_loaders(cfg, list(cfg.env.resolution)) if uses_manifest(cfg) else build_fastmri_dataloaders(
         data_root=Path(cfg.datasets.data_root),
         anatomies=list(cfg.datasets.anatomy),
         image_shape=list(cfg.env.resolution),
@@ -82,7 +83,7 @@ def build_ppo_config(cfg: DictConfig) -> PPOTrainConfig:
 
 
 def build_dqn_envs(cfg: DictConfig) -> tuple[MRIEnv, MRIEnv]:
-    train_loader, val_loader = build_fastmri_dataloaders(
+    train_loader, val_loader = build_manifest_loaders(cfg, list(cfg.env.resolution)) if uses_manifest(cfg) else build_fastmri_dataloaders(
         data_root=Path(cfg.datasets.data_root),
         anatomies=list(cfg.datasets.anatomy),
         image_shape=list(cfg.env.resolution),

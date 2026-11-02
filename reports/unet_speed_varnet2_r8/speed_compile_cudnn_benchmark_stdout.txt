@@ -1,0 +1,57 @@
+unet  fastMRI (in-place LeakyReLU)     56.4 ms   367.1 GFLOP  2.454 M  peak 1.98 GiB
+unet  base                             47.2 ms   367.1 GFLOP  2.454 M  peak 2.34 GiB
+unet  bf16                             33.7 ms   367.1 GFLOP  2.454 M  peak 1.29 GiB
+varnet  2 cascades original     155.4 ms  peak  4.64 GiB
+varnet  2 cascades base         136.6 ms  peak  5.72 GiB
+varnet  2 cascades bf16         110.3 ms  peak  3.55 GiB
+varnet 12 cascades original     927.3 ms  peak 22.94 GiB
+varnet 12 cascades base         815.5 ms  peak 29.39 GiB
+varnet 12 cascades bf16         656.4 ms  peak 16.40 GiB
+Balanced train set (volumes, slices): {'brain': (89, 1350), 'knee': (40, 1350)}
+Balanced val set (volumes, slices): {'brain': (23, 344), 'knee': (10, 344)}
+loader  8 workers      97 ms/batch
+Balanced train set (volumes, slices): {'brain': (89, 1350), 'knee': (40, 1350)}
+Balanced val set (volumes, slices): {'brain': (23, 344), 'knee': (10, 344)}
+loader 12 workers     146 ms/batch
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+pipeline train step original               556.6 ms  peak 21.02 GiB
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+pipeline train step base                   473.6 ms  peak 22.17 GiB
+sensitivity net fwd+bwd   300.8 ms (in-place LeakyReLU, as before:   365.5 ms)
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+pipeline train step bf16                   448.1 ms  peak 20.01 GiB
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+pipeline train step sens64                 210.4 ms  peak  7.61 GiB
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+pipeline train step sens64_bf16            183.8 ms  peak  5.44 GiB
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+pipeline train step base compiled          403.2 ms  peak 16.08 GiB
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+pipeline train step bf16 compiled          382.5 ms  peak 14.59 GiB
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+pipeline train step sens64 compiled        187.6 ms  peak  5.97 GiB
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+pipeline train step sens64_bf16 compiled   167.0 ms  peak  4.52 GiB
+compile unet base          39.9 ms  peak  1.72 GiB
+compile unet bf16          28.6 ms  peak  1.02 GiB
+wrote reports/unet_speed_varnet2_r8/speed_compile_cudnn_benchmark.json
+Exception ignored in: <_io.BufferedWriter name=54>
+BrokenPipeError: [Errno 32] Broken pipe

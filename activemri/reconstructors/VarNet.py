@@ -14,11 +14,13 @@ import torch.utils.checkpoint
 import torch.nn.functional as F
 from fastmri.models import Unet
 
-from activemri.reconstructors.csme import CascadeSensitivityModel, acs_region_mask
+from activemri.reconstructors.csme import CascadeSensitivityModel
 from activemri.utils.complex_conversion import complex_to_real, real_to_complex
 from activemri.utils.conditioning import DEFAULT_EMBED_DIM, AnatomyEmbedding, AnatomyPrompt, FiLM, broadcast_channels
 
 BACKBONES = ("unet", "promptmr")
+# The U-Net body's autocast dtype; the normalisation around it, the FFTs and data consistency stay float32.
+UNET_PRECISIONS = {"fp32": None, "bf16": torch.bfloat16}
 
 # The cascades keep k-space, masks and sensitivity maps uncentered (the centre at index 0, where the FFT puts it), so
 # their FFTs need no fftshift/ifftshift. A shift is a copy, not a view, and on the multi-coil tensors it costs about
@@ -37,6 +39,41 @@ def center(x: torch.Tensor) -> torch.Tensor:
 
 # Side of the stored prompt maps at the coarsest decoder level, doubling per level (8 ... 64 for 4 pools).
 PROMPT_BASE_SIZE = 8
+
+
+class FastMRIUnet(Unet):
+    """fastMRI's U-Net (same modules, parameter names and outputs) with two speed fixes.
+
+    Its LeakyReLUs are out of place: in place on InstanceNorm's reshaped output, autograd copies each activation back
+    through the view in the backward pass (out of place keeps one more activation per conv). Its forward checks the
+    decoder's odd-size padding with Python ints; fastMRI's goes through a tensor, a torch.compile graph break at every
+    decoder level.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for layer in self.modules():
+            if isinstance(layer, nn.LeakyReLU):
+                layer.inplace = False
+
+    def forward(self, image: torch.Tensor) -> torch.Tensor:
+        stack = []
+        output = image
+        for layer in self.down_sample_layers:
+            output = layer(output)
+            stack.append(output)
+            output = F.avg_pool2d(output, kernel_size=2, stride=2, padding=0)
+        output = self.conv(output)
+        for transpose_conv, conv in zip(self.up_transpose_conv, self.up_conv):
+            downsample_layer = stack.pop()
+            output = transpose_conv(output)
+            # fastMRI's reflect pad on the right / bottom for odd input sizes
+            padding = [0, int(output.shape[-1] != downsample_layer.shape[-1]),
+                       0, int(output.shape[-2] != downsample_layer.shape[-2])]
+            if any(padding):
+                output = F.pad(output, padding, "reflect")
+            output = conv(torch.cat([output, downsample_layer], dim=1))
+        return output
 
 
 class ChannelAttentionBlock(nn.Module):
@@ -207,6 +244,8 @@ class NormUnet(nn.Module):
     (`momentum_history > 0`, fused with the same level's inputs from earlier cascades) and
     take an :class:`AnatomyPrompt` (`prompt_embed_dim > 0`), fused by a 1x1 conv. PromptMR+
     fuses its prompts with CABs; the 1x1 conv keeps the bottleneck's 288 + 144 channels cheap.
+
+    The `unet` backbone is fastMRI's U-Net (:class:`FastMRIUnet`). `precision='bf16'` autocasts the U-Net body.
     """
 
     def __init__(
@@ -221,10 +260,14 @@ class NormUnet(nn.Module):
         momentum_history: int = 0,
         prompt_embed_dim: int = 0,
         backbone: str = "unet",
+        precision: str = "fp32",
     ):
         super().__init__()
         if backbone not in BACKBONES:
             raise ValueError(f"backbone must be one of {BACKBONES}, got {backbone!r}")
+        if precision not in UNET_PRECISIONS:
+            raise ValueError(f"precision must be one of {tuple(UNET_PRECISIONS)}, got {precision!r}")
+        self.autocast_dtype = UNET_PRECISIONS[precision]
         self.conditioning_chans = conditioning_chans
         self.momentum_history = momentum_history
         self.promptmr_backbone = backbone == "promptmr"
@@ -235,7 +278,7 @@ class NormUnet(nn.Module):
                                    film_embed_dim, prompt_embed_dim)
             self.film = self.momentum = self.prompts = None
             return
-        self.unet = Unet(
+        self.unet = FastMRIUnet(
             in_chans=in_chans + conditioning_chans,
             out_chans=out_chans,
             chans=chans,
@@ -298,22 +341,23 @@ class NormUnet(nn.Module):
             x = torch.cat(
                 [x, broadcast_channels(anatomy_embedding, x.shape[-2], x.shape[-1])], dim=1
             )
-        if self.promptmr_backbone:
-            if self.unet.film is not None and anatomy_embedding is None:
-                raise ValueError("NormUnet is FiLM-conditioned but no embedding was provided")
-            x, history = self.unet(x, anatomy_embedding, history)
-        else:
-            if self.film is not None:
-                if anatomy_embedding is None:
+        with torch.autocast(x.device.type, dtype=self.autocast_dtype, enabled=self.autocast_dtype is not None):
+            if self.promptmr_backbone:
+                if self.unet.film is not None and anatomy_embedding is None:
                     raise ValueError("NormUnet is FiLM-conditioned but no embedding was provided")
-                self.film.embedding = anatomy_embedding
-            if self.prompts is not None and anatomy_embedding is None:
-                raise ValueError("NormUnet is prompt-conditioned but no embedding was provided")
-            if self.momentum is None and self.prompts is None:
-                x = self.unet(x)
+                x, history = self.unet(x, anatomy_embedding, history)
             else:
-                x, history = self._unet_with_decoder_inputs(x, anatomy_embedding, history)
-        x = self.unpad(x, *pad_sizes)
+                if self.film is not None:
+                    if anatomy_embedding is None:
+                        raise ValueError("NormUnet is FiLM-conditioned but no embedding was provided")
+                    self.film.embedding = anatomy_embedding
+                if self.prompts is not None and anatomy_embedding is None:
+                    raise ValueError("NormUnet is prompt-conditioned but no embedding was provided")
+                if self.momentum is None and self.prompts is None:
+                    x = self.unet(x)
+                else:
+                    x, history = self._unet_with_decoder_inputs(x, anatomy_embedding, history)
+        x = self.unpad(x.float(), *pad_sizes)
         x = self.unnorm(x, mean, std)
         x = real_to_complex(x)
         return (x, history) if self.momentum_history > 0 else x
@@ -369,28 +413,26 @@ class VarNetBlock(nn.Module):
     A cascade with ``adaptive_input`` or a momentum U-Net carries state to the next one: it takes
     and returns the latent and the decoder history (None where unused).
 
-    ``estimate_sense`` gives the cascade its own :class:`CascadeSensitivityModel` (SDUM's CSME), which estimates
-    the maps from the ACS region of the cascade's current k-space; the maps passed in are then ignored, and the
-    cascade returns the ones it used. ``checkpoint_sense`` recomputes that estimate in the backward pass instead of
-    storing the estimator's activations, a full-resolution U-Net pass per coil.
+    ``csme`` gives the cascade its own :class:`CascadeSensitivityModel`, which estimates the maps from the
+    cascade's current per-coil image. The first cascade sees the zero-filled coil images. The maps passed in are
+    then ignored, and the cascade returns the ones it used. The estimate is recomputed in the backward pass
+    instead of storing the estimator's activations, a full-resolution U-Net pass per coil.
 
     The k-space, mask, support and sensitivity maps it takes and returns are uncentered (see :func:`uncenter`); the
     images given to and returned by the U-Net are centred.
     """
 
     def __init__(self, model: nn.Module, dc_mode: str = "where", dc_weight_shape=None, adaptive_input: bool = False,
-                 estimate_sense: bool = False, bf16: bool = False, checkpoint_sense: bool = True):
+                 csme: bool = False):
         super().__init__()
-        self.bf16 = bf16
-        self.checkpoint_sense = checkpoint_sense
         if dc_mode not in DC_MODES:
             raise ValueError(f"dc_mode must be one of {DC_MODES}, got {dc_mode!r}")
         self.model = model
         self.dc_mode = dc_mode
         self.adaptive_input = adaptive_input
         self.has_momentum = getattr(model, "momentum_history", 0) > 0
-        self.sense_model = CascadeSensitivityModel() if estimate_sense else None
-        self.carries_state = adaptive_input or self.has_momentum or estimate_sense
+        self.sense_model = CascadeSensitivityModel() if csme else None
+        self.carries_state = adaptive_input or self.has_momentum or csme
         self.dc_weight = nn.Parameter(torch.ones(1, 1, *dc_weight_shape) if dc_weight_shape else torch.ones(1))
 
     def _load_from_state_dict(self, state_dict, prefix, *args, **kwargs):
@@ -400,15 +442,15 @@ class VarNetBlock(nn.Module):
             state_dict[key] = torch.sigmoid(state_dict[key]).reshape(1)
         super()._load_from_state_dict(state_dict, prefix, *args, **kwargs)
 
-    def estimate_sense_maps(self, kspace: torch.Tensor, acs_mask: torch.Tensor) -> torch.Tensor:
-        """Uncentered maps from uncentered `kspace` and `acs_mask`."""
-        if self.checkpoint_sense and self.training and torch.is_grad_enabled():
-            return torch.utils.checkpoint.checkpoint(self._sense_maps, kspace, acs_mask, use_reentrant=False)
-        return self._sense_maps(kspace, acs_mask)
+    def estimate_maps(self, kspace: torch.Tensor) -> torch.Tensor:
+        """Uncentered maps from the current per-coil image of uncentered `kspace`."""
+        if self.training and torch.is_grad_enabled():
+            return torch.utils.checkpoint.checkpoint(self._sense_maps, kspace, use_reentrant=False)
+        return self._sense_maps(kspace)
 
-    def _sense_maps(self, kspace: torch.Tensor, acs_mask: torch.Tensor) -> torch.Tensor:
-        coil_images = center(torch.fft.ifft2(kspace * acs_mask, dim=FFT_AXES, norm="ortho"))
-        return uncenter(self.sense_model.maps_from_coil_images(coil_images))
+    def _sense_maps(self, kspace: torch.Tensor) -> torch.Tensor:
+        coil_images = center(torch.fft.ifft2(kspace, dim=FFT_AXES, norm="ortho"))
+        return uncenter(self.sense_model(coil_images))
 
     @staticmethod
     def sens_expand(image: torch.Tensor, sense_maps: torch.Tensor) -> torch.Tensor:
@@ -432,16 +474,15 @@ class VarNetBlock(nn.Module):
         zero_filled: torch.Tensor = None,
         latent: torch.Tensor = None,
         history=None,
-        acs_mask: torch.Tensor = None,
     ):
         """Returns the next k-space estimate; a cascade that carries state or estimates sense maps returns the
         tuple (k-space, next latent, next history, sense maps used), with None where unused.
 
-        With ``estimate_sense`` the maps are estimated from ``current_kspace`` unless ``sense_maps`` is given, which
-        lets the caller reuse an estimate it has already made from the same k-space.
+        With CSME the maps are estimated from the current per-coil image, the inverse FFT of ``current_kspace``,
+        unless ``sense_maps`` is given, which lets the caller reuse an estimate it has already made from the same image.
         """
         if self.sense_model is not None and sense_maps is None:
-            sense_maps = self.estimate_sense_maps(current_kspace, acs_mask)
+            sense_maps = self.estimate_maps(current_kspace)
         # A per-location weight is stored centred, like the checkpoints that hold it.
         dc_weight = uncenter(self.dc_weight) if self.dc_weight.dim() > 1 else self.dc_weight
         if self.dc_mode == "multiply":
@@ -455,11 +496,10 @@ class VarNetBlock(nn.Module):
             image = torch.cat([image, normal, latent, zero_filled], dim=1)
         # The output is complex64 even under bf16 autocast: NormUnet's unnorm promotes the U-Net's bf16 output to
         # float32 before it becomes complex, so data consistency and the FFTs stay in fp32.
-        with torch.autocast("cuda", torch.bfloat16, enabled=self.bf16 and image.is_cuda):
-            if self.has_momentum:
-                output, history = self.model(image, anatomy_embedding, history)
-            else:
-                output = self.model(image, anatomy_embedding)
+        if self.has_momentum:
+            output, history = self.model(image, anatomy_embedding, history)
+        else:
+            output = self.model(image, anatomy_embedding)
         if self.adaptive_input:
             correction, latent = output.chunk(ADAPTIVE_OUTPUT_IMAGES, dim=1)
         else:
@@ -496,16 +536,14 @@ class VarNet(nn.Module):
             earlier cascades (PromptMR+ uses num_cascades - 1).
         backbone: ``'unet'`` (fastMRI's U-Net) or ``'promptmr'`` (:class:`PromptUnet`, three levels; `chans=48` and
             `pools=3` give PromptMR+'s widths).
-        estimate_sense: Every cascade estimates its sensitivity maps from the ACS region of its own k-space estimate
-            (SDUM's CSME, :class:`CascadeSensitivityModel`) and `sense_maps` is ignored. The mask must acquire the
-            k-space centre. The returned image is combined with the last cascade's maps.
-        bf16: bf16 autocast on every cascade's U-Net, on CUDA only; data consistency and the FFTs stay fp32.
-        compile_unet: torch.compile each cascade's U-Net and, with ``estimate_sense``, its sensitivity estimator's
+        csme: Every cascade estimates its sensitivity maps from its current per-coil image
+            (:class:`CascadeSensitivityModel`). The first cascade sees the zero-filled coil images, and
+            `sense_maps` is ignored. The returned image is combined with the last cascade's maps.
+        compile_unet: torch.compile each cascade's U-Net and, with ``csme``, its sensitivity estimator's
             U-Net (dynamic shapes, since brain and knee differ in size).
         checkpoint_cascades: Recompute each cascade in the backward pass instead of storing its
             activations, trading compute for memory while training.
-        checkpoint_sense: With ``estimate_sense``, recompute every cascade's sensitivity estimate in the backward
-            pass instead of storing its estimator's activations; see :class:`VarNetBlock`.
+        unet_precision: ``'fp32'`` or ``'bf16'``, the autocast dtype of every cascade's U-Net body.
     """
 
     def __init__(
@@ -524,17 +562,16 @@ class VarNet(nn.Module):
         momentum_history: int = 0,
         checkpoint_cascades: bool = False,
         backbone: str = "unet",
-        estimate_sense: bool = False,
-        bf16: bool = False,
+        csme: bool = False,
+        unet_precision: str = "fp32",
         compile_unet: bool = False,
-        checkpoint_sense: bool = True,
     ):
         super().__init__()
         if film and prompt:
             raise ValueError("choose one injection of the anatomy embedding: film or prompt")
         self.dc_mode = dc_mode
         self.adaptive_input = adaptive_input
-        self.estimate_sense = estimate_sense
+        self.csme = csme
         self.checkpoint_cascades = checkpoint_cascades
         self.label_blind = label_blind
         self.anatomy_embedding = (
@@ -553,9 +590,9 @@ class VarNet(nn.Module):
             [VarNetBlock(NormUnet(chans, pools, in_chans=2 * unet_images[0], out_chans=2 * unet_images[1],
                                   conditioning_chans=conditioning_chans, film_embed_dim=film_embed_dim,
                                   momentum_history=momentum_history, prompt_embed_dim=prompt_embed_dim,
-                                  backbone=backbone),
+                                  backbone=backbone, precision=unet_precision),
                          dc_mode=dc_mode, dc_weight_shape=dc_weight_shape, adaptive_input=adaptive_input,
-                         estimate_sense=estimate_sense, bf16=bf16, checkpoint_sense=checkpoint_sense)
+                         csme=csme)
              for _ in range(num_cascades)]
         )
         if compile_unet:
@@ -603,10 +640,9 @@ class VarNet(nn.Module):
         if self.dc_mode == "multiply" and full_kspace is None:
             raise ValueError("dc_mode='multiply' needs full_kspace as the DC reference")
 
-        # The cascades work uncentered (see `uncenter`). The ACS region is found on the centred mask.
-        acs_mask = uncenter(acs_region_mask(mask)) if self.estimate_sense else None
+        # The cascades work uncentered (see `uncenter`).
         masked_kspace, mask = uncenter(masked_kspace), uncenter(mask)
-        if not self.estimate_sense:
+        if not self.csme:
             sense_maps = uncenter(sense_maps)
         if kspace_support is not None:
             kspace_support = uncenter(kspace_support)
@@ -618,21 +654,22 @@ class VarNet(nn.Module):
             return cascade(*inputs)
 
         kspace_pred = masked_kspace.clone()
-        if self.estimate_sense:
-            # Cascade 0 estimates from the same k-space as the zero-filled image, so the estimate is shared.
-            sense_maps = (self.cascades[0].estimate_sense_maps(masked_kspace, acs_mask)
-                          if self.adaptive_input else None)
+        if self.csme and self.adaptive_input:
+            # Cascade 0 estimates from the same zero-filled coil images as the adaptive input, so the estimate is shared.
+            sense_maps = self.cascades[0].estimate_maps(masked_kspace)
+        elif self.csme:
+            sense_maps = None
         zero_filled = latent = history = None
         if self.adaptive_input:
             zero_filled = VarNetBlock.sens_reduce(masked_kspace, sense_maps)
             latent = zero_filled
         for cascade in self.cascades:
             output = run(cascade, kspace_pred, ref_kspace, mask, sense_maps, anatomy_embedding, kspace_support,
-                         zero_filled, latent, history, acs_mask)
+                         zero_filled, latent, history)
             if cascade.carries_state:
                 kspace_pred, latent, history, used_maps = output
             else:
                 kspace_pred, used_maps = output, sense_maps
-            if self.estimate_sense:
+            if self.csme:
                 sense_maps = None
         return VarNetBlock.sens_reduce(kspace_pred, used_maps)

@@ -1,0 +1,638 @@
+{
+  "current_2c_gpu2_trace": {
+    "steps": 8,
+    "kernel_ms_per_step": {
+      "reduce": 5.013398250000005,
+      "memset": 4.325480624999989,
+      "elementwise": 56.66826462499944,
+      "triton (compiled U-Net)": 37.241950375000066,
+      "conv / gemm": 88.72747012499995,
+      "layout conversion": 57.0916219999999,
+      "memcpy": 8.627003749999997,
+      "FFT shift / roll": 25.452331625000014,
+      "FFT": 12.593058624999996,
+      "norm": 0.6731801250000022,
+      "other": 0.7613196249999999,
+      "grid_sample / pool / upsample": 1.3150461249999998
+    },
+    "phase_kernel_ms_per_step": {
+      "forward/sens_net": {
+        "reduce": 1.2936337500000001,
+        "memset": 0.321928625,
+        "elementwise": 7.248601625000007,
+        "triton (compiled U-Net)": 9.91842824999999,
+        "conv / gemm": 20.600237125000003,
+        "layout conversion": 15.731772250000017,
+        "memcpy": 0.4042556249999998,
+        "FFT shift / roll": 1.5831186250000004,
+        "FFT": 0.78334775,
+        "other": 0.008604
+      },
+      "train_forward": {
+        "elementwise": 3.6287201250000005,
+        "FFT shift / roll": 3.191260875,
+        "reduce": 0.22128987499999997,
+        "FFT": 1.5674388749999992,
+        "memcpy": 0.000455875
+      },
+      "forward/step_forward (DC inputs, zero-filled, vis copies)": {
+        "FFT shift / roll": 3.2740805000000006,
+        "FFT": 1.6194861249999999,
+        "elementwise": 2.8607089999999986,
+        "reduce": 0.4355235,
+        "memset": 0.0005239999999999999,
+        "memcpy": 1.6642743749999998
+      },
+      "forward/varnet": {
+        "memcpy": 0.396011875,
+        "elementwise": 10.930750000000002,
+        "FFT shift / roll": 7.9141939999999975,
+        "FFT": 3.9209292499999995,
+        "reduce": 0.6402048750000001
+      },
+      "forward/varnet/cascade0_unet": {
+        "memset": 0.3952436249999997,
+        "reduce": 0.052187625,
+        "elementwise": 0.15366637500000002,
+        "memcpy": 0.027703874999999996,
+        "triton (compiled U-Net)": 1.8888356249999998,
+        "conv / gemm": 4.054724000000002,
+        "layout conversion": 2.3557625000000013
+      },
+      "forward/varnet/cascade1_unet": {
+        "memset": 0.3947124999999997,
+        "reduce": 0.05089562500000001,
+        "elementwise": 0.15309799999999998,
+        "memcpy": 0.027723750000000002,
+        "triton (compiled U-Net)": 1.8729091249999987,
+        "conv / gemm": 3.9491357499999995,
+        "layout conversion": 2.343267875
+      },
+      "target_dict": {
+        "memcpy": 0.00044
+      },
+      "loss": {
+        "memcpy": 0.012715750000000001,
+        "elementwise": 0.05458774999999999,
+        "memset": 0.0008758749999999998,
+        "reduce": 0.013059874999999999
+      },
+      "backward/loss+rss+cascades": {
+        "elementwise": 22.006121500000017,
+        "memcpy": 0.2536455,
+        "FFT shift / roll": 9.489677625,
+        "FFT": 4.701856624999998,
+        "reduce": 1.2618300000000002,
+        "memset": 2.807231624999999,
+        "triton (compiled U-Net)": 6.279497499999994,
+        "conv / gemm": 17.995123124999996,
+        "layout conversion": 8.42582150000001
+      },
+      "backward/sens_net": {
+        "elementwise": 6.775298374999997,
+        "reduce": 0.2043295,
+        "memcpy": 0.200209875,
+        "conv / gemm": 40.82302062500002,
+        "triton (compiled U-Net)": 17.282279874999986,
+        "layout conversion": 28.234997875,
+        "memset": 0.38877225000000043
+      },
+      "gradient_stats": {
+        "elementwise": 0.1990854999999997,
+        "norm": 0.09647512499999993,
+        "reduce": 0.34113362499999983,
+        "memset": 0.01203212499999999,
+        "memcpy": 0.001307875
+      },
+      "clip_gradients_per_group": {
+        "elementwise": 0.008795875000000002,
+        "norm": 0.04078350000000001,
+        "other": 0.06204325
+      },
+      "zero_coil_fraction": {
+        "elementwise": 0.39810349999999994,
+        "reduce": 0.21906149999999994,
+        "memcpy": 0.0011958749999999999
+      },
+      "Optimizer.step#Adam.step": {
+        "other": 0.6259733749999999
+      },
+      "step": {
+        "memcpy": 0.0028802500000000004,
+        "memset": 0.000472125,
+        "reduce": 0.01259175
+      },
+      "metric_mask": {
+        "memcpy": 0.049019749999999994,
+        "elementwise": 0.009839875
+      },
+      "apply_signal_mask": {
+        "elementwise": 0.03401124999999999
+      },
+      "metrics.update (PSNR, SSIM)": {
+        "elementwise": 1.2061477500000095,
+        "memset": 0.002764125000000001,
+        "reduce": 0.09095437500000005,
+        "norm": 0.535921500000001,
+        "memcpy": 0.0013718749999999996,
+        "other": 0.06469899999999999,
+        "conv / gemm": 1.3052295
+      },
+      "masked_metrics.update": {
+        "elementwise": 0.9495055000000018,
+        "reduce": 0.15416275000000002,
+        "grid_sample / pool / upsample": 1.3150461249999998,
+        "memcpy": 0.001344
+      },
+      "anatomy_stats.update": {
+        "memcpy": 0.0009241249999999996,
+        "elementwise": 0.051222624999999994,
+        "memset": 0.0009237499999999995,
+        "reduce": 0.022539625000000008
+      },
+      "load_kspace": {
+        "memcpy": 5.415797125
+      },
+      "target": {
+        "memcpy": 0.165726375
+      }
+    }
+  },
+  "sens_nchw_2c_trace": {
+    "steps": 8,
+    "kernel_ms_per_step": {
+      "memcpy": 10.031903124999998,
+      "elementwise": 56.675887999999325,
+      "memset": 4.329190999999982,
+      "reduce": 5.022085375000013,
+      "FFT shift / roll": 25.44912337500001,
+      "FFT": 12.592501125,
+      "other": 0.7617006249999999,
+      "triton (compiled U-Net)": 37.31137024999996,
+      "conv / gemm": 89.50287262499988,
+      "layout conversion": 57.40466412499978,
+      "norm": 0.6817070000000003,
+      "grid_sample / pool / upsample": 1.3410296249999996
+    },
+    "phase_kernel_ms_per_step": {
+      "load_kspace": {
+        "memcpy": 5.38862725
+      },
+      "target": {
+        "memcpy": 0.18116237500000001
+      },
+      "train_forward": {
+        "memcpy": 0.000468,
+        "elementwise": 3.6307642500000012,
+        "FFT shift / roll": 3.1917686250000012,
+        "reduce": 0.220929875,
+        "FFT": 1.567164875
+      },
+      "forward/sens_net": {
+        "elementwise": 7.246701125,
+        "memset": 0.32178025000000005,
+        "reduce": 1.2941196249999998,
+        "memcpy": 0.40403987499999977,
+        "FFT shift / roll": 1.5821806250000003,
+        "FFT": 0.7840041250000002,
+        "other": 0.008687875000000001,
+        "triton (compiled U-Net)": 9.945115125,
+        "conv / gemm": 20.77850912499998,
+        "layout conversion": 15.873994249999996
+      },
+      "forward/step_forward (DC inputs, zero-filled, vis copies)": {
+        "FFT shift / roll": 3.271292625,
+        "FFT": 1.619084125,
+        "elementwise": 2.8610994999999995,
+        "reduce": 0.43481599999999987,
+        "memset": 0.0008077499999999999,
+        "memcpy": 3.0887307499999994
+      },
+      "forward/varnet": {
+        "memcpy": 0.39576799999999995,
+        "elementwise": 10.927762249999999,
+        "FFT shift / roll": 7.910270249999999,
+        "FFT": 3.919942374999998,
+        "reduce": 0.6402935
+      },
+      "forward/varnet/cascade0_unet": {
+        "memset": 0.3955031249999999,
+        "reduce": 0.05262374999999999,
+        "elementwise": 0.153530375,
+        "memcpy": 0.02787175,
+        "triton (compiled U-Net)": 1.8913262499999992,
+        "conv / gemm": 4.092785,
+        "layout conversion": 2.361920125
+      },
+      "forward/varnet/cascade1_unet": {
+        "memset": 0.3951488749999999,
+        "reduce": 0.0514555,
+        "elementwise": 0.153398375,
+        "memcpy": 0.027695875,
+        "triton (compiled U-Net)": 1.883088624999998,
+        "conv / gemm": 3.9977574999999996,
+        "layout conversion": 2.3477613749999997
+      },
+      "target_dict": {
+        "memcpy": 0.00044
+      },
+      "loss": {
+        "memcpy": 0.012547250000000001,
+        "elementwise": 0.05435962499999999,
+        "memset": 0.0008839999999999997,
+        "reduce": 0.013227875
+      },
+      "backward/loss+rss+cascades": {
+        "elementwise": 22.00506925,
+        "memcpy": 0.253745875,
+        "FFT shift / roll": 9.49361125,
+        "FFT": 4.702305625000001,
+        "reduce": 1.2617470000000002,
+        "memset": 2.809147000000001,
+        "triton (compiled U-Net)": 6.290096125,
+        "conv / gemm": 18.191114124999974,
+        "layout conversion": 8.43344512500001
+      },
+      "backward/sens_net": {
+        "elementwise": 6.773398375000001,
+        "reduce": 0.204474125,
+        "memcpy": 0.20028625,
+        "conv / gemm": 41.121534000000004,
+        "triton (compiled U-Net)": 17.301744125,
+        "layout conversion": 28.387543250000025,
+        "memset": 0.38950850000000037
+      },
+      "gradient_stats": {
+        "elementwise": 0.20103412499999945,
+        "norm": 0.097012,
+        "reduce": 0.34507824999999986,
+        "memset": 0.012171249999999996,
+        "memcpy": 0.001428125
+      },
+      "clip_gradients_per_group": {
+        "elementwise": 0.008844125,
+        "norm": 0.04079937499999999,
+        "other": 0.06203549999999999
+      },
+      "zero_coil_fraction": {
+        "elementwise": 0.39859625,
+        "reduce": 0.21899812499999996,
+        "memcpy": 0.001168
+      },
+      "Optimizer.step#Adam.step": {
+        "other": 0.6255938750000001
+      },
+      "step": {
+        "memcpy": 0.00298,
+        "memset": 0.00047599999999999997,
+        "reduce": 0.012655875
+      },
+      "metric_mask": {
+        "memcpy": 0.04117575,
+        "elementwise": 0.009875624999999999
+      },
+      "apply_signal_mask": {
+        "elementwise": 0.03426775000000001
+      },
+      "metrics.update (PSNR, SSIM)": {
+        "elementwise": 1.2133070000000092,
+        "memset": 0.002823875000000001,
+        "reduce": 0.09247562499999996,
+        "norm": 0.5438956249999998,
+        "memcpy": 0.0014039999999999999,
+        "other": 0.065383375,
+        "conv / gemm": 1.321172875
+      },
+      "masked_metrics.update": {
+        "elementwise": 0.9517038750000012,
+        "reduce": 0.15610637500000002,
+        "grid_sample / pool / upsample": 1.3410296249999996,
+        "memcpy": 0.001424
+      },
+      "anatomy_stats.update": {
+        "memcpy": 0.0009399999999999999,
+        "elementwise": 0.052176125000000025,
+        "memset": 0.0009403749999999997,
+        "reduce": 0.023083875000000004
+      }
+    }
+  },
+  "sens_chunk32_2c_trace": {
+    "steps": 8,
+    "kernel_ms_per_step": {
+      "triton (compiled U-Net)": 38.631092249999995,
+      "layout conversion": 53.01060324999988,
+      "conv / gemm": 99.49436725,
+      "elementwise": 57.09553387500007,
+      "memcpy": 9.227228875000007,
+      "reduce": 4.98657687500001,
+      "FFT shift / roll": 25.445781499999992,
+      "FFT": 12.591869124999986,
+      "memset": 4.368465374999972,
+      "norm": 0.6626672500000022,
+      "other": 0.7571508749999998,
+      "grid_sample / pool / upsample": 1.2983093749999999
+    },
+    "phase_kernel_ms_per_step": {
+      "forward/sens_net": {
+        "triton (compiled U-Net)": 10.45515487499997,
+        "layout conversion": 11.780009000000032,
+        "conv / gemm": 25.13045737499997,
+        "elementwise": 7.421997874999999,
+        "memcpy": 0.4042814999999998,
+        "reduce": 1.2772372499999998,
+        "memset": 0.001956,
+        "FFT shift / roll": 1.5818622500000001,
+        "FFT": 0.783283125,
+        "other": 0.008588
+      },
+      "train_forward": {
+        "elementwise": 3.628666125,
+        "FFT shift / roll": 3.19206825,
+        "reduce": 0.22210462500000003,
+        "FFT": 1.567173875,
+        "memcpy": 0.000444
+      },
+      "forward/step_forward (DC inputs, zero-filled, vis copies)": {
+        "FFT shift / roll": 3.274189625000001,
+        "FFT": 1.619802,
+        "elementwise": 2.8625587499999994,
+        "reduce": 0.4365055,
+        "memset": 0.000475875,
+        "memcpy": 2.3138492499999987
+      },
+      "forward/varnet": {
+        "memcpy": 0.39568975,
+        "elementwise": 10.933415250000001,
+        "FFT shift / roll": 7.9055441250000005,
+        "FFT": 3.9201596250000006,
+        "reduce": 0.6412305
+      },
+      "forward/varnet/cascade0_unet": {
+        "memset": 0.39562975,
+        "reduce": 0.052832375,
+        "elementwise": 0.15369625000000003,
+        "memcpy": 0.027956125000000002,
+        "triton (compiled U-Net)": 1.8957464999999996,
+        "conv / gemm": 4.102975,
+        "layout conversion": 2.3626818750000003
+      },
+      "forward/varnet/cascade1_unet": {
+        "memset": 0.39490737499999995,
+        "reduce": 0.05201237499999999,
+        "elementwise": 0.15349675000000004,
+        "memcpy": 0.02762,
+        "triton (compiled U-Net)": 1.877423499999998,
+        "conv / gemm": 3.974380499999999,
+        "layout conversion": 2.3484677500000015
+      },
+      "target_dict": {
+        "memcpy": 0.000444
+      },
+      "loss": {
+        "memcpy": 0.012659625000000008,
+        "elementwise": 0.054984124999999995,
+        "memset": 0.0008639999999999998,
+        "reduce": 0.013279875
+      },
+      "backward/loss+rss+cascades": {
+        "elementwise": 22.005061000000012,
+        "memcpy": 0.25358524999999993,
+        "FFT shift / roll": 9.492117249999994,
+        "FFT": 4.7014505,
+        "reduce": 1.2605648750000005,
+        "memset": 2.786774375000001,
+        "triton (compiled U-Net)": 6.2892529999999915,
+        "conv / gemm": 18.178667624999996,
+        "layout conversion": 8.428681375
+      },
+      "backward/sens_net": {
+        "elementwise": 7.036374999999993,
+        "reduce": 0.204328875,
+        "memcpy": 0.19972487500000002,
+        "conv / gemm": 46.82084162499993,
+        "layout conversion": 28.09076324999999,
+        "memset": 0.7718815000000089,
+        "triton (compiled U-Net)": 18.11351437499996
+      },
+      "gradient_stats": {
+        "elementwise": 0.1955361250000003,
+        "norm": 0.09598024999999996,
+        "reduce": 0.331591125,
+        "memset": 0.011880500000000013,
+        "memcpy": 0.001596
+      },
+      "clip_gradients_per_group": {
+        "elementwise": 0.00854375,
+        "norm": 0.04063624999999999,
+        "other": 0.062084125
+      },
+      "zero_coil_fraction": {
+        "elementwise": 0.39853762500000006,
+        "reduce": 0.21833312500000002,
+        "memcpy": 0.001484125
+      },
+      "Optimizer.step#Adam.step": {
+        "other": 0.622426375
+      },
+      "step": {
+        "memcpy": 0.0029040000000000003,
+        "memset": 0.000491875,
+        "reduce": 0.012464
+      },
+      "metric_mask": {
+        "memcpy": 0.04126412499999999,
+        "elementwise": 0.009664
+      },
+      "apply_signal_mask": {
+        "elementwise": 0.03428824999999999
+      },
+      "metrics.update (PSNR, SSIM)": {
+        "elementwise": 1.1988986250000038,
+        "memset": 0.002700125000000001,
+        "reduce": 0.08999962499999994,
+        "norm": 0.5260507499999996,
+        "memcpy": 0.0013882499999999997,
+        "other": 0.06405237499999998,
+        "conv / gemm": 1.2870451250000001
+      },
+      "masked_metrics.update": {
+        "elementwise": 0.9481743750000006,
+        "reduce": 0.15153274999999997,
+        "grid_sample / pool / upsample": 1.2983093749999999,
+        "memcpy": 0.001395875
+      },
+      "anatomy_stats.update": {
+        "memcpy": 0.000984125,
+        "elementwise": 0.051640000000000005,
+        "memset": 0.0009039999999999996,
+        "reduce": 0.02256
+      },
+      "load_kspace": {
+        "memcpy": 5.370045375
+      },
+      "target": {
+        "memcpy": 0.16991262500000004
+      }
+    }
+  },
+  "fused_shifts_2c_trace": {
+    "steps": 8,
+    "kernel_ms_per_step": {
+      "triton (compiled U-Net)": 45.7810982500001,
+      "layout conversion": 70.46397312500004,
+      "conv / gemm": 104.86330212499982,
+      "elementwise": 66.28382587499851,
+      "memcpy": 11.18314550000002,
+      "reduce": 5.79628612500001,
+      "FFT shift / roll": 15.277470499999994,
+      "FFT": 14.126220499999988,
+      "memset": 5.3379882499999844,
+      "norm": 0.6902817499999981,
+      "other": 0.7639533749999997,
+      "grid_sample / pool / upsample": 1.8007984999999997
+    },
+    "phase_kernel_ms_per_step": {
+      "forward/sens_net": {
+        "triton (compiled U-Net)": 13.079222374999986,
+        "layout conversion": 19.453697250000005,
+        "conv / gemm": 24.548512249999995,
+        "elementwise": 8.442205999999993,
+        "memcpy": 0.45683549999999984,
+        "reduce": 1.3593661250000004,
+        "memset": 0.43023575000000014,
+        "FFT shift / roll": 0.7897925,
+        "FFT": 0.7841888749999999,
+        "other": 0.00878375
+      },
+      "train_forward": {
+        "elementwise": 4.509128000000002,
+        "FFT shift / roll": 1.6058077499999996,
+        "reduce": 0.22212574999999998,
+        "FFT": 1.567249375,
+        "memcpy": 0.0006717499999999999
+      },
+      "forward/step_forward (DC inputs, zero-filled, vis copies)": {
+        "FFT shift / roll": 2.2216776250000003,
+        "FFT": 1.669959875,
+        "elementwise": 3.2129258750000007,
+        "reduce": 0.47529537499999985,
+        "memset": 0.0005319999999999999,
+        "memcpy": 2.6047287499999996
+      },
+      "forward/varnet": {
+        "memcpy": 0.39533237499999996,
+        "elementwise": 14.063795124999999,
+        "FFT shift / roll": 5.247960000000002,
+        "FFT": 4.596863625,
+        "reduce": 0.6388653750000001
+      },
+      "forward/varnet/cascade0_unet": {
+        "memset": 0.3958109999999999,
+        "reduce": 0.052599625,
+        "elementwise": 0.15385862499999994,
+        "memcpy": 0.02754375,
+        "triton (compiled U-Net)": 2.7335937499999994,
+        "conv / gemm": 4.625679125000002,
+        "layout conversion": 2.4180762499999995
+      },
+      "forward/varnet/cascade1_unet": {
+        "memset": 0.4333718749999998,
+        "reduce": 0.051459375,
+        "elementwise": 0.19798612500000004,
+        "memcpy": 0.027499874999999997,
+        "triton (compiled U-Net)": 2.7147077499999988,
+        "conv / gemm": 4.330042125,
+        "layout conversion": 3.50575875
+      },
+      "target_dict": {
+        "memcpy": 0.0005920000000000001
+      },
+      "loss": {
+        "memcpy": 0.014490875000000002,
+        "elementwise": 0.055775624999999995,
+        "memset": 0.0009439999999999996,
+        "reduce": 0.01331625
+      },
+      "backward/loss+rss+cascades": {
+        "elementwise": 24.350074250000006,
+        "memcpy": 0.253662,
+        "FFT shift / roll": 5.412232624999999,
+        "FFT": 5.50795875,
+        "reduce": 1.9321978750000002,
+        "memset": 3.3700327499999987,
+        "triton (compiled U-Net)": 6.565420749999992,
+        "conv / gemm": 20.91068849999999,
+        "layout conversion": 9.888948000000008
+      },
+      "backward/sens_net": {
+        "elementwise": 8.418354000000004,
+        "reduce": 0.204478125,
+        "memcpy": 0.199682375,
+        "conv / gemm": 49.126583875000044,
+        "triton (compiled U-Net)": 20.688153624999988,
+        "layout conversion": 35.19749287499997,
+        "memset": 0.6900731250000012
+      },
+      "gradient_stats": {
+        "elementwise": 0.19953137499999973,
+        "norm": 0.09681925000000001,
+        "reduce": 0.34208949999999977,
+        "memset": 0.012523749999999988,
+        "memcpy": 0.0016839999999999997
+      },
+      "clip_gradients_per_group": {
+        "elementwise": 0.009052125000000001,
+        "norm": 0.0418595,
+        "other": 0.06288737500000001
+      },
+      "zero_coil_fraction": {
+        "elementwise": 0.39810450000000003,
+        "reduce": 0.218997875,
+        "memcpy": 0.001544
+      },
+      "Optimizer.step#Adam.step": {
+        "other": 0.6265666250000002
+      },
+      "step": {
+        "memcpy": 0.0031280000000000006,
+        "memset": 0.000468125,
+        "reduce": 0.01251575
+      },
+      "metric_mask": {
+        "memcpy": 0.041175624999999993,
+        "elementwise": 0.010196
+      },
+      "apply_signal_mask": {
+        "elementwise": 0.034659625
+      },
+      "metrics.update (PSNR, SSIM)": {
+        "elementwise": 1.224008000000008,
+        "memset": 0.0029198750000000015,
+        "reduce": 0.09408824999999997,
+        "norm": 0.551603,
+        "memcpy": 0.0019522499999999993,
+        "other": 0.06571562499999999,
+        "conv / gemm": 1.32179625
+      },
+      "masked_metrics.update": {
+        "elementwise": 0.9513592500000009,
+        "reduce": 0.15556275000000008,
+        "grid_sample / pool / upsample": 1.8007984999999997,
+        "memcpy": 0.0014281250000000001
+      },
+      "anatomy_stats.update": {
+        "memcpy": 0.0012079999999999994,
+        "elementwise": 0.05281137500000001,
+        "memset": 0.0010759999999999997,
+        "reduce": 0.023328124999999995
+      },
+      "load_kspace": {
+        "memcpy": 6.988135625000001
+      },
+      "target": {
+        "memcpy": 0.161850625
+      }
+    }
+  }
+}

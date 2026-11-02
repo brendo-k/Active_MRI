@@ -91,7 +91,7 @@ def sampler_input(model, kspace):
     sense_maps, _ = model.sensetivity_net(torch.view_as_complex(kspace.contiguous()), mask_method=model.sense_mask_method)
     old_mask, valid_mask = model._initial_masks(kspace)
     observed = torch.view_as_complex((kspace * old_mask.unsqueeze(-1)).contiguous())
-    combined = (ifft_2d_img(observed) * sense_maps).sum(dim=1)
+    combined = (ifft_2d_img(observed) * sense_maps.conj()).sum(dim=1)
     return torch.view_as_real(fft_2d_img(combined)), old_mask, valid_mask
 
 

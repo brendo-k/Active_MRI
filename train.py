@@ -148,6 +148,7 @@ def run_sequential(cfg: DictConfig):
     config = build_train_config(cfg)
     record_run_info(cfg.output.out_dir)
     seed_everything(cfg.training.seed)
+    torch.backends.cudnn.benchmark = config.cudnn_benchmark
     train_loader, val_loader = build_dataloaders(cfg)
     trainer_class = MNetTrainer if config.sampler_type == 'mnet_2d' else Sequential_Trainer
     trainer_class(config, train_loader, torch.device(config.device), val_loader=val_loader)()

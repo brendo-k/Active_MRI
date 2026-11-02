@@ -20,7 +20,6 @@ import torch
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from activemri.reconstructors.VarNet import VarNet  # noqa: E402
-from activemri.reconstructors.csme import acs_region_mask  # noqa: E402
 from activemri.utils.image_processing import fft_2d_img, ifft_2d_img  # noqa: E402
 
 BATCH, COILS = 2, 3
@@ -33,8 +32,8 @@ CONFIGS = {
     "where": dict(),
     "multiply_dc_map_support": dict(dc_mode="multiply", dc_weight_map=True, support=True),
     "adaptive_momentum_checkpointed": dict(adaptive_input=True, momentum_history=2, checkpoint_cascades=True),
-    "estimate_sense": dict(estimate_sense=True, support=True),
-    "estimate_sense_adaptive_multiply": dict(estimate_sense=True, adaptive_input=True, dc_mode="multiply"),
+    "csme": dict(csme=True, support=True),
+    "csme_adaptive_multiply": dict(csme=True, adaptive_input=True, dc_mode="multiply"),
 }
 
 
@@ -48,15 +47,14 @@ def centred_reference(model, masked_kspace, sense_maps, mask, full_kspace=None, 
     adaptive = model.adaptive_input
     ref_kspace = full_kspace if model.dc_mode == "multiply" else masked_kspace
     kspace = masked_kspace.clone()
-    acs_mask = acs_region_mask(mask) if model.estimate_sense else None
-    if model.estimate_sense:
-        sense_maps = model.cascades[0].sense_model(masked_kspace, acs_mask) if adaptive else None
+    if model.csme:
+        sense_maps = model.cascades[0].sense_model(ifft_2d_img(masked_kspace)) if adaptive else None
     zero_filled = latent = history = None
     if adaptive:
         zero_filled = latent = sens_reduce(masked_kspace, sense_maps)
     for cascade in model.cascades:
         if cascade.sense_model is not None and sense_maps is None:
-            sense_maps = cascade.sense_model(kspace, acs_mask)
+            sense_maps = cascade.sense_model(ifft_2d_img(kspace))
         if model.dc_mode == "multiply":
             soft_dc = mask * (kspace - ref_kspace) * cascade.dc_weight
         else:
@@ -65,30 +63,29 @@ def centred_reference(model, masked_kspace, sense_maps, mask, full_kspace=None, 
         image = sens_reduce(kspace, sense_maps)
         if adaptive:
             image = torch.cat([image, sens_reduce(mask * kspace, sense_maps), latent, zero_filled], dim=1)
-        with torch.autocast("cuda", torch.bfloat16, enabled=cascade.bf16 and image.is_cuda):
-            if cascade.has_momentum:
-                output, history = cascade.model(image, None, history)
-            else:
-                output = cascade.model(image, None)
+        if cascade.has_momentum:
+            output, history = cascade.model(image, None, history)
+        else:
+            output = cascade.model(image, None)
         correction, latent = output.chunk(2, dim=1) if adaptive else (output, latent)
         model_term = fft_2d_img(correction * sense_maps)
         if kspace_support is not None:
             model_term = model_term * kspace_support
         kspace = kspace - soft_dc - model_term
         used_maps = sense_maps
-        if model.estimate_sense:
+        if model.csme:
             sense_maps = None
     return sens_reduce(kspace, used_maps)
 
 
-def make_model(config, height, width, dtype=torch.float32, device="cpu", bf16=False):
+def make_model(config, height, width, dtype=torch.float32, device="cpu"):
     torch.manual_seed(0)
     model = VarNet(
         num_cascades=3, chans=4, pools=2, dc_mode=config.get("dc_mode", "where"),
         dc_weight_shape=(height, width) if config.get("dc_weight_map") else None,
         adaptive_input=config.get("adaptive_input", False), momentum_history=config.get("momentum_history", 0),
-        estimate_sense=config.get("estimate_sense", False),
-        checkpoint_cascades=config.get("checkpoint_cascades", False), bf16=bf16,
+        csme=config.get("csme", False),
+        checkpoint_cascades=config.get("checkpoint_cascades", False),
     ).train()
     # Random rather than all-ones DC weights, so a DC weight map applied at the wrong k-space location shows.
     for cascade in model.cascades:
@@ -103,7 +100,7 @@ def make_inputs(height, width, dtype=torch.float32, device="cpu", seed=1):
     sense = torch.randn(BATCH, COILS, height, width, dtype=complex_dtype, generator=generator)
     sense = sense / sense.abs().pow(2).sum(1, keepdim=True).sqrt()
     columns = torch.rand(BATCH, width, generator=generator) < 0.4
-    columns[:, width // 2 - 3:width // 2 + 3] = True  # an ACS block, for estimate_sense
+    columns[:, width // 2 - 3:width // 2 + 3] = True  # an ACS block
     mask = columns[:, None, None, :].expand(BATCH, 1, height, width).to(dtype)
     support = (torch.rand(BATCH, 1, height, width, generator=generator) < 0.9).to(dtype)
     return tuple(tensor.to(device) for tensor in (full_kspace, sense, mask, support))
@@ -121,12 +118,7 @@ def output_and_gradients(forward, model, inputs, use_full, use_support):
     return output.detach(), gradients
 
 
-class CpuBf16Autocast(torch.autocast):
-    """Every autocast the code asks for, as bf16 autocast on CPU whatever `enabled` says: VarNet only enables its
-    bf16 autocast on CUDA, so this is what runs its U-Nets in bf16 without a GPU."""
 
-    def __init__(self, device_type, dtype=None, enabled=True, cache_enabled=None):
-        super().__init__("cpu", dtype=torch.bfloat16, enabled=True)
 
 
 @pytest.mark.parametrize("height,width,dtype", CASES)
@@ -135,27 +127,13 @@ def test_output_and_gradients_match_the_centred_formulation(name, height, width,
     check_against_centred_reference(name, height, width, dtype)
 
 
-@pytest.mark.parametrize("name", CONFIGS)
-def test_bf16_unets_keep_the_output_and_gradients_of_the_centred_formulation(name, monkeypatch):
-    # Even size only: at an odd size float32's rounding differences (module docstring) can flip a bf16 rounding.
-    fp32_output = check_against_centred_reference(name, 32, 24, torch.float32)
-    monkeypatch.setattr(torch, "autocast", CpuBf16Autocast)
-    bf16_output = check_against_centred_reference(name, 32, 24, torch.float32, bf16=True)
-    assert not torch.allclose(bf16_output, fp32_output, rtol=1e-3, atol=0), "the U-Nets did not run in bf16"
 
 
-def test_bf16_flag_changes_nothing_without_cuda():
-    # bf16 autocast is CUDA-only. The flag once also cast the complex U-Net output to real, dropping its imaginary part.
-    full_kspace, sense, mask, _ = make_inputs(32, 24)
-    with torch.no_grad():
-        outputs = [make_model(CONFIGS["where"], 32, 24, bf16=bf16)(full_kspace * mask, sense, mask) for bf16 in (False, True)]
-    assert torch.equal(*outputs), f"max abs diff {(outputs[0] - outputs[1]).abs().max():.3e}"
 
-
-def check_against_centred_reference(name, height, width, dtype, bf16=False):
+def check_against_centred_reference(name, height, width, dtype):
     """Asserts that VarNet's output and gradients are those of `centred_reference`, and returns the output."""
     config = CONFIGS[name]
-    model = make_model(config, height, width, dtype, bf16=bf16)
+    model = make_model(config, height, width, dtype)
     inputs = make_inputs(height, width, dtype)
     use_full, use_support = config.get("dc_mode") == "multiply", config.get("support", False)
     exact = height % 2 == 0 and width % 2 == 0

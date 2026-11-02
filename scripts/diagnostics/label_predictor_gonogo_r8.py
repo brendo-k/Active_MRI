@@ -163,7 +163,7 @@ def full_sampler_input(model, loader, indices, device, chunk, centre_size=None):
             kspace = kspace * window[None, None, :, :, None]
         complex_kspace = torch.view_as_complex(kspace.contiguous())
         sense_maps, _ = model.sensetivity_net(complex_kspace, mask_method=model.sense_mask_method)
-        combined = (ifft_2d_img(complex_kspace) * sense_maps).sum(dim=1)
+        combined = (ifft_2d_img(complex_kspace) * sense_maps.conj()).sum(dim=1)
         out.append(torch.view_as_real(fft_2d_img(combined)).half().cpu())
     return torch.cat(out)
 

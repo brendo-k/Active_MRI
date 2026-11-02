@@ -18,6 +18,9 @@ reports/<topic>/
 Reference example: `reports/metric_mask_reeval_r8/`. Older flat reports (`reports/FOO.md`) predate this convention; do not
 copy their layout. Never save a new report as a loose `.md` in `reports/`.
 
+Reports for new experiments are written inside the experiment's worktree as part of the loop in
+`.claude/skills/experiment-loop/SKILL.md`; add its **Branch**, **Proposal vs outcome** and **Recommendation** items under the provenance block.
+
 ## Before writing
 1. Every number must come from a script in `scripts/` that exists in the repo and is committed. If an analysis was
    only run inline, save it as a script and rerun it, then confirm the numbers match what you intend to report.

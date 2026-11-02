@@ -1,12 +1,12 @@
+# Brain AXT2 + knee PD/PDFS of the fastMRI local subset v1 (fastmri_local_v1_base.yaml), the same data as
+# brain_knee_balanced.
+# Before 2026-10-27 this config read ~/data/fastmri with balance_by: condition, i.e. equal slices for brain, knee-PD and
+# knee-PDFS. The manifest's equal volume counts (80 T2, 40 PD, 40 PDFS) already give about that.
+# Set condition_classes: [brain, knee-PD, knee-PDFS] to condition on the protocol.
+defaults:
+  - fastmri_local_v1_base
+  - _self_
+classes: [T2, knee]
 anatomy: [brain, knee]
-data_root: /home/bkadota/data/fastmri
-data_dir: null
-contrast: T2
-num_coils: 16
+num_coils: 20
 num_workers: 8
-balance: true
-balance_by: condition  # equal train/val slices for brain, knee-PD (no sat) and knee-PDFS (fat sat); volumes split by volume as in brain_knee_balanced
-condition_classes: []
-train_anatomies: []
-train_slices: null
-sense_cache_dir: null  # BART ecalib maps cached by scripts/data/build_sense_cache.py; when set, the model uses them instead of the sensitivity net

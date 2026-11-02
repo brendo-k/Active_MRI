@@ -1,0 +1,28 @@
+{
+  "source_sha256": {
+    "activemri/reconstructors/SensetivityModel_mc.py": "e65a51a2a588e46641a0da7f065797c87857e36964b7bef2629979c2bf1e5a20",
+    "activemri/reconstructors/unet_backbone.py": "3dddf06c2f9c86e2feeae321434ac243f291640d8e240cc070765ba7e7dddf92",
+    "activemri/reconstructors/VarNet.py": "1406b0b072efb87f99185c3111ab5060ad28899acb736a2f3b84f1341a5ef145",
+    "activemri/training/trainer.py": "972dc9f469058464704f24a3a5f7fc2418960e89967f8e3b8b7da9fe90028f5c",
+    "configs/config.yaml": "66b97ab212896968fac3190dd2eebc1d84794cb2a462e2e8df955797804c29e9",
+    "configs/recon/varnet.yaml": "5c3b1a1d92a9458ea4a850890daffb3e5193bc6b36d65f2fcbf501bb7058200e",
+    "scripts/diagnostics/varnet_step_profile.py": "08a54c484c3355cff684226207332ec4ff643cc0b911550e906885195abaa679",
+    "scripts/diagnostics/varnet_throughput_probe.py": "cfa04c3f04e4689ce2e8acaf39fbffa53ab50c2ded101ddc34da5ed5b2788ba2"
+  },
+  "baseline_overrides": [
+    "hydra.job.name=train_sequential",
+    "recon=varnet",
+    "recon.num_cascades=2",
+    "datasets=brain_knee_balanced",
+    "datasets.num_workers=12",
+    "sampler.accelerations=[8.0]",
+    "sampler.sampler_type=loupe_2d",
+    "sampler.fixed_mask_path=/home/bkadota/data/seqmri_checkpoints/unet_speed/static_vd_r8_mask_seed42.pt",
+    "training.batch_size=16",
+    "training.lr=0.001",
+    "training.lr_scheduler=step",
+    "training.lr_step_size=40",
+    "training.num_epochs=50",
+    "training.seed=42"
+  ]
+}

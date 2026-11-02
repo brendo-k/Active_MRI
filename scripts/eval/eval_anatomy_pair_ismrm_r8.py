@@ -1,15 +1,16 @@
 """Per-anatomy vs shared LOUPE masks (R=8, brain + knee VarNet): mask x reconstructor cross-evaluation for ISMRM 2027.
 
 Both runs share every setting except `sampler.anatomy_conditioning`. On the whole val set, each run's reconstructor is
-given three probability maps with common per-slice Bernoulli thresholds (seeds 1234 and 4321, as in
+given these probability maps with common per-slice Bernoulli thresholds (seeds 1234 and 4321, as in
 eval_adaptive_samplers_r8), scored with the trainer's metric mask:
   shared   the shared run's map
-  own      the per-anatomy run's map for the slice's anatomy
-  other    the per-anatomy run's map for the other anatomy (label swap)
-Paired per-slice differences with 95% volume-bootstrap CIs, per anatomy:
+  as_<c>   the per-class run's map for class c, on every slice (classes: the run's anatomies or condition classes)
+  own      as_<c> of the slice's own class
+  other    with two classes, as_<c> of the other class (label swap)
+Paired per-slice differences with 95% volume-bootstrap CIs, per anatomy and knee protocol:
   run - run      per-anatomy recon + own map  minus  shared recon + shared map
   mask effect    own map minus shared map, on each reconstructor
-  label swap     other map minus own map, on each reconstructor
+  label swap     other map (with more than two classes, each as_<c>) minus own map, on each reconstructor
   recon effect   per-anatomy recon minus shared recon, on the shared map and on the own map
 Also saved: each anatomy's mean effective sampling map per condition (figure) and the realised sampling fraction.
 
@@ -45,24 +46,26 @@ def parse_args():
     parser.add_argument('--anatcond', type=Path, required=True)
     parser.add_argument('--checkpoint', default='last_model.pt')
     parser.add_argument('--tag', required=True)
+    parser.add_argument('--out', type=Path, default=OUT, help='folder for anatomy_pair_<tag>.json / .pt')
     parser.add_argument('--chunk', type=int, default=8)
     parser.add_argument('--limit', type=int, default=None, help='N evenly spaced val slices only (smoke tests)')
     parser.add_argument('--device', default='cuda')
     return parser.parse_args()
 
 
-def labelled(batch, classes, device, swap=False):
+def labelled(batch, classes, label_key, device, forced=None):
+    """The batch on `device`, every slice labelled with its own class or, given `forced`, with that class."""
     part = to_device(batch, device)
-    names = [ANATOMIES[1 - ANATOMIES.index(a)] if swap else a for a in batch['anatomy']]
+    names = [forced or name for name in batch[label_key]]
     part['label'] = torch.as_tensor([classes.index(n) for n in names], device=device)
     return part
 
 
 @torch.no_grad()
-def sampling_maps(model, classes, loader, device, swap=False):
+def sampling_maps(model, classes, label_key, loader, device, forced=None):
     rescaled, old, valid = [], [], []
     for batch in loader:
-        part = labelled(batch, classes, device, swap)
+        part = labelled(batch, classes, label_key, device, forced)
         proposal = model.propose_mask(part['kspace'], anatomy_labels=part['label'])
         rescaled.append(proposal['rescaled'][:, 0].half().cpu())
         old.append(proposal['old_mask'][:, 0].bool().cpu())
@@ -71,13 +74,13 @@ def sampling_maps(model, classes, loader, device, swap=False):
 
 
 @torch.no_grad()
-def score_maps(model, classes, loader, maps, old, valid, device):
+def score_maps(model, classes, label_key, loader, maps, old, valid, device):
     """Per-slice PSNR / SSIM for each named map, mean over SEEDS; also the realised sampling fraction per map."""
     count = len(old)
     scores = {name: {m: torch.zeros(count) for m in (*METRICS, 'fraction')} for name in maps}
     start = 0
     for batch in loader:
-        part = labelled(batch, classes, device)
+        part = labelled(batch, classes, label_key, device)
         rows = torch.arange(start, start + len(part['kspace']))
         target = part['target'] if part['target'].dim() == 4 else part['target'].unsqueeze(1)
         for seed in SEEDS:
@@ -116,24 +119,40 @@ def main():
         conditioned = getattr(checkpoint['options'], 'anatomy_conditioning', None)
         assert conditioned is None or bool(conditioned) == (name == 'anatcond'), f'{run}: unexpected conditioning'
         print(f'{name}: {run} {args.checkpoint} epoch {checkpoint["epoch"]}', flush=True)
+    label_key = checkpoint['options'].label_key
+    labels = np.array(sum((list(b[label_key]) for b in loader), []))
+    routed_classes = classes['anatcond']
 
-    shared_map, old, valid = sampling_maps(models['shared'], classes['shared'], loader, args.device)
-    own_map, _, _ = sampling_maps(models['anatcond'], classes['anatcond'], loader, args.device)
-    other_map, _, _ = sampling_maps(models['anatcond'], classes['anatcond'], loader, args.device, swap=True)
-    maps = {'shared': shared_map, 'own': own_map, 'other': other_map}
+    shared_map, old, valid = sampling_maps(models['shared'], classes['shared'], label_key, loader, args.device)
+    maps = {'shared': shared_map, **{f'as_{c}': sampling_maps(models['anatcond'], routed_classes, label_key, loader,
+                                                              args.device, forced=c)[0] for c in routed_classes}}
 
     scores = {}
     for name, model in models.items():
-        scores[name] = score_maps(model, classes[name], loader, maps, old, valid, args.device)
+        scores[name] = score_maps(model, classes[name], label_key, loader, maps, old, valid, args.device)
+    # own: each slice's map for its own class; other (two classes only): the other class's map, the label swap.
+    derived = {'own': [f'as_{n}' for n in labels]}
+    if len(routed_classes) == 2:
+        derived['other'] = [f'as_{routed_classes[1 - routed_classes.index(n)]}' for n in labels]
+    for name, per_slice in derived.items():
+        pick = {m: torch.as_tensor(np.array(per_slice) == m) for m in set(per_slice)}
+        maps[name] = torch.zeros_like(shared_map)
+        for m, rows in pick.items():
+            maps[name][rows] = maps[m][rows]
+        for run_scores in scores.values():
+            run_scores[name] = {metric: sum(run_scores[m][metric] * rows for m, rows in pick.items())
+                                for metric in (*METRICS, 'fraction')}
+    for name in models:
         print(name, 'recon PSNR', {m: {a: round(float(scores[name][m]['psnr'][anatomy == a].mean()), 3) for a in ANATOMIES}
                                    for m in maps}, flush=True)
 
+    swap_maps = ['other'] if 'other' in maps else [f'as_{c}' for c in routed_classes]
     contrasts = {
         'run_minus_run': (('anatcond', 'own'), ('shared', 'shared')),
         'mask_effect_on_shared_recon': (('shared', 'own'), ('shared', 'shared')),
         'mask_effect_on_anatcond_recon': (('anatcond', 'own'), ('anatcond', 'shared')),
-        'label_swap_on_anatcond_recon': (('anatcond', 'other'), ('anatcond', 'own')),
-        'label_swap_on_shared_recon': (('shared', 'other'), ('shared', 'own')),
+        **{f'label_swap_on_{run}_recon' + ('' if m == 'other' else f'/{m}'): ((run, m), (run, 'own'))
+           for run in ('anatcond', 'shared') for m in swap_maps},
         'recon_effect_on_shared_map': (('anatcond', 'shared'), ('shared', 'shared')),
         'recon_effect_on_own_map': (('anatcond', 'own'), ('shared', 'own')),
     }
@@ -154,14 +173,14 @@ def main():
                                               for g in groups), flush=True)
 
     effective = {name: (m.float() + old.float()).clamp(max=1) for name, m in maps.items()}
-    mean_maps = {f'{name}/{a}': effective[name][torch.as_tensor(anatomy == a)].mean(0) for name in maps for a in ANATOMIES}
+    mean_maps = {f'{name}/{g}': effective[name][torch.as_tensor(k)].mean(0) for name in maps for g, k in groups.items()}
     if args.limit is None:
-        OUT.mkdir(parents=True, exist_ok=True)
-        (OUT / f'anatomy_pair_{args.tag}.json').write_text(json.dumps(summary, indent=2) + '\n')
+        args.out.mkdir(parents=True, exist_ok=True)
+        (args.out / f'anatomy_pair_{args.tag}.json').write_text(json.dumps(summary, indent=2) + '\n')
         torch.save({'mean_maps': mean_maps, 'anatomy': anatomy.tolist(), 'condition': condition.tolist(),
                     'volume': volumes.tolist(), 'scores': {r: {m: {k: v.half() for k, v in s.items()} for m, s in d.items()}
                                                            for r, d in scores.items()}},
-                   OUT / f'anatomy_pair_{args.tag}.pt')
+                   args.out / f'anatomy_pair_{args.tag}.pt')
 
 
 if __name__ == '__main__':

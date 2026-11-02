@@ -18,10 +18,13 @@ def RescaleProbMap(batch_x, sparsity, available=None):
     locations: the rest stay at 0, instead of the inverted branch lifting them
     to 1 - beta, and the target mean over the available ones rises so the
     expected count is still sparsity * numel.
+
+    `sparsity` is one number, or a [B] tensor with one per example.
     """
     if available is None:
         available = torch.ones_like(batch_x)
     available = available.to(batch_x.dtype).expand_as(batch_x)
+    per_example = sparsity if torch.is_tensor(sparsity) else [sparsity] * len(batch_x)
 
     ret = []
     for i in range(len(batch_x)):
@@ -29,7 +32,7 @@ def RescaleProbMap(batch_x, sparsity, available=None):
         a = available[i:i + 1]
         num_available = a.sum()
         xbar = (x * a).sum() / num_available
-        target = sparsity * x.numel() / num_available
+        target = per_example[i] * x.numel() / num_available
         r = target / xbar
         beta = (1 - target) / (1 - xbar)
 

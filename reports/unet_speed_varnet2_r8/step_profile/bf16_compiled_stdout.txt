@@ -1,0 +1,99 @@
+=== bf16_compiled ===
+step ms: unprofiled 578.1, profiled 625.7, loader wait 0.1 (median over profiled + timed steps)
+GPU busy 72.1% of the recorded window; GPU work 500.9 ms/step
+
+phase (innermost label)                                     host ms   GPU ms  GPU idle
+metric_mask_from_real_kspace                                  152.7     90.6      62.4
+gradient_stats                                                205.5      0.7       1.0
+backward/sens_net                                               7.2    161.4       0.1
+forward/step_forward (DC inputs, zero-filled, vis copies)     103.9     12.8       3.5
+forward/sens_net                                               24.6     79.4       9.8
+backward/loss+rss+cascades                                     24.8     73.3       1.0
+masked_metrics.update                                          85.0      1.1      83.6
+metrics.update (PSNR, SSIM)                                    26.1     14.2      12.2
+forward/varnet                                                  3.0     23.8       0.0
+load_kspace                                                    11.9      7.9       4.0
+forward/varnet/cascade0_unet                                    8.9      9.0       0.0
+forward/varnet/cascade1_unet                                    7.4      8.8       0.1
+metric_mask                                                     7.5      7.4       0.1
+train_forward                                                   1.8      8.6       0.3
+clip_gradients_per_group                                        9.3      0.1       9.2
+target_dict                                                     6.6      0.0       0.1
+Optimizer.step#Adam.step                                        2.3      0.6       1.7
+zero_coil_fraction                                              0.8      0.6       0.1
+loss                                                            1.1      0.1       1.0
+anatomy_stats.update                                            0.9      0.1       0.7
+step                                                            0.9      0.0       0.8
+wandb.log                                                       0.8      0.0       0.8
+target                                                          0.4      0.2       0.2
+Optimizer.zero_grad#Adam.zero_grad                              0.2      0.0       0.2
+apply_signal_mask                                               0.1      0.0       0.1
+optimize                                                        0.2      0.0       0.1
+enumerate(DataLoader)#_MultiProcessingDataLoaderIter.__next__      0.1      0.0       0.1
+forward/mask_policy                                             0.1      0.0       0.0
+loader_wait                                                     0.1      0.0       0.1
+optimizer.step                                                  0.1      0.0       0.1
+optimizer.zero_grad                                             0.1      0.0       0.1
+unlabelled                                                      0.0      0.0       0.1
+
+GPU ms/step by kernel category
+  conv / gemm                                256.1
+  triton (compiled U-Net)                     73.9
+  elementwise                                 72.3
+  other                                       27.8
+  grid_sample / pool / upsample               24.2
+  memcpy                                      21.7
+  FFT                                         14.2
+  reduce                                       6.2
+  memset                                       3.7
+  norm                                         0.6
+
+top kernels, GPU ms/step
+    42.44  _5x_cudnn_ampere_scudnn_winograd_128x128_ldg1_ldg4_relu_tile148t_nt_v1
+    41.55  void wgrad_alg0_engine<float, 512, 6, 5, 3, 3, 3, false, 512>(int, int, int, float const*, int, float*, float 
+    27.01  void at::native::roll_cuda_kernel<c10::complex<float> >(c10::complex<float> const*, c10::complex<float>*, long
+    24.24  void at::native::(anonymous namespace)::max_pool_forward_nchw<float>(int, float const*, long, long, long, int,
+    15.66  _5x_cudnn_ampere_scudnn_128x32_relu_small_nn_v1
+    15.54  Memcpy HtoD (Pinned -> Device)
+    15.11  void cudnn::engines_precompiled::nchwToNhwcKernel<float, float, float, false, true, (cudnnKernelDataType_t)2>(
+    10.39  void cutlass__5x_cudnn::Kernel<cutlass_tensorop_s1688fprop_optimized_tf32_128x128_16x5_nhwc_align4>(cutlass_te
+     8.66  void cutlass__5x_cudnn::Kernel<cutlass_tensorop_s1688fprop_analytic_tf32_64x64_16x10_nhwc_align4>(cutlass_tens
+     8.61  void cudnn::engines_precompiled::nchwToNhwcKernel<__nv_bfloat16, __nv_bfloat16, float, false, true, (cudnnKern
+     8.27  void at::native::vectorized_elementwise_kernel<4, at::native::CUDAFunctor_add<c10::complex<float> >, std::arra
+     8.18  triton_red_fused_add_avg_pool2d_backward_convolution_backward_leaky_relu_leaky_relu_backward_native_batch_norm
+     7.93  void at::native::vectorized_elementwise_kernel<4, at::native::BinaryFunctor<float, float, float, at::native::m
+     7.71  triton_red_fused_convolution_backward_native_batch_norm_backward_0
+     7.54  void at::native::vectorized_elementwise_kernel<4, at::native::BinaryFunctor<c10::complex<float>, c10::complex<
+     7.16  void at::native::vectorized_elementwise_kernel<4, at::native::BinaryFunctor<float, float, float, at::native::b
+     6.80  void at::native::vectorized_elementwise_kernel<4, at::native::conj_kernel_cuda(at::TensorIteratorBase&)::{lamb
+     6.76  void at::native::vectorized_elementwise_kernel<4, at::native::AUnaryFunctor<c10::complex<float>, c10::complex<
+     6.71  void vector_fft<256u, EPT<16u>, 1u, 32u, (padding_t)70, (twiddle_t)0, (loadstore_modifier_t)2, (layout_t)0, un
+     6.67  void regular_fft<256u, EPT<16u>, 8u, 9u, (padding_t)14, (twiddle_t)0, (loadstore_modifier_t)2, (layout_t)1, un
+     6.37  sm86_xmma_fprop_implicit_gemm_indexed_tf32f32_tf32f32_f32_nhwckrsc_nchw_tilesize256x128x16_stage3_warpsize4x2x
+     6.28  sm80_xmma_wgrad_implicit_gemm_indexed_wo_smem_tf32f32_tf32f32_f32_nhwckrsc_nhwc_tilesize16x64x64_stage1_warpsi
+     5.51  void implicit_convolve_sgemm<float, float, 128, 6, 7, 3, 3, 5, 1, false, false, true>(int, int, int, float con
+     5.48  triton_red_fused_convolution_backward_native_batch_norm_backward_2
+     5.17  Memcpy DtoH (Device -> Pageable)
+
+host blocked in synchronising CUDA calls (> 50 us), ms/step
+   197.21  gradient_stats | cudaMemcpyAsync
+    68.00  forward/step_forward (DC inputs, zero-filled, vis copies) | cudaStreamSynchronize
+    32.62  forward/step_forward (DC inputs, zero-filled, vis copies) | cudaMemcpyAsync
+    22.12  metric_mask_from_real_kspace | cudaDeviceSynchronize
+    21.92  metric_mask_from_real_kspace | cudaEventSynchronize
+     8.04  load_kspace | cudaStreamSynchronize
+     7.39  metric_mask | cudaStreamSynchronize
+     6.44  target_dict | cudaStreamSynchronize
+     5.60  metrics.update (PSNR, SSIM) | cudaEventSynchronize
+     5.56  metrics.update (PSNR, SSIM) | cudaDeviceSynchronize
+     3.73  metric_mask_from_real_kspace | cudaStreamSynchronize
+     3.32  forward/sens_net | cudaStreamSynchronize
+     1.25  masked_metrics.update | cudaMemcpyAsync
+     0.42  zero_coil_fraction | cudaStreamSynchronize
+     0.31  target | cudaStreamSynchronize
+     0.08  masked_metrics.update | cudaStreamSynchronize
+     0.02  metric_mask_from_real_kspace | cudaMemcpyAsync
+     0.02  anatomy_stats.update | cudaStreamSynchronize
+     0.01  zero_coil_fraction | cudaMemcpyAsync
+     0.01  forward/varnet/cascade1_unet | cudaMemcpyAsync
+     0.01  forward/varnet | cudaMemcpyAsync

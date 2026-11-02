@@ -1,0 +1,20 @@
+Manifest train set (volumes, slices): {'brain': (80, 1211), 'knee-PD': (40, 1369), 'knee-PDFS': (40, 1349)}
+Manifest val set (volumes, slices): {'brain': (40, 605), 'knee-PD': (20, 673), 'knee-PDFS': (20, 660)}
+Sampler: conv_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+adaptive: /home/bkadota/data/seqmri_checkpoints/patient_specific_r8_local_v1/runs/patient_specific_conv_encmlp_r8_flair_knee_100ep_seed42 last_model.pt epoch 99 (conv_2d)
+  own             PSNR brain 35.657  knee-PD 36.653  knee-PDFS 33.784
+  other_volume    PSNR brain 35.615  knee-PD 36.586  knee-PDFS 33.689
+  condition_mean  PSNR brain 35.668  knee-PD 36.636  knee-PDFS 33.725
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+control: /home/bkadota/data/seqmri_checkpoints/patient_specific_r8_local_v1/runs/patient_specific_loupe_r8_flair_knee_100ep_seed42 last_model.pt epoch 99 (loupe_2d)
+  own             PSNR brain 35.735  knee-PD 36.892  knee-PDFS 33.940
+  other_volume    PSNR brain 35.735  knee-PD 36.892  knee-PDFS 33.940
+  condition_mean  PSNR brain 35.735  knee-PD 36.892  knee-PDFS 33.940
+adaptive_swap_cost_other_volume      brain +0.042 [+0.002, +0.077]  knee-PD +0.066 [+0.054, +0.079]  knee-PDFS +0.095 [+0.068, +0.116]  all +0.069 [+0.039, +0.080]
+adaptive_gain_over_condition_mean    brain -0.010 [-0.047, +0.023]  knee-PD +0.016 [+0.006, +0.026]  knee-PDFS +0.058 [+0.030, +0.103]  all +0.022 [-0.008, +0.035]
+control_swap_cost_other_volume       brain +0.000 [+0.000, +0.000]  knee-PD +0.000 [+0.000, +0.000]  knee-PDFS +0.000 [+0.000, +0.000]  all +0.000 [+0.000, +0.000]
+adaptive_minus_control_own           brain -0.078 [-0.173, +0.020]  knee-PD -0.239 [-0.276, -0.197]  knee-PDFS -0.156 [-0.245, -0.092]  all -0.161 [-0.192, -0.076]

@@ -19,7 +19,9 @@ from activemri.utils.mask_binarization import floored_grad_sigmoid
 LOGIT_LIMIT = 6.0
 LOGIT_LEAK = 0.01
 LOCATION_HEADS = ('none', 'bias', 'mlp')
+SAMPLER_HEADS = LOCATION_HEADS + ('encoder_mlp',)
 LOCATION_HEAD_HIDDEN = 256
+ENCODER_HEAD_CHANS = 16
 # Multiplies the per-location bias, like LOUPE's slope: Adam moves each parameter ~lr per step, so this
 # lets the bias move as fast in logit space as a slope-5 LOUPE mask does.
 LOCATION_BIAS_SCALE = 5.0
@@ -79,6 +81,36 @@ class LocationHead(nn.Module):
         return corrected
 
 
+class EncoderMLPHead(nn.Module):
+    """Input-dependent per-location logits read from the U-Net's bottleneck, added to its score map.
+
+    The output layer holds one weight vector per k-space location, so unlike the convolutional decoder it can
+    give neighbouring locations unrelated logits. The hidden code is batch-normalised without an affine and
+    the output layer has no bias, so over a training batch the term has zero mean at every location: it can
+    only express how a slice differs from the others, never a pattern shared by every input (that stays with
+    the decoder; LocationHead's 'bias'/'mlp' learn one, and both ended static). The output layer starts at
+    zero, so training starts from the plain U-Net, and the term is bounded to +/- `logit_limit` through a
+    tanh, as smooth_adapt_2d bounds its offset.
+    """
+
+    def __init__(self, in_chans, in_shape, shape, logit_limit, reduced_chans=ENCODER_HEAD_CHANS,
+                 hidden=LOCATION_HEAD_HIDDEN):
+        super().__init__()
+        self.shape = tuple(shape)
+        self.logit_limit = logit_limit
+        width = reduced_chans * in_shape[0] * in_shape[1]
+        output = nn.Linear(hidden, shape[0] * shape[1], bias=False)
+        nn.init.zeros_(output.weight)
+        self.mlp = nn.Sequential(
+            nn.Conv2d(in_chans, reduced_chans, kernel_size=1), nn.Flatten(), nn.LayerNorm(width),
+            nn.Linear(width, hidden), nn.ReLU(inplace=True), nn.BatchNorm1d(hidden, affine=False), output,
+        )
+
+    def forward(self, bottleneck):
+        raw = self.mlp(bottleneck).view(-1, 1, *self.shape)
+        return self.logit_limit * torch.tanh(raw / self.logit_limit)
+
+
 class SampProb2D(nn.Module):
     """2D sampling probability model based on a U-Net.
 
@@ -104,8 +136,8 @@ class SampProb2D(nn.Module):
         depth: Number of down-/up-sampling stages in the U-Net.
         grad_floor: Lower bound on the score sigmoid's backward derivative, as a
             fraction of its peak (0 = exact).
-        head: Location-specific head on the probability scores, one of LOCATION_HEADS
-            (see LocationHead).
+        head: Location-specific head on the probability scores, one of SAMPLER_HEADS: 'bias' and 'mlp'
+            (see LocationHead) or 'encoder_mlp' (see EncoderMLPHead).
         logit_limit, logit_leak: The score clamp and the slope beyond it, as in `scores_to_prob`.
     """
 
@@ -115,10 +147,12 @@ class SampProb2D(nn.Module):
                  chans=64, depth=4, grad_floor=0.0, head='none',
                  logit_limit=LOGIT_LIMIT, logit_leak=LOGIT_LEAK):
         super().__init__()
+        if head not in SAMPLER_HEADS:
+            raise ValueError(f"Unknown sampler head {head!r}; expected one of {SAMPLER_HEADS}")
         self.grad_floor = grad_floor
         self.logit_limit = logit_limit
         self.logit_leak = logit_leak
-        self.location_head = LocationHead(shape, head) if head != 'none' else None
+        self.location_head = LocationHead(shape, head) if head in LOCATION_HEADS[1:] else None
 
         self.bottleneck_chans = chans * 2 ** depth
 
@@ -147,6 +181,14 @@ class SampProb2D(nn.Module):
             drop_prob=0,
             upsample_mode='bilinear',
         )
+
+        self.encoder_head = None
+        if head == 'encoder_mlp':
+            # Its own RNG stream, so every other weight (and the reconstructor's, built from the same seed)
+            # starts exactly as in the run without the head.
+            with torch.random.fork_rng(devices=[]):
+                self.encoder_head = EncoderMLPHead(
+                    self.bottleneck_chans, (shape[0] // 2 ** depth, shape[1] // 2 ** depth), shape, logit_limit)
 
         if uncertainty_mode == 'head':
             self.uncertainty_decoder = nn.ModuleList()
@@ -210,11 +252,15 @@ class SampProb2D(nn.Module):
         else:
             x = observation
 
-        use_encoder_path = self.uncertainty_mode == 'head' or self.num_anatomy_classes > 0
+        use_encoder_path = (self.uncertainty_mode == 'head' or self.num_anatomy_classes > 0
+                            or self.encoder_head is not None)
 
         if use_encoder_path:
             out, skips, bottleneck = self._forward_encoder(x)
-            prob = scores_to_prob(self._located(out[:, :1]), self.grad_floor, self.logit_limit, self.logit_leak)
+            scores = self._located(out[:, :1])
+            if self.encoder_head is not None:
+                scores = scores + self.encoder_head(bottleneck)
+            prob = scores_to_prob(scores, self.grad_floor, self.logit_limit, self.logit_leak)
 
             if self.uncertainty_mode == 'head':
                 unc_x = bottleneck

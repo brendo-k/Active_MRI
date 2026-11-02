@@ -1,6 +1,10 @@
+# Brain AXT2 + knee PD/PDFS of the fastMRI local subset v1 (fastmri_local_v1_base.yaml), the same data as
+# brain_knee_balanced. Before 2026-10-27 this config read every volume under ~/data/fastmri, unbalanced
+# (configs/datasets/legacy_fastmri_splits).
+defaults:
+  - fastmri_local_v1_base
+  - _self_
+classes: [T2, knee]
 anatomy: [brain, knee]
-data_root: /home/bkadota/data/fastmri
-data_dir: null
-contrast: T2
-num_coils: 16
+num_coils: 20
 num_workers: 32

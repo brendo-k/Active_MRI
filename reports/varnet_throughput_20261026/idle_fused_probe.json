@@ -1,0 +1,8 @@
+{
+  "sens_layout": "default",
+  "sens_chunk": 0,
+  "capture_sens": null,
+  "fused_shifts": true,
+  "sens_norm": "instance",
+  "cudnn_limit": 10
+}

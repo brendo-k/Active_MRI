@@ -1,0 +1,266 @@
+{
+  "name": "new_bf16_compiled",
+  "overrides": [
+    "recon.unet_precision=bf16",
+    "training.compile_unets=true"
+  ],
+  "what_ifs": [],
+  "gpu": "NVIDIA RTX A6000",
+  "torch": "2.6.0+cu124",
+  "step_ms_unprofiled": 397.53515349002555,
+  "step_ms_profiled": 405.19606054294854,
+  "loader_wait_ms": 0.023187953047454357,
+  "step_ms_all": [
+    931.4456310821697,
+    1012.2288279235363,
+    533.5455050226301,
+    485.4232589714229,
+    481.49519809521735,
+    820.8172689191997,
+    866.7223670054227,
+    484.4930690014735,
+    989.2105549806729,
+    422.39323910325766,
+    394.07250098884106,
+    664.6329629002139,
+    402.5105000473559,
+    407.42169495206326,
+    404.94388609658927,
+    402.28909300640225,
+    403.6043368978426,
+    406.70774306636304,
+    403.98813295178115,
+    406.08787105884403,
+    405.5627799825743,
+    405.4482349893078,
+    404.15226796176285,
+    1164.4723610952497,
+    400.75893700122833,
+    400.938716949895,
+    397.1682239789516,
+    397.18247298151255,
+    399.54392006620765,
+    400.4125769715756,
+    395.99441597238183,
+    396.2460670154542,
+    399.83866398688406,
+    396.00105106364936,
+    396.27120993100107,
+    397.49328198377043,
+    398.2380350353196,
+    397.57702499628067
+  ],
+  "peak_gib": 19.95837926864624,
+  "val_epoch_s": [
+    23.916722188005224,
+    10.278074611909688
+  ],
+  "window_ms_per_step": 404.8501030029297,
+  "gpu_busy_fraction": 0.9603689518255334,
+  "gpu_ms_per_step": 388.80547349999995,
+  "phases": {
+    "gradient_stats": {
+      "host_ms": 202.35432116699218,
+      "gpu_ms": 0.6787905999999956,
+      "gpu_idle_ms": 0.796364062499981
+    },
+    "backward/sens_net": {
+      "host_ms": 8.776818041992188,
+      "gpu_ms": 162.7771049999999,
+      "gpu_idle_ms": 0.09910051269531228
+    },
+    "forward/step_forward (DC inputs, zero-filled, vis copies)": {
+      "host_ms": 118.35359848632814,
+      "gpu_ms": 10.706846699999987,
+      "gpu_idle_ms": 1.7961128662109296
+    },
+    "backward/loss+rss+cascades": {
+      "host_ms": 27.73171267089844,
+      "gpu_ms": 73.66943349999951,
+      "gpu_idle_ms": 0.8677228759765571
+    },
+    "forward/sens_net": {
+      "host_ms": 7.672391186523439,
+      "gpu_ms": 79.72882580000008,
+      "gpu_idle_ms": 0.14301083984375015
+    },
+    "forward/varnet": {
+      "host_ms": 1.3588559326171876,
+      "gpu_ms": 23.802365500000015,
+      "gpu_idle_ms": 0.004461645507812495
+    },
+    "metrics.update (PSNR, SSIM)": {
+      "host_ms": 9.99505078125,
+      "gpu_ms": 3.39319729999999,
+      "gpu_idle_ms": 7.239993457031251
+    },
+    "forward/varnet/cascade0_unet": {
+      "host_ms": 3.9431001953125,
+      "gpu_ms": 9.138348399999986,
+      "gpu_idle_ms": 0.009250146484374996
+    },
+    "forward/varnet/cascade1_unet": {
+      "host_ms": 3.7299510986328124,
+      "gpu_ms": 8.946234299999972,
+      "gpu_idle_ms": 0.007945581054687494
+    },
+    "load_kspace": {
+      "host_ms": 5.403070312500001,
+      "gpu_ms": 5.315479600000001,
+      "gpu_idle_ms": 0.08759072265625
+    },
+    "train_forward": {
+      "host_ms": 1.086003271484375,
+      "gpu_ms": 8.612299400000003,
+      "gpu_idle_ms": 0.155815087890625
+    },
+    "target_dict": {
+      "host_ms": 6.905818408203125,
+      "gpu_ms": 0.00045439999999999993,
+      "gpu_idle_ms": 0.06692441406250002
+    },
+    "Optimizer.step#Adam.step": {
+      "host_ms": 1.3211214111328125,
+      "gpu_ms": 0.6292856999999998,
+      "gpu_idle_ms": 0.753606665039062
+    },
+    "zero_coil_fraction": {
+      "host_ms": 0.6938702148437499,
+      "gpu_ms": 0.6199606999999999,
+      "gpu_idle_ms": 0.06754077148437503
+    },
+    "clip_gradients_per_group": {
+      "host_ms": 1.1451830078125,
+      "gpu_ms": 0.11254990000000002,
+      "gpu_idle_ms": 1.0468554443359381
+    },
+    "anatomy_stats.update": {
+      "host_ms": 1.0492691162109373,
+      "gpu_ms": 0.08135629999999995,
+      "gpu_idle_ms": 0.41208305664062517
+    },
+    "metric_mask": {
+      "host_ms": 0.8340600830078125,
+      "gpu_ms": 0.0515038,
+      "gpu_idle_ms": 0.7825562011718747
+    },
+    "loss": {
+      "host_ms": 0.6064790771484375,
+      "gpu_ms": 0.08227780000000007,
+      "gpu_idle_ms": 0.5242008056640627
+    },
+    "masked_metrics.update": {
+      "host_ms": 0.31055891113281253,
+      "gpu_ms": 0.24061850000000012,
+      "gpu_idle_ms": 0.012085351562499996
+    },
+    "step": {
+      "host_ms": 0.45759562988281244,
+      "gpu_ms": 0.0164032,
+      "gpu_idle_ms": 0.34595566406249995
+    },
+    "wandb.log": {
+      "host_ms": 0.434886083984375,
+      "gpu_ms": 0.0,
+      "gpu_idle_ms": 0.434886083984375
+    },
+    "target": {
+      "host_ms": 0.22768400878906253,
+      "gpu_ms": 0.1677692,
+      "gpu_idle_ms": 0.05991481933593751
+    },
+    "Optimizer.zero_grad#Adam.zero_grad": {
+      "host_ms": 0.1125935302734375,
+      "gpu_ms": 0.0,
+      "gpu_idle_ms": 0.1125935302734375
+    },
+    "apply_signal_mask": {
+      "host_ms": 0.070452197265625,
+      "gpu_ms": 0.03436789999999999,
+      "gpu_idle_ms": 0.0371885009765625
+    },
+    "optimize": {
+      "host_ms": 0.09841396484375002,
+      "gpu_ms": 0.0,
+      "gpu_idle_ms": 0.05614160156250001
+    },
+    "forward/mask_policy": {
+      "host_ms": 0.039385888671875,
+      "gpu_ms": 0.0,
+      "gpu_idle_ms": 0.0
+    },
+    "optimizer.step": {
+      "host_ms": 0.029814477539062495,
+      "gpu_ms": 0.0,
+      "gpu_idle_ms": 0.0166893798828125
+    },
+    "optimizer.zero_grad": {
+      "host_ms": 0.028973242187500005,
+      "gpu_ms": 0.0,
+      "gpu_idle_ms": 0.028973242187500005
+    },
+    "loader_wait": {
+      "host_ms": 0.0161188232421875,
+      "gpu_ms": 0.0,
+      "gpu_idle_ms": 0.0161188232421875
+    },
+    "unlabelled": {
+      "host_ms": 0.0,
+      "gpu_ms": 0.0,
+      "gpu_idle_ms": 0.0629517822265625
+    }
+  },
+  "kernel_categories_ms": {
+    "conv / gemm": 202.25432919999963,
+    "triton (compiled U-Net)": 73.63133949999994,
+    "elementwise": 55.3373199,
+    "other": 26.211304700000017,
+    "FFT": 12.592397900000003,
+    "memcpy": 8.970674700000002,
+    "reduce": 5.263710799999999,
+    "memset": 3.691623299999974,
+    "norm": 0.7150672000000031,
+    "grid_sample / pool / upsample": 0.1377063
+  },
+  "top_kernels_ms": {
+    "_5x_cudnn_ampere_scudnn_winograd_128x128_ldg1_ldg4_relu_tile148t_nt_v1": 42.859016800000006,
+    "void wgrad_alg0_engine<float, 512, 6, 5, 3, 3, 3, false, 512>(int, int, int, float const*, int, float*, float ": 42.3207631,
+    "void at::native::roll_cuda_kernel<c10::complex<float> >(c10::complex<float> const*, c10::complex<float>*, long": 25.424727200000017,
+    "_5x_cudnn_ampere_scudnn_128x32_relu_small_nn_v1": 16.096888899999996,
+    "void cudnn::engines_precompiled::nchwToNhwcKernel<float, float, float, false, true, (cudnnKernelDataType_t)2>(": 14.873279100000008,
+    "void cudnn::engines_precompiled::nchwToNhwcKernel<__nv_bfloat16, __nv_bfloat16, float, false, true, (cudnnKern": 8.627018500000002,
+    "void at::native::vectorized_elementwise_kernel<4, at::native::CUDAFunctor_add<c10::complex<float> >, std::arra": 8.267771100000001,
+    "triton_red_fused_add_avg_pool2d_backward_convolution_backward_leaky_relu_leaky_relu_backward_native_batch_norm": 8.1710707,
+    "triton_red_fused_convolution_backward_native_batch_norm_backward_0": 7.7062112,
+    "void at::native::vectorized_elementwise_kernel<4, at::native::BinaryFunctor<c10::complex<float>, c10::complex<": 7.528231400000005,
+    "void at::native::vectorized_elementwise_kernel<4, at::native::conj_kernel_cuda(at::TensorIteratorBase&)::{lamb": 6.7958583999999975,
+    "void at::native::vectorized_elementwise_kernel<4, at::native::AUnaryFunctor<c10::complex<float>, c10::complex<": 6.359820599999997,
+    "sm80_xmma_wgrad_implicit_gemm_indexed_wo_smem_tf32f32_tf32f32_f32_nhwckrsc_nhwc_tilesize16x64x64_stage1_warpsi": 6.3568622999999995,
+    "void vector_fft<256u, EPT<16u>, 1u, 32u, (padding_t)70, (twiddle_t)0, (loadstore_modifier_t)2, (layout_t)0, un": 6.313448199999997,
+    "void regular_fft<256u, EPT<16u>, 8u, 9u, (padding_t)14, (twiddle_t)0, (loadstore_modifier_t)2, (layout_t)1, un": 6.278949700000003,
+    "triton_red_fused_convolution_backward_native_batch_norm_backward_2": 5.487961800000001,
+    "Memcpy HtoD (Pinned -> Device)": 5.4832488,
+    "triton_red_fused__native_batch_norm_legit_leaky_relu_19": 4.595328,
+    "void at::native::elementwise_kernel<128, 2, at::native::gpu_kernel_impl_nocast<at::native::BinaryFunctor<c10::": 4.5526911,
+    "void at::native::elementwise_kernel<128, 4, at::native::gpu_kernel_impl<at::native::BinaryFunctor<c10::complex": 4.033943000000002,
+    "void cudnn::engines_precompiled::nhwcToNchwKernel<__nv_bfloat16, __nv_bfloat16, float, true, false, (cudnnKern": 3.8627543000000015,
+    "triton_red_fused_convolution_backward_native_batch_norm_backward_1": 3.855616,
+    "Memset (Device)": 3.691623299999974,
+    "void at::native::elementwise_kernel<128, 2, at::native::gpu_kernel_impl_nocast<at::native::direct_copy_kernel_": 3.631259400000001,
+    "_ZN17cutlass__5x_cudnn6KernelINS_4conv6kernel23ImplicitGemmConvolutionINS1_11threadblock22ImplicitGemmMultista": 3.5498203000000004
+  },
+  "syncs_ms": {
+    "gradient_stats | cudaMemcpyAsync": 196.1294743,
+    "forward/step_forward (DC inputs, zero-filled, vis copies) | cudaStreamSynchronize": 76.4479163,
+    "forward/step_forward (DC inputs, zero-filled, vis copies) | cudaMemcpyAsync": 40.5296408,
+    "target_dict | cudaStreamSynchronize": 6.8227344,
+    "load_kspace | cudaStreamSynchronize": 5.3205172,
+    "forward/sens_net | cudaStreamSynchronize": 3.736253200000001,
+    "zero_coil_fraction | cudaStreamSynchronize": 0.5226111,
+    "anatomy_stats.update | cudaStreamSynchronize": 0.4661083,
+    "masked_metrics.update | cudaMemcpyAsync": 0.2132822,
+    "target | cudaStreamSynchronize": 0.17285540000000002,
+    "metric_mask | cudaMemcpyAsync": 0.07370790000000002,
+    "step | cudaStreamSynchronize": 0.0286524
+  }
+}

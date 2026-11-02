@@ -1,0 +1,19 @@
+Balanced train set (volumes, slices): {'brain': (89, 1350), 'knee': (40, 1350)}
+Balanced val set (volumes, slices): {'brain': (23, 344), 'knee': (10, 344)}
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+shared: /home/bkadota/data/seqmri_checkpoints/vdinit_anatomy/runs/loupe2d_varnet_r8_brain_knee_shared_100ep_vdinit_p0_seed42 last_model.pt epoch 99
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+anatcond: /home/bkadota/data/seqmri_checkpoints/vdinit_anatomy/runs/loupe2d_varnet_r8_brain_knee_anatomy_100ep_vdinit_p0_seed42 last_model.pt epoch 99
+shared recon PSNR {'shared': {'brain': 39.708, 'knee': 38.632}, 'own': {'brain': 39.291, 'knee': 38.276}, 'other': {'brain': 39.357, 'knee': 38.127}}
+anatcond recon PSNR {'shared': {'brain': 39.358, 'knee': 38.376}, 'own': {'brain': 39.459, 'knee': 38.471}, 'other': {'brain': 39.494, 'knee': 38.311}}
+run_minus_run                    brain -0.249 [-0.329, -0.162]  knee -0.161 [-0.214, -0.112]  knee-PD -0.216 [-0.264, -0.154]  knee-PDFS -0.125 [-0.208, -0.068]
+mask_effect_on_shared_recon      brain -0.416 [-0.517, -0.295]  knee -0.356 [-0.424, -0.267]  knee-PD -0.350 [-0.423, -0.272]  knee-PDFS -0.361 [-0.474, -0.230]
+mask_effect_on_anatcond_recon    brain +0.101 [+0.079, +0.128]  knee +0.096 [+0.083, +0.108]  knee-PD +0.085 [+0.082, +0.089]  knee-PDFS +0.102 [+0.081, +0.120]
+label_swap_on_anatcond_recon     brain +0.035 [+0.011, +0.053]  knee -0.161 [-0.187, -0.123]  knee-PD -0.185 [-0.219, -0.148]  knee-PDFS -0.145 [-0.183, -0.095]
+label_swap_on_shared_recon       brain +0.065 [+0.037, +0.086]  knee -0.149 [-0.167, -0.122]  knee-PD -0.162 [-0.180, -0.138]  knee-PDFS -0.140 [-0.170, -0.102]
+recon_effect_on_shared_map       brain -0.349 [-0.417, -0.272]  knee -0.256 [-0.303, -0.215]  knee-PD -0.301 [-0.349, -0.243]  knee-PDFS -0.227 [-0.292, -0.181]
+recon_effect_on_own_map          brain +0.168 [+0.130, +0.196]  knee +0.196 [+0.097, +0.274]  knee-PD +0.134 [+0.093, +0.182]  knee-PDFS +0.236 [+0.073, +0.363]

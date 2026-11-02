@@ -1,0 +1,51 @@
+{
+  "checkpoint": "/home/bkadota/data/seqmri_checkpoints/unet_speed/runs/varnet2_r8_bf16_sensbf16_seed42/last_model.pt",
+  "epoch": 49,
+  "cudnn_benchmark_limit": 0,
+  "scope": "same weights; no retraining; masked pixel PSNR/SSIM, slice averaged",
+  "max_output_abs_difference": {
+    "baseline": 0.0
+  },
+  "anatomies": {
+    "brain": {
+      "slices": 344,
+      "volumes": 23,
+      "arms": {
+        "baseline": {
+          "psnr": {
+            "mean": 31.48744538772938,
+            "delta_mean": 0.0,
+            "delta_min_slice": 0.0,
+            "delta_max_slice": 0.0
+          },
+          "ssim": {
+            "mean": 0.9148471434124111,
+            "delta_mean": 0.0,
+            "delta_min_slice": 0.0,
+            "delta_max_slice": 0.0
+          }
+        }
+      }
+    },
+    "knee": {
+      "slices": 344,
+      "volumes": 10,
+      "arms": {
+        "baseline": {
+          "psnr": {
+            "mean": 33.10595483003661,
+            "delta_mean": 0.0,
+            "delta_min_slice": 0.0,
+            "delta_max_slice": 0.0
+          },
+          "ssim": {
+            "mean": 0.8931460300711358,
+            "delta_mean": 0.0,
+            "delta_min_slice": 0.0,
+            "delta_max_slice": 0.0
+          }
+        }
+      }
+    }
+  }
+}

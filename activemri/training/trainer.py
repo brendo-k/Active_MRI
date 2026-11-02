@@ -4,6 +4,7 @@ import logging
 import math
 import os
 import random
+import shutil
 import warnings
 
 import torch
@@ -27,11 +28,13 @@ from activemri.training.run_naming import run_group, run_name, run_tags
 from activemri.reconstructors.config import UNetReconConfig, CGSenseReconConfig, SDUMReconConfig, VarNetReconConfig
 from activemri.reconstructors.CG_Sense import CGSENSEReconstructor
 from activemri.reconstructors.UNet import LOUPEUNet
-from activemri.reconstructors.VarNet import VarNet
+from activemri.reconstructors.SensetivityModel_mc import SensetivityModel_mc
+from activemri.reconstructors.VarNet import NormUnet, VarNet
 from activemri.reconstructors.sdum import SDUMRecon
 
 PHASE_SCRAMBLE_VAL_SEED = 0
 REINFORCE_VAL_MASK_SEED = 0
+HEAD_MLP_PARAMETERS = ('.location_head.mlp.', '.encoder_head.')  # trained at sampler_head_mlp_lr
 
 
 class Sequential_Trainer:
@@ -51,6 +54,7 @@ class Sequential_Trainer:
         self.model = build_model(self.options).to(device)
         self.val_mask_generator = torch.Generator(device=device)
         self.model.sampler.eval_generator = self.val_mask_generator
+        self.metric_mask_cache = {}  # (anatomy, fname, slice_id) -> [1, H, W] bool, filled by _metric_mask
 
         if options.pretrained_recon is not None:
             self._load_pretrained_recon(options.pretrained_recon)
@@ -62,6 +66,9 @@ class Sequential_Trainer:
             if getattr(options, 'loupe_vd_init_power', 0.0) > 0:
                 raise ValueError("init_mask_checkpoint and loupe_vd_init_power both set the starting mask; set one")
             self._init_mask_from(options.init_mask_checkpoint)
+
+        if options.compile_unets:
+            compile_unets(self.model)
 
         if options.data_parallel:
             if options.sampler_type == 'autosamp_2d':
@@ -163,7 +170,7 @@ class Sequential_Trainer:
         """
         trainable = [p for p in self.model.parameters() if p.requires_grad]
         head_mlp = [p for name, p in _unwrapped(self.model).sampler.named_parameters()
-                    if '.location_head.mlp.' in f'.{name}' and p.requires_grad]
+                    if any(key in f'.{name}' for key in HEAD_MLP_PARAMETERS) and p.requires_grad]
         if head_mlp:
             head_ids = {id(p) for p in head_mlp}
             rest = [p for p in trainable if id(p) not in head_ids]
@@ -385,7 +392,8 @@ class Sequential_Trainer:
             signal_mask = self._metric_mask(batch)
             masked_output, masked_target = _apply_signal_mask(output.detach(), target_for_metrics, signal_mask)
             metrics.update(masked_output, masked_target)
-            masked_metrics.update(output.detach(), target_for_metrics, signal_mask)
+            if iter_idx % self.options.train_masked_metrics_every == 0:
+                masked_metrics.update(output.detach(), target_for_metrics, signal_mask)
             anatomy_stats.update(anatomies, masked_output, masked_target, pred_dict['mask'].detach())
 
             step_log = {'train/loss': loss.item(), 'train/step': global_step_offset + iter_idx, **grad_log}
@@ -564,8 +572,20 @@ class Sequential_Trainer:
         return images
 
     def _metric_mask(self, batch):
-        """The run-independent metric support mask of the batch's slices, from their fully sampled k-space."""
-        return metric_mask_from_real_kspace(batch['kspace'].to(self.device), batch['anatomy'])
+        """The run-independent metric support mask of the batch's slices, from their fully sampled k-space.
+
+        A slice's mask depends on that slice alone, so it is computed the first time the slice is seen and kept on the
+        CPU. Self-supervised batches are not cached: their k-space is a fresh holdout split at every training draw.
+        """
+        if 'holdout_mask' in batch:
+            return metric_mask_from_real_kspace(batch['kspace'].to(self.device), batch['anatomy'])
+        keys = list(zip(batch['anatomy'], batch['fname'], batch['slice_id'].tolist()))
+        unseen = [i for i, key in enumerate(keys) if key not in self.metric_mask_cache]
+        if unseen:
+            masks = metric_mask_from_real_kspace(batch['kspace'][unseen].to(self.device),
+                                                 [batch['anatomy'][i] for i in unseen])
+            self.metric_mask_cache.update(zip([keys[i] for i in unseen], masks.bool().cpu()))
+        return torch.stack([self.metric_mask_cache[key] for key in keys]).to(self.device).float()
 
     def _load_kspace(self, batch, generator=None):
         """The batch's k-space on the device, phase-scrambled when the run asks for it."""
@@ -1062,6 +1082,25 @@ def _cg_iters_by_label(iters_by_anatomy, label_classes):
     return [int(iters_by_anatomy[c.split('-')[0]]) for c in label_classes]
 
 
+def compile_unets(model: torch.nn.Module) -> None:
+    """torch.compile every U-Net body in place (the VarNet cascades' and the sensitivity net's), so state_dict keys
+    stay as they are. Shapes are static: each new batch shape (the smaller last batch, validation) compiles once, except
+    the sensitivity net's batch of live coils, which it marks dynamic."""
+    use_system_compilers_if_missing()
+    for module in list(model.modules()):
+        if isinstance(module, NormUnet):
+            module.unet.compile(dynamic=False)
+        elif isinstance(module, SensetivityModel_mc):
+            module.model.compile(dynamic=False)
+
+
+def use_system_compilers_if_missing() -> None:
+    """Inductor builds its kernels with $CC / $CXX; a conda activation can point them at compilers the env lacks."""
+    for variable, system_compiler in (('CC', 'gcc'), ('CXX', 'g++')):
+        if os.environ.get(variable) and shutil.which(os.environ[variable]) is None:
+            os.environ[variable] = system_compiler
+
+
 def build_model(options: TrainConfig):
     recon_cfg = options.recon
 
@@ -1099,11 +1138,10 @@ def build_model(options: TrainConfig):
             adaptive_input=getattr(recon_cfg, 'adaptive_input', False),
             momentum_history=getattr(recon_cfg, 'momentum_history', 0),
             checkpoint_cascades=getattr(recon_cfg, 'checkpoint_cascades', False),
-            checkpoint_sense=getattr(recon_cfg, 'checkpoint_sense', True),
-            bf16=getattr(recon_cfg, 'bf16', False),
             compile_unet=getattr(recon_cfg, 'compile_unet', False),
             backbone=getattr(recon_cfg, 'backbone', 'unet'),
-            estimate_sense=getattr(recon_cfg, 'estimate_sense', False),
+            csme=getattr(recon_cfg, 'csme', False),
+            unet_precision=getattr(recon_cfg, 'unet_precision', 'fp32'),
         )
     elif isinstance(recon_cfg, SDUMReconConfig):
         reconstructor = SDUMRecon(
@@ -1143,6 +1181,8 @@ def build_model(options: TrainConfig):
         gfactor_replicas=getattr(options, 'gfactor_replicas', 16),
         sens_upsample_method=getattr(options, 'sens_upsample_method', 'conv'),
         sens_conv_after_upsample=getattr(options, 'sens_conv_after_upsample', False),
+        sens_resolution=getattr(options, 'sens_resolution', None),
+        sens_precision=getattr(options, 'sens_precision', 'fp32'),
         uncertainty_mode=getattr(options, 'uncertainty_mode', 'none'),
         num_anatomy_classes=num_anatomy_classes,
         num_conditioning_classes=num_sampler_conditioning_classes,
@@ -1178,7 +1218,11 @@ def build_model(options: TrainConfig):
         ppo_policy=getattr(options, 'ppo_policy', None),
         fixed_mask_path=getattr(options, 'fixed_mask_path', None),
         loupe_vd_init_power=getattr(options, 'loupe_vd_init_power', 0.0),
+        loupe_same_start=getattr(options, 'loupe_same_start', False),
         acquired_only=getattr(options, 'ssdu', False),
+        budget_over=getattr(options, 'budget_over', 'grid'),
+        sampler_coil_combine=getattr(options, 'sampler_coil_combine', 'sense'),
+        restrict_recon_to_extent=getattr(recon_cfg, 'restrict_to_extent', False),
     )
 
     return model

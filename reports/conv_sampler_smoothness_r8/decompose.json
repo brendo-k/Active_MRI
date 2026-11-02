@@ -1,0 +1,20 @@
+{
+  "logit_variance_share": {
+    "residual_input_term": 0.0004211845516692847,
+    "network_term": 1.0004942417144775,
+    "corr_residual_vs_logits": -0.0017770619597285986
+  },
+  "high_frequency_fraction": {
+    "white_noise_reference": 0.9516219021280508,
+    "input_image_real": 0.9672779510933809,
+    "last_features_weighted_by_final_conv": 0.004881775937974453,
+    "last_features_max_channel": 0.017449794337153435,
+    "network_term": 0.0030762312894452044,
+    "logits": 0.003254812458772265,
+    "loupe_logits": 0.2495439673993157
+  },
+  "roughness_effective_probability": {
+    "conv": 0.06435400992631912,
+    "loupe": 1.1849884986877441
+  }
+}

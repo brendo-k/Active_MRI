@@ -23,6 +23,8 @@ from activemri.utils.util import compute_gaussian_nll_loss, compute_psnr_torch, 
 
 
 RSS_EPSILON = 1e-12
+BUDGET_REGIONS = ('grid', 'acquired')
+SAMPLER_COIL_COMBINES = ('sense', 'rss')
 
 
 def reinforce_group_size(batch_size, configured):
@@ -64,6 +66,8 @@ class SequentialSampling(nn.Module):
             gfactor_replicas=16,
             sens_upsample_method='conv',
             sens_conv_after_upsample=False,
+            sens_resolution=None,
+            sens_precision='fp32',
             uncertainty_mode='none',
             num_anatomy_classes=0,
             num_conditioning_classes=0,
@@ -99,9 +103,26 @@ class SequentialSampling(nn.Module):
             ppo_policy=None,
             fixed_mask_path=None,
             loupe_vd_init_power=0.0,
+            loupe_same_start=False,
             acquired_only=False,
+            budget_over='grid',
+            restrict_recon_to_extent=False,
+            sampler_coil_combine='sense',
             ):
+        """`budget_over='acquired'` makes `sparsity` a fraction of each slice's acquired k-space (`mask_budget`);
+        'grid' (the default, as older runs trained) a fraction of the whole grid, all of it spent inside the acquired
+        region. `restrict_recon_to_extent` confines a VarNet's regularizer to the acquired extent when the data
+        supplies no `kspace_support`. `sampler_coil_combine` is how the sampler's input image is formed from the
+        observed coil k-space (`_sampler_image`)."""
         super().__init__()
+        if budget_over not in BUDGET_REGIONS:
+            raise ValueError(f"budget_over must be one of {BUDGET_REGIONS}, got {budget_over!r}")
+        if sampler_coil_combine not in SAMPLER_COIL_COMBINES:
+            raise ValueError(f"sampler_coil_combine must be one of {SAMPLER_COIL_COMBINES}, got {sampler_coil_combine!r}")
+        self.sampler_coil_combine = sampler_coil_combine
+        self.sparsity = sparsity
+        self.budget_over = budget_over
+        self.restrict_recon_to_extent = restrict_recon_to_extent
 
         self.recon_type = recon_type
         self.sense_mask_method = sense_mask_method
@@ -139,6 +160,12 @@ class SequentialSampling(nn.Module):
 
         if sampler_type == 'autosamp_2d' and num_step != 1:
             raise ValueError(f"autosamp_2d learns one fixed set of positions, so it needs num_step=1, got {num_step}")
+
+        # Built before the sampler, whose random draws depend on its mask count, so arms that differ only in their
+        # sampler start from the same sensitivity net.
+        self.sensetivity_net = SensetivityModel_mc(
+            2, 2, 8, conv_after_upsample=sens_conv_after_upsample, upsample_method=sens_upsample_method,
+            resolution=sens_resolution, precision=sens_precision)
 
         self.sampler = Sampler(
             sampler_type=sampler_type,
@@ -181,10 +208,8 @@ class SequentialSampling(nn.Module):
             dcm_tau=dcm_tau,
         )
 
-        # Sensitivity estimation
-        self.sensetivity_net = SensetivityModel_mc(
-            2, 2, 8, conv_after_upsample=sens_conv_after_upsample, upsample_method=sens_upsample_method)
-
+        if loupe_same_start:
+            self.sampler.start_masks_from_first()
         if loupe_vd_init_power > 0:
             self.sampler.init_loupe_variable_density(
                 loupe_vd_init_power, 1 - self._init_mask(torch.zeros(1))[0, 0], self.budget)
@@ -220,9 +245,59 @@ class SequentialSampling(nn.Module):
         coil_energy = torch.view_as_complex(full_kspace.contiguous()).abs().sum(dim=1)
         return (coil_energy > 0).to(full_kspace.dtype).unsqueeze(1)
 
+    def _kspace_extent(self, full_kspace):
+        """The rectangle of k-space rows and columns that hold data in any coil, shape [B, 1, H, W].
+
+        For fully sampled data this is the acquired k-space, and outside it the grid was zero-filled. Unlike
+        `_valid_kspace_mask` it stays the whole envelope when points inside it are missing (e.g. a holdout split),
+        unless an entire row or column is missing.
+        """
+        valid = self._valid_kspace_mask(full_kspace)
+        return valid.amax(dim=-1, keepdim=True) * valid.amax(dim=-2, keepdim=True)
+
+    def mask_budget(self, old_mask, valid_mask):
+        """New locations (columns, for a line-constrained sampler) the whole acquisition adds to the pre-selected centre.
+
+        With budget_over='acquired' it is one per slice, [B]: the mask, centre included, then holds `sparsity` of the
+        slice's acquired k-space (`valid_mask`). With 'grid' it is the scalar `self.budget`, `sparsity` of the grid.
+        """
+        if self.budget_over == 'grid':
+            return self.budget
+        if self.line_constrained:
+            old_mask, valid_mask = old_mask.amax(dim=-2), valid_mask.amax(dim=-2)
+        acquired = valid_mask.flatten(1).sum(dim=1).double()
+        preselected = (old_mask * valid_mask).flatten(1).sum(dim=1).double()
+        return self.sparsity * acquired - preselected
+
+    @staticmethod
+    def _coil_combine(coil_kspace, sense_maps):
+        """SENSE coil combination sum_c conj(S_c) IFFT(k_c) [B, H, W] of complex coil k-space [B, C, H, W]."""
+        return (torch_ifft2(coil_kspace) * sense_maps.conj()).sum(dim=1)
+
+    def _sampler_image(self, coil_kspace, sense_maps):
+        """The complex image [B, H, W] the sampler's input is formed from.
+
+        'sense' is the SENSE combination. Its phase is the maps' common phase, which an RSS magnitude loss leaves
+        free, so a jointly trained sensitivity net makes it pixel-to-pixel random. 'rss' is the RSS of the coil
+        images (real, nonnegative), which needs no maps and has no phase to scramble.
+        """
+        if self.sampler_coil_combine == 'rss':
+            return torch_ifft2(coil_kspace).abs().pow(2).sum(dim=1).sqrt().to(coil_kspace.dtype)
+        return self._coil_combine(coil_kspace, sense_maps)
+
+    @staticmethod
+    def _coil_rss(image, sense_maps, kspace_extent):
+        """RSS magnitude [B, 1, H, W] of the coil images S_c x, each coil's k-space zeroed outside `kspace_extent`, as
+        the target is the RSS of the zero-filled coil k-space."""
+        coil_kspace = torch_fft2(image * sense_maps) * kspace_extent
+        coil_power = torch_ifft2(coil_kspace).abs().pow(2).sum(dim=1, keepdim=True)
+        # The epsilon keeps sqrt's gradient finite at pixels that are exactly zero in every
+        # coil (masked-out background); there sqrt' is inf and pow(2)' is 0, giving NaN.
+        return (coil_power + RSS_EPSILON).sqrt()
+
     def step_forward(self, full_kspace, pred_kspace, old_mask, target, step,
                      sense_maps, sense_mask, uncertainty_map=None, valid_mask=None,
-                     prev_gfactor=None, anatomy_labels=None, fixed_mask=None, kspace_support=None):
+                     prev_gfactor=None, anatomy_labels=None, fixed_mask=None, kspace_support=None, budget=None):
         """Execute one sampling + reconstruction step.
 
         Args:
@@ -238,15 +313,17 @@ class SequentialSampling(nn.Module):
                 noise-aware sampling guidance.
             anatomy_labels: Optional long tensor [B] of anatomy indices, used to
                 condition the sampler (and the reconstructor, if it supports it).
-            fixed_mask: Optional mask [B, 1, H, W] used instead of the sampler's.
+            fixed_mask: Optional mask [B, 1, H, W] used instead of the sampler's; it is cut to `valid_mask`.
+            budget: New locations this step, a number or one per slice; None = an equal share of `self.budget`.
 
         Returns:
             Dict with keys: output, mask, zero_recon, uncertainty_map, gfactor
         """
-        budget = self.budget / self.num_step
+        if budget is None:
+            budget = self.budget / self.num_step
 
         # Combine coils to single-coil equivalent for sampler input
-        pred_single_coil_img = (torch_ifft2(torch.view_as_complex(pred_kspace)) * sense_maps).sum(dim=1)
+        pred_single_coil_img = self._sampler_image(torch.view_as_complex(pred_kspace), sense_maps)
         pred_single_coil_k = torch.view_as_real(torch_fft2(pred_single_coil_img))
 
         if torch.isnan(pred_single_coil_k).any():
@@ -259,7 +336,7 @@ class SequentialSampling(nn.Module):
             recon_complex = recon_2ch.detach()
 
         if fixed_mask is not None:
-            mask = fixed_mask
+            mask = fixed_mask if valid_mask is None else fixed_mask * valid_mask
             data_to_vis_sampler = dict.fromkeys(('prob_mask', 'rescaled_mask', 'binarized_mask'), fixed_mask[0, 0])
             anatomy_logits = reinforce_logp = reinforce_entropy = None
         else:
@@ -338,9 +415,18 @@ class SequentialSampling(nn.Module):
         """
         k = torch.view_as_complex(kspace.contiguous())
         mask = self._valid_kspace_mask(kspace)
-        kwargs = {'kspace_support': kspace_support} if kspace_support is not None and self.recon_type == 'varnet' else {}
+        output_extent = self._kspace_extent(kspace) if kspace_support is None else kspace_support
+        recon_support = self._recon_support(kspace_support, output_extent)
+        kwargs = {'kspace_support': recon_support} if recon_support is not None and self.recon_type == 'varnet' else {}
         image = self.reconstructor(k, sense_maps, mask, **kwargs)
-        return (image[:, 0].abs() * (sense_maps.abs().pow(2).sum(dim=1) > 0)).float()
+        return self._coil_rss(image, sense_maps, output_extent)[:, 0].float()
+
+    def _recon_support(self, kspace_support, output_extent):
+        """The k-space region a VarNet's regularizer may write to: the data's support, else the acquired extent when
+        `restrict_recon_to_extent`, else None (anywhere)."""
+        if kspace_support is not None or not self.restrict_recon_to_extent:
+            return kspace_support
+        return output_extent
 
     def _init_mask(self, data):
         """Initialize mask with pre-selected center k-space region.
@@ -394,10 +480,11 @@ class SequentialSampling(nn.Module):
                                                  mask_method=self.sense_mask_method)
         old_mask, valid_mask = self._initial_masks(full_kspace)
         observed = torch.view_as_complex((full_kspace * old_mask.unsqueeze(-1)).contiguous())
-        combined = (torch_ifft2(observed) * sense_maps).sum(dim=1)
+        combined = self._sampler_image(observed, sense_maps)
         unscaled, _, _ = self.sampler.unscaled_probabilities(
             torch.view_as_real(torch_fft2(combined)), old_mask, anatomy_labels=anatomy_labels)
-        rescaled, mask = self.sampler.select_locations(unscaled, old_mask, self.budget, valid_mask)
+        rescaled, mask = self.sampler.select_locations(unscaled, old_mask, self.mask_budget(old_mask, valid_mask),
+                                                       valid_mask)
         return {'old_mask': old_mask, 'valid_mask': valid_mask, 'unscaled': unscaled, 'rescaled': rescaled, 'mask': mask}
 
     def forward(self, target, full_kspace, idx=None, anatomy_labels=None, sense_maps=None, kspace_support=None, fixed_mask=None):  # noqa: ARG002
@@ -409,7 +496,9 @@ class SequentialSampling(nn.Module):
             anatomy_labels: Optional long tensor [B] of anatomy indices
             sense_maps: Optional precomputed sensitivity maps [B, C, H, W] complex, used instead of
                 the sensitivity network (for data with a separate calibration scan)
-            kspace_support: Optional [B, 1, H, W] k-space region the VarNet's regularizer may write to
+            kspace_support: Optional [B, 1, H, W] k-space region the VarNet's regularizer may write to and the output
+                keeps. None leaves the regularizer free (trained VarNets use the zero-filled region between cascades)
+                and keeps the extent of `full_kspace` (`_kspace_extent`) in the output
             fixed_mask: Optional [B, 1, H, W] complete mask (pre-selected centre included) that replaces
                 the sampler's. Single-step only; it stays differentiable, so a caller can optimise it.
 
@@ -431,6 +520,9 @@ class SequentialSampling(nn.Module):
         else:
             sense_mask = (sense_maps.abs().pow(2).sum(dim=1, keepdim=True) > 0.5).to(full_kspace.dtype)
         old_mask, valid_mask = self._initial_masks(full_kspace)
+        output_extent = self._kspace_extent(full_kspace) if kspace_support is None else kspace_support
+        recon_support = self._recon_support(kspace_support, output_extent)
+        step_budget = self.mask_budget(old_mask, valid_mask) / self.num_step
         pred_kspace = full_kspace * old_mask.unsqueeze(-1)
 
         uncertainty_map = torch.zeros_like(old_mask)
@@ -454,7 +546,7 @@ class SequentialSampling(nn.Module):
                 full_kspace, pred_kspace, old_mask, target, i,
                 sense_maps, sense_mask, uncertainty_map, valid_mask,
                 prev_gfactor=gfactor, anatomy_labels=anatomy_labels, fixed_mask=fixed_mask,
-                kspace_support=kspace_support,
+                kspace_support=recon_support, budget=step_budget,
             )
 
             new_img = pred_dict['output']
@@ -476,13 +568,9 @@ class SequentialSampling(nn.Module):
                 step_entropy = pred_dict['reinforce_entropy']
                 reinforce_entropy = step_entropy if reinforce_entropy is None else reinforce_entropy + step_entropy
 
-            image_for_kspace = new_img * sense_maps.conj()
-            pred_kspace = torch.view_as_real(torch_fft2(image_for_kspace))
+            pred_kspace = torch.view_as_real(torch_fft2(new_img * sense_maps) * output_extent)
 
-        # The epsilon keeps sqrt's gradient finite at pixels that are exactly zero in every
-        # coil (masked-out background); there sqrt' is inf and pow(2)' is 0, giving NaN.
-        coil_power = torch_ifft2(torch.view_as_complex(pred_kspace)).abs().pow(2).sum(dim=1, keepdim=True)
-        final_recon = (coil_power + RSS_EPSILON).sqrt()
+        final_recon = self._coil_rss(final_complex, sense_maps, output_extent)
 
         anatomy_logits = torch.stack(anatomy_logits_list).mean(dim=0) if anatomy_logits_list else None
 

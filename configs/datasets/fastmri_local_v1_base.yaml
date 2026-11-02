@@ -1,0 +1,24 @@
+# Shared part of the fastMRI local subset v1 configs. It isn't a dataset by itself: each config that includes it sets
+# `classes`, `anatomy` and `num_coils`.
+# - Data: the raw h5 volumes in configs/datasets/fastmri_local_v1/manifest.csv (scripts/data/select_fastmri_subset.py),
+#   read in place from /export/scratch.
+# - Splits: train is tier S, 80 volumes per class (knee = 40 PD + 40 PDFS). Val is the manifest's val rows, 40 per class.
+#   Test rows are never loaded.
+# - datasets.limit_volumes is a fraction in (0, 1] of each condition (brain, knee-PD, knee-PDFS, ...) in train and
+#   again in val. 1 loads the whole tier. The draw is a fixed seed (1234), not the training seed, so every run gets
+#   the same files and a smaller fraction is contained in a larger one.
+# - Per slice: readout oversampling is cropped in the image and every coil is kept, zero-padded to num_coils.
+# - Built for misc.resolution=[320,320]; other sizes centre-crop or pad k-space.
+# - Tier L (stage 2) isn't on this machine. To run it on CoreHPC:
+#     datasets.train_tier=L 'datasets.roots.hpc="~/scratch/data/fastmri/{anatomy}/data"' datasets.roots.local_batch2=~/scratch/data/fastmri/knee/data
+#   (Hydra needs the inner double quotes because of the braces.)
+#   The 114 local knee files outside tier S match CoreHPC's by name and size, checked 2026-10-27.
+loader: fastmri_manifest
+manifest: configs/datasets/fastmri_local_v1/manifest.csv
+roots:
+  local_batch2: /export/scratch/bkadota/fastmri_knee/batch2
+  hpc: /export/scratch/bkadota/fastmri_raw/{anatomy}
+train_tier: S
+limit_volumes: 1  # fraction of each condition, train and val. 1 = the whole tier. See the note above.
+train_anatomies: []  # train on these anatomies only, still validating on every class; empty = all
+condition_classes: []  # per-sample conditioning labels, e.g. [brain, knee-PD, knee-PDFS]; empty = use anatomy

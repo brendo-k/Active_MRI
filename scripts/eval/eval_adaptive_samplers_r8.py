@@ -81,7 +81,7 @@ def sampler_observation(model, kspace):
     sense_maps, _ = model.sensetivity_net(torch.view_as_complex(kspace.contiguous()), mask_method=model.sense_mask_method)
     old_mask, _ = model._initial_masks(kspace)
     observed = torch.view_as_complex((kspace * old_mask.unsqueeze(-1)).contiguous())
-    combined = torch.view_as_real(torch_fft2((torch_ifft2(observed) * sense_maps).sum(dim=1)))
+    combined = torch.view_as_real(torch_fft2((torch_ifft2(observed) * sense_maps.conj()).sum(dim=1)))
     return torch.cat([combined, combined * old_mask.permute(0, 2, 3, 1)], dim=-1)
 
 
