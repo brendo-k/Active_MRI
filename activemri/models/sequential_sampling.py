@@ -100,6 +100,7 @@ class SequentialSampling(nn.Module):
             selection='bernoulli',
             dcm_vd_power=4.0,
             dcm_tau=5.0,
+            valid_area_budget=False,
             ppo_policy=None,
             fixed_mask_path=None,
             loupe_vd_init_power=0.0,
@@ -146,6 +147,7 @@ class SequentialSampling(nn.Module):
         self.reinforce_normalize_advantages = reinforce_normalize_advantages
         self.reinforce_group_size = reinforce_group_size
         self.acquired_only = acquired_only
+        self.zero_unacquired = False  # inference-only switch: fixed masks and the predicted k-space are zeroed where the scan acquired nothing (padded columns)
         self.data_for_vis: list[dict] = [dict() for _ in range(num_step)]
 
         self.reconstructor = reconstructor
@@ -206,6 +208,7 @@ class SequentialSampling(nn.Module):
             selection=selection,
             dcm_vd_power=dcm_vd_power,
             dcm_tau=dcm_tau,
+            valid_area_budget=valid_area_budget,
         )
 
         if loupe_same_start:
@@ -344,6 +347,8 @@ class SequentialSampling(nn.Module):
                 pred_single_coil_k, old_mask, budget, uncertainty_map, valid_mask,
                 recon_complex, gfactor=prev_gfactor, anatomy_labels=anatomy_labels,
             )
+        if self.zero_unacquired and valid_mask is not None:
+            mask = mask * valid_mask
         masked_kspace = torch.view_as_real(mask * torch.view_as_complex(full_kspace))
         self.data_for_vis[step].update(data_to_vis_sampler)
 
@@ -571,6 +576,10 @@ class SequentialSampling(nn.Module):
             pred_kspace = torch.view_as_real(torch_fft2(new_img * sense_maps) * output_extent)
 
         final_recon = self._coil_rss(final_complex, sense_maps, output_extent)
+        if self.zero_unacquired:
+            # Mask the output magnitude image in k-space where the scan acquired nothing. The complex network image carries a
+            # phase that moves most of its spectrum out of the acquired columns, so only the magnitude image is masked.
+            final_recon = torch_ifft2(torch_fft2(final_recon.to(torch.complex64)) * valid_mask).abs()
 
         anatomy_logits = torch.stack(anatomy_logits_list).mean(dim=0) if anatomy_logits_list else None
 

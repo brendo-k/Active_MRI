@@ -14,6 +14,8 @@ def RescaleProbMap(batch_x, sparsity, available=None):
     Otherwise the same is applied to (1-x) and the result inverted, which keeps
     the output inside [0, 1] in both regimes.
 
+    `sparsity` is a float, or a [B] tensor with one target per sample.
+
     `available` (1 = may still be sampled) confines the rescaling to those
     locations: the rest stay at 0, instead of the inverted branch lifting them
     to 1 - beta, and the target mean over the available ones rises so the
