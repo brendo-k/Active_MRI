@@ -1,11 +1,11 @@
 {
   "schema": 1,
-  "generated_at": "2026-11-02T07:20:58+00:00",
+  "generated_at": "2026-11-02T18:06:48+00:00",
   "code": {
     "produced_at": "975316edb852f8d218f9c3963e348b6a46947408",
     "produced_at_subject": "sense_mask_varnet: script for the final validation metrics of the offline wandb runs",
-    "head": "ddf0eeb8960336316d99de07a39e5fcb15faba7b",
-    "branch": "exp/sense_mask_varnet",
+    "head": "3b7bde5caa315d6c491008ef646278ecbc71a716",
+    "branch": "main",
     "dirty_tracked_files": [],
     "scripts": [
       {
@@ -195,8 +195,8 @@
   "results": [
     {
       "path": "launch.sh",
-      "bytes": 1697,
-      "sha256": "ca9bff4d6be1331a"
+      "bytes": 1906,
+      "sha256": "f2a9b8658c06d4d7"
     },
     {
       "path": "metrics.json",

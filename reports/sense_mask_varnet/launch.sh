@@ -1,4 +1,6 @@
 #!/bin/bash
+# As run on exp/sense_mask_varnet, where configs/config.yaml had no sense_mask_method key, hence the "+" below.
+# On main the key exists (default null): write sampler.sense_mask_method=${ARM} without the "+".
 # Usage: sbatch --job-name=sense_mask_$ARM --export=ALL,ARM=<pre_network|null|post_network> sense_mask_varnet.sh
 #SBATCH --gres=gpu:1
 #SBATCH --partition=gpu
