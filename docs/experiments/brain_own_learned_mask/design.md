@@ -5,17 +5,15 @@ Status: active
 
 ## Question
 
-Can a mask chosen before the scan from header information (anatomy, protocol, coil count, field strength) beat one shared learned mask at R=8, and by more than the seed spread? Routing by header is the only adaptive lever so far with a consistent positive sign (knee), so it comes before ACS budget adaptation and multi-step sampling.
+When training a brain, knee pd, knee pdfs seperate masking for LOUPE, we get worse performance on the brain compared to a single mask for all three. This is when training using the VarNet. However, when using CG-SENSE, we get better performance using anatomy specific. Can we evaluate why? 
 
 ## Fixed setup
 
-- Dataset: ISMRM 2027 pair uses `brain_knee_balanced` (brain / knee-PD / knee-PDFS). Local v1 uses FLAIR + knee on a 320² grid via the manifest loader (default since 10-27).
-- Acceleration: R=8. Since 10-27 the budget is of the acquired k-space (`sampler.budget_over=acquired`), so FLAIR and local-v1 numbers are not comparable to the grid-R pairs. The local v1 3-class pair (started 10-26) predates that change and counts R over the 320² grid. FLAIR acquires 65% of the grid (40–80%), so it was sampled at R≈5.2 of its acquired k-space, against 8 for knee.
-- Reconstructor: E2E VarNet, 12 cascades, bs 16, 100 epochs, lr 1e-3 stepped at epoch 90. BART ecalib sense maps (tuned crop + soft).
-- Sampler: `loupe_2d` straight-through. Shared and per-anatomy rows start from the same draw (VD start `loupe_vd_init_power=4`, or `loupe_same_start`).
-- Metric: trainer's apodized per-anatomy metric mask (changed 2026-10-20; `SSIM_Masked` fixed 2026-10-23). Healthy SSIM about 0.88–0.93; below 0.80 means a bug. Never compare numbers across those dates or use eval scripts that score full images.
-- Controls: shared-mask twin with identical reconstructor/sense init and batch order (true pair), label-swap cost (other anatomy's mask on the same recon), and a condition-mean mask for the patient-specific question.
-- Noise floor: 0.3–0.5 dB seed spread of joint LOUPE+VarNet training. Routing effects are 0.05–0.2 dB. Use true pairs, two or more seeds, and report run-minus-twin deltas, not absolute PSNR.
+- Dataset: local v1, FLAIR + knee-PD + knee-PDFS, 320² grid, manifest loader (`fastmri_local_v1_flair_knee`). Train on 0.5 percent of the data
+- Acceleration: R=8. 320x320 grid, all anatomies
+- Reconstructor: E2E VarNet, 12 cascades, bs 16, 100 epochs, lr 1e-3 stepped at epoch 90. Sense net for sensetivity maps.
+- Sampler: `loupe_2d` straight-through. Shared and per-anatomy rows start from the same draw.
+- Metric: trainer's apodized per-anatomy metric mask. Healthy SSIM about 0.88–0.93; below 0.80 means a bug. Never compare numbers across those dates or use eval scripts that score full images.
 
 ## Decisions
 
@@ -53,24 +51,18 @@ Can a mask chosen before the scan from header information (anatomy, protocol, co
 ## Open questions
 
 - Is the knee gain real beyond seed noise? Only 2 seeds so far, and seed 43 collapsed under two of three starts.
-- Does coil count (header lookup) route brain better than the brain/knee label? Untested as a trained arm. Truncating to 16 coils may confound it.
-- Does a routed mask survive a different reconstructor (PromptMR backbone, lr 2e-4)?
-- Why do routed rows co-adapt the reconstructor (old s43 brain +0.13), and can that be separated from a mask gain?
-- Does field strength (SNR) need its own mask? One PDFS mask fits noisy 1.5T PDFS, and 3T PDFS loses with it. Roadmap item 4.
-- Is the local v1 FLAIR gain about brain, or about FLAIR's zero-filled k-space? With R over the grid, FLAIR is sampled at R≈5.2 of what it acquires. The fully acquired T2 pairs (R=8) never gained. Roadmap item 5.
-- Does a class-conditioned reconstructor help once the masks differ by class? The earlier NULL had one CAIPI mask for every class, so the input distribution was not bimodal. Roadmap item 6.
-- Does any of this hold on the in-house SPACE data (anatomy pair due 10-23)? IRB status unconfirmed.
+- Is the limited performance due to network co-adaption? Is it because the network now has to learn two sampling patterns for two anatomies? 
+
 
 ## Success rule
 
-Pre-registered for ISMRM 2027: per-anatomy beats shared with a 95% CI excluding 0 on at least one anatomy and no significant loss on the other, in both seeds. That failed on 2026-10-21 (brain never positive). For new work, restate per experiment before running: true-pair delta vs shared twin, at least 3 seeds, CI over volumes, and a seed-swap control. The target is a routed-minus-shared gain above 0.1 dB with consistent sign across seeds.
+We figure on the current best masking strategies.
 
 ## Constraints
 
 - No compute on the HPC login node. Crashed runs are rerun in full (no resume).
 - Checkpoints live in `~/data/seqmri_checkpoints`; optimizer state is stripped.
 - Brain val outlier AXT2_201_2010571 (~25 dB): pick figure slices by PSNR rank.
-- Pre-10-27 conv/adaptive checkpoints saw a different sampler input (conj bug).
 - Single-pass adaptivity is about 0 against a non-adaptive twin in the literature (`docs/LITERATURE_ADAPTIVE_SAMPLING_R8.md`), so expect small effects.
 
 ## Links
