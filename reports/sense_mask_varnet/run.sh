@@ -8,7 +8,4 @@ LOGS=/home/remote/bkadota/scratch/logs/active_mri
 # Training (from ~/jobs/active_mri; the launcher is reports/sense_mask_varnet/launch.sh):
 #   for arm in pre_network null post_network; do
 #       sbatch --job-name=sense_mask_$arm --export=ALL,ARM=$arm launch.sh; done
-python scripts/eval/wandb_final_val_metrics.py --control pre_network --out reports/sense_mask_varnet \
-    --run pre_network=$LOGS/sense_mask_varnet_pre_network_seed42 \
-    --run null=$LOGS/sense_mask_varnet_null_seed42 \
-    --run post_network=$LOGS/sense_mask_varnet_post_network_seed42
+python scripts/eval/wandb_final_val_metrics.py --control pre_network --out reports/sense_mask_varnet --run pre_network=$LOGS/sense_mask_varnet_pre_network_seed42 --run null=$LOGS/sense_mask_varnet_null_seed42 --run post_network=$LOGS/sense_mask_varnet_post_network_seed42
