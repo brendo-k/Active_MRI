@@ -14,6 +14,8 @@ Last verdict: <YYYY-MM-DD, report link>
 - Reconstructor: <E2E VarNet, backbone, lr>
 - Metric path: <trainer apodized metric mask; PSNR / NMSE / SSIM_Masked>
 - Controls: <non-adaptive twin; seed-swap control; seeds>
+- Single seed is fine for now
+- Do not mention noise floor
 
 ## Decisions
 

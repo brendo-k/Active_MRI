@@ -1,7 +1,7 @@
 # Anatomy / header routing — Design
 
 Status: active 
-Roadmap step: 1 (anatomy / header routing)
+(anatomy / header routing)
 
 ## Question
 
@@ -10,7 +10,7 @@ Can a mask chosen before the scan from header information (anatomy, protocol, co
 ## Fixed setup
 
 - Dataset: ISMRM 2027 pair uses `brain_knee_balanced` (brain / knee-PD / knee-PDFS). Local v1 uses FLAIR + knee on a 320² grid via the manifest loader (default since 10-27).
-- Acceleration: R=8. Since 10-27 the budget is of the acquired k-space (`sampler.budget_over=acquired`), so FLAIR and local-v1 numbers are not comparable to the grid-R pairs.
+- Acceleration: R=8. Since 10-27 the budget is of the acquired k-space (`sampler.budget_over=acquired`), so FLAIR and local-v1 numbers are not comparable to the grid-R pairs. The local v1 3-class pair (started 10-26) predates that change and counts R over the 320² grid. FLAIR acquires 65% of the grid (40–80%), so it was sampled at R≈5.2 of its acquired k-space, against 8 for knee.
 - Reconstructor: E2E VarNet, 12 cascades, bs 16, 100 epochs, lr 1e-3 stepped at epoch 90. BART ecalib sense maps (tuned crop + soft).
 - Sampler: `loupe_2d` straight-through. Shared and per-anatomy rows start from the same draw (VD start `loupe_vd_init_power=4`, or `loupe_same_start`).
 - Metric: trainer's apodized per-anatomy metric mask (changed 2026-10-20; `SSIM_Masked` fixed 2026-10-23). Healthy SSIM about 0.88–0.93; below 0.80 means a bug. Never compare numbers across those dates or use eval scripts that score full images.
@@ -35,6 +35,19 @@ Can a mask chosen before the scan from header information (anatomy, protocol, co
 - **CG-SENSE per-anatomy knee deficit was mostly the start** — hybrid: from the shared mask the knee deficit shrinks from -0.25 to -0.035 dB, with a residual PDFS -0.06. Evidence: `reports/cgsense_anatcond/`. Reopen only if: the CG-SENSE straight-through gradient is fixed.
 - **Label does not help a prompt-based VarNet** — NULL: cond minus blind ±0.08 dB over 2 seeds at CAIPI R=4, though a wrong label costs 0.1–0.8 dB. Evidence: `reports/varnet_caipi_promptmr_anatcond_r4/report.md`.
 - **Patient-specific conv sampler** — NO-GO for the patient-specific claim: swap cost passes (knee-PD +0.049, PDFS +0.050 dB) but own minus condition-mean is about 0 (+0.012 PD, +0.005 PDFS, -0.034 brain). Conv trails LOUPE by 0.20 dB. Masks correlate 0.98 across volumes. Evidence: `reports/patient_specific_r8_local_v1/seed42/`. Seed 42 only.
+- **Per-protocol masks on local v1 (FLAIR / PD / PDFS)** — small PASS for FLAIR and PD, NULL for PDFS. Setup: VarNet R=8 over the 320² grid, 2 seeds, true pairs.
+  - Per-condition minus shared twin: FLAIR +0.07 / +0.12, PD +0.07 / +0.12 dB (19 of 20 volumes positive in each seed), PDFS −0.02 / −0.015.
+  - Not mask under-training. Each class mask is updated on almost every step, since a batch of 16 mixes the classes. Class masks moved as far from the VD start as the shared mask (42–57% vs 49% of the budget), with the same Adam step sizes. The twin gap is flat from epoch 5.
+  - The masks are clearly different (29–50% of the budget placed differently) yet end within about 0.1 dB of each other. Large swap costs (0.2–0.56 dB) mostly measure recon co-adaptation.
+  - The per-condition run has one shared VarNet.
+  - Evidence: `reports/local_v1_flair_knee/anatomy_pair_vdinit_p4_seed{42,43}.json`. Both runs' checkpoints were deleted 10-28; the per-slice scores remain in the `.pt` files.
+  - Reopen only if: the budget rule or the reconstructor changes.
+- **PDFS loss sits in the 3T volumes** — OBSERVATION, per volume and 2 seeds, 10 val volumes per field.
+  - 3T PDFS −0.055 / −0.033 dB (0/10 and 2/10 volumes positive). 1.5T PDFS +0.01 / +0.01. PD gains at both fields.
+  - The PDFS mask is the most centre-heavy (mean radius 0.45, vs PD 0.50 and shared 0.48).
+  - On the per-condition recon, swapping in the PD mask costs 1.5T PDFS 0.07–0.11 dB but gives 3T PDFS +0.01–0.04. Even with the PD mask, 3T PDFS only ties the shared run.
+  - Field is confounded with scanner model: knee 1.5T is all Aera; 3T is Skyra, Prisma and Biograph.
+  - Evidence: per-slice scores in `reports/local_v1_flair_knee/*.pt`, joined to the manifest's `field` column. Reopen only if: more val volumes per field.
 - **Coil count predicts brain routing** — SUGGESTIVE only: per-volume correlation of knee-vs-brain mask preference with coil count is 0.78 (field strength 0.59, base PSNR 0.27); 5 few-coil volumes, confounded with Avanto/TrioTim, routes picked on the same 23 validation volumes. Size about +0.02 dB on brain. Evidence: `docs/idea.md`. Not tested as a trained arm.
 
 ## Open questions
@@ -43,6 +56,9 @@ Can a mask chosen before the scan from header information (anatomy, protocol, co
 - Does coil count (header lookup) route brain better than the brain/knee label? Untested as a trained arm. Truncating to 16 coils may confound it.
 - Does a routed mask survive a different reconstructor (PromptMR backbone, lr 2e-4)?
 - Why do routed rows co-adapt the reconstructor (old s43 brain +0.13), and can that be separated from a mask gain?
+- Does field strength (SNR) need its own mask? One PDFS mask fits noisy 1.5T PDFS, and 3T PDFS loses with it. Roadmap item 4.
+- Is the local v1 FLAIR gain about brain, or about FLAIR's zero-filled k-space? With R over the grid, FLAIR is sampled at R≈5.2 of what it acquires. The fully acquired T2 pairs (R=8) never gained. Roadmap item 5.
+- Does a class-conditioned reconstructor help once the masks differ by class? The earlier NULL had one CAIPI mask for every class, so the input distribution was not bimodal. Roadmap item 6.
 - Does any of this hold on the in-house SPACE data (anatomy pair due 10-23)? IRB status unconfirmed.
 
 ## Success rule
