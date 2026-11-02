@@ -68,6 +68,7 @@ def build_train_config(cfg: DictConfig) -> TrainConfig:
         selection=cfg.sampler.get('selection', 'bernoulli'),
         dcm_vd_power=cfg.sampler.get('dcm_vd_power', 4.0),
         dcm_tau=cfg.sampler.get('dcm_tau', 5.0),
+        valid_area_budget=cfg.sampler.get('valid_area_budget', False),
         logit_limit=cfg.sampler.get('logit_limit', 6.0),
         logit_leak=cfg.sampler.get('logit_leak', 0.01),
         adapt_grid=cfg.sampler.get('adapt_grid', 16),

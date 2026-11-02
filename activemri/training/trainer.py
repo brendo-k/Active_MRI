@@ -522,7 +522,7 @@ class Sequential_Trainer:
                 loss, _ = self.model.loss(pred_dict, target_dict, meta, self.options.loss_type)
 
                 mask = pred_dict['mask']
-                sparsity.append(torch.mean(mask).item())
+                sparsity.append(self._mean_sparsity(pred_dict['mask'], kspace))
                 losses.append(loss.item())
 
                 target_for_metrics = target
@@ -570,6 +570,12 @@ class Sequential_Trainer:
                 continue
             images.update(_build_image_log(pred_dict, target, f'val/{anatomy}', self.model.data_for_vis))
         return images
+
+    def _mean_sparsity(self, mask, kspace):
+        """The batch's mean sampled fraction: of the full grid, or with `valid_area_budget` of each slice's acquired k-space."""
+        if not getattr(self.options, 'valid_area_budget', False):
+            return torch.mean(mask).item()
+        return acquired_area_sparsity(mask, kspace).item()
 
     def _metric_mask(self, batch):
         """The run-independent metric support mask of the batch's slices, from their fully sampled k-space.
@@ -863,7 +869,9 @@ class NonRLTester:
                 loss = compute_ssim_torch(output, target)
 
                 mask = pred_dict['mask']
-                sparsity.append(torch.mean(mask).item())
+                sparsity.append(
+                    acquired_area_sparsity(mask, kspace).item() if getattr(self.options, 'valid_area_budget', False)
+                    else torch.mean(mask).item())
                 losses.append(loss.item())
 
                 data_range = target.max()
@@ -1067,6 +1075,18 @@ def nonfinite_gradient_params(model, limit=5):
     return bad[:limit] + ([f'... +{len(bad) - limit} more'] if len(bad) > limit else [])
 
 
+def acquired_area_sparsity(mask, kspace):
+    """Mean over slices of the sampled fraction of each slice's acquired (non-zero-filled) k-space.
+
+    Args:
+        mask: [B, 1, H, W] binary mask.
+        kspace: [B, C, H, W, 2] fully sampled k-space.
+    """
+    acquired = (torch.view_as_complex(kspace.contiguous()).abs().sum(dim=1, keepdim=True) > 0).to(mask.dtype)
+    sampled = (mask * acquired).flatten(1).sum(dim=1)
+    return (sampled / acquired.flatten(1).sum(dim=1).clamp(min=1)).mean()
+
+
 def zero_coil_fraction(kspace):
     """Fraction of coil channels in the batch that are entirely zero (padding)."""
     return (kspace.abs().sum(dim=(2, 3, 4)) == 0).float().mean().item()
@@ -1215,6 +1235,7 @@ def build_model(options: TrainConfig):
         selection=getattr(options, 'selection', 'bernoulli'),
         dcm_vd_power=getattr(options, 'dcm_vd_power', 4.0),
         dcm_tau=getattr(options, 'dcm_tau', 5.0),
+        valid_area_budget=getattr(options, 'valid_area_budget', False),
         ppo_policy=getattr(options, 'ppo_policy', None),
         fixed_mask_path=getattr(options, 'fixed_mask_path', None),
         loupe_vd_init_power=getattr(options, 'loupe_vd_init_power', 0.0),

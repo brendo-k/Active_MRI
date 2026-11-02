@@ -144,6 +144,7 @@ class Sampler(nn.Module):
         selection="bernoulli",
         dcm_vd_power=4.0,
         dcm_tau=5.0,
+        valid_area_budget=False,
         ):
         super().__init__()
 
@@ -250,6 +251,10 @@ class Sampler(nn.Module):
                              f"mask_train_mode='straight_through' and a thresholding sampler, got {sampler_type!r}, {mask_train_mode!r}")
         self.mask_draws = mask_draws
         self.selection = selection
+        if valid_area_budget and (sampler_type not in ("loupe_2d", "conv_2d") or selection != "bernoulli" or self.exact_budget):
+            raise ValueError("valid_area_budget rescales a 2D Bernoulli sampler's expected count per slice, "
+                             f"got {sampler_type!r} with selection {selection!r}")
+        self.valid_area_budget = valid_area_budget
         self.dcm_tau = dcm_tau
         if selection == "dcm":
             self.register_buffer("dcm_acceptance", variable_density_prior(shape, dcm_vd_power), persistent=False)
@@ -481,6 +486,13 @@ class Sampler(nn.Module):
             return self._decoupled_comparison(samp_prob_unscaled, old_mask, single_budget(budget, "selection='dcm'"),
                                               available)
 
+        if self.valid_area_budget and valid_mask is not None and not self.line_constrained:
+            # Each slice's total (the pre-selected points plus the budget) is the sparsity of its acquired k-space, so the
+            # zero-filled columns of a narrower scan no longer concentrate the same count onto fewer locations.
+            numel = self.shape[0] * self.shape[1]
+            preselected = old_mask.flatten(1).sum(dim=1)
+            acquired = valid_mask.flatten(1).sum(dim=1)
+            sparsity = ((budget + preselected) * acquired / numel - preselected).clamp(min=0) / numel
         samp_prob = self.rescale(samp_prob_unscaled, sparsity, available)
         if self.exact_budget:
             binary_mask = topk_straight_through(samp_prob, int(round(single_budget(budget, self.sampler_type))), available)
