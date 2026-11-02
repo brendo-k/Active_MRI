@@ -23,7 +23,7 @@ RAW_ROOTS = (
     pathlib.Path('/export/scratch/bkadota/fastmri_raw'),
     pathlib.Path('/export/scratch/bkadota/fastmri_knee'),
 )
-DEFAULT_CACHE = pathlib.Path('/export/scratch/bkadota/fastmri_complex_espirit')
+DEFAULT_CACHE = pathlib.Path('/export/scratch/bkadota/fastmri_complex_espirit_v2')
 
 
 def discover(roots):

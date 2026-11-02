@@ -47,6 +47,7 @@ experiment and stays linear.
 
 - **Metrics:** trainer scores inside an apodized per-anatomy metric mask (changed 2026-10-20; `SSIM_Masked` fixed 2026-10-23). Don't compare numbers across those dates, and don't use eval scripts that score full images. Healthy SSIM ≈ 0.88–0.93; **< 0.80 means a bug** — debug before reporting.
 - **Sampler input:** conj bug fixed 2026-10-27; older conv/adaptive checkpoints see a different input.
+- **Brain flip:** fixed 2026-11-09. Brain k-space DC had been on row 159, not 160. Brain checkpoints trained before the fix see shifted inputs on the new loader (about −1 dB brain). Score them with their training code, and retrain both arms of any new comparison. The BART sense cache and the ESPIRiT complex cache moved to version 2, so v1 caches raise.
 - **Effect sizes are tiny** (0.05–0.2 dB) vs. 0.3–0.5 dB seed spread of joint LOUPE+VarNet training — use seed-swap controls and multiple seeds. The main goal is to expand this seperation.
 - **Sense maps:** BART ecalib maps are gold standard, but for dl we use SensetivityModel_mc.py
 - **PromptMR backbone:** diverges at lr 1e-3, use 2e-4. REINFORCE policy lr ≈ 0.01–0.05.
