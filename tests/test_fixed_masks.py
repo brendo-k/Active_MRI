@@ -66,7 +66,8 @@ def test_optimizer_with_weight_decay_leaves_the_masks_unchanged(tmp_path):
     Sequential_Trainer._load_fixed_masks(trainer, {'brain': str(tmp_path / 'brain.pt'), 'knee': str(tmp_path / 'knee.pt')})
     before = sampler.mask_net.mask.detach().clone()
 
-    optimizer = build_optimizer(1e-1, 1e-2, Sequential_Trainer._param_groups(trainer))
+    adam = SimpleNamespace(optimizer='adam', lr=1e-1, weight_decay=1e-2)
+    optimizer = build_optimizer(adam, Sequential_Trainer._param_groups(trainer), model)
     for _ in range(3):
         optimizer.zero_grad()
         (model.reconstructor(torch.ones(2)).sum() + sampler.mask_net.mask.sum() * 0).backward()

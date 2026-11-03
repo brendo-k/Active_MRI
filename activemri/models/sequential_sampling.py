@@ -148,6 +148,7 @@ class SequentialSampling(nn.Module):
         self.acquired_only = acquired_only
         self.zero_unacquired = False  # inference-only switch: fixed masks and the predicted k-space are zeroed where the scan acquired nothing (padded columns)
         self.data_for_vis: list[dict] = [dict() for _ in range(num_step)]
+        self.store_visuals = True  # copy the first slice's images to data_for_vis on every forward (a host sync); the trainer turns it off between logged batches
 
         self.reconstructor = reconstructor
 
@@ -391,7 +392,19 @@ class SequentialSampling(nn.Module):
             with torch.no_grad():
                 gfactor = compute_gfactor(sense_maps, mask, num_replicas=self.gfactor_replicas)
 
-        # Store visualization data
+        if self.store_visuals:
+            self._store_visuals(step, target, full_kspace, zero_filled_complex, zero_filled_mag, recon, uncertainty_map,
+                                sense_mask, gfactor)
+
+        return {
+            'output': recon, 'mask': mask, 'zero_recon': zero_filled_mag,
+            'uncertainty_map': uncertainty_map, 'gfactor': gfactor,
+            'anatomy_logits': anatomy_logits, 'reinforce_logp': reinforce_logp,
+            'reinforce_entropy': reinforce_entropy,
+        }
+
+    def _store_visuals(self, step, target, full_kspace, zero_filled_complex, zero_filled_mag, recon, uncertainty_map,
+                       sense_mask, gfactor):
         self.data_for_vis[step].update({
             'input': target[0].cpu().detach().numpy() if target.dim() == 3 else target[0, 0].cpu().detach().numpy(),
             'kspace': torch.view_as_complex(full_kspace[0, :, :, :]).cpu().detach().numpy(),
@@ -402,13 +415,6 @@ class SequentialSampling(nn.Module):
             'sense_mask': sense_mask[0, 0, :, :].cpu().detach().numpy() if sense_mask is not None else np.zeros(self.shape),
             'gfactor': gfactor[0, 0].cpu().detach().numpy() if gfactor is not None else None,
         })
-
-        return {
-            'output': recon, 'mask': mask, 'zero_recon': zero_filled_mag,
-            'uncertainty_map': uncertainty_map, 'gfactor': gfactor,
-            'anatomy_logits': anatomy_logits, 'reinforce_logp': reinforce_logp,
-            'reinforce_entropy': reinforce_entropy,
-        }
 
     @torch.no_grad()
     def reconstruct_acquired(self, kspace, sense_maps, kspace_support=None):

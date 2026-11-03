@@ -4,10 +4,10 @@ import logging
 import math
 import os
 import random
-import shutil
 import warnings
 
 import torch
+import torch._inductor.config
 import torch.nn.functional as F
 import wandb
 import numpy as np
@@ -15,6 +15,7 @@ import numpy as np
 import time
 import matplotlib.pyplot as plt
 
+from activemri.utils.compilers import use_system_compilers_if_missing
 from activemri.utils.evaluate import build_metrics
 from activemri.utils.metrics import MaskedMetricAccumulator
 from activemri.utils.phase_scramble import scramble_phase_real
@@ -25,6 +26,8 @@ from activemri.samplers.loupe import LineConstrainedProbMask, ProbMask
 from activemri.utils.util import compute_ssim_torch, compute_psnr_torch
 from activemri.config import TrainConfig
 from activemri.training.run_naming import run_group, run_name, run_tags
+from activemri.training.muon import MuonAdam, muon_parameters
+from activemri.reconstructors.norms import replace_instance_norms
 from activemri.reconstructors.config import UNetReconConfig, CGSenseReconConfig, SDUMReconConfig, VarNetReconConfig
 from activemri.reconstructors.CG_Sense import CGSENSEReconstructor
 from activemri.reconstructors.UNet import LOUPEUNet
@@ -68,6 +71,8 @@ class Sequential_Trainer:
             self._init_mask_from(options.init_mask_checkpoint)
 
         if options.compile_unets:
+            if getattr(options, 'channels_last_unets', False):
+                torch._inductor.config.force_layout_optimization = True
             compile_unets(self.model)
 
         if options.data_parallel:
@@ -75,7 +80,7 @@ class Sequential_Trainer:
                 raise ValueError("autosamp_2d projects its positions in place during forward, which DataParallel's replicas can't do")
             self.model = torch.nn.DataParallel(self.model)
 
-        self.optimizer = build_optimizer(options.lr, options.weight_decay, self._param_groups())
+        self.optimizer = build_optimizer(options, self._param_groups(), _unwrapped(self.model))
         self.train_loader = train_loader
         self.val_loader = val_loader if val_loader is not None else train_loader
         self.visual_examples = select_visual_examples(self.val_loader.dataset)
@@ -289,9 +294,14 @@ class Sequential_Trainer:
             self.scheduler.step(epoch)
 
             train_loss, train_time, train_metrics = self.train_epoch()
-            val_loss, mean_sparsity, val_time, val_metrics = self.val_epoch()
+            if self._is_every(getattr(self.options, 'val_every', 1)):
+                val_loss, mean_sparsity, val_time, val_metrics = self.val_epoch()
+            else:
+                val_loss, mean_sparsity, val_time, val_metrics = float('nan'), float('nan'), 0.0, {}
 
             for prefix, metrics in [('train', train_metrics), ('val', val_metrics)]:
+                if metrics:
+                    history[f'{prefix}_epoch'].append(epoch + 1)
                 for key, val in metrics.items():
                     history[f'{prefix}_{key.lower()}'].append(
                         val.item() if hasattr(val, 'item') else val
@@ -310,8 +320,17 @@ class Sequential_Trainer:
 
         wandb.finish()
 
+    def _is_every(self, every: int) -> bool:
+        """Whether this epoch is one of every `every`-th epochs; the last epoch always is."""
+        return (self.epoch + 1) % max(1, every) == 0 or self.epoch + 1 == self.end_epoch
+
+    def _set_store_visuals(self, store: bool):
+        _unwrapped(self.model).store_visuals = store
+
     def train_epoch(self):
         self.model.train()
+        visualize = self._is_every(getattr(self.options, 'visualize_every', 1))
+        metrics_every = max(1, getattr(self.options, 'train_metrics_every', 1))
         if self.options.freeze_recon:
             for module in self._recon_modules():
                 module.eval()
@@ -340,6 +359,8 @@ class Sequential_Trainer:
             if self.options.mask_draws > 1:
                 batch, kspace, target = self._tile_for_mask_draws(batch, kspace, target, self.options.mask_draws)
             anatomies = list(batch['anatomy'])
+            log_images = visualize and not set(anatomies) <= logged_train_anatomies
+            self._set_store_visuals(log_images)
 
             try:
                 pred_dict = self._train_forward(target, kspace, batch)
@@ -353,11 +374,11 @@ class Sequential_Trainer:
                 self.optimizer.zero_grad()
                 continue
 
-            if iter_idx == 0:
+            if iter_idx == 0 and visualize:
                 data_for_vis_name = f'train_epoch={self.epoch + 1}_iter=1'
                 self._visualize_and_save(self.epoch, data_for_vis_name)
 
-            for anatomy in dict.fromkeys(anatomies):
+            for anatomy in dict.fromkeys(anatomies) if log_images else ():
                 if anatomy in logged_train_anatomies:
                     continue
                 logged_train_anatomies.add(anatomy)
@@ -383,18 +404,19 @@ class Sequential_Trainer:
 
             losses.append(loss.item())
 
-            target_for_metrics = target.detach()
-            if output.dim() != target_for_metrics.dim():
-                target_for_metrics = target_for_metrics.unsqueeze(1)
-            data_range = target_for_metrics.max()
-            metrics["PSNR"].data_range = data_range
-            metrics["SSIM"].data_range = data_range
-            signal_mask = self._metric_mask(batch)
-            masked_output, masked_target = _apply_signal_mask(output.detach(), target_for_metrics, signal_mask)
-            metrics.update(masked_output, masked_target)
-            if iter_idx % self.options.train_masked_metrics_every == 0:
-                masked_metrics.update(output.detach(), target_for_metrics, signal_mask)
-            anatomy_stats.update(anatomies, masked_output, masked_target, pred_dict['mask'].detach())
+            if iter_idx % metrics_every == 0:
+                target_for_metrics = target.detach()
+                if output.dim() != target_for_metrics.dim():
+                    target_for_metrics = target_for_metrics.unsqueeze(1)
+                data_range = target_for_metrics.max()
+                metrics["PSNR"].data_range = data_range
+                metrics["SSIM"].data_range = data_range
+                signal_mask = self._metric_mask(batch)
+                masked_output, masked_target = _apply_signal_mask(output.detach(), target_for_metrics, signal_mask)
+                metrics.update(masked_output, masked_target)
+                if iter_idx % self.options.train_masked_metrics_every == 0:
+                    masked_metrics.update(output.detach(), target_for_metrics, signal_mask)
+                anatomy_stats.update(anatomies, masked_output, masked_target, pred_dict['mask'].detach())
 
             step_log = {'train/loss': loss.item(), 'train/step': global_step_offset + iter_idx, **grad_log}
             if self.options.mask_train_mode == 'reinforce':
@@ -419,6 +441,7 @@ class Sequential_Trainer:
         masked_metric_means = masked_metrics.compute()
         epoch_log = {f'train/{name}': value.item() for name, value in metric_means.items()}
         epoch_log.update({f'train/{name}': value.item() for name, value in masked_metric_means.items()})
+        self._set_store_visuals(True)
         epoch_log['train/loss'] = np.mean(losses)
         epoch_log['epoch'] = self.epoch
         epoch_log.update(anatomy_images)
@@ -466,6 +489,7 @@ class Sequential_Trainer:
 
     def val_epoch(self):
         self.model.eval()
+        visualize = self._is_every(getattr(self.options, 'visualize_every', 1))
         self.val_phase_generator.manual_seed(PHASE_SCRAMBLE_VAL_SEED)
         self.val_mask_generator.manual_seed(REINFORCE_VAL_MASK_SEED)
         losses = []
@@ -482,6 +506,9 @@ class Sequential_Trainer:
                 kspace = self._load_kspace(batch, self.val_phase_generator)
                 target = self._target(batch, kspace)
                 anatomies = list(batch['anatomy'])
+                log_images = visualize and (
+                    iter_idx == 0 or not set(anatomies) <= logged_anatomies | set(self.visual_examples))
+                self._set_store_visuals(log_images)
 
                 try:
                     pred_dict = self.model(target, kspace, **self._model_inputs(batch))
@@ -494,11 +521,11 @@ class Sequential_Trainer:
                     )
                     continue
 
-                if iter_idx == 0:
+                if iter_idx == 0 and visualize:
                     data_for_vis_name = f'val_epoch={self.epoch + 1}'
                     self._visualize_and_save(self.epoch, data_for_vis_name)
 
-                for anatomy in dict.fromkeys(anatomies):
+                for anatomy in dict.fromkeys(anatomies) if log_images else ():
                     if anatomy in logged_anatomies or anatomy in self.visual_examples:
                         continue
                     logged_anatomies.add(anatomy)
@@ -537,7 +564,9 @@ class Sequential_Trainer:
                 masked_metrics.update(output, target_for_metrics, signal_mask)
                 anatomy_stats.update(anatomies, masked_output, masked_target, mask)
 
-            anatomy_images.update(self._fixed_example_images())
+            self._set_store_visuals(True)
+            if visualize:
+                anatomy_images.update(self._fixed_example_images())
 
             metric_means = metrics.compute()
             masked_metric_means = masked_metrics.compute()
@@ -629,16 +658,15 @@ class Sequential_Trainer:
         return torch.tensor([self.anatomy_to_idx[n] for n in batch[self.options.label_key]], device=self.device)
 
     def _plot_metrics(self, history):
-        epochs = list(range(1, len(history['train_ssim']) + 1))
         fig, axes = plt.subplots(1, 3, figsize=(15, 4))
 
         for ax, metric in zip(axes, ['ssim', 'nmse', 'psnr']):
             train_key = f'train_{metric}'
             val_key = f'val_{metric}'
             if train_key in history:
-                ax.plot(epochs, history[train_key], label='Train')
+                ax.plot(history['train_epoch'], history[train_key], label='Train')
             if val_key in history:
-                ax.plot(epochs, history[val_key], label='Val')
+                ax.plot(history['val_epoch'], history[val_key], label='Val')
             ax.set_xlabel('Epoch')
             ax.set_title(metric.upper())
             ax.legend()
@@ -929,12 +957,27 @@ def anatomy_labels_from_batch(batch, anatomy_classes, device, key='anatomy'):
     return torch.tensor([index[a] for a in batch[key]], device=device)
 
 
-def build_optimizer(lr, weight_decay, model_parameters, optim_type='adam'):
-    if optim_type == 'adam':
-        return torch.optim.Adam(model_parameters, lr, weight_decay=weight_decay)
-    elif optim_type == 'sgd':
-        return torch.optim.SGD(model_parameters, lr, weight_decay=weight_decay)
-    raise NotImplementedError(f"Unknown optimizer type: {optim_type}")
+OPTIMIZERS = ('adam', 'muon')
+
+
+def build_optimizer(options: TrainConfig, param_groups, model):
+    """Adam over `param_groups` (a parameter list or Adam group dicts), or with `options.optimizer='muon'` the same
+    groups with the U-Nets' hidden convolutions moved into one Muon group (activemri/training/muon.py)."""
+    kind = getattr(options, 'optimizer', 'adam')
+    if kind == 'adam':
+        return torch.optim.Adam(param_groups, options.lr, weight_decay=options.weight_decay)
+    if kind != 'muon':
+        raise ValueError(f"optimizer must be one of {OPTIMIZERS}, got {kind!r}")
+    groups = [dict(group) for group in param_groups] if isinstance(param_groups[0], dict) else [{'params': list(param_groups)}]
+    trainable = {id(p) for group in groups for p in group['params']}
+    muon = [p for p in muon_parameters(model, exclude=[model.sampler]) if id(p) in trainable]
+    muon_ids = {id(p) for p in muon}
+    for group in groups:
+        group['params'] = [p for p in group['params'] if id(p) not in muon_ids]
+    groups = [group for group in groups if group['params']]
+    groups.append({'params': muon, 'use_muon': True, 'lr': options.muon_lr or options.lr,
+                   'momentum': options.muon_momentum, 'weight_decay': options.weight_decay})
+    return MuonAdam(groups, options.lr, weight_decay=options.weight_decay)
 
 
 COSINE_FLOOR = 0.01  # fraction of the base lr the cosine schedules decay to
@@ -1094,13 +1137,6 @@ def compile_unets(model: torch.nn.Module) -> None:
             module.model.compile(dynamic=False)
 
 
-def use_system_compilers_if_missing() -> None:
-    """Inductor builds its kernels with $CC / $CXX; a conda activation can point them at compilers the env lacks."""
-    for variable, system_compiler in (('CC', 'gcc'), ('CXX', 'g++')):
-        if os.environ.get(variable) and shutil.which(os.environ[variable]) is None:
-            os.environ[variable] = system_compiler
-
-
 def build_model(options: TrainConfig):
     recon_cfg = options.recon
 
@@ -1142,6 +1178,7 @@ def build_model(options: TrainConfig):
             backbone=getattr(recon_cfg, 'backbone', 'unet'),
             csme=getattr(recon_cfg, 'csme', False),
             unet_precision=getattr(recon_cfg, 'unet_precision', 'fp32'),
+            fused_coil_ops=getattr(recon_cfg, 'fused_coil_ops', False),
         )
     elif isinstance(recon_cfg, SDUMReconConfig):
         reconstructor = SDUMRecon(
@@ -1224,6 +1261,8 @@ def build_model(options: TrainConfig):
         sampler_coil_combine=getattr(options, 'sampler_coil_combine', 'sense'),
         restrict_recon_to_extent=getattr(recon_cfg, 'restrict_to_extent', False),
     )
+    replace_instance_norms(model.reconstructor, getattr(recon_cfg, 'norm', 'instance'))
+    replace_instance_norms(model.sensetivity_net, getattr(options, 'sens_norm', 'instance'))
 
     return model
 
