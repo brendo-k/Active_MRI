@@ -66,6 +66,7 @@ class VarNetReconConfig(ReconConfig):
     unet_precision: str = 'fp32'
     restrict_to_extent: bool = False
     norm: str = 'instance'  # normalisation after every cascade U-Net conv (activemri/reconstructors/norms.py)
+    fused_coil_ops: bool = False  # compiled real-arithmetic multi-coil ops in the cascades (activemri/reconstructors/fused_coil_ops.py)
 
 
 @dataclass

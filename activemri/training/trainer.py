@@ -1182,6 +1182,7 @@ def build_model(options: TrainConfig):
             backbone=getattr(recon_cfg, 'backbone', 'unet'),
             csme=getattr(recon_cfg, 'csme', False),
             unet_precision=getattr(recon_cfg, 'unet_precision', 'fp32'),
+            fused_coil_ops=getattr(recon_cfg, 'fused_coil_ops', False),
         )
     elif isinstance(recon_cfg, SDUMReconConfig):
         reconstructor = SDUMRecon(

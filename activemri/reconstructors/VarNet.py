@@ -15,6 +15,7 @@ import torch.nn.functional as F
 from fastmri.models import Unet
 
 from activemri.reconstructors.csme import CascadeSensitivityModel
+from activemri.reconstructors import fused_coil_ops
 from activemri.utils.complex_conversion import complex_to_real, real_to_complex
 from activemri.utils.conditioning import DEFAULT_EMBED_DIM, AnatomyEmbedding, AnatomyPrompt, FiLM, broadcast_channels
 
@@ -435,6 +436,7 @@ class VarNetBlock(nn.Module):
         self.sense_model = CascadeSensitivityModel() if csme else None
         self.carries_state = adaptive_input or self.has_momentum or csme
         self.dc_weight = nn.Parameter(torch.ones(1, 1, *dc_weight_shape) if dc_weight_shape else torch.ones(1))
+        self.fused_coil_ops = False  # set by VarNet: compiled real-arithmetic coil ops (fused_coil_ops.py) on the plain path
 
     def _load_from_state_dict(self, state_dict, prefix, *args, **kwargs):
         # Checkpoints saved before dc_weight became a raw weight hold a scalar logit.
@@ -482,6 +484,8 @@ class VarNetBlock(nn.Module):
         With CSME the maps are estimated from the current per-coil image, the inverse FFT of ``current_kspace``,
         unless ``sense_maps`` is given, which lets the caller reuse an estimate it has already made from the same image.
         """
+        if self.fused_coil_ops and self._is_plain(kspace_support):
+            return self._fused_forward(current_kspace, ref_kspace, mask, sense_maps, anatomy_embedding)
         if self.sense_model is not None and sense_maps is None:
             sense_maps = self.estimate_maps(current_kspace)
         # A per-location weight is stored centred, like the checkpoints that hold it.
@@ -508,6 +512,20 @@ class VarNetBlock(nn.Module):
             model_term = model_term * kspace_support
         next_kspace = current_kspace - soft_dc - model_term
         return (next_kspace, latent, history, sense_maps) if self.carries_state else next_kspace
+
+    def _is_plain(self, kspace_support) -> bool:
+        """The cascade the fused path covers: where-DC with a scalar weight, external maps, no extra inputs or state."""
+        return (self.dc_mode == "where" and self.dc_weight.dim() == 1 and not self.carries_state
+                and kspace_support is None)
+
+    def _fused_forward(self, current_kspace, ref_kspace, mask, sense_maps, anatomy_embedding):
+        """`forward` on the plain path with the multi-coil arithmetic in compiled real kernels: the same expressions."""
+        coil_images = torch.fft.ifft2(current_kspace, dim=FFT_AXES, norm="ortho")
+        image = center(fused_coil_ops.coil_combine(coil_images, sense_maps))
+        correction = self.model(image, anatomy_embedding)
+        model_term = torch.fft.fft2(fused_coil_ops.coil_expand(uncenter(correction), sense_maps), dim=FFT_AXES,
+                                    norm="ortho")
+        return fused_coil_ops.dc_update(current_kspace, ref_kspace, mask, self.dc_weight, model_term)
 
 
 class VarNet(nn.Module):
@@ -564,8 +582,10 @@ class VarNet(nn.Module):
         csme: bool = False,
         unet_precision: str = "fp32",
         checkpoint_sense: bool = True,
+        fused_coil_ops: bool = False,
     ):
         super().__init__()
+        self.fused_coil_ops = fused_coil_ops
         if film and prompt:
             raise ValueError("choose one injection of the anatomy embedding: film or prompt")
         self.dc_mode = dc_mode
@@ -594,6 +614,8 @@ class VarNet(nn.Module):
                          csme=csme, checkpoint_sense=checkpoint_sense)
              for _ in range(num_cascades)]
         )
+        for cascade in self.cascades:
+            cascade.fused_coil_ops = fused_coil_ops
 
     def forward(
         self,
@@ -665,4 +687,6 @@ class VarNet(nn.Module):
                 kspace_pred, used_maps = output, sense_maps
             if self.csme:
                 sense_maps = None
+        if self.fused_coil_ops:
+            return center(fused_coil_ops.coil_combine(torch.fft.ifft2(kspace_pred, dim=FFT_AXES, norm="ortho"), used_maps))
         return VarNetBlock.sens_reduce(kspace_pred, used_maps)
