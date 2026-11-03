@@ -1,0 +1,81 @@
+{
+  "checkpoint": "last_model.pt",
+  "epochs": {
+    "pi": 16,
+    "poisson": 19,
+    "loupe": 15,
+    "loupe_anat": 15
+  },
+  "scan": {
+    "brain": {
+      "n_slices": 30,
+      "n_skipped_off_budget": 0,
+      "mean_gap_db": -0.025305557250976562,
+      "std_gap_db": 0.1979852951227952,
+      "selected_gap_db": -0.5107841491699219
+    },
+    "knee-PD": {
+      "n_slices": 13,
+      "n_skipped_off_budget": 0,
+      "mean_gap_db": 0.0026831993689903845,
+      "std_gap_db": 0.04772138973669564,
+      "selected_gap_db": -0.09097671508789062
+    }
+  },
+  "slices": {
+    "brain": {
+      "fname": "file_brain_AXFLAIR_202_6000420.h5",
+      "slice_id": 9
+    },
+    "knee-PD": {
+      "fname": "file1002407.h5",
+      "slice_id": 15
+    }
+  },
+  "panels": {
+    "brain": {
+      "pi": {
+        "psnr": 34.05987548828125,
+        "ssim": 0.8877513408660889,
+        "fraction": 0.1262969970703125
+      },
+      "poisson": {
+        "psnr": 35.54090881347656,
+        "ssim": 0.9111777544021606,
+        "fraction": 0.12591552734375
+      },
+      "loupe": {
+        "psnr": 35.497928619384766,
+        "ssim": 0.9097190499305725,
+        "fraction": 0.126953125
+      },
+      "loupe_anat": {
+        "psnr": 34.974754333496094,
+        "ssim": 0.9025073051452637,
+        "fraction": 0.125030517578125
+      }
+    },
+    "knee-PD": {
+      "pi": {
+        "psnr": 42.084991455078125,
+        "ssim": 0.9383216500282288,
+        "fraction": 0.1262969970703125
+      },
+      "poisson": {
+        "psnr": 42.49103927612305,
+        "ssim": 0.9419680833816528,
+        "fraction": 0.12591552734375
+      },
+      "loupe": {
+        "psnr": 42.55989074707031,
+        "ssim": 0.9427847266197205,
+        "fraction": 0.125091552734375
+      },
+      "loupe_anat": {
+        "psnr": 42.43600845336914,
+        "ssim": 0.9415408968925476,
+        "fraction": 0.1242523193359375
+      }
+    }
+  }
+}
