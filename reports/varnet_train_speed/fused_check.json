@@ -1,0 +1,38 @@
+{
+ "float64": {
+  "output": {
+   "fused_vs_eager": 2.5413426458152805e-16,
+   "eager_vs_eager": 0.0
+  },
+  "weight_grads": {
+   "fused_vs_eager": 1.061749215470404e-15,
+   "eager_vs_eager": 3.958673413867427e-16
+  },
+  "map_grads": {
+   "fused_vs_eager": 7.61309862247008e-16,
+   "eager_vs_eager": 4.183017852882182e-16
+  },
+  "mask_grads": {
+   "fused_vs_eager": 5.883865255685849e-16,
+   "eager_vs_eager": 3.370646739771616e-16
+  }
+ },
+ "float32": {
+  "output": {
+   "fused_vs_eager": 4.401059072733915e-07,
+   "eager_vs_eager": 0.0
+  },
+  "weight_grads": {
+   "fused_vs_eager": 7.697388468841382e-07,
+   "eager_vs_eager": 3.173845470882952e-07
+  },
+  "map_grads": {
+   "fused_vs_eager": 7.010652893768565e-07,
+   "eager_vs_eager": 3.18745776439755e-07
+  },
+  "mask_grads": {
+   "fused_vs_eager": 4.780436029250268e-07,
+   "eager_vs_eager": 2.599145147996751e-07
+  }
+ }
+}

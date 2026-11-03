@@ -1,16 +1,39 @@
-"""Train a few steps with given trainer overrides and save per-parameter checksums + RNG state, to check that the
-throughput switches (train_metrics_every, visualize_every, val_every) leave the training math unchanged.
+"""Check that the trainer throughput switches leave the training math unchanged (reports/varnet_train_speed).
 
-Usage: CUDA_VISIBLE_DEVICES=N python equivalence.py <repo> <out.pt> [hydra overrides...]
-Deterministic: 2 cascades, no compile, cuDNN autotuner off, deterministic algorithms where available.
+Train mode trains 2 short epochs and saves the parameters, the epoch losses and the CPU/CUDA RNG states. It is
+deterministic: 2 cascades, no compile, cuDNN autotuner off, deterministic algorithms where available, batch 8,
+limit_batches 0.1. Compare mode checks two such files bitwise and writes a JSON verdict.
+
+    CUDA_VISIBLE_DEVICES=N python scripts/diagnostics/varnet_train_speed_equivalence.py train <repo> a.pt
+    CUDA_VISIBLE_DEVICES=N python scripts/diagnostics/varnet_train_speed_equivalence.py train <repo> b.pt \
+        training.train_metrics_every=10 training.visualize_every=5
+    python scripts/diagnostics/varnet_train_speed_equivalence.py compare a.pt b.pt out.json
 """
+import json
 import os
 import sys
 
+if sys.argv[1] == 'compare':
+    import torch
+    a, b = (torch.load(path, weights_only=False) for path in sys.argv[2:4])
+    result = {
+        'a_overrides': a['extra'], 'b_overrides': b['extra'],
+        'epoch_losses_a': [float(x) for x in a['losses']], 'epoch_losses_b': [float(x) for x in b['losses']],
+        'losses_equal': [float(x) for x in a['losses']] == [float(x) for x in b['losses']],
+        'cuda_rng_equal': bool(torch.equal(a['cuda_rng'], b['cuda_rng'])), 'cpu_rng_equal': bool(torch.equal(a['cpu_rng'], b['cpu_rng'])),
+        'param_tensors': len(a['params']),
+        'params_bitwise_equal': all(torch.equal(a['params'][n], b['params'][n]) for n in a['params']),
+        'max_abs_param_diff': max((a['params'][n] - b['params'][n]).abs().max().item() for n in a['params']),
+    }
+    open(sys.argv[4], 'w').write(json.dumps(result, indent=1))
+    print(json.dumps(result, indent=1))
+    sys.exit(0)
+
+assert sys.argv[1] == 'train'
 os.environ.setdefault('WANDB_MODE', 'disabled')
 os.environ.setdefault('CUBLAS_WORKSPACE_CONFIG', ':4096:8')
-repo, out = sys.argv[1], sys.argv[2]
-extra = sys.argv[3:]
+repo, out = sys.argv[2], sys.argv[3]
+extra = sys.argv[4:]
 sys.path.insert(0, repo)
 os.chdir(repo)
 
