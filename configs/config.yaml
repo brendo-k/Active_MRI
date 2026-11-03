@@ -22,6 +22,9 @@ training:
   compile_unets: true  # torch.compile every U-Net body (VarNet cascades, sensitivity net); ~1 min of compiling at the start, needs gcc/g++
   cudnn_benchmark: true  # cuDNN times its conv algorithms for each new input shape and keeps the fastest; false = its heuristic pick
   train_masked_metrics_every: 1  # train/PSNR_Masked and train/SSIM_Masked from every Nth train batch (validation scores every batch)
+  train_metrics_every: 1  # every train-batch metric (PSNR/SSIM/NMSE, masked and per anatomy) from every Nth batch only; they cost ~0.2 s of a ~1.45 s R=8 step
+  val_every: 1  # validate every Nth epoch and at the last; the best_model.pt choice only sees validated epochs
+  visualize_every: 1  # images (PNG panels, wandb images, fixed val examples) every Nth epoch and at the last; off-epochs skip the per-forward host copies too
   seed: 42
 
 loss:

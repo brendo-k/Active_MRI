@@ -42,6 +42,9 @@ class TrainConfig:
     compile_unets: bool = False
     cudnn_benchmark: bool = True
     train_masked_metrics_every: int = 1
+    train_metrics_every: int = 1  # train-batch metrics (PSNR/SSIM/NMSE, masked and per anatomy) from every Nth batch only
+    val_every: int = 1  # validate every Nth epoch and at the last
+    visualize_every: int = 1  # images (PNG panels, wandb images, fixed val examples) every Nth epoch and at the last
 
     # Paths
     out_dir: List[pathlib.Path] = field(default_factory=lambda: [pathlib.Path('checkpoints')])

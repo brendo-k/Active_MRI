@@ -291,9 +291,14 @@ class Sequential_Trainer:
             self.scheduler.step(epoch)
 
             train_loss, train_time, train_metrics = self.train_epoch()
-            val_loss, mean_sparsity, val_time, val_metrics = self.val_epoch()
+            if self._is_every(getattr(self.options, 'val_every', 1)):
+                val_loss, mean_sparsity, val_time, val_metrics = self.val_epoch()
+            else:
+                val_loss, mean_sparsity, val_time, val_metrics = float('nan'), float('nan'), 0.0, {}
 
             for prefix, metrics in [('train', train_metrics), ('val', val_metrics)]:
+                if metrics:
+                    history[f'{prefix}_epoch'].append(epoch + 1)
                 for key, val in metrics.items():
                     history[f'{prefix}_{key.lower()}'].append(
                         val.item() if hasattr(val, 'item') else val
@@ -312,8 +317,17 @@ class Sequential_Trainer:
 
         wandb.finish()
 
+    def _is_every(self, every: int) -> bool:
+        """Whether this epoch is one of every `every`-th epochs; the last epoch always is."""
+        return (self.epoch + 1) % max(1, every) == 0 or self.epoch + 1 == self.end_epoch
+
+    def _set_store_visuals(self, store: bool):
+        _unwrapped(self.model).store_visuals = store
+
     def train_epoch(self):
         self.model.train()
+        visualize = self._is_every(getattr(self.options, 'visualize_every', 1))
+        metrics_every = max(1, getattr(self.options, 'train_metrics_every', 1))
         if self.options.freeze_recon:
             for module in self._recon_modules():
                 module.eval()
@@ -342,6 +356,8 @@ class Sequential_Trainer:
             if self.options.mask_draws > 1:
                 batch, kspace, target = self._tile_for_mask_draws(batch, kspace, target, self.options.mask_draws)
             anatomies = list(batch['anatomy'])
+            log_images = visualize and not set(anatomies) <= logged_train_anatomies
+            self._set_store_visuals(log_images)
 
             try:
                 pred_dict = self._train_forward(target, kspace, batch)
@@ -355,11 +371,11 @@ class Sequential_Trainer:
                 self.optimizer.zero_grad()
                 continue
 
-            if iter_idx == 0:
+            if iter_idx == 0 and visualize:
                 data_for_vis_name = f'train_epoch={self.epoch + 1}_iter=1'
                 self._visualize_and_save(self.epoch, data_for_vis_name)
 
-            for anatomy in dict.fromkeys(anatomies):
+            for anatomy in dict.fromkeys(anatomies) if log_images else ():
                 if anatomy in logged_train_anatomies:
                     continue
                 logged_train_anatomies.add(anatomy)
@@ -385,18 +401,19 @@ class Sequential_Trainer:
 
             losses.append(loss.item())
 
-            target_for_metrics = target.detach()
-            if output.dim() != target_for_metrics.dim():
-                target_for_metrics = target_for_metrics.unsqueeze(1)
-            data_range = target_for_metrics.max()
-            metrics["PSNR"].data_range = data_range
-            metrics["SSIM"].data_range = data_range
-            signal_mask = self._metric_mask(batch)
-            masked_output, masked_target = _apply_signal_mask(output.detach(), target_for_metrics, signal_mask)
-            metrics.update(masked_output, masked_target)
-            if iter_idx % self.options.train_masked_metrics_every == 0:
-                masked_metrics.update(output.detach(), target_for_metrics, signal_mask)
-            anatomy_stats.update(anatomies, masked_output, masked_target, pred_dict['mask'].detach())
+            if iter_idx % metrics_every == 0:
+                target_for_metrics = target.detach()
+                if output.dim() != target_for_metrics.dim():
+                    target_for_metrics = target_for_metrics.unsqueeze(1)
+                data_range = target_for_metrics.max()
+                metrics["PSNR"].data_range = data_range
+                metrics["SSIM"].data_range = data_range
+                signal_mask = self._metric_mask(batch)
+                masked_output, masked_target = _apply_signal_mask(output.detach(), target_for_metrics, signal_mask)
+                metrics.update(masked_output, masked_target)
+                if iter_idx % self.options.train_masked_metrics_every == 0:
+                    masked_metrics.update(output.detach(), target_for_metrics, signal_mask)
+                anatomy_stats.update(anatomies, masked_output, masked_target, pred_dict['mask'].detach())
 
             step_log = {'train/loss': loss.item(), 'train/step': global_step_offset + iter_idx, **grad_log}
             if self.options.mask_train_mode == 'reinforce':
@@ -421,6 +438,7 @@ class Sequential_Trainer:
         masked_metric_means = masked_metrics.compute()
         epoch_log = {f'train/{name}': value.item() for name, value in metric_means.items()}
         epoch_log.update({f'train/{name}': value.item() for name, value in masked_metric_means.items()})
+        self._set_store_visuals(True)
         epoch_log['train/loss'] = np.mean(losses)
         epoch_log['epoch'] = self.epoch
         epoch_log.update(anatomy_images)
@@ -468,6 +486,7 @@ class Sequential_Trainer:
 
     def val_epoch(self):
         self.model.eval()
+        visualize = self._is_every(getattr(self.options, 'visualize_every', 1))
         self.val_phase_generator.manual_seed(PHASE_SCRAMBLE_VAL_SEED)
         self.val_mask_generator.manual_seed(REINFORCE_VAL_MASK_SEED)
         losses = []
@@ -484,6 +503,9 @@ class Sequential_Trainer:
                 kspace = self._load_kspace(batch, self.val_phase_generator)
                 target = self._target(batch, kspace)
                 anatomies = list(batch['anatomy'])
+                log_images = visualize and (
+                    iter_idx == 0 or not set(anatomies) <= logged_anatomies | set(self.visual_examples))
+                self._set_store_visuals(log_images)
 
                 try:
                     pred_dict = self.model(target, kspace, **self._model_inputs(batch))
@@ -496,11 +518,11 @@ class Sequential_Trainer:
                     )
                     continue
 
-                if iter_idx == 0:
+                if iter_idx == 0 and visualize:
                     data_for_vis_name = f'val_epoch={self.epoch + 1}'
                     self._visualize_and_save(self.epoch, data_for_vis_name)
 
-                for anatomy in dict.fromkeys(anatomies):
+                for anatomy in dict.fromkeys(anatomies) if log_images else ():
                     if anatomy in logged_anatomies or anatomy in self.visual_examples:
                         continue
                     logged_anatomies.add(anatomy)
@@ -539,7 +561,9 @@ class Sequential_Trainer:
                 masked_metrics.update(output, target_for_metrics, signal_mask)
                 anatomy_stats.update(anatomies, masked_output, masked_target, mask)
 
-            anatomy_images.update(self._fixed_example_images())
+            self._set_store_visuals(True)
+            if visualize:
+                anatomy_images.update(self._fixed_example_images())
 
             metric_means = metrics.compute()
             masked_metric_means = masked_metrics.compute()
@@ -631,16 +655,15 @@ class Sequential_Trainer:
         return torch.tensor([self.anatomy_to_idx[n] for n in batch[self.options.label_key]], device=self.device)
 
     def _plot_metrics(self, history):
-        epochs = list(range(1, len(history['train_ssim']) + 1))
         fig, axes = plt.subplots(1, 3, figsize=(15, 4))
 
         for ax, metric in zip(axes, ['ssim', 'nmse', 'psnr']):
             train_key = f'train_{metric}'
             val_key = f'val_{metric}'
             if train_key in history:
-                ax.plot(epochs, history[train_key], label='Train')
+                ax.plot(history['train_epoch'], history[train_key], label='Train')
             if val_key in history:
-                ax.plot(epochs, history[val_key], label='Val')
+                ax.plot(history['val_epoch'], history[val_key], label='Val')
             ax.set_xlabel('Epoch')
             ax.set_title(metric.upper())
             ax.legend()
