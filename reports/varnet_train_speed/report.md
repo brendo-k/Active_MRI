@@ -1,6 +1,12 @@
 # How much faster can 1-step LOUPE + VarNet (R=8) train? (2026-11-03)
 
-PROVENANCE_BLOCK
+| | |
+|---|---|
+| Code | results produced at `c527d3e` (varnet_train_speed: results with the Muon + LayerNorm arms, final report text); branch `exp/varnet_train_speed` |
+| Metric mask | **apodized**: k-space-apodized per-anatomy mask (activemri/utils/metric_mask.py), the trainer metric since 2026-10-20 |
+| Runs | 28 checkpoint directories under `checkpoints/` (untracked; names, overrides, wandb ids in `manifest.json`) |
+| Results | 15 files next to this report, hashed in `manifest.json` |
+| Reproduce | `bash run.sh` from the repo root |
 
 - **Branch:** `exp/varnet_train_speed`. Results come from the commit in the provenance block. The runs used the
   per-arm code snapshots listed under Runs compared.
