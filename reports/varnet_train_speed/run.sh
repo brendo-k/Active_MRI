@@ -27,6 +27,7 @@ for control in control control_short full_control; do
     python scripts/eval/varnet_train_speed_eval.py --control $control --out $OUT/$name.json --cache $OUT/eval_cache.per_slice.npz
 done
 python scripts/eval/varnet_train_speed_eval.py --error-split 'control_s4?' 'norm_*' 'full_*' 'muon_s4?' --out $OUT/error_split.json
+python scripts/diagnostics/varnet_train_speed_masks.py $OUT/masks.json
 
 # Tables and figures
 python scripts/eval/varnet_train_speed_summary.py $OUT

@@ -24,6 +24,8 @@ then post-freeze ones.
 | same | muon, 20% data | 63% (s42); never reached (s43) | not met |
 | post-freeze, same "better" bar | full_muon, full data, 12 epochs, 2 seeds | +0.26 / +0.45 dB (20% val), +0.41 / +0.43 (all val); 69% / 52% time-to-quality | met (post-freeze) |
 | same | full_norm_layer, 2 seeds | +0.02 / +0.05 dB | not met: null at full data |
+| same | muon_layer, 20% data, 2 seeds | +0.70 / +1.00 dB; SSIM +0.014 / +0.019 | met (post-freeze) |
+| same | full_muon_layer, full data, 1 seed | +0.60 dB [+0.27, +0.92]; SSIM +0.010 | met in its one seed (post-freeze) |
 
 **Recommendation:** **merge** the exact fast path, and flip its defaults: `training.train_metrics_every=10`,
 `training.visualize_every=10`, `recon.fused_coil_ops=true`. That is −11% wall-clock per epoch with the training math
@@ -32,7 +34,9 @@ unchanged.
 Do **not** yet flip `recon.norm` or `training.optimizer`:
 - LayerNorm is a robust +0.75 dB win on 20% of the data that vanishes at full data in a 12-epoch run.
 - Muon is the reverse: +0.36 dB at full data, inconsistent at 20%.
-- Run the full-data 100-epoch 2×2 first (Next steps 2).
+- Muon + LayerNorm together was the best arm at both data sizes: +0.85 dB at 20% (2 seeds), +0.60 dB at full
+  data (1 seed). It is the candidate recipe.
+- Run the full-data 100-epoch 2×2 first (Next steps 2), at 2+ seeds.
 
 For small-data studies, such as per-anatomy subsets, LayerNorm can be switched on now. This is a recommendation only;
 the verdict is the user's.
@@ -165,6 +169,7 @@ same-seed control:
 | **norm_layer** | 40 | 3 | **31.00 [30.90, 31.07]** | **0.816** | **31.03** | 32.62 | 29.23 | **+0.79, +0.88, +0.59** |
 | norm_layer_short | 20 | 2 | 30.40 [30.32, 30.48] | 0.809 | 30.54 | 31.99 | 28.56 | +0.20, +0.30 |
 | norm_layer_casc | 40 | 1 | 30.89 | 0.816 | 31.10 | 32.53 | 28.92 | +0.61 |
+| muon_layer | 40 | 2 | 31.00 [30.98, 31.02] | 0.812 | 30.11 | 33.38 | 29.24 | +0.70, +1.00 |
 | muon | 40 | 2 | 30.01 [29.65, 30.38] | 0.804 | 29.19 | 32.79 | 27.76 | +0.10, −0.37 |
 | muon_short | 20 | 2 | 29.72 [29.13, 30.31] | 0.792 | 29.08 | 31.94 | 27.90 | +0.03, −0.90 |
 | norm_none | 40 | 1 | 29.91 | 0.794 | 29.89 | 31.11 | 28.64 | −0.37 |
@@ -199,7 +204,9 @@ excludes 0 in every seed: [+0.40, +1.17], [+0.50, +1.25], [+0.36, +0.81].
 - **No normalisation and channel LayerNorm are worse** (one seed each): −0.37 and −0.39 dB overall. Brain is
   +0.5 dB but knee PD is −1.35 dB. No normalisation also spiked at epochs 8 and 15; train loss jumped from 0.084 to
   0.117 at epoch 8. Its 12% faster step does not pay for that.
-- **Muon + LayerNorm** (muon_layer): COMBO_20PCT.
+- **Muon + LayerNorm** (muon_layer): +0.70 [+0.51, +0.89] and +1.00 [+0.67, +1.33] dB (seeds 42, 43), SSIM +0.014 / +0.019. That is about
+    LayerNorm alone (+0.79 / +0.88), but spread more evenly over the conditions: knee PD +0.89 / +1.27, where
+    LayerNorm alone gave +0.20 / +0.43. With LayerNorm, Muon's seed-43 loss disappears.
 
 ### 3. Full data, 12 epochs (step at 11), exact fast path
 
@@ -207,7 +214,8 @@ Full-data runs, final epoch.
 - **Trainer validation, all 1,938 val slices:**
   - control 31.35 / 31.02 (seeds 42 / 43);
   - Muon 31.76 / 31.45;
-  - LayerNorm 31.41 / 31.11.
+  - LayerNorm 31.41 / 31.11;
+  - Muon + LayerNorm 32.03 (seed 42 only).
 - **Eval script, 20% val subset**, paired against the same-seed full-data control (`eval_vs_full.json`):
 
 | arm (full data, 12 epochs) | seeds | PSNR (20% val) | SSIM | ΔPSNR vs full_control per seed [95% CI] | ΔSSIM |
@@ -215,6 +223,7 @@ Full-data runs, final epoch.
 | full_control | 2 | 30.89 [30.75, 31.02] | 0.806 | (reference) | |
 | **full_muon** | 2 | **31.24 [31.20, 31.28]** | **0.812** | **+0.26 [−0.06, +0.57], +0.45 [+0.25, +0.65]** | +0.003, +0.010 |
 | full_norm_layer | 2 | 30.92 [30.80, 31.05] | 0.804 | +0.02 [−0.13, +0.17], +0.05 [−0.14, +0.25] | +0.001, −0.004 |
+| **full_muon_layer** | 1 | **31.62** | **0.818** | **+0.60 [+0.27, +0.92]** | +0.010 |
 | fulldata_ref (100 epochs) | 1 | 31.57 | 0.817 | +0.55 | +0.009 |
 | norm_layer (20% data, 40 epochs) | 2 | 30.98 | 0.815 | +0.04, +0.15 | +0.009, +0.012 |
 
@@ -227,7 +236,11 @@ knee PDFS −0.6 dB.
     wall-clock, at +5% per epoch.
   - Its validation L1 is lower at every epoch in both seeds.
 - **LayerNorm's gain mostly disappears at full data:** +0.06 and +0.09 dB, SSIM ±0.002.
-- **Muon + LayerNorm** (one seed): COMBO_FULL.
+- **Muon + LayerNorm** (one seed): **+0.60 [+0.27, +0.92] dB** against full_control_s42 on the 20% val subset, SSIM +0.010.
+    - That is more than Muon alone (+0.26) and LayerNorm alone (+0.02) for the same seed.
+    - Trainer validation on all val slices: 32.03 dB at epoch 12, against 31.35 for the control and 32.11 for the
+      100-epoch old-code reference.
+    - In-mask L1 is 0.0401, the lowest of any run. It is one seed.
 
 ### 4. Where LayerNorm's validation L1 goes
 
@@ -239,6 +252,7 @@ knee PDFS −0.6 dB.
 | norm_layer s42 / s43 / s44 | **0.0424 / 0.0432 / 0.0421** | 0.155 / 0.156 / 0.155 | 0.101 / 0.102 / 0.101 | 0.029 / 0.027 / 0.027 vs 0.176 |
 | full_control s42 / s43 | 0.0423 / 0.0433 | 0.145 / 0.147 | 0.095 / 0.096 | 0.038 / 0.037 vs 0.176 |
 | full_muon s42 / s43 | 0.0417 / 0.0418 | 0.136 / 0.139 | 0.089 / 0.091 | 0.048 / 0.045 vs 0.176 |
+| full_muon_layer s42 | 0.0401 | 0.136 | 0.088 | 0.047 vs 0.176 |
 
 - **LayerNorm is better inside the metric mask:** in-mask L1 is 9–12% lower than the control's.
 - **Its full-image L1 is higher only because of the background.** It renders the background darker (mean 0.027–0.029
@@ -267,7 +281,9 @@ knee PDFS −0.6 dB.
   experiments can halve their epochs.
 - **Rejected:** no normalisation (12% faster per step but unstable, −0.37 dB), per-pixel channel LayerNorm
   (−0.39 dB) and channels-last.
-- **Muon + LayerNorm:** COMBO_CONCLUSION
+- **Muon + LayerNorm:** on 20% data (2 seeds) it is +0.85 dB, about LayerNorm's. At full data (1 seed) it is +0.60 dB
+  against the control (Muon alone +0.26, LayerNorm alone +0.02), and in 12 epochs it gets within 0.1 dB of the
+  100-epoch old-code reference. If that holds at 2+ seeds, the combination is the recipe to test at 100 epochs
 - **Net effect on the time to a given quality,** combining the fast path with the arm's time-to-quality:
   - 20% data: about 0.5× (LayerNorm; quality at 20 epochs ≥ the control's 40) × 0.89 (fast path).
   - Full data, early training: about 0.6× (Muon) × 0.89.
@@ -325,6 +341,18 @@ knee PDFS −0.6 dB.
    upcast under autocast.
 
 ## Reproduce
+
+Scripts, all called by `run.sh`:
+- `scripts/diagnostics/varnet_train_speed_equivalence.py`: switch exactness;
+- `scripts/diagnostics/varnet_train_speed_fused_check.py`: fused-ops numerics;
+- `scripts/diagnostics/varnet_train_speed_bench.py`: step time per arm;
+- `scripts/diagnostics/varnet_train_speed_profile_kernels.py`: kernel breakdown;
+- `scripts/diagnostics/varnet_train_speed_masks.py`: learned masks;
+- `scripts/eval/varnet_train_speed_curves.py`: validation curves and epoch times from wandb and the logs;
+- `scripts/eval/varnet_train_speed_eval.py`: per-condition paired scores and the error split;
+- `scripts/eval/varnet_train_speed_summary.py`: the tables in `summary.md`;
+- `scripts/plots/varnet_train_speed_curves.py`: the figures.
+
 
 `bash reports/varnet_train_speed/run.sh` from the repo root. It needs:
 - the run directories in `~/data/seqmri_checkpoints/varnet_train_speed` (untracked; listed in `manifest.json`);
