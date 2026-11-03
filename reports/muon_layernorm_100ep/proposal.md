@@ -156,3 +156,28 @@ Decision rule. This is a recommendation; the user decides.
   - wandb: group `muon_layernorm_100ep`, runs named `ml100_<arm>_s<seed>`.
 - **Crashes**: a crashed run is rerun from scratch, up to 3 attempts.
 - **Eval**: after both waves, about 10 min per run on a free GPU.
+
+## Amendment 2026-11-03 12:25: compute plan only, the criteria are unchanged
+
+The user said: "Stop. Just use 2 gpus." The same 8 runs now go on GPUs 0-1, leaving GPUs 2-3 free. The 4-arm smoke
+test (1 epoch, wandb off) passed before this, on all 4 GPUs: every arm had the intended config, 0 skipped steps, and
+39-42 GB peak.
+
+**Waves.** Two jobs at a time, claimed in this order:
+
+| Wave | Jobs |
+|---|---|
+| 1 | `control_s42`, `muon_layer_s42` |
+| 2 | `layer_s42`, `muon_s42` |
+| 3 | `muon_layer_s43`, `control_s43` |
+| 4 | `layer_s43`, `muon_s43` |
+
+- After wave 2 there is a full 1-seed 2x2 (interim look only).
+- After wave 4 every criterion can be decided.
+
+**Time.** About 43-45 h in all, so the ETA is about 08:00-10:00 PST on 2026-11-05, plus about 1 h of eval.
+
+**Effect on criterion C.** "The arms of one seed train at the same time" now holds only for `muon_layer` and
+`control`, which share waves 1 and 3. `muon` and `layer` train in a different wave from their control. Every wave runs
+two jobs at once, so the load per wave is similar. The report gives each wave's median epoch times so any drift
+between waves shows.
