@@ -149,6 +149,7 @@ def _recon_tokens(options):
             tokens.append(recon['unet_precision'])
     if _get(options, 'sens_precision') != 'fp32':
         tokens.append(f"sens-{_get(options, 'sens_precision')}")
+    tokens += _norm_tokens(options)
     if recon_type == 'sdum':
         tokens += [name for key, name in (('anatomy_conditioning', 'recon-cond'), ('pretrained', 'pretrained-sdum'))
                    if recon.get(key)]
@@ -156,6 +157,25 @@ def _recon_tokens(options):
         tokens.append('frozen-recon')
     if _get(options, 'pretrained_recon'):
         tokens.append('pretrained-recon')
+    return tokens
+
+
+def _norm_tokens(options):
+    """`norm-layer` when the cascade and sensitivity U-Nets share a non-default norm, else one token per U-Net."""
+    cascade, sens = _recon(options).get('norm', 'instance'), _get(options, 'sens_norm')
+    named = [('norm', cascade)] if cascade == sens else [('cascade-norm', cascade), ('sens-norm', sens)]
+    return [f"{name}-{norm.replace('_', '-')}" for name, norm in named if norm != 'instance']
+
+
+def _optimizer_tokens(options):
+    optimizer = _get(options, 'optimizer')
+    if optimizer != 'muon':
+        return [] if optimizer == _DEFAULTS.optimizer else [optimizer]
+    tokens = ['muon']
+    if _get(options, 'muon_lr') is not None:
+        tokens.append(f"muon-lr{_get(options, 'muon_lr'):g}")
+    if _differs(options, 'muon_momentum'):
+        tokens.append(f"muon-mom{_get(options, 'muon_momentum'):g}")
     return tokens
 
 
@@ -181,6 +201,7 @@ def _training_tokens(options):
         tokens.append('train-' + '+'.join(train_anatomies))
     if _get(options, 'lr') != BASELINE['lr']:
         tokens.append(f"lr{_get(options, 'lr'):g}")
+    tokens += _optimizer_tokens(options)
     if _get(options, 'lr_scheduler') != BASELINE['lr_scheduler']:
         tokens.append(_get(options, 'lr_scheduler').replace('_', '-'))
     if _get(options, 'weight_decay'):
