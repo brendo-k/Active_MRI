@@ -1,0 +1,164 @@
+[
+ {
+  "variant": "control",
+  "overrides": [],
+  "env": {},
+  "step_s": 1.7738947503773186,
+  "val_pass_s": 17.221203186083585,
+  "val_batches": 25,
+  "train_batches_per_epoch": 49,
+  "peak_GiB": 34.89013051986694,
+  "gpu": "NVIDIA RTX A6000"
+ },
+ {
+  "variant": "switches",
+  "overrides": [
+   "training.train_metrics_every=10",
+   "training.visualize_every=10"
+  ],
+  "env": {},
+  "step_s": 1.5652554987076048,
+  "val_pass_s": 17.124778972007334,
+  "val_batches": 25,
+  "train_batches_per_epoch": 49,
+  "peak_GiB": 34.88768815994263,
+  "gpu": "NVIDIA RTX A6000"
+ },
+ {
+  "variant": "fused",
+  "overrides": [
+   "training.train_metrics_every=10",
+   "training.visualize_every=10",
+   "recon.fused_coil_ops=true"
+  ],
+  "env": {},
+  "step_s": 1.449409875504595,
+  "val_pass_s": 15.338179079815745,
+  "val_batches": 25,
+  "train_batches_per_epoch": 49,
+  "peak_GiB": 34.415066719055176,
+  "gpu": "NVIDIA RTX A6000"
+ },
+ {
+  "variant": "fused_nhwc",
+  "overrides": [
+   "training.train_metrics_every=10",
+   "training.visualize_every=10",
+   "recon.fused_coil_ops=true"
+  ],
+  "env": {
+   "TORCHINDUCTOR_FORCE_LAYOUT_OPT": "1"
+  },
+  "step_s": 1.6070852091652341,
+  "val_pass_s": 19.163833799073473,
+  "val_batches": 25,
+  "train_batches_per_epoch": 49,
+  "peak_GiB": 37.91676139831543,
+  "gpu": "NVIDIA RTX A6000"
+ },
+ {
+  "variant": "fused_norm_none",
+  "overrides": [
+   "training.train_metrics_every=10",
+   "training.visualize_every=10",
+   "recon.fused_coil_ops=true",
+   "recon.norm=none",
+   "sampler.sens_norm=none"
+  ],
+  "env": {},
+  "step_s": 1.280884484120179,
+  "val_pass_s": 18.643677226034924,
+  "val_batches": 25,
+  "train_batches_per_epoch": 49,
+  "peak_GiB": 34.90874528884888,
+  "gpu": "NVIDIA RTX A6000"
+ },
+ {
+  "variant": "fused_norm_none_nhwc",
+  "overrides": [
+   "training.train_metrics_every=10",
+   "training.visualize_every=10",
+   "recon.fused_coil_ops=true",
+   "recon.norm=none",
+   "sampler.sens_norm=none"
+  ],
+  "env": {
+   "TORCHINDUCTOR_FORCE_LAYOUT_OPT": "1"
+  },
+  "step_s": 1.2498659306244615,
+  "val_pass_s": 14.204231733921915,
+  "val_batches": 25,
+  "train_batches_per_epoch": 49,
+  "peak_GiB": 34.91402721405029,
+  "gpu": "NVIDIA RTX A6000"
+ },
+ {
+  "variant": "fused_norm_layer",
+  "overrides": [
+   "training.train_metrics_every=10",
+   "training.visualize_every=10",
+   "recon.fused_coil_ops=true",
+   "recon.norm=layer",
+   "sampler.sens_norm=layer"
+  ],
+  "env": {},
+  "step_s": 1.6161386109209464,
+  "val_pass_s": 14.411882627056912,
+  "val_batches": 25,
+  "train_batches_per_epoch": 49,
+  "peak_GiB": 36.41263389587402,
+  "gpu": "NVIDIA RTX A6000"
+ },
+ {
+  "variant": "fused_norm_chln",
+  "overrides": [
+   "training.train_metrics_every=10",
+   "training.visualize_every=10",
+   "recon.fused_coil_ops=true",
+   "recon.norm=channel_layer",
+   "sampler.sens_norm=channel_layer"
+  ],
+  "env": {},
+  "step_s": 1.4015000754152425,
+  "val_pass_s": 15.858673784183338,
+  "val_batches": 25,
+  "train_batches_per_epoch": 49,
+  "peak_GiB": 38.82887315750122,
+  "gpu": "NVIDIA RTX A6000"
+ },
+ {
+  "variant": "fused_norm_chln_nhwc",
+  "overrides": [
+   "training.train_metrics_every=10",
+   "training.visualize_every=10",
+   "recon.fused_coil_ops=true",
+   "recon.norm=channel_layer",
+   "sampler.sens_norm=channel_layer"
+  ],
+  "env": {
+   "TORCHINDUCTOR_FORCE_LAYOUT_OPT": "1"
+  },
+  "step_s": 1.5011668900357715,
+  "val_pass_s": 17.02326838299632,
+  "val_batches": 25,
+  "train_batches_per_epoch": 49,
+  "peak_GiB": 38.82631587982178,
+  "gpu": "NVIDIA RTX A6000"
+ },
+ {
+  "variant": "fused_muon",
+  "overrides": [
+   "training.train_metrics_every=10",
+   "training.visualize_every=10",
+   "recon.fused_coil_ops=true",
+   "training.optimizer=muon"
+  ],
+  "env": {},
+  "step_s": 1.5177095770874682,
+  "val_pass_s": 16.11162834893912,
+  "val_batches": 25,
+  "train_batches_per_epoch": 49,
+  "peak_GiB": 34.29727554321289,
+  "gpu": "NVIDIA RTX A6000"
+ }
+]

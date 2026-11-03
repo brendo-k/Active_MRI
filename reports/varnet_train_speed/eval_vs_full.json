@@ -1,0 +1,286 @@
+{
+ "seeds": [
+  1234,
+  4321
+ ],
+ "control": "full_control",
+ "per_run": {
+  "control_s42": {
+   "epochs": 40,
+   "all": {
+    "psnr_masked": 30.27881188514905,
+    "ssim_masked": 0.7973386926397278,
+    "n_slices": 390
+   },
+   "brain": {
+    "psnr_masked": 29.341230578341726,
+    "ssim_masked": 0.7958336778813382,
+    "n_slices": 118
+   },
+   "knee-PD": {
+    "psnr_masked": 32.460993888530325,
+    "ssim_masked": 0.8701715833873707,
+    "n_slices": 141
+   },
+   "knee-PDFS": {
+    "psnr_masked": 28.774589989931528,
+    "ssim_masked": 0.7203017013883716,
+    "n_slices": 131
+   }
+  },
+  "control_s43": {
+   "epochs": 40,
+   "all": {
+    "psnr_masked": 30.02154728938372,
+    "ssim_masked": 0.7944600526714326,
+    "n_slices": 390
+   },
+   "brain": {
+    "psnr_masked": 29.244066678871544,
+    "ssim_masked": 0.7980983469584335,
+    "n_slices": 118
+   },
+   "knee-PD": {
+    "psnr_masked": 32.13284895606075,
+    "ssim_masked": 0.8669593380866832,
+    "n_slices": 141
+   },
+   "knee-PDFS": {
+    "psnr_masked": 28.449403602658336,
+    "ssim_masked": 0.713149228477414,
+    "n_slices": 131
+   }
+  },
+  "control_s44": {
+   "epochs": 40,
+   "all": {
+    "psnr_masked": 30.44596668634659,
+    "ssim_masked": 0.8071161990285496,
+    "n_slices": 390
+   },
+   "brain": {
+    "psnr_masked": 30.151420197244416,
+    "ssim_masked": 0.8315924166078715,
+    "n_slices": 118
+   },
+   "knee-PD": {
+    "psnr_masked": 32.39672319939796,
+    "ssim_masked": 0.8685478322354747,
+    "n_slices": 141
+   },
+   "knee-PDFS": {
+    "psnr_masked": 28.6116141472154,
+    "ssim_masked": 0.718947848215294,
+    "n_slices": 131
+   }
+  },
+  "control_short_s42": {
+   "epochs": 20,
+   "all": {
+    "psnr_masked": 30.07111581411117,
+    "ssim_masked": 0.7920556212013046,
+    "n_slices": 390
+   },
+   "brain": {
+    "psnr_masked": 29.187055830228125,
+    "ssim_masked": 0.7979795743245107,
+    "n_slices": 118
+   },
+   "knee-PD": {
+    "psnr_masked": 31.93763484684288,
+    "ssim_masked": 0.8602430565565118,
+    "n_slices": 141
+   },
+   "knee-PDFS": {
+    "psnr_masked": 28.858443252912913,
+    "ssim_masked": 0.7133269581965526,
+    "n_slices": 131
+   }
+  },
+  "control_short_s43": {
+   "epochs": 20,
+   "all": {
+    "psnr_masked": 30.01110534178905,
+    "ssim_masked": 0.801349267382147,
+    "n_slices": 390
+   },
+   "brain": {
+    "psnr_masked": 29.959449218491375,
+    "ssim_masked": 0.8322519047617953,
+    "n_slices": 118
+   },
+   "knee-PD": {
+    "psnr_masked": 31.72100823990842,
+    "ssim_masked": 0.8597642281660878,
+    "n_slices": 141
+   },
+   "knee-PDFS": {
+    "psnr_masked": 28.217205448005036,
+    "ssim_masked": 0.710639185845245,
+    "n_slices": 131
+   }
+  },
+  "fulldata_ref_s42": {
+   "epochs": 100,
+   "all": {
+    "psnr_masked": 31.571154736249873,
+    "ssim_masked": 0.8167406049952602,
+    "n_slices": 390
+   },
+   "brain": {
+    "psnr_masked": 30.76824029017303,
+    "ssim_masked": 0.8223030555004598,
+    "n_slices": 118
+   },
+   "knee-PD": {
+    "psnr_masked": 33.48234916578793,
+    "ssim_masked": 0.8921958012970117,
+    "n_slices": 141
+   },
+   "knee-PDFS": {
+    "psnr_masked": 30.237303515426984,
+    "ssim_masked": 0.7305150184444165,
+    "n_slices": 131
+   }
+  },
+  "muon_s42": {
+   "epochs": 40,
+   "all": {
+    "psnr_masked": 30.37813375790914,
+    "ssim_masked": 0.8059627055337827,
+    "n_slices": 390
+   },
+   "brain": {
+    "psnr_masked": 29.6932591704999,
+    "ssim_masked": 0.8080849589521376,
+    "n_slices": 118
+   },
+   "knee-PD": {
+    "psnr_masked": 32.93886899609938,
+    "ssim_masked": 0.8802935689160163,
+    "n_slices": 141
+   },
+   "knee-PDFS": {
+    "psnr_masked": 28.23883248103484,
+    "ssim_masked": 0.7240460823256851,
+    "n_slices": 131
+   }
+  },
+  "muon_short_s42": {
+   "epochs": 20,
+   "all": {
+    "psnr_masked": 30.307687800969834,
+    "ssim_masked": 0.8017832644962202,
+    "n_slices": 390
+   },
+   "brain": {
+    "psnr_masked": 29.703613709595245,
+    "ssim_masked": 0.8063765585862915,
+    "n_slices": 118
+   },
+   "knee-PD": {
+    "psnr_masked": 32.58946977439501,
+    "ssim_masked": 0.8735812339299657,
+    "n_slices": 141
+   },
+   "knee-PDFS": {
+    "psnr_masked": 28.395851805009915,
+    "ssim_masked": 0.7203670630245677,
+    "n_slices": 131
+   }
+  },
+  "muon_short_s43": {
+   "epochs": 20,
+   "all": {
+    "psnr_masked": 29.12615337127294,
+    "ssim_masked": 0.7814891474530218,
+    "n_slices": 390
+   },
+   "brain": {
+    "psnr_masked": 28.45886525461229,
+    "ssim_masked": 0.7751195696335133,
+    "n_slices": 118
+   },
+   "knee-PD": {
+    "psnr_masked": 31.28756772034557,
+    "ssim_masked": 0.8533259602968684,
+    "n_slices": 141
+   },
+   "knee-PDFS": {
+    "psnr_masked": 27.400814245675356,
+    "ssim_masked": 0.7099060907485919,
+    "n_slices": 131
+   }
+  },
+  "norm_chln_s42": {
+   "epochs": 40,
+   "all": {
+    "psnr_masked": 29.8844788869222,
+    "ssim_masked": 0.7954155481575541,
+    "n_slices": 390
+   },
+   "brain": {
+    "psnr_masked": 29.886436599796102,
+    "ssim_masked": 0.8329886179594927,
+    "n_slices": 118
+   },
+   "knee-PD": {
+    "psnr_masked": 31.033889215888706,
+    "ssim_masked": 0.8496674932736454,
+    "n_slices": 141
+   },
+   "knee-PDFS": {
+    "psnr_masked": 28.645563875445884,
+    "ssim_masked": 0.7031777886308543,
+    "n_slices": 131
+   }
+  },
+  "norm_layer_s42": {
+   "epochs": 40,
+   "all": {
+    "psnr_masked": 31.0652973199502,
+    "ssim_masked": 0.8164577865333994,
+    "n_slices": 390
+   },
+   "brain": {
+    "psnr_masked": 31.10956475694301,
+    "ssim_masked": 0.850549643964494,
+    "n_slices": 118
+   },
+   "knee-PD": {
+    "psnr_masked": 32.66158394779719,
+    "ssim_masked": 0.875869294820851,
+    "n_slices": 141
+   },
+   "knee-PDFS": {
+    "psnr_masked": 29.307282265816028,
+    "ssim_masked": 0.7218023525990489,
+    "n_slices": 131
+   }
+  },
+  "norm_none_s42": {
+   "epochs": 40,
+   "all": {
+    "psnr_masked": 29.910643748747997,
+    "ssim_masked": 0.7940222826774982,
+    "n_slices": 390
+   },
+   "brain": {
+    "psnr_masked": 29.886090052329887,
+    "ssim_masked": 0.8262903710395867,
+    "n_slices": 118
+   },
+   "knee-PD": {
+    "psnr_masked": 31.11360886080045,
+    "ssim_masked": 0.850097475558553,
+    "n_slices": 141
+   },
+   "knee-PDFS": {
+    "psnr_masked": 28.63796630888495,
+    "ssim_masked": 0.7046006290671534,
+    "n_slices": 131
+   }
+  }
+ },
+ "paired": {}
+}
