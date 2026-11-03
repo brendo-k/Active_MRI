@@ -14,5 +14,6 @@ backbone: unet  # unet (fastMRI) | promptmr (PromptMR+ CAB U-Net with prompts; n
 csme: false  # true: every cascade estimates its sensitivity maps from its current per-coil image, starting from the zero-filled image; false = external maps
 checkpoint_cascades: false  # recompute cascades in backward to save memory
 unet_precision: bf16  # fp32 | bf16: autocast dtype of the cascade U-Nets (their input normalisation, the FFTs and DC stay fp32); bf16 vs fp32 at 2 cascades, 3 seeds: brain -0.03 dB, knee +0.01 dB
+norm: instance  # instance | layer | channel_layer | batch | none: normalisation after every cascade U-Net conv (activemri/reconstructors/norms.py)
 restrict_to_extent: false  # true: the regularizer writes only inside the acquired k-space extent (data without a kspace_support); VarNets trained without it lose ~1.5 dB on FLAIR if confined at eval
 checkpoint_sense: true  # csme only: recompute each cascade's sensitivity estimate in backward to save memory (a full-resolution U-Net pass per coil)

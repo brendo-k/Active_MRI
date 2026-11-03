@@ -20,6 +20,9 @@ class TrainConfig:
     lr_scheduler: str = 'step'  # step | constant | cosine | warmup_cosine
     lr_warmup_epochs: int = 2  # warmup_cosine only: linear ramp from 10% of lr
     weight_decay: float = 0.0
+    optimizer: str = 'adam'  # adam | muon (Muon on the U-Nets' hidden convolutions, Adam on the rest)
+    muon_lr: Optional[float] = None  # lr of the Muon group; None = lr (Muon updates are RMS-matched to Adam's)
+    muon_momentum: float = 0.95
     grad_clip_norm: float = 1.0  # per-group global-norm clip; PromptMR+ trains with 0.01
     limit_batches: float = 1.0
 
@@ -118,6 +121,7 @@ class TrainConfig:
     sens_conv_after_upsample: bool = False
     sens_resolution: Optional[int] = None
     sens_precision: str = 'fp32'
+    sens_norm: str = 'instance'  # normalisation after every sensitivity U-Net conv (activemri/reconstructors/norms.py)
     uncertainty_mode: str = 'none'
 
     # Data

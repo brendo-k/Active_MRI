@@ -25,6 +25,8 @@ from activemri.samplers.loupe import LineConstrainedProbMask, ProbMask
 from activemri.utils.util import compute_ssim_torch, compute_psnr_torch
 from activemri.config import TrainConfig
 from activemri.training.run_naming import run_group, run_name, run_tags
+from activemri.training.muon import MuonAdam, muon_parameters
+from activemri.reconstructors.norms import replace_instance_norms
 from activemri.reconstructors.config import UNetReconConfig, CGSenseReconConfig, SDUMReconConfig, VarNetReconConfig
 from activemri.reconstructors.CG_Sense import CGSENSEReconstructor
 from activemri.reconstructors.UNet import LOUPEUNet
@@ -75,7 +77,7 @@ class Sequential_Trainer:
                 raise ValueError("autosamp_2d projects its positions in place during forward, which DataParallel's replicas can't do")
             self.model = torch.nn.DataParallel(self.model)
 
-        self.optimizer = build_optimizer(options.lr, options.weight_decay, self._param_groups())
+        self.optimizer = build_optimizer(options, self._param_groups(), _unwrapped(self.model))
         self.train_loader = train_loader
         self.val_loader = val_loader if val_loader is not None else train_loader
         self.visual_examples = select_visual_examples(self.val_loader.dataset)
@@ -929,12 +931,27 @@ def anatomy_labels_from_batch(batch, anatomy_classes, device, key='anatomy'):
     return torch.tensor([index[a] for a in batch[key]], device=device)
 
 
-def build_optimizer(lr, weight_decay, model_parameters, optim_type='adam'):
-    if optim_type == 'adam':
-        return torch.optim.Adam(model_parameters, lr, weight_decay=weight_decay)
-    elif optim_type == 'sgd':
-        return torch.optim.SGD(model_parameters, lr, weight_decay=weight_decay)
-    raise NotImplementedError(f"Unknown optimizer type: {optim_type}")
+OPTIMIZERS = ('adam', 'muon')
+
+
+def build_optimizer(options: TrainConfig, param_groups, model):
+    """Adam over `param_groups` (a parameter list or Adam group dicts), or with `options.optimizer='muon'` the same
+    groups with the U-Nets' hidden convolutions moved into one Muon group (activemri/training/muon.py)."""
+    kind = getattr(options, 'optimizer', 'adam')
+    if kind == 'adam':
+        return torch.optim.Adam(param_groups, options.lr, weight_decay=options.weight_decay)
+    if kind != 'muon':
+        raise ValueError(f"optimizer must be one of {OPTIMIZERS}, got {kind!r}")
+    groups = [dict(group) for group in param_groups] if isinstance(param_groups[0], dict) else [{'params': list(param_groups)}]
+    trainable = {id(p) for group in groups for p in group['params']}
+    muon = [p for p in muon_parameters(model, exclude=[model.sampler]) if id(p) in trainable]
+    muon_ids = {id(p) for p in muon}
+    for group in groups:
+        group['params'] = [p for p in group['params'] if id(p) not in muon_ids]
+    groups = [group for group in groups if group['params']]
+    groups.append({'params': muon, 'use_muon': True, 'lr': options.muon_lr or options.lr,
+                   'momentum': options.muon_momentum, 'weight_decay': options.weight_decay})
+    return MuonAdam(groups, options.lr, weight_decay=options.weight_decay)
 
 
 COSINE_FLOOR = 0.01  # fraction of the base lr the cosine schedules decay to
@@ -1224,6 +1241,8 @@ def build_model(options: TrainConfig):
         sampler_coil_combine=getattr(options, 'sampler_coil_combine', 'sense'),
         restrict_recon_to_extent=getattr(recon_cfg, 'restrict_to_extent', False),
     )
+    replace_instance_norms(model.reconstructor, getattr(recon_cfg, 'norm', 'instance'))
+    replace_instance_norms(model.sensetivity_net, getattr(options, 'sens_norm', 'instance'))
 
     return model
 

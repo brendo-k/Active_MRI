@@ -13,6 +13,9 @@ training:
   lr_scheduler: step  # step | constant | cosine | warmup_cosine
   lr_warmup_epochs: 2  # warmup_cosine only
   weight_decay: 0.0
+  optimizer: adam  # adam | muon: Muon (orthogonalised momentum) on the U-Nets' hidden convolutions, Adam on everything else
+  muon_lr: null  # lr of the Muon group; null = training.lr (Muon's update RMS is matched to Adam's)
+  muon_momentum: 0.95
   grad_clip_norm: 1.0  # per-group global-norm clip of the gradients; PromptMR+ trains with 0.01
   limit_batches: 1.0
   data_parallel: false
@@ -97,6 +100,7 @@ sampler:
   sens_upsample_method: conv  # sensitivity U-Net upsampling: conv (transposed conv) | bilinear | max
   sens_conv_after_upsample: false
   sens_resolution: null  # N: run the sensitivity U-Net on the NxN centre of k-space and upsample its output; null = full resolution
+  sens_norm: instance  # instance | layer | channel_layer | batch | none: normalisation after every sensitivity U-Net conv
   sens_precision: bf16  # fp32 | bf16: autocast dtype of the sensitivity U-Net body (its input normalisation and the RSS normalisation stay float32); bf16 vs fp32 at 2 cascades, 3 seeds: no loss (reports/unet_speed_varnet2_r8/eval_sens_bf16.json)
   uncertainty_mode: none
   anatomy_conditioning: false  # feed the anatomy label to the sampler

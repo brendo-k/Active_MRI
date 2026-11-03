@@ -65,6 +65,7 @@ class VarNetReconConfig(ReconConfig):
     csme: bool = False
     unet_precision: str = 'fp32'
     restrict_to_extent: bool = False
+    norm: str = 'instance'  # normalisation after every cascade U-Net conv (activemri/reconstructors/norms.py)
 
 
 @dataclass
