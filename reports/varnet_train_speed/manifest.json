@@ -1,10 +1,10 @@
 {
   "schema": 1,
-  "generated_at": "2026-11-03T14:38:14+00:00",
+  "generated_at": "2026-11-03T17:48:44+00:00",
   "code": {
-    "produced_at": "c527d3e8766790094f5f9ee7abbb7bbe6e3d9ea8",
-    "produced_at_subject": "varnet_train_speed: results with the Muon + LayerNorm arms, final report text",
-    "head": "c527d3e8766790094f5f9ee7abbb7bbe6e3d9ea8",
+    "produced_at": "cc63a6b3bc9fa31ff861b3615b599be5ed1f97a3",
+    "produced_at_subject": "varnet_train_speed plots: the title names the data; run.sh plots the Muon + LayerNorm arms",
+    "head": "cc63a6b3bc9fa31ff861b3615b599be5ed1f97a3",
     "branch": "exp/varnet_train_speed",
     "dirty_tracked_files": [],
     "scripts": [
@@ -1145,8 +1145,8 @@
     },
     {
       "path": "curves.json",
-      "bytes": 430064,
-      "sha256": "5a2c4ea1cf998ebc"
+      "bytes": 454988,
+      "sha256": "fcdb7ac9474f17f3"
     },
     {
       "path": "equivalence_switches.json",
@@ -1180,13 +1180,13 @@
     },
     {
       "path": "figures/curves_20pct.png",
-      "bytes": 516271,
-      "sha256": "9221b57be5f48e24"
+      "bytes": 553582,
+      "sha256": "20e9c5ca76c9e789"
     },
     {
       "path": "figures/curves_full_data.png",
-      "bytes": 324519,
-      "sha256": "32482550f1176c7c"
+      "bytes": 342334,
+      "sha256": "5dc661ec2b569115"
     },
     {
       "path": "fused_check.json",
@@ -1210,8 +1210,8 @@
     },
     {
       "path": "summary.md",
-      "bytes": 17493,
-      "sha256": "5dcbd559500c6680"
+      "bytes": 17662,
+      "sha256": "ab847957e22dbdc5"
     }
   ]
 }

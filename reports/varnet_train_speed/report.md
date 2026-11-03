@@ -2,16 +2,24 @@
 
 | | |
 |---|---|
-| Code | results produced at `c527d3e` (varnet_train_speed: results with the Muon + LayerNorm arms, final report text); branch `exp/varnet_train_speed` |
+| Code | results produced at `cc63a6b` (varnet_train_speed plots: the title names the data; run.sh plots the Muon + LayerNorm arms); branch `exp/varnet_train_speed` |
 | Metric mask | **apodized**: k-space-apodized per-anatomy mask (activemri/utils/metric_mask.py), the trainer metric since 2026-10-20 |
 | Runs | 28 checkpoint directories under `checkpoints/` (untracked; names, overrides, wandb ids in `manifest.json`) |
 | Results | 15 files next to this report, hashed in `manifest.json` |
 | Reproduce | `bash run.sh` from the repo root |
 
-- **Branch:** `exp/varnet_train_speed`. Results come from the commit in the provenance block. The runs used the
-  per-arm code snapshots listed under Runs compared.
-- **Status:** awaiting the user's verdict. The proposal (`proposal.md`, frozen 2026-11-02 22:45) was written for an
-  overnight run and was not approved before launch.
+- **Branch:** `exp/varnet_train_speed`, merged into `main` (`--no-ff`). Results come from the commit in the provenance
+  block. The runs used the per-arm code snapshots listed under Runs compared.
+- **Status:** adopted 2026-11-03. The proposal (`proposal.md`, frozen 2026-11-02 22:45) was written for an overnight
+  run and was not approved before launch.
+- **Verdict (user, 2026-11-03):** adopt the recommendation below.
+  - Since `66e5c44` the exact fast path is the training default: `training.train_metrics_every=10`,
+    `training.visualize_every=10`, `recon.fused_coil_ops=true`. Set them to 1 / 1 / false for train metrics from
+    every batch, images every epoch, or eager coil ops.
+  - Muon, the norm layers, `val_every` and channels-last are on `main` as options with unchanged defaults:
+    `training.optimizer=adam`, `recon.norm=instance`, `sampler.sens_norm=instance`, `training.val_every=1`,
+    `training.channels_last_unets=false`.
+  - Results 5 lists every change tried, with its outcome and how to switch it on.
 
 ## Proposal vs outcome
 
@@ -32,13 +40,15 @@ then post-freeze ones.
 | same | full_norm_layer, 2 seeds | +0.02 / +0.05 dB | not met: null at full data |
 | same | muon_layer, 20% data, 2 seeds | +0.70 / +1.00 dB; SSIM +0.014 / +0.019 | met (post-freeze) |
 | same | full_muon_layer, full data, 1 seed | +0.60 dB [+0.27, +0.92]; SSIM +0.010 | met in its one seed (post-freeze) |
+| post-freeze, same "faster" bar | muon_layer, 20% data, 2 seeds | 18% / 19% of the control's wall-clock (epoch 6 of 40); finals above | met (post-freeze) |
+| same | full_muon_layer, full data, 1 seed | 29% (epoch 3 of 12); final above | met in its one seed (post-freeze) |
 
 Read as frozen (against the control *mean*, 30.25 dB), no verdict changes:
 - LayerNorm's finals (30.90–31.07) and Muon + LayerNorm's (30.98, 31.02) all clear 30.35;
 - Muon's (30.38, 29.65) straddle it;
 - no norm and channel LayerNorm (29.91, 29.88) fall below 30.15.
 
-**Recommendation:** **merge** the exact fast path, and flip its defaults: `training.train_metrics_every=10`,
+**Recommendation** (made before the verdict): **merge** the exact fast path, and flip its defaults: `training.train_metrics_every=10`,
 `training.visualize_every=10`, `recon.fused_coil_ops=true`. That is −11% wall-clock per epoch with the training math
 unchanged.
 
@@ -49,8 +59,7 @@ Do **not** yet flip `recon.norm` or `training.optimizer`:
   data (1 seed). It is the candidate recipe.
 - Run the full-data 100-epoch 2×2 first (Next steps 2), at 2+ seeds.
 
-For small-data studies, such as per-anatomy subsets, LayerNorm can be switched on now. This is a recommendation only;
-the verdict is the user's.
+For small-data studies, such as per-anatomy subsets, LayerNorm can be switched on now.
 
 ## Question
 
@@ -79,7 +88,7 @@ Conventions:
 | norm_layer_casc | 20% | 40 | 42 | LayerNorm in the cascades only | 36b58f4 |
 | norm_none / norm_chln | 20% | 40 | 42 | no norm / per-pixel channel LayerNorm | 36b58f4 |
 | muon_layer | 20% | 40 | 42, 43 | Muon + LayerNorm | 36b58f4 |
-| fast | 20% | 40 | 42 | exact fast path only: `train_metrics_every=10 visualize_every=10 recon.fused_coil_ops=true` | 519f777 |
+| fast | 20% | 40 | 42 | exact fast path only: `train_metrics_every=10 visualize_every=10 recon.fused_coil_ops=true` (the defaults since 66e5c44) | 519f777 |
 | full_control | 100% | 12 (11) | 42, 43 | exact fast path, Adam, InstanceNorm | 519f777 |
 | full_muon / full_norm_layer / full_muon_layer | 100% | 12 (11) | 42, 43 / 42, 43 / 42 | fast path + Muon / LayerNorm / both | 519f777 |
 | fulldata_ref | 100% | 100 (90) | 42 | reference: loss_domain RSS run of 2026-10-30, same config, old code | (exp/loss_domain) |
@@ -155,8 +164,9 @@ number.
 | + switches (`train_metrics_every=10`, `visualize_every=10`) | 1565 (−12%) | (in fast) | (in fast) | bitwise-identical weights and RNG after 2 epochs |
 | + `fused_coil_ops` = fast path | 1449 (−18%) | 61.5 (−12%) | 15.7 (−8%) | 1e-15 (float64), ≤8e-7 (float32) vs eager |
 
-- **Whole epoch.** In a real 40-epoch run (fast_s42 vs control_s42, 20% data), the fast path cuts 11% (77.5 vs 87.0 s, medians over epochs 2–40); the run ends −0.11 dB [−0.26, +0.03] from control_s42, within same-seed noise
-  per epoch, train plus validation. The benchmark's −18% per step is an upper bound: it spreads the control's
+- **Whole epoch.** In a real 40-epoch run (fast_s42 vs control_s42, 20% data), the fast path cuts train plus
+  validation per epoch by 11% (77.5 vs 87.0 s, medians over epochs 2–40). The run ends −0.11 dB [−0.26, +0.03] from
+  control_s42, within same-seed noise. The benchmark's −18% per step is an upper bound: it spreads the control's
   per-epoch visualisation over 24 batches instead of 49.
 - **Full data.** The fast path trains an epoch in 302 s and validates in 72 s. The old-code full-data run of the same
   config took 374 s and 79 s, but its code also differs in small ways, so the clean figure is the 20% pair. Its first
@@ -217,9 +227,14 @@ excludes 0 in every seed: [+0.40, +1.17], [+0.50, +1.25], [+0.36, +0.81].
 - **No normalisation and channel LayerNorm are worse** (one seed each): −0.37 and −0.39 dB overall. Brain is
   +0.5 dB but knee PD is −1.35 dB. No normalisation also spiked at epochs 8 and 15; train loss jumped from 0.084 to
   0.117 at epoch 8. Its 12% faster step does not pay for that.
-- **Muon + LayerNorm** (muon_layer): +0.70 [+0.51, +0.89] and +1.00 [+0.67, +1.33] dB (seeds 42, 43), SSIM +0.014 / +0.019. That is about
-    LayerNorm alone (+0.79 / +0.88), but spread more evenly over the conditions: knee PD +0.89 / +1.27, where
-    LayerNorm alone gave +0.20 / +0.43. With LayerNorm, Muon's seed-43 loss disappears.
+- **Muon + LayerNorm** (muon_layer): +0.70 [+0.51, +0.89] and +1.00 [+0.67, +1.33] dB (seeds 42, 43), SSIM
+  +0.014 / +0.019.
+  - The final gain is about LayerNorm alone's (+0.79 / +0.88), but spread more evenly over the conditions: knee PD
+    +0.89 / +1.27, where LayerNorm alone gave +0.20 / +0.43. With LayerNorm, Muon's seed-43 loss disappears.
+  - It converges fastest of all arms. It reaches the same-seed control's 40-epoch final at epoch 6 in both seeds:
+    18% and 19% of the control's wall-clock, at +9.5% per epoch (95.3 vs 87.0 s).
+  - After that it holds 30.4–30.9 dB (seed mean, epochs 8–35) and ends at 31.0 dB after the lr step. LayerNorm
+    alone climbs more slowly and reaches the same 31.0 dB only after its lr step (epochs 37–40).
 
 ### 3. Full data, 12 epochs (step at 11), exact fast path
 
@@ -254,6 +269,8 @@ knee PDFS −0.6 dB.
     - Trainer validation on all val slices: 32.03 dB at epoch 12, against 31.35 for the control and 32.11 for the
       100-epoch old-code reference.
     - In-mask L1 is 0.0401, the lowest of any run. It is one seed.
+    - It is ahead of full_control_s42 at every epoch and passes the control's epoch-12 value (31.35) at epoch 3:
+      29% of the control's wall-clock, at +8% per epoch (405.8 vs 374.9 s).
 
 ### 4. Where LayerNorm's validation L1 goes
 
@@ -274,9 +291,39 @@ knee PDFS −0.6 dB.
   background; PSNR_Masked does not.
 - **Full-data Muon is better in both regions.**
 
+### 5. Everything tried, and where it stands on main
+
+| change | how to switch it on | outcome in this report | on `main` |
+|---|---|---|---|
+| Train-batch metrics and images every Nth batch / epoch | `training.train_metrics_every=N training.visualize_every=N` | bitwise-identical training; −12% step (bench) | **default 10 / 10** |
+| Fused coil ops: compiled real-arithmetic coil combine, expand and DC | `recon.fused_coil_ops=true` | equal to float rounding (1e-15 in float64); −7% step on top of the switches; −11% per epoch together | **default true** |
+| Validate every Nth epoch | `training.val_every=N` | implemented, not run | option, default 1 |
+| Channels-last U-Nets (inductor layout optimisation) | `training.channels_last_unets=true` | step +11% with InstanceNorm, +7% with channel LayerNorm, −2% with no norm | option, default off; rejected |
+| `torch.compile` of a whole cascade, complex tensors inside the graph | none: the code was not kept | outputs about 11% (relative) off eager, seen during development; the check was not kept as a script | not on `main`; the fused coil ops replace it and keep complex tensors outside the compiled graph |
+| Muon on the U-Nets' hidden convolutions | `training.optimizer=muon` (with `training.muon_lr`, `training.muon_momentum`) | 20% data: +0.10 / −0.37 dB; full data, 12 epochs: +0.26 / +0.45 dB | option, default adam |
+| LayerNorm (GroupNorm(1, C)) in the cascades and the sensitivity net | `recon.norm=layer sampler.sens_norm=layer` | 20% data: +0.79 / +0.88 / +0.59 dB; full data: +0.02 / +0.05 dB | option, default instance |
+| LayerNorm in the cascades only | `recon.norm=layer` | +0.61 dB (1 seed) | option |
+| Muon + LayerNorm | both of the above | 20% data: +0.70 / +1.00 dB, the control's final quality at epoch 6; full data: +0.60 dB (1 seed) | options; the candidate recipe (Next steps 2) |
+| Per-pixel channel LayerNorm | `recon.norm=channel_layer sampler.sens_norm=channel_layer` | −0.39 dB (1 seed) | option; rejected |
+| No normalisation | `recon.norm=none sampler.sens_norm=none` | −0.37 dB (1 seed); loss spikes at epochs 8 and 15 | option; rejected |
+| BatchNorm | `recon.norm=batch sampler.sens_norm=batch` | implemented, not run | option |
+| 20-epoch schedule (lr step at 18) | `training.num_epochs=20 training.lr_step_size=18` | vs the 40-epoch control: control −0.21 / −0.01, LayerNorm +0.20 / +0.30, Muon +0.03 / −0.90 dB | not a default |
+
+The deltas are against the same-seed control, as in Results 2 and 3. Step and epoch times are in Results 1 and
+`summary.md`.
+
+Queued but never run. These jobs were dropped at 01:30, when the queue was re-planned around the full-data runs so
+that it would finish before 06:50. Their job lines are in `~/data/seqmri_checkpoints/varnet_train_speed/dropped_jobs.txt`.
+- norm_layer_sens_s42: LayerNorm in the sensitivity net only, the complement of norm_layer_casc.
+- muon_s44, muon_short_s44, control_short_s44: third seeds for Muon and for the 20-epoch control.
+- control_rep_s42: the control rerun on the branch code, a same-seed noise floor at 40 epochs.
+- adam2e3_short_s42 / s43 (Adam at lr 2e-3, sampler lr 1e-3) and muon2e3_short_s42 (Muon at `muon_lr` 2e-3), 20
+  epochs: a learning-rate check for both optimisers.
+- control_10ep_s42–s44 and muon_10ep_s42–s44: 10-epoch schedules.
+
 ## Conclusions
 
-- **Exact fast path: adopt.** Trainer switches plus fused coil ops cut a 20%-data epoch by 11% (train −12%, val −8%)
+- **Exact fast path: adopted as the default.** Trainer switches plus fused coil ops cut a 20%-data epoch by 11% (train −12%, val −8%)
   with unchanged math: bitwise for the switches, float rounding for the fused ops. A full-data epoch now takes
   302 + 72 s. Channels-last does not help.
 - **Data size decides which convergence change helps.** On 772 training slices, the control stops improving after
@@ -294,12 +341,14 @@ knee PDFS −0.6 dB.
   experiments can halve their epochs.
 - **Rejected:** no normalisation (12% faster per step but unstable, −0.37 dB), per-pixel channel LayerNorm
   (−0.39 dB) and channels-last.
-- **Muon + LayerNorm:** on 20% data (2 seeds) it is +0.85 dB, about LayerNorm's. At full data (1 seed) it is +0.60 dB
-  against the control (Muon alone +0.26, LayerNorm alone +0.02), and in 12 epochs it gets within 0.1 dB of the
-  100-epoch old-code reference. If that holds at 2+ seeds, the combination is the recipe to test at 100 epochs
+- **Muon + LayerNorm:** on 20% data (2 seeds) it is +0.85 dB, about LayerNorm's, and it is the fastest arm: it
+  reaches the control's 40-epoch quality at epoch 6. At full data (1 seed) it is +0.60 dB against the control (Muon
+  alone +0.26, LayerNorm alone +0.02), and in 12 epochs it gets within 0.1 dB of the 100-epoch old-code reference.
+  If that holds at 2+ seeds, the combination is the recipe to test at 100 epochs.
 - **Net effect on the time to a given quality,** combining the fast path with the arm's time-to-quality:
   - 20% data: about 0.5× (LayerNorm; quality at 20 epochs ≥ the control's 40) × 0.89 (fast path).
   - Full data, early training: about 0.6× (Muon) × 0.89.
+  - Muon + LayerNorm: about 0.2× (20% data, 2 seeds) and 0.3× (full data, 1 seed), each × 0.89.
   These are untested at 100 epochs.
 
 ## Caveats
@@ -328,25 +377,33 @@ knee PDFS −0.6 dB.
 - **Old-code timing reference.** The full-data timing reference (`fulldata_ref_s42`, 374 s/epoch) ran with one other
   job on the machine; the fast-path full-data runs ran with three others. The 19% speed-up is therefore not inflated
   by lighter contention.
+- **Diagnostics measured before the default flip.** `bench.json`, `equivalence_switches.json` and
+  `kernel_profile_contended.json` were measured before `66e5c44` made the fast path the default. Since that commit
+  their scripts pin the old values for the control (metrics every batch, images every epoch, eager coil ops), so a
+  rerun measures the same configurations.
+- **A rerun attempt.** muon_s42's first attempt ran out of GPU memory at 22:53, when an ad-hoc benchmark shared its
+  GPU. It was rerun in full; only the rerun is reported.
 - **Untracked checkpoints.** Checkpoints are untracked, in `~/data/seqmri_checkpoints/varnet_train_speed`. The
   `fulldata_ref_s42` checkpoint belongs to the loss_domain study.
 
 ## Figures
 
-- `figures/curves_20pct.png`: val PSNR_Masked and SSIM_Masked against epoch and against wall-clock (train + val
-  seconds from the logs), seed mean with the seed range shaded. Arms are control, Muon, LayerNorm, Muon + LayerNorm,
-  no norm and channel LayerNorm at 40 epochs.
-- `figures/curves_full_data.png`: the same for the full-data 12-epoch runs: control, Muon, LayerNorm and Muon +
-  LayerNorm.
+- `figures/curves_20pct.png`: val PSNR_Masked and SSIM_Masked (trainer validation, 390 slices) against epoch and
+  against wall-clock (train + val seconds from the logs), seed mean with the seed range shaded. Arms are control,
+  Muon, LayerNorm, Muon + LayerNorm, no norm and channel LayerNorm at 40 epochs.
+- `figures/curves_full_data.png`: the same for the full-data 12-epoch runs, with trainer validation on all 1,938
+  val slices: control, Muon, LayerNorm and Muon + LayerNorm.
 
 ## Next steps
 
-1. If the verdict is to adopt: flip `training.train_metrics_every` and `visualize_every` to 10 and
-   `recon.fused_coil_ops` to true. These are exact and give ~18% off every train epoch. Consider `val_every` 2–5 for
-   100-epoch runs; validation is 17% of a full-data epoch.
+1. Done in `66e5c44`: the fast-path defaults (−12% train, −11% train + val per 20%-data epoch). Still open:
+   `training.val_every` 2–5 for 100-epoch runs, since validation is 19% of a full-data epoch (72 of 375 s). The
+   `best_model.pt` choice then sees only the validated epochs.
 2. Test LayerNorm and Muon at the real budget: full data, 100 epochs, the 4-arm 2×2 (InstanceNorm/LayerNorm ×
    Adam/Muon), 2 seeds. If both hold, retrain the anatomy-routing baselines with the new recipe before comparing
-   0.05–0.2 dB effects, because the recipe changes their reference point.
+   0.05–0.2 dB effects, because the recipe changes their reference point. Before launching, add `optimizer` and
+   `norm` tokens to `activemri/training/run_naming.py`: today a Muon or LayerNorm run gets the same automatic wandb
+   name as its Adam / InstanceNorm twin.
 3. Find why GroupNorm(1) helps brain by 1.8 dB:
    - InstanceNorm with affine, to separate the affine parameters from the grouping;
    - the cascades-only vs sensitivity-net split, at 2 seeds;
@@ -374,5 +431,7 @@ Scripts, all called by `run.sh`:
 - wandb access for `curves.json`.
 
 The training runs came from `scripts/launch/varnet_train_speed_worker.sh` with the job lines in
-`~/data/seqmri_checkpoints/varnet_train_speed/jobs.txt`. Check with
+`~/data/seqmri_checkpoints/varnet_train_speed/jobs.txt`. Each job line names its code snapshot, a detached worktree
+`../SeqMRI-worktrees/run-vts-<hash>`. All eight snapshot commits are on `main`; recreate a missing one with
+`git worktree add --detach ../SeqMRI-worktrees/run-vts-<hash> <hash>`. Check with
 `python scripts/report_manifest.py check reports/varnet_train_speed`.

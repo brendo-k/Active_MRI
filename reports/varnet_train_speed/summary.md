@@ -24,10 +24,10 @@
 | fast | 1 | 61.5 | 15.7 | 77.5 |
 | full_control | 2 | 301.9 | 71.7 | 374.9 |
 | full_muon | 2 | 318.8 | 61.7 | 381.6 |
-| full_muon_layer | 1 | 342.5 | 64.3 | 406.9 |
+| full_muon_layer | 1 | 340.8 | 64.3 | 405.8 |
 | full_norm_layer | 2 | 325.4 | 64.2 | 390.8 |
 | muon | 2 | 74.1 | 17.1 | 91.5 |
-| muon_layer | 2 | 78.3 | 17.6 | 96.1 |
+| muon_layer | 2 | 78.0 | 17.3 | 95.3 |
 | muon_short | 2 | 73.2 | 16.8 | 90.1 |
 | norm_chln | 1 | 68.6 | 16.0 | 84.7 |
 | norm_layer | 3 | 74.3 | 17.1 | 91.5 |
@@ -42,10 +42,13 @@
 | control_short | 42 | control | 30.27 | not reached / 20 | n/a |
 | control_short | 43 | control | 30.05 | not reached / 20 | n/a |
 | fast | 42 | control | 30.27 | 16 / 40 | 37% |
+| full_muon_layer | 42 | full_control | 31.35 | 3 / 12 | 29% |
 | full_muon | 42 | full_control | 31.35 | 8 / 12 | 69% |
 | full_muon | 43 | full_control | 31.02 | 6 / 12 | 52% |
 | full_norm_layer | 42 | full_control | 31.35 | 5 / 12 | 46% |
 | full_norm_layer | 43 | full_control | 31.02 | 5 / 12 | 45% |
+| muon_layer | 42 | control | 30.27 | 6 / 40 | 18% |
+| muon_layer | 43 | control | 30.05 | 6 / 40 | 19% |
 | muon | 42 | control | 30.27 | 24 / 40 | 63% |
 | muon | 43 | control | 30.05 | not reached / 40 | n/a |
 | muon_short | 42 | control | 30.27 | 20 / 20 | 52% |
