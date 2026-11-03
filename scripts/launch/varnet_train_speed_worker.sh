@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
-# One GPU's worker for the varnet_train_speed queue (reports/varnet_train_speed/proposal.md).
+# One GPU's worker for a training queue (written for reports/varnet_train_speed, reused by later studies).
 #
 # Jobs are lines of $QUEUE_DIR/jobs.txt:   <name>|<code snapshot dir>|<estimated minutes>|<hydra overrides...>
 # A worker claims the first job without a claim directory (mkdir is atomic, so workers never run the same job), runs it
 # from its code snapshot on its own GPU, and moves on. Lines can be appended while the workers run. A job whose
-# estimate would end past $DEADLINE (HH:MM tomorrow) is left unclaimed. A run that stops before its last epoch is rerun
-# from scratch (no resume) up to MAX_ATTEMPTS times; its log is kept as <name>.attemptN.log.
+# estimate would end past $DEADLINE is left unclaimed: HH:MM (the next one, within 12 h), a date such as
+# '2026-11-05 06:00', or none. A run that stops before its last epoch is rerun from scratch (no resume) up to
+# MAX_ATTEMPTS times; its log is kept as <name>.attemptN.log. Every job line must spell out training.num_epochs=N:
+# the done check looks for its last epoch. Runs log to the wandb group $RUN_GROUP as $RUN_PREFIX<name>.
 #
 #   QUEUE_DIR=~/data/seqmri_checkpoints/varnet_train_speed GPU=0 nohup setsid <copy of this script> > worker0.log 2>&1 &
 # Run a copy of this script that nothing edits (bash reads a script as it goes).
@@ -15,6 +17,8 @@ QUEUE_DIR="${QUEUE_DIR:?set QUEUE_DIR}"
 GPU="${GPU:?set GPU}"
 DEADLINE="${DEADLINE:-06:50}"
 MAX_ATTEMPTS="${MAX_ATTEMPTS:-3}"
+RUN_GROUP="${RUN_GROUP:-varnet_train_speed}"
+RUN_PREFIX="${RUN_PREFIX:-vts_}"
 PY="${PY:-/home/bkadota/code/active_mri/SeqMRI/.venv/bin/python}"
 GREP=/usr/bin/grep
 JOBS="$QUEUE_DIR/jobs.txt"
@@ -24,10 +28,12 @@ mkdir -p "$CLAIMS"
 stamp() { date '+%F %T'; }
 deadline_epoch() {
     local today_deadline
+    [[ "$DEADLINE" == none ]] && { echo 99999999999; return; }
+    [[ "$DEADLINE" =~ ^[0-9]{1,2}:[0-9]{2}$ ]] || { date -d "$DEADLINE" +%s; return; }
     today_deadline=$(date -d "today $DEADLINE" +%s)
     if (( today_deadline < $(date +%s) - 43200 )); then date -d "tomorrow $DEADLINE" +%s; else echo "$today_deadline"; fi
 }
-DEADLINE_EPOCH=$(deadline_epoch)
+DEADLINE_EPOCH=$(deadline_epoch) || exit 2
 
 other_gpu_users() { nvidia-smi -i "$GPU" --query-compute-apps=pid --format=csv,noheader | $GREP -v '^$' || true; }
 
@@ -41,10 +47,10 @@ run_job() {
         echo "$(stamp) start $name GPU $GPU attempt $attempt"
         (
             cd "$code" || exit 97
-            export PYTHONPATH="$code" CUDA_VISIBLE_DEVICES="$GPU" WANDB_RUN_GROUP=varnet_train_speed
+            export PYTHONPATH="$code" CUDA_VISIBLE_DEVICES="$GPU" WANDB_RUN_GROUP="$RUN_GROUP"
             set -f
             # shellcheck disable=SC2086
-            exec "$PY" train.py --model sequential $overrides output.out_dir="$out" output.run_name="vts_$name"
+            exec "$PY" train.py --model sequential $overrides output.out_dir="$out" output.run_name="$RUN_PREFIX$name"
         ) > "$log" 2>&1
         rc=$?
         if $GREP -qE "Epoch = \[ *$epochs/ *$epochs\]" "$log"; then
