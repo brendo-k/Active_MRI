@@ -1,0 +1,35 @@
+Manifest train set (volumes, slices): {'brain': (80, 1211), 'knee-PD': (40, 1369), 'knee-PDFS': (40, 1349)}
+Manifest val set (volumes, slices): {'brain': (40, 605), 'knee-PD': (20, 673), 'knee-PDFS': (20, 660)}
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+loss_domain_rss_r8_flair_knee_100ep_seed42: epoch 100  PSNR_Masked 33.623  SSIM_Masked 0.8600  NMSE 0.00544  phase std 0.485
+loss_domain_rss_r8_flair_knee_100ep_seed43: no checkpoint, skipped
+loss_domain_rss_r8_flair_knee_100ep_seed44: no checkpoint, skipped
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+loss_domain_rss_M_r8_flair_knee_100ep_seed42: epoch 100  PSNR_Masked 33.694  SSIM_Masked 0.8612  NMSE 0.00546  phase std 0.484
+loss_domain_rss_M_r8_flair_knee_100ep_seed43: no checkpoint, skipped
+loss_domain_rss_M_r8_flair_knee_100ep_seed44: no checkpoint, skipped
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+loss_domain_kspace_gt_r8_flair_knee_100ep_seed42: epoch 100  PSNR_Masked 31.230  SSIM_Masked 0.8499  NMSE 0.01609  phase std 0.485
+loss_domain_kspace_gt_r8_flair_knee_100ep_seed43: no checkpoint, skipped
+loss_domain_kspace_gt_r8_flair_knee_100ep_seed44: no checkpoint, skipped
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+loss_domain_complex_r8_flair_knee_100ep_seed42: epoch 100  PSNR_Masked 24.932  SSIM_Masked 0.7550  NMSE 0.04206  phase std 0.431
+loss_domain_complex_r8_flair_knee_100ep_seed43: no checkpoint, skipped
+loss_domain_complex_r8_flair_knee_100ep_seed44: no checkpoint, skipped
+
+Loss bar (arm - rss, PSNR_Masked dB, all val slices):
+  rss_M         s42 +0.071  mean +0.071  miss (incomplete)
+  kspace_gt     s42 -2.393  mean -2.393  miss (incomplete)
+  complex       s42 -8.692  mean -8.692  miss (incomplete)
+Mask bar (rss_M - rss): s42 +0.071  mean +0.071  miss
+Health: {"loss_domain_rss_M_r8_flair_knee_100ep_seed42": {"ssim_minus_twin": {"brain": 0.0012281057657346217, "knee-PD": 0.000998484563793367, "knee-PDFS": 0.0011117024845677115}, "pass": true}, "loss_domain_kspace_gt_r8_flair_knee_100ep_seed42": {"ssim_minus_twin": {"brain": -0.0038828495221803205, "knee-PD": -0.001130395605087875, "knee-PDFS": -0.025043830988659366}, "pass": false}, "loss_domain_complex_r8_flair_knee_100ep_seed42": {"ssim_minus_twin": {"brain": -0.1002967727228058, "knee-PD": -0.10586775054347608, "knee-PDFS": -0.10862641677599016}, "pass": false}, "twins": {"ssim": {"42": 0.8600435986902037}, "near_old_control": false, "below_bug_floor": false}}
+Mask correlation: {"rss_M vs rss seed42": 0.8302855878802848, "kspace_gt vs rss seed42": 0.6382742806878521, "complex vs rss seed42": 0.6144073740920407}
+eval exit 0

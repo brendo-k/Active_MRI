@@ -1,0 +1,31 @@
+Manifest train set (volumes, slices): {'brain': (80, 1211), 'knee-PD': (40, 1369), 'knee-PDFS': (40, 1349)}
+Manifest val set (volumes, slices): {'brain': (40, 605), 'knee-PD': (20, 673), 'knee-PDFS': (20, 660)}
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+rss           all       n=162 raw 33.795  gain 33.852  gain+off 33.932  mean ratio 0.997  lowfreq err 0.044
+rss           brain     n= 51 raw 33.273  gain 33.287  gain+off 33.306  mean ratio 0.999  lowfreq err 0.035
+rss           knee-PD   n= 56 raw 35.347  gain 35.409  gain+off 35.566  mean ratio 0.996  lowfreq err 0.059
+rss           knee-PDFS n= 55 raw 32.698  gain 32.791  gain+off 32.848  mean ratio 0.995  lowfreq err 0.036
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+rss_M         all       n=162 raw 33.862  gain 33.924  gain+off 34.010  mean ratio 0.996  lowfreq err 0.043
+rss_M         brain     n= 51 raw 33.363  gain 33.378  gain+off 33.398  mean ratio 0.999  lowfreq err 0.033
+rss_M         knee-PD   n= 56 raw 35.437  gain 35.498  gain+off 35.658  mean ratio 0.995  lowfreq err 0.058
+rss_M         knee-PDFS n= 55 raw 32.722  gain 32.828  gain+off 32.898  mean ratio 0.993  lowfreq err 0.038
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+kspace_gt     all       n=162 raw 31.502  gain 32.100  gain+off 33.910  mean ratio 0.933  lowfreq err 0.350
+kspace_gt     brain     n= 51 raw 31.945  gain 32.300  gain+off 33.436  mean ratio 0.959  lowfreq err 0.259
+kspace_gt     knee-PD   n= 56 raw 34.564  gain 34.793  gain+off 35.800  mean ratio 0.971  lowfreq err 0.228
+kspace_gt     knee-PDFS n= 55 raw 27.973  gain 29.171  gain+off 32.427  mean ratio 0.870  lowfreq err 0.559
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+complex       all       n=162 raw 25.315  gain 26.233  gain+off 27.732  mean ratio 0.902  lowfreq err 0.597
+complex       brain     n= 51 raw 26.109  gain 27.265  gain+off 28.026  mean ratio 0.943  lowfreq err 0.467
+complex       knee-PD   n= 56 raw 26.305  gain 26.769  gain+off 27.524  mean ratio 0.948  lowfreq err 0.589
+complex       knee-PDFS n= 55 raw 23.570  gain 24.730  gain+off 27.672  mean ratio 0.818  lowfreq err 0.726
+intensity_fit exit 0
