@@ -27,7 +27,7 @@ all 1938 val slices.
 | Mask bar: \|rss_M − rss\| ≥ 0.10 dB, same sign in every seed | +0.071 dB | not met (inconclusive at one seed) |
 | Health gate: per condition, SSIM_Masked no more than 0.01 below the rss twin | rss_M +0.001 in every condition; kspace_gt brain −0.004, PD −0.001, **PDFS −0.025**; complex −0.100 to −0.109 | rss_M pass; kspace_gt fail (PDFS); complex fail (expected) |
 | A complex miss is checked against the pseudo-output SSIM (0.837 / 0.873 / 0.669, brain / PD / PDFS) | 0.782 / 0.810 / 0.674 | below the pseudo-output in brain and PD (pseudo values from the round-1 loader and cache) |
-| AGENTS.md: SSIM_Masked < 0.80 means a bug | rss 0.860, rss_M 0.861, kspace_gt 0.850, **complex 0.755** | complex below; its cause was not re-diagnosed on this run |
+| AGENTS.md: SSIM_Masked < 0.80 means a bug | overall: rss 0.860, rss_M 0.861, kspace_gt 0.850, **complex 0.755**; knee-PDFS is below 0.80 in every arm (rss 0.783) | complex below overall; its cause was not re-diagnosed on this run. PDFS is SNR-limited (pre-launch QC in `proposal.md`: 0.72 at 1.5T vs 0.81 at 3T) |
 | Twin within 0.01 of the old control's 0.839 (informational since round 2) | 0.860 | not near; the old control had Ω on |
 | LOUPE mask correlation with the twin inside the rss seed-to-seed range (reported, no gate) | 0.83 / 0.64 / 0.61 (rss_M / kspace_gt / complex) | not evaluable: one rss seed |
 
@@ -35,7 +35,7 @@ all 1938 val slices.
 |---|---|---|
 | rss | slightly above round 1 (32.1 dB / 0.836), mostly in knee; brain about ±0.1 dB | 33.62 dB / 0.860: +1.7 brain, +1.8 PD, +1.1 PDFS |
 | rss_M | within ±0.1 dB of rss | +0.07 dB |
-| kspace_gt | sign unknown; darker than t in low-SNR tissue, PDFS most | −2.39 dB, PDFS −4.88; output mean 0.87 of t in PDFS; ties rss after an oracle gain+offset fit |
+| kspace_gt | sign unknown; darker than t in low-SNR tissue, PDFS most | −2.39 dB, PDFS −4.88; output mean 0.87 of t in PDFS; after an oracle gain+offset fit it ties overall (33.91 vs 33.93), PDFS −0.4 |
 | kspace_gt data consistency | stays at rss's level (19-50% error at sampled points) | not measured |
 | complex | well below rss; health-gate miss expected | −8.69 dB, SSIM −0.105 |
 | complex phase std | falls toward 0 | 0.431 rad vs 0.485 for rss |
@@ -141,8 +141,9 @@ and the new loss options.
 | complex | 24.93 / 0.755 | 25.57 / 0.782 | 25.95 / 0.810 | 23.30 / 0.674 | 0.0421 |
 | round-1 rss (Ω on, old flip) | 32.08 / 0.835 | 31.09 / 0.842 | 33.77 / 0.895 | 31.27 / 0.768 | — |
 
-Every round-2 arm except complex is above the 0.80 SSIM floor. The ranking is the same in every condition: rss_M ≈ rss >
-kspace_gt > complex.
+Overall, every round-2 arm except complex is above the 0.80 SSIM floor. Knee-PDFS is below 0.80 in every arm,
+including the control (0.783), because it is SNR-limited (`proposal.md`, pre-launch QC: PDFS 0.72 at 1.5T vs 0.81 at
+3T). complex is also below 0.80 in brain. The ranking is the same in every condition: rss_M ≈ rss > kspace_gt > complex.
 
 ### Paired differences against rss (PSNR_Masked dB, 95% CI over volumes, share of volumes where the arm is higher)
 
@@ -202,7 +203,8 @@ reference, so their size can't be judged.
   0.10 dB bar. One seed can't separate it from training noise, so there is no case for masking the image loss with M.
 - **kspace_gt, as scored, is worse than rss and fails the health gate in PDFS** (SSIM −0.025), so under the frozen
   rule its numbers are not trusted as a reconstruction-quality comparison. The deficit is a low-frequency intensity
-  offset: the output is darker, the error energy sits at low k, and the arm ties rss after an oracle gain+offset fit.
+  offset: the output is darker, and the error energy sits at low k. After an oracle gain+offset fit the arm ties rss
+  overall; PDFS is still 0.4 dB below.
   Hypothesis, untested: the cause is the RSS noise bias, which the measured (linear) k-space target lacks and the RSS
   target carries.
 - **complex is broken, not just offset.** Its SSIM of 0.755 is under the AGENTS.md floor, and it stays 6.2 dB below rss
@@ -244,8 +246,8 @@ reference, so their size can't be judged.
 
 1. **Ω on vs off on the fixed loader**, on its own branch. Use the RSS L1 with matched seeds, to attribute the +1.5 dB
    control gain before changing the default `sense_mask_method`.
-2. **Bring the brain flip fix `b25d2c5` to main.** Brain checkpoints trained on main score about 1 dB lower on the fixed
-   loader, so plan retraining, or keep the old flip only for evaluating old checkpoints.
+2. **Bring the brain flip fix `b25d2c5` to main.** Brain checkpoints trained on main would see shifted inputs on the
+   fixed loader, so plan retraining, or keep the old flip only for evaluating old checkpoints.
 3. **Rerun the round-1 diagnostics on round 2.** When a GPU is free, run `diag/complex_phase.py` and
    `diag/kspace_consistency.py` on the round-2 checkpoints to confirm complex's cause and measure kspace_gt's data
    consistency.
