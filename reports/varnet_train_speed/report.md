@@ -379,8 +379,9 @@ that it would finish before 06:50. Their job lines are in `~/data/seqmri_checkpo
   by lighter contention.
 - **Diagnostics measured before the default flip.** `bench.json`, `equivalence_switches.json` and
   `kernel_profile_contended.json` were measured before `66e5c44` made the fast path the default. Since that commit
-  their scripts pin the old values for the control (metrics every batch, images every epoch, eager coil ops), so a
-  rerun measures the same configurations.
+  their scripts pin the old values for the control (metrics every batch, images every epoch, eager coil ops). They
+  also pin `sampler.sense_mask_method=pre_network`, the default every run here used, which became null on main
+  afterwards (reports/sense_mask_varnet). A rerun therefore measures the same configurations.
 - **A rerun attempt.** muon_s42's first attempt ran out of GPU memory at 22:53, when an ad-hoc benchmark shared its
   GPU. It was rerun in full; only the rerun is reported.
 - **Untracked checkpoints.** Checkpoints are untracked, in `~/data/seqmri_checkpoints/varnet_train_speed`. The

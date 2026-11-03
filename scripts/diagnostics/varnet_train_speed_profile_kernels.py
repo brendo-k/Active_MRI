@@ -23,6 +23,7 @@ BASE = ['recon=varnet', 'datasets=fastmri_local_v1_flair_knee', 'misc.resolution
         'sampler.budget_over=acquired', 'training.num_step=1', 'training.batch_size=16', 'training.num_epochs=40',
         'training.lr_step_size=36', 'training.seed=42', 'sampler.sampler_type=loupe_2d', 'sampler.loupe_vd_init_power=4',
         'sampler.anatomy_conditioning=false', 'datasets.limit_volumes=0.2', 'recon.fused_coil_ops=false',
+        'sampler.sense_mask_method=pre_network',
         'output.out_dir=/tmp/claude-2081/prof_kernels']
 with initialize_config_dir(config_dir=os.path.join(repo, 'configs'), version_base=None):
     cfg = compose(config_name='config', overrides=BASE + extra)
