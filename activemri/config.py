@@ -57,7 +57,6 @@ class TrainConfig:
     selection: str = 'bernoulli'  # loupe_2d straight_through: 'bernoulli' draws, or 'dcm' = deterministic top-M of a VD prior minus the learned map (Sun et al., TCI 2024)
     dcm_vd_power: float = 4.0  # selection=dcm: exponent p of the acceptance prior ((D - r) / D)^p
     dcm_tau: float = 5.0  # selection=dcm: softmax temperature of the straight-through backward
-    valid_area_budget: bool = False  # 2D bernoulli samplers: the budget is the sparsity of each slice's acquired (non-zero-filled) k-space, not of the full grid
     logit_limit: float = 6.0  # conv_2d: scores are soft-clamped to +/- this before the sigmoid
     logit_leak: float = 0.01  # conv_2d: slope of the score beyond the clamp (keeps the gradient of pinned locations alive)
     adapt_grid: int = 16  # smooth_adapt_2d: side of the coarse offset grid (0 = no offset: a bounded LOUPE mask)

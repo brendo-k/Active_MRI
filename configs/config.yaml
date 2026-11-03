@@ -40,7 +40,6 @@ sampler:
   selection: bernoulli  # loupe_2d straight_through: bernoulli draws, or dcm = deterministic top-M of a VD prior minus the learned map (Sun et al., TCI 2024)
   dcm_vd_power: 4.0  # selection=dcm: exponent p of the acceptance prior ((D - r) / D)^p
   dcm_tau: 5.0  # selection=dcm: softmax temperature of the straight-through backward
-  valid_area_budget: false  # 2D bernoulli samplers: the sparsity applies to each slice's acquired (non-zero-filled) k-space instead of the full grid
   logit_limit: 6.0  # conv_2d: scores soft-clamped to +/- this before the sigmoid (p floor = sigmoid(-limit))
   logit_leak: 0.01  # conv_2d: slope of the score beyond the clamp, the gradient kept for pinned locations
   adapt_grid: 16  # smooth_adapt_2d: side of the coarse offset grid predicted from the calibration (0 = a bounded LOUPE mask)
