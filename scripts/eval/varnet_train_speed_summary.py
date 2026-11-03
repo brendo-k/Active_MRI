@@ -54,6 +54,36 @@ def epoch_time_table(curves):
     return '\n'.join(lines)
 
 
+def time_to_quality_table(curves):
+    """First epoch at which an arm's logged val PSNR_Masked reaches its same-seed control's last value, and the wall-clock
+    (train + val seconds from the run log, summed to that epoch) as a share of the control's whole run. Full-data arms
+    are compared with full_control, the others with control."""
+    runs = curves['runs']
+    lines = ['| arm | seed | control | control final PSNR | epoch reached / total | wall-clock to reach vs control run |',
+             '|---|---|---|---|---|---|']
+    for name, run in sorted(runs.items()):
+        arm, seed = run['arm'], run['seed']
+        control_arm = 'full_control' if arm.startswith('full_') else 'control'
+        control = runs.get(f'{control_arm}_s{seed}')
+        if arm == control_arm or control is None or not run['curve'] or 'num_epochs' not in run['curve'][-1]:
+            continue
+        if run['curve'][-1]['epoch'] != run['curve'][-1]['num_epochs']:
+            continue
+        target = control['curve'][-1].get('val/PSNR_Masked')
+        control_seconds = sum(c['train_time'] + c['val_time'] for c in control['curve'] if 'train_time' in c)
+        elapsed, reached = 0.0, None
+        for c in run['curve']:
+            elapsed += c.get('train_time', 0) + c.get('val_time', 0)
+            if c.get('val/PSNR_Masked', float('-inf')) >= target:
+                reached = (c['epoch'], elapsed)
+                break
+        total = run['curve'][-1]['num_epochs']
+        cell = f'{reached[0]} / {total}' if reached else f'not reached / {total}'
+        share = f'{100 * reached[1] / control_seconds:.0f}%' if reached else 'n/a'
+        lines.append(f'| {arm} | {seed} | {control_arm} | {target:.2f} | {cell} | {share} |')
+    return '\n'.join(lines)
+
+
 def final_table(evaluation):
     by_arm = defaultdict(dict)
     for name, row in evaluation['per_run'].items():
@@ -102,6 +132,8 @@ def main():
     curves = load(folder, 'curves.json')
     if curves:
         parts += ['## Epoch times in the training runs (curves.json; median over epochs 2+)', '', epoch_time_table(curves), '']
+        parts += ['## Time to the control final quality (curves.json; trainer val PSNR_Masked per epoch)', '',
+                  time_to_quality_table(curves), '']
     for name, control in (('eval.json', 'control'), ('eval_vs_short.json', 'control_short'), ('eval_vs_10ep.json', 'control_10ep'),
                           ('eval_vs_full.json', 'full_control')):
         evaluation = load(folder, name)
