@@ -11,9 +11,18 @@ from pathlib import Path
 import numpy as np
 import torch
 
+import _path  # noqa: F401  (activemri, for unpickling the checkpoints' options)
+
 QUEUE_DIR = Path('~/data/seqmri_checkpoints/varnet_train_speed').expanduser()
 RUN_NAME = re.compile(r'(?P<arm>.+)_s(?P<seed>\d+)$')
 RINGS = ((0, 20), (20, 40), (40, 80), (80, 120), (120, 160), (160, 230))
+EPOCH_LINE = re.compile(r'Epoch = \[ *(\d+)/ *(\d+)\]')
+
+
+def finished(run_dir):
+    log = run_dir.with_suffix('.log')
+    epochs = EPOCH_LINE.findall(log.read_text()) if log.exists() else []
+    return bool(epochs) and epochs[-1][0] == epochs[-1][1]
 
 
 def probabilities(run_dir):
@@ -24,7 +33,7 @@ def probabilities(run_dir):
 
 def main():
     runs = sorted(p for p in QUEUE_DIR.iterdir() if p.is_dir() and RUN_NAME.match(p.name) and '.attempt' not in p.name
-                  and not p.is_symlink() and (p / 'last_model.pt').exists())
+                  and not p.is_symlink() and (p / 'last_model.pt').exists() and finished(p))
     masks = {run.name: probabilities(run) for run in runs}
     height, width = next(iter(masks.values())).shape
     yy, xx = np.mgrid[:height, :width]

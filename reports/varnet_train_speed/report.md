@@ -9,9 +9,33 @@ PROVENANCE_BLOCK
 
 ## Proposal vs outcome
 
-CRITERIA_TABLE
+Frozen criteria, read as same-seed paired deltas against the control (see Methods 7). Pre-freeze arms come first,
+then post-freeze ones.
 
-**Recommendation:** RECOMMENDATION
+| criterion (frozen) | arm | evidence | met? |
+|---|---|---|---|
+| Exact change: outputs match (bitwise or ≤1e-5 rel.) and step/epoch time −5% or more | trainer switches | bitwise-identical weights and RNG; bench step −12% | **met** |
+| same | `fused_coil_ops` | 1e-15 (float64), ≤8e-7 (float32); bench −7% on top of the switches; fast path −11% per epoch in a 40-epoch run | **met** |
+| same | channels-last (inductor layout) | +11% slower with InstanceNorm | not met |
+| "Better": epoch-40 PSNR ≥ control + 0.1 dB in every seed, no SSIM loss | norm_layer, 20% data, 3 seeds | +0.79 / +0.88 / +0.59 dB; SSIM +0.019 / +0.021 / +0.009 | **met** |
+| same | muon, 20% data, 2 seeds | +0.10 / −0.37 dB | not met: inconclusive |
+| "Worse": below control − 0.1 dB in every seed | norm_none, norm_chln (1 seed each) | −0.37, −0.39 dB | met: worse |
+| "Faster": time-to-quality ≤75% and final ≥ control − 0.1 dB | norm_layer | 46% / 43% / 54% of the control's wall-clock; finals above | met, but the measure is noisy: an exact replicate scored 37% |
+| same | muon, 20% data | 63% (s42); never reached (s43) | not met |
+| post-freeze, same "better" bar | full_muon, full data, 12 epochs, 2 seeds | +0.26 / +0.45 dB (20% val), +0.41 / +0.43 (all val); 69% / 52% time-to-quality | met (post-freeze) |
+| same | full_norm_layer, 2 seeds | +0.02 / +0.05 dB | not met: null at full data |
+
+**Recommendation:** **merge** the exact fast path, and flip its defaults: `training.train_metrics_every=10`,
+`training.visualize_every=10`, `recon.fused_coil_ops=true`. That is −11% wall-clock per epoch with the training math
+unchanged.
+
+Do **not** yet flip `recon.norm` or `training.optimizer`:
+- LayerNorm is a robust +0.75 dB win on 20% of the data that vanishes at full data in a 12-epoch run.
+- Muon is the reverse: +0.36 dB at full data, inconsistent at 20%.
+- Run the full-data 100-epoch 2×2 first (Next steps 2).
+
+For small-data studies, such as per-anatomy subsets, LayerNorm can be switched on now. This is a recommendation only;
+the verdict is the user's.
 
 ## Question
 
@@ -114,9 +138,9 @@ number.
 |---|---|---|---|---|
 | control | 1774 | 69.9 (3 runs) | 17.1 | reference |
 | + switches (`train_metrics_every=10`, `visualize_every=10`) | 1565 (−12%) | (in fast) | (in fast) | bitwise-identical weights and RNG after 2 epochs |
-| + `fused_coil_ops` = fast path | 1449 (−18%) | FAST_TRAIN | FAST_VAL | 1e-15 (float64), ≤8e-7 (float32) vs eager |
+| + `fused_coil_ops` = fast path | 1449 (−18%) | 61.5 (−12%) | 15.7 (−8%) | 1e-15 (float64), ≤8e-7 (float32) vs eager |
 
-- **Whole epoch.** In a real 40-epoch run (fast_s42 vs control_s42, 20% data), the fast path cuts FAST_EPOCH_PCT
+- **Whole epoch.** In a real 40-epoch run (fast_s42 vs control_s42, 20% data), the fast path cuts 11% (77.5 vs 87.0 s, medians over epochs 2–40); the run ends −0.11 dB [−0.26, +0.03] from control_s42, within same-seed noise
   per epoch, train plus validation. The benchmark's −18% per step is an upper bound: it spreads the control's
   per-epoch visualisation over 24 batches instead of 49.
 - **Full data.** The fast path trains an epoch in 302 s and validates in 72 s. The old-code full-data run of the same
@@ -130,24 +154,46 @@ number.
 
 ### 2. Convergence on 20% of the data
 
-TABLE_20PCT
+Final validation scores by the eval script (last_model.pt, 2 mask draws), mean over seeds [range], against the
+same-seed control:
+
+| arm | epochs | seeds | PSNR (all) | SSIM | brain PSNR | knee-PD PSNR | knee-PDFS PSNR | ΔPSNR vs same-seed control (per seed) |
+|---|---|---|---|---|---|---|---|---|
+| control | 40 | 3 | 30.25 [30.02, 30.45] | 0.800 | 29.58 | 32.33 | 28.61 | (reference) |
+| control_short | 20 | 2 | 30.04 [30.01, 30.07] | 0.797 | 29.57 | 31.83 | 28.54 | −0.21, −0.01 |
+| fast (exact) | 40 | 1 | 30.17 | 0.794 | 29.02 | 32.42 | 28.78 | −0.11 |
+| **norm_layer** | 40 | 3 | **31.00 [30.90, 31.07]** | **0.816** | **31.03** | 32.62 | 29.23 | **+0.79, +0.88, +0.59** |
+| norm_layer_short | 20 | 2 | 30.40 [30.32, 30.48] | 0.809 | 30.54 | 31.99 | 28.56 | +0.20, +0.30 |
+| norm_layer_casc | 40 | 1 | 30.89 | 0.816 | 31.10 | 32.53 | 28.92 | +0.61 |
+| muon | 40 | 2 | 30.01 [29.65, 30.38] | 0.804 | 29.19 | 32.79 | 27.76 | +0.10, −0.37 |
+| muon_short | 20 | 2 | 29.72 [29.13, 30.31] | 0.792 | 29.08 | 31.94 | 27.90 | +0.03, −0.90 |
+| norm_none | 40 | 1 | 29.91 | 0.794 | 29.89 | 31.11 | 28.64 | −0.37 |
+| norm_chln | 40 | 1 | 29.88 | 0.795 | 29.89 | 31.03 | 28.65 | −0.39 |
+
+95% CIs over volumes and the per-condition deltas are in `summary.md`. For LayerNorm the CI of the overall delta
+excludes 0 in every seed: [+0.40, +1.17], [+0.50, +1.25], [+0.36, +0.81].
 
 - **Control.** It plateaus by about epoch 13 at lr 1e-3, and the lr step adds 0.1–0.3 dB. A 20-epoch schedule
   (step at 18) ends −0.21 and −0.01 dB below the 40-epoch run of the same seed, within the same-seed noise
   (±0.28 dB).
-- **LayerNorm (GroupNorm(1, C)) beats the control in all three seeds:** +0.79, +0.84 and +0.59 dB, with SSIM
-  +0.016–0.020.
+- **LayerNorm (GroupNorm(1, C)) beats the control in all three seeds:** +0.79, +0.88 and +0.59 dB, with SSIM
+  +0.009 to +0.021.
   - It starts slower, crosses the control around epoch 15–19 and keeps improving to epoch 40, while the control
     stays flat.
-  - It reaches the same-seed control's final PSNR at epochs 17, 19 and 15, at about 46% of the control's
+  - It reaches the same-seed control's final PSNR at epochs 17, 16 and 20: 46%, 43% and 54% of the control's
     wall-clock, despite +6% per epoch.
+    - That measure is noisy on a plateau. The exact replicate fast_s42 reached control_s42's final at epoch 16
+      (37%).
+    - The final paired deltas are the robust evidence.
+    - At half the epochs, norm_layer_short still ends +0.20 / +0.30 dB above the 40-epoch control.
   - Its train loss stays higher (0.0753 vs 0.0695 at epoch 40, s42): it overfits the 772 slices less.
-  - The gain is largest in brain FLAIR (+1.8 dB in seed 42, all 8 volumes better), then knee PDFS (+0.5) and knee PD (+0.2).
+  - The gain is largest in brain FLAIR (+1.77 / +1.73 / +0.87 dB; all 8 volumes better in seed 42), then knee PDFS
+    (+0.53 / +0.60 / +0.71) and knee PD (+0.20 / +0.43 / +0.23).
   - The learned mask correlates 0.91 with the control's, as two control seeds do, so the gain is mostly in the
     reconstructor (`masks.json`).
-  - LayerNorm in the cascades only (norm_layer_casc): CASC_RESULT.
+  - LayerNorm in the cascades only (norm_layer_casc): +0.61 dB overall and +1.76 dB brain (seed 42), so about three quarters of the gain comes from the cascades, not the sensitivity net.
 - **Muon is inconsistent on 20% data.**
-  - At 40 epochs, seed 42 is +0.13 dB and seed 43 is MUON_S43_DELTA.
+  - At 40 epochs, seed 42 is +0.10 dB and seed 43 is −0.37 dB (2-seed mean −0.14; the per-condition pattern is consistent: knee PD +0.48/+0.51, knee PDFS −0.54/−1.16).
   - At 20 epochs, seeds 42 and 43 are +0.24 and −0.89 against the same-seed 20-epoch control.
   - Its train loss is always lower than the control's, so it fits faster and generalises unevenly on little data.
 - **No normalisation and channel LayerNorm are worse** (one seed each): −0.37 and −0.39 dB overall. Brain is
@@ -157,7 +203,23 @@ TABLE_20PCT
 
 ### 3. Full data, 12 epochs (step at 11), exact fast path
 
-TABLE_FULL
+Full-data runs, final epoch.
+- **Trainer validation, all 1,938 val slices:**
+  - control 31.35 / 31.02 (seeds 42 / 43);
+  - Muon 31.76 / 31.45;
+  - LayerNorm 31.41 / 31.11.
+- **Eval script, 20% val subset**, paired against the same-seed full-data control (`eval_vs_full.json`):
+
+| arm (full data, 12 epochs) | seeds | PSNR (20% val) | SSIM | ΔPSNR vs full_control per seed [95% CI] | ΔSSIM |
+|---|---|---|---|---|---|
+| full_control | 2 | 30.89 [30.75, 31.02] | 0.806 | (reference) | |
+| **full_muon** | 2 | **31.24 [31.20, 31.28]** | **0.812** | **+0.26 [−0.06, +0.57], +0.45 [+0.25, +0.65]** | +0.003, +0.010 |
+| full_norm_layer | 2 | 30.92 [30.80, 31.05] | 0.804 | +0.02 [−0.13, +0.17], +0.05 [−0.14, +0.25] | +0.001, −0.004 |
+| fulldata_ref (100 epochs) | 1 | 31.57 | 0.817 | +0.55 | +0.009 |
+| norm_layer (20% data, 40 epochs) | 2 | 30.98 | 0.815 | +0.04, +0.15 | +0.009, +0.012 |
+
+LayerNorm on 20% of the data and 40 epochs matches the full-data control at 12 epochs: brain +1.0 / +1.2 dB,
+knee PDFS −0.6 dB.
 
 - **Muon gives +0.41 and +0.43 dB** (trainer validation on all 1,938 val slices; seeds 42 and 43), with SSIM
   +0.008 and +0.012.
@@ -169,11 +231,47 @@ TABLE_FULL
 
 ### 4. Where LayerNorm's validation L1 goes
 
-ERROR_SPLIT
+`error_split.json` (one mask draw) separates the training loss (full-image L1) from the metric:
+
+| run | L1 inside metric mask | L1 outside | full-image L1 | output / target background mean |
+|---|---|---|---|---|
+| control s42 / s43 / s44 | 0.0475 / 0.0493 / 0.0462 | 0.142 / 0.145 / 0.150 | 0.095 / 0.097 / 0.099 | 0.045 / 0.045 / 0.039 vs 0.176 |
+| norm_layer s42 / s43 / s44 | **0.0424 / 0.0432 / 0.0421** | 0.155 / 0.156 / 0.155 | 0.101 / 0.102 / 0.101 | 0.029 / 0.027 / 0.027 vs 0.176 |
+| full_control s42 / s43 | 0.0423 / 0.0433 | 0.145 / 0.147 | 0.095 / 0.096 | 0.038 / 0.037 vs 0.176 |
+| full_muon s42 / s43 | 0.0417 / 0.0418 | 0.136 / 0.139 | 0.089 / 0.091 | 0.048 / 0.045 vs 0.176 |
+
+- **LayerNorm is better inside the metric mask:** in-mask L1 is 9–12% lower than the control's.
+- **Its full-image L1 is higher only because of the background.** It renders the background darker (mean 0.027–0.029
+  against the control's 0.039–0.045), further below the RSS target's noise floor (0.176).
+- **The trainer's val loss therefore disagrees with its PSNR_Masked for LayerNorm.** The loss includes the
+  background; PSNR_Masked does not.
+- **Full-data Muon is better in both regions.**
 
 ## Conclusions
 
-CONCLUSIONS
+- **Exact fast path: adopt.** Trainer switches plus fused coil ops cut a 20%-data epoch by 11% (train −12%, val −8%)
+  with unchanged math: bitwise for the switches, float rounding for the fused ops. A full-data epoch now takes
+  302 + 72 s. Channels-last does not help.
+- **Data size decides which convergence change helps.** On 772 training slices, the control stops improving after
+  about epoch 13. On 3,929 slices it is still improving at epoch 12.
+  - **LayerNorm, 20% data: +0.75 dB mean** (3/3 seeds, every volume CI above 0), mostly brain FLAIR and mostly from
+    the cascades.
+    - It matches, at 20 epochs, what the control reaches at 40.
+    - It lowers the in-tissue error; its background comes out darker.
+    - At full data (12 epochs) it is null: +0.04 dB.
+  - **Muon, full data: +0.36 dB** (20% val subset) **/ +0.42 dB** (all val), in 2/2 seeds, reaching the control's
+    12-epoch quality at 52–69% of the wall-clock. On 20% data it is inconsistent (+0.10 / −0.37 at 40 epochs).
+  - **Hypothesis, untested causally:** LayerNorm regularises (higher train loss, later plateau) and Muon optimises
+    faster (lower train loss everywhere). That pattern would make each useful where the other is not.
+- **Schedule, 20% data:** a 20-epoch schedule is within 0.1 dB of 40 epochs (−0.21 / −0.01), so short-data
+  experiments can halve their epochs.
+- **Rejected:** no normalisation (12% faster per step but unstable, −0.37 dB), per-pixel channel LayerNorm
+  (−0.39 dB) and channels-last.
+- **Muon + LayerNorm:** COMBO_CONCLUSION
+- **Net effect on the time to a given quality,** combining the fast path with the arm's time-to-quality:
+  - 20% data: about 0.5× (LayerNorm; quality at 20 epochs ≥ the control's 40) × 0.89 (fast path).
+  - Full data, early training: about 0.6× (Muon) × 0.89.
+  These are untested at 100 epochs.
 
 ## Caveats
 
