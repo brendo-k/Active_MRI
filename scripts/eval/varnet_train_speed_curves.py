@@ -43,11 +43,10 @@ def run_curves(api, path):
         if not match:
             continue
         history = defaultdict(dict)
-        for row in run.scan_history(keys=['epoch', 'val/PSNR_Masked']):
-            history[int(row['epoch']) + 1]['val/PSNR_Masked'] = row['val/PSNR_Masked']
-        for key in KEYS[2:]:
+        for key in KEYS[1:]:
             for row in run.scan_history(keys=['epoch', key]):
-                history[int(row['epoch']) + 1][key] = row[key]
+                if row.get('epoch') is not None and row.get(key) is not None:
+                    history[int(row['epoch']) + 1][key] = row[key]
         name = run.name.removeprefix('vts_')
         times = log_epochs(name)
         epochs = sorted(set(history) | set(times))
