@@ -1,0 +1,102 @@
+{
+  "checkpoint": "epoch20_model.pt",
+  "select": "abs",
+  "shown": [
+    "brain",
+    "knee-PD"
+  ],
+  "epochs": {
+    "pi": 19,
+    "poisson": 19,
+    "loupe": 19,
+    "loupe_anat": 19
+  },
+  "scan": {
+    "brain": {
+      "n_slices": 30,
+      "n_skipped_off_budget": 0,
+      "mean_gap_db": -0.045178922017415364,
+      "std_gap_db": 0.15962654461744002,
+      "selected_gap_db": -0.4579963684082031,
+      "score": 0.4579963684082031,
+      "max_gap_db": 0.24414443969726562,
+      "min_gap_db": -0.4579963684082031
+    },
+    "knee-PD": {
+      "n_slices": 13,
+      "n_skipped_off_budget": 0,
+      "mean_gap_db": 0.0017618032602163462,
+      "std_gap_db": 0.02481680923690654,
+      "selected_gap_db": 0.07678985595703125,
+      "score": 0.07678985595703125,
+      "max_gap_db": 0.07678985595703125,
+      "min_gap_db": -0.03594207763671875
+    },
+    "knee-PDFS": {
+      "n_slices": 17,
+      "n_skipped_off_budget": 0,
+      "mean_gap_db": -0.05953373628504136,
+      "std_gap_db": 0.08428886199845176,
+      "selected_gap_db": -0.2821159362792969,
+      "score": 0.2821159362792969,
+      "max_gap_db": 0.03496551513671875,
+      "min_gap_db": -0.2821159362792969
+    }
+  },
+  "slices": {
+    "brain": {
+      "fname": "file_brain_AXFLAIR_202_6000455.h5",
+      "slice_id": 5
+    },
+    "knee-PD": {
+      "fname": "file1001193.h5",
+      "slice_id": 17
+    }
+  },
+  "panels": {
+    "brain": {
+      "pi": {
+        "psnr": 34.23431396484375,
+        "ssim": 0.8628999590873718,
+        "fraction": 0.1262969970703125
+      },
+      "poisson": {
+        "psnr": 35.36104965209961,
+        "ssim": 0.8870884776115417,
+        "fraction": 0.12591552734375
+      },
+      "loupe": {
+        "psnr": 35.381561279296875,
+        "ssim": 0.8873929381370544,
+        "fraction": 0.1255340576171875
+      },
+      "loupe_anat": {
+        "psnr": 34.835994720458984,
+        "ssim": 0.8819605112075806,
+        "fraction": 0.1260528564453125
+      }
+    },
+    "knee-PD": {
+      "pi": {
+        "psnr": 36.48637771606445,
+        "ssim": 0.9021844267845154,
+        "fraction": 0.1262969970703125
+      },
+      "poisson": {
+        "psnr": 36.851627349853516,
+        "ssim": 0.9065163731575012,
+        "fraction": 0.12591552734375
+      },
+      "loupe": {
+        "psnr": 36.93391418457031,
+        "ssim": 0.906829833984375,
+        "fraction": 0.124755859375
+      },
+      "loupe_anat": {
+        "psnr": 36.987831115722656,
+        "ssim": 0.9089980125427246,
+        "fraction": 0.12542724609375
+      }
+    }
+  }
+}

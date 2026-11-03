@@ -12,6 +12,7 @@ data, runs, commands, result hashes), `run.sh` (regenerates every result file) a
 |---|---|
 | `metric_mask_reeval_r8/` | Does the new metric mask change the ranking of the R=8 / R=4 checkpoints? |
 | `varnet_caipi_promptmr_anatcond_r4/` | Does an anatomy label help a PromptMR+-style VarNet on fixed CAIPI R=4 sampling? |
+| `sense_mask_varnet/` | Does the body multiply on the sensitivity maps help a 12-cascade VarNet? Exploratory, 1 seed: `null` beat `pre_network` by 1.26 dB; `null` is now the default. |
 | `varnet_train_speed/` | How much faster can 1-step LOUPE + VarNet (R=8) train? Exact fast path adopted as the default; Muon and LayerNorm opt-in |
 
 ## Planning reports
