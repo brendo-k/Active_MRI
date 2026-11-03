@@ -51,9 +51,16 @@ def run_curves(api, path):
         name = run.name.removeprefix('vts_')
         times = log_epochs(name)
         epochs = sorted(set(history) | set(times))
-        runs[name] = {'arm': match['arm'], 'seed': int(match['seed']), 'wandb_id': run.id, 'state': run.state,
-                      'curve': [{'epoch': e, **history.get(e, {}), **times.get(e, {})} for e in epochs]}
+        entry = {'arm': match['arm'], 'seed': int(match['seed']), 'wandb_id': run.id, 'state': run.state,
+                 'created_at': run.created_at, 'curve': [{'epoch': e, **history.get(e, {}), **times.get(e, {})} for e in epochs]}
+        if name not in runs or _rank(entry) > _rank(runs[name]):
+            runs[name] = entry  # a crashed attempt logs under the same name as its rerun
     return runs
+
+
+def _rank(entry):
+    """Which of several wandb runs with one name to keep: finished first, then the most epochs, then the newest."""
+    return (entry['state'] == 'finished', len(entry['curve']), entry['created_at'])
 
 
 def summarise(runs):
