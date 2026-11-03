@@ -176,6 +176,7 @@ test (1 epoch, wandb off) passed before this, on all 4 GPUs: every arm had the i
 - After wave 4 every criterion can be decided.
 
 **Time.** About 43-45 h in all, so the ETA is about 08:00-10:00 PST on 2026-11-05, plus about 1 h of eval.
+The eval also runs on GPUs 0-1, once the queue drains.
 
 **Effect on criterion C.** "The arms of one seed train at the same time" now holds only for `muon_layer` and
 `control`, which share waves 1 and 3. `muon` and `layer` train in a different wave from their control. Every wave runs
