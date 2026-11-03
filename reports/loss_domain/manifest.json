@@ -1,10 +1,10 @@
 {
   "schema": 1,
-  "generated_at": "2026-11-03T07:07:39+00:00",
+  "generated_at": "2026-11-03T17:37:47+00:00",
   "code": {
-    "produced_at": "82de7c48acf172ceef29d036cbf2ce4c415ccb67",
-    "produced_at_subject": "loss_domain: let intensity_fit.py take a runs root and arm list (round 2)",
-    "head": "82de7c48acf172ceef29d036cbf2ce4c415ccb67",
+    "produced_at": "4b7122ddf1b9e77f3bf2600f9150785d9e8ffe96",
+    "produced_at_subject": "loss_domain: diagnose the complex arm's SSIM < 0.80 on the round-2 checkpoint",
+    "head": "4b7122ddf1b9e77f3bf2600f9150785d9e8ffe96",
     "branch": "exp/loss_domain",
     "dirty_tracked_files": [],
     "scripts": [
@@ -22,6 +22,14 @@
       },
       {
         "path": "reports/loss_domain/diag/plot_masks.py",
+        "changed_since_produced_at": false
+      },
+      {
+        "path": "reports/loss_domain/diag/complex_ssim.py",
+        "changed_since_produced_at": false
+      },
+      {
+        "path": "reports/loss_domain/diag/complex_cascades.py",
         "changed_since_produced_at": false
       }
     ]
@@ -68,7 +76,7 @@
       "num_coils": 20,
       "num_workers": 8
     },
-    "note": "local v1 val: brain FLAIR 40 volumes / 605 slices, knee-PD 20 / 673, knee-PDFS 20 / 660 (1938 slices), 320x320, two fixed mask draws per slice; intensity_fit uses every 12th val slice (162)"
+    "note": "local v1 val: brain FLAIR 40 volumes / 605 slices, knee-PD 20 / 673, knee-PDFS 20 / 660 (1938 slices), 320x320, two fixed mask draws per slice; intensity_fit and the complex diagnostics use every 12th val slice (162), complex_ssim also every 24th train slice (164), one mask draw"
   },
   "runs": [
     {
@@ -231,7 +239,9 @@
     "python scripts/eval/eval_loss_domain.py --runs-root ~/data/seqmri_checkpoints/loss_domain/runs_v2 --out reports/loss_domain/eval_v2 > reports/loss_domain/eval_v2/eval.log 2>&1",
     "python reports/loss_domain/diag/intensity_fit.py ~/data/seqmri_checkpoints/loss_domain/runs_v2 rss rss_M kspace_gt complex > reports/loss_domain/diag/intensity_fit_v2.txt 2>&1",
     "python reports/loss_domain/diag/mask_overlap.py > reports/loss_domain/diag/mask_overlap.txt 2>&1",
-    "python reports/loss_domain/diag/plot_masks.py --out reports/loss_domain/diag/masks.png"
+    "python reports/loss_domain/diag/plot_masks.py --out reports/loss_domain/diag/masks.png",
+    "python reports/loss_domain/diag/complex_ssim.py ~/data/seqmri_checkpoints/loss_domain/runs_v2 > reports/loss_domain/diag/complex_ssim_v2.txt 2>&1",
+    "python reports/loss_domain/diag/complex_cascades.py ~/data/seqmri_checkpoints/loss_domain/runs_v2 > reports/loss_domain/diag/complex_cascades_v2.txt 2>&1"
   ],
   "results": [
     {
@@ -245,9 +255,29 @@
       "sha256": "56a03c84d79e78a8"
     },
     {
+      "path": "diag/complex_cascades.py",
+      "bytes": 4672,
+      "sha256": "8004691655e7ba8d"
+    },
+    {
+      "path": "diag/complex_cascades_v2.txt",
+      "bytes": 3037,
+      "sha256": "4e87df892614543e"
+    },
+    {
       "path": "diag/complex_phase.py",
       "bytes": 4097,
       "sha256": "9d95b30ba250a7dd"
+    },
+    {
+      "path": "diag/complex_ssim.py",
+      "bytes": 6383,
+      "sha256": "0d47ea6e0e8f231e"
+    },
+    {
+      "path": "diag/complex_ssim_v2.txt",
+      "bytes": 5489,
+      "sha256": "0cbcefd02c921a0d"
     },
     {
       "path": "diag/cross_loss.py",

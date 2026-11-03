@@ -2,14 +2,15 @@
 
 | | |
 |---|---|
-| Code | results produced at `82de7c4` (loss_domain: let intensity_fit.py take a runs root and arm list (round 2)); branch `exp/loss_domain` |
+| Code | results produced at `4b7122d` (loss_domain: diagnose the complex arm's SSIM < 0.80 on the round-2 checkpoint); branch `exp/loss_domain` |
 | Metric mask | **apodized**: k-space-apodized per-anatomy mask (activemri/utils/metric_mask.py), the trainer metric since 2026-10-20 |
 | Runs | 4 checkpoint directories under `checkpoints/` (untracked; names, overrides, wandb ids in `manifest.json`) |
-| Results | 25 files next to this report, hashed in `manifest.json` |
+| Results | 29 files next to this report, hashed in `manifest.json` |
 | Reproduce | `bash run.sh` from the repo root |
 
 - **Status:** awaiting the human verdict.
-- **Branch:** `exp/loss_domain`. Runs trained at `676675b` (clean tree); results produced at `82de7c4`.
+- **Branch:** `exp/loss_domain`. Runs trained at `676675b` (clean tree); results produced at `82de7c4` (eval, intensity
+  fit) and `4b7122d` (complex diagnostics); the eval and fit scripts are unchanged between the two.
 - **Seeds:** seed 42 only. The frozen criteria ask for seeds 42-44. On 2026-11-02 the user dropped seeds 43-44
   because the effect sizes are large. That covers the kspace_gt and complex verdicts. rss_M's +0.07 dB stays
   inconclusive at one seed.
@@ -27,7 +28,7 @@ all 1938 val slices.
 | Mask bar: \|rss_M − rss\| ≥ 0.10 dB, same sign in every seed | +0.071 dB | not met (inconclusive at one seed) |
 | Health gate: per condition, SSIM_Masked no more than 0.01 below the rss twin | rss_M +0.001 in every condition; kspace_gt brain −0.004, PD −0.001, **PDFS −0.025**; complex −0.100 to −0.109 | rss_M pass; kspace_gt fail (PDFS); complex fail (expected) |
 | A complex miss is checked against the pseudo-output SSIM (0.837 / 0.873 / 0.669, brain / PD / PDFS) | 0.782 / 0.810 / 0.674 | below the pseudo-output in brain and PD (pseudo values from the round-1 loader and cache) |
-| AGENTS.md: SSIM_Masked < 0.80 means a bug | overall: rss 0.860, rss_M 0.861, kspace_gt 0.850, **complex 0.755**; knee-PDFS is below 0.80 in every arm (rss 0.783) | complex below overall; its cause was not re-diagnosed on this run. PDFS is SNR-limited (pre-launch QC in `proposal.md`: 0.72 at 1.5T vs 0.81 at 3T) |
+| AGENTS.md: SSIM_Masked < 0.80 means a bug | overall: rss 0.860, rss_M 0.861, kspace_gt 0.850, **complex 0.755**; knee-PDFS is below 0.80 in every arm (rss 0.783) | complex below overall. Debugged on the round-2 checkpoint: no code or metric bug found. Its ESPIRiT target phase is one the model reaches only by giving up data consistency, and only on training slices (Results, last section). PDFS is SNR-limited (pre-launch QC in `proposal.md`: 0.72 at 1.5T vs 0.81 at 3T) |
 | Twin within 0.01 of the old control's 0.839 (informational since round 2) | 0.860 | not near; the old control had Ω on |
 | LOUPE mask correlation with the twin inside the rss seed-to-seed range (reported, no gate) | 0.83 / 0.64 / 0.61 (rss_M / kspace_gt / complex) | not evaluable: one rss seed |
 
@@ -113,7 +114,10 @@ and the new loss options.
    - Each run's `last_model.pt` is scored on all 1938 val slices with two fixed mask draws (torch seeds 1234 and
      4321), averaged per slice.
    - Metrics are PSNR_Masked = 10·log10(max(t)² / masked MSE), NMSE and SSIM_Masked, all inside the apodized metric
-     mask.
+     mask. Every arm is scored on its RSS output against t, not against its own training target.
+   - SSIM_Masked (`activemri/utils/metrics.py`, `masked_ssim`) is skimage's SSIM map with its defaults: 7×7 uniform
+     window, K1 0.01, K2 0.03, sample covariance, float64, and data range = the slice's max(t). The map is averaged
+     over the metric-mask pixels of the (H−6)×(W−6) interior, per slice.
    - The paired difference is arm minus rss, per slice. It is reported as the mean over slices with a 95% bootstrap
      CI over volumes (2000 resamples of the 80 volumes, slice-weighted). That CI covers slice and volume variability
      within one trained model. It does not cover training-seed spread, which is 0.3-0.5 dB.
@@ -128,6 +132,22 @@ and the new loss options.
    - It also gives the output/target mean ratio, and the share of the masked error's energy at k-space radius < 16 px.
 4. **Pre-launch mask diagnostics**, which led to Ω being turned off: `reports/loss_domain/diag/mask_overlap.py`
    (`diag/mask_overlap.txt`) and `reports/loss_domain/diag/plot_masks.py` (`diag/masks.png`).
+5. **complex SSIM diagnostic** (`reports/loss_domain/diag/complex_ssim.py`, output `diag/complex_ssim_v2.txt`).
+   - It runs the rss and complex checkpoints on every 24th train slice (164) and every 12th val slice (162), in eval
+     mode, with one mask draw (seed 1234).
+   - It reports the scored metrics and the SSIM against |x_E|, and recomputes the complex loss as trained:
+     mean |Σ_c conj(S_c)·F⁻¹(F(S_c·x̂)·E) − x_E| over the grid. It recomputes that loss again with x̂ given x_E's
+     phase.
+   - Its phase readouts are medians over tissue (metric mask ∩ |x_E| > 0.3·max) of |∠(x̂·conj x_E)|, and of the same
+     angle for Σ_c conj(S_c)·coil_c, the image the fully sampled data give through the arm's maps.
+   - The data error is ‖F(S·x̂) − k‖ / ‖k‖ over the sampled points.
+   - The ceiling scores x̂ = x_E through the arm's own maps and extent.
+6. **Per-cascade probe** (`reports/loss_domain/diag/complex_cascades.py`, output `diag/complex_cascades_v2.txt`).
+   - It runs on the same 162 val slices and mask draw.
+   - It hooks the coil k-space k_i that each of the 12 cascades outputs, combines it as x_i = Σ_c conj(S_c)·F⁻¹(k_i),
+     and scores x_i like the final output.
+   - Per cascade it reports the |∠(x_i·conj x_E)| median, the error of k_i on the sampled points and the cascade's
+     learned DC weight.
 
 ## Results
 
@@ -194,6 +214,50 @@ kspace_gt trains the maps on the measured data, but their phase relative to ESPI
 the std only from 0.485 to 0.431 rad, and has 8× as many phase jumps. The mask correlations have no rss seed-to-seed
 reference, so their size can't be judged.
 
+### Why complex is below SSIM 0.80 (train and val subsets, one mask draw)
+
+| Readout (all conditions) | rss, train | rss, val | complex, train | complex, val |
+|---|---|---|---|---|
+| SSIM_Masked against t (scored) | 0.883 | 0.864 | 0.786 | 0.760 |
+| PSNR_Masked against t, dB | 34.88 | 33.79 | 26.87 | 25.31 |
+| SSIM_Masked against \|x_E\| | 0.857 | 0.841 | 0.807 | 0.783 |
+| Ceiling: x̂ = x_E, scored against t | 0.957 | 0.951 | 0.954 | 0.949 |
+| Complex loss as trained (logged final for complex: train 0.050, val 0.124) | 0.419 | 0.427 | 0.050 | 0.123 |
+| Complex loss with x̂ given x_E's phase | 0.084 | 0.087 | 0.032 | 0.038 |
+| \|∠(x̂·conj x_E)\|, tissue median, rad | 1.71 | 1.71 | 0.09 | 0.44 |
+| \|∠(Σ conj(S)·coils · conj x_E)\|, tissue median, rad | 1.72 | 1.74 | 1.71 | 1.73 |
+| \|x̂\| / \|x_E\|, tissue median | 1.013 | 1.015 | 0.970 | 0.956 |
+| Error of F(S·x̂) on the sampled k-space | 0.40 | 0.41 | 1.35 | 1.34 |
+
+These checks rule out a scoring bug:
+- Rebuilding the output from x̂ matches the model's output exactly (max difference 0).
+- The recomputed complex loss matches the logged train and val losses.
+- The ceiling matches the pre-launch QC (`qc/qc_val.json`: |x_E| against t, 0.948 overall, brain 0.981). So the v2
+  cache lines up with the fixed loader, and a perfect complex arm would score about 0.95 against t.
+
+Reading the rest of the table:
+- **The phases don't match.** The fully sampled data, combined through either arm's maps, sit 1.7 rad from x_E's phase
+  in tissue. That is close to the π/2 median of an unrelated phase. The complex arm's maps did not move toward
+  ESPIRiT's convention (1.73 rad, against 1.74 for rss).
+- **The phase is memorised.** complex matches x_E's phase on training slices (0.09 rad) but not on val (0.44 rad;
+  brain 0.73, PD 0.31, PDFS 0.31). Phase error is 69% of its val loss (0.123 → 0.038 with the phase given), which
+  explains the 2.5× train/val loss gap. rss's gap is 1.15×.
+- **The output does not fit the data.** complex's predicted k-space is 134% off the measured samples, worse than
+  predicting zero (100%). rss is at 41%. A 1.7 rad rotation alone gives |1 − e^{1.7i}| = 1.5.
+- **The image is poor even on training slices.** There the phase is right, yet SSIM is 0.786 against t and 0.807
+  against its own target |x_E|.
+
+Per cascade, on the val subset (`diag/complex_cascades_v2.txt`; data error here is k_i itself on the sampled points):
+
+| Arm | Cascades 0-10: DC weight | 0-10: \|∠(x_i·conj x_E)\| | 0-10: data error | Cascade 11: DC weight | 11: SSIM | 11: \|∠\| | 11: data error |
+|---|---|---|---|---|---|---|---|
+| rss | 0.21-1.27 | 1.66-1.75 | 0.09-0.96 | 1.00 | 0.864 | 1.71 | 0.38 |
+| complex | 0.91-1.41 | 1.60-1.82 | 0.24-0.61 | **0.13** | 0.760 | 0.44 | 1.14 |
+
+complex keeps the learned-map phase through cascades 0-10. The rotation to x_E's phase happens entirely in the last
+cascade, whose learned DC weight fell to 0.13, against 1.00 for rss. Intermediate SSIMs swing widely in both arms, so
+the table gives only the last cascade's (the full rows are in the output file).
+
 ## Conclusions
 
 - **No alternative loss beats RSS-image L1.** The loss bar is missed by all three arms (results tables 1-2).
@@ -207,10 +271,17 @@ reference, so their size can't be judged.
   overall; PDFS is still 0.4 dB below.
   Hypothesis, untested: the cause is the RSS noise bias, which the measured (linear) k-space target lacks and the RSS
   target carries.
-- **complex is broken, not just offset.** Its SSIM of 0.755 is under the AGENTS.md floor, and it stays 6.2 dB below rss
-  after an oracle gain+offset fit. Hypothesis, untested on these checkpoints: the cause is the ESPIRiT phase convention
-  that round 1 diagnosed (BART run without `-P`; `diag/complex_phase.py`, round-1 checkpoint). The diagnostic was not
-  rerun on the round-2 checkpoint, so a bug is not excluded.
+- **complex is broken by its target, not by a code or metric bug.** Its SSIM of 0.755 is under the AGENTS.md floor,
+  and it stays 6.2 dB below rss after an oracle gain+offset fit. The scoring and the cache check out: a perfect fit to
+  x_E would score about 0.95 against t.
+  - x_E's phase (BART ecalib, rotated to the coils' first principal component) is about 1.7 rad from the phase the
+    data take through the learned maps. The complex arm's maps did not adopt it.
+  - The arm reaches that phase only in its last cascade, with the DC weight there nearly off (0.13). Its output then
+    misses the measured samples by 134% (rss: 41%), and the phase is right on training slices only (0.09 vs 0.44 rad).
+  - Its image is poor even on training slices (SSIM 0.786).
+  - Hypothesis, untested: spending the last cascade on a phase field the data don't constrain, instead of on data
+    consistency, is what costs the structure. A target built from the arm's own detached maps, Σ conj(S)·coils,
+    would test it (Next steps 4).
 - **The control improved by 1.5 dB over round 1** (32.08 → 33.62 dB; brain +1.7, PD +1.8, PDFS +1.1), and SSIM went
   from 0.835 to 0.860. Two changes are confounded: Ω off, and the brain flip fix. Hypothesis, untested: Ω off drives
   most of the knee gain, because knee data never had the flip bug. The model is shared across anatomies, though, so
@@ -222,8 +293,8 @@ reference, so their size can't be judged.
 - **Scoring target:** kspace_gt and complex are scored against the RSS target, whose noise bias they don't model. The
   oracle fit is only a diagnostic upper bound on what a calibration could recover, and it was run on a 162-slice
   subset with one mask draw.
-- **complex:** not re-diagnosed on the round-2 checkpoint. The pseudo-output SSIM reference (0.837 / 0.873 / 0.669)
-  was computed with the round-1 loader and cache.
+- **complex diagnostics** use 162-164-slice subsets and one mask draw. The train/val comparison uses eval mode on
+  both. The pseudo-output SSIM reference (0.837 / 0.873 / 0.669) was computed with the round-1 loader and cache.
 - **Missing readouts:** kspace_gt's data consistency at the sampled points (expected 19-50%, as for rss) was not
   measured. The mask correlations have no rss seed-to-seed reference.
 - **Round-1 comparison:** it spans two code commits (`1ba1ccf` → `676675b`). For the l1 arm, the only relevant
@@ -248,13 +319,12 @@ reference, so their size can't be judged.
    control gain before changing the default `sense_mask_method`.
 2. **Bring the brain flip fix `b25d2c5` to main.** Brain checkpoints trained on main would see shifted inputs on the
    fixed loader, so plan retraining, or keep the old flip only for evaluating old checkpoints.
-3. **Rerun the round-1 diagnostics on round 2.** When a GPU is free, run `diag/complex_phase.py` and
-   `diag/kspace_consistency.py` on the round-2 checkpoints to confirm complex's cause and measure kspace_gt's data
-   consistency.
+3. **Measure kspace_gt's data consistency** on the sampled points, as for rss and complex in `diag/complex_ssim.py`.
 4. **If a linear (k-space or complex) loss is still wanted:**
    - score it against a target with matching noise statistics, or report it with a gain-calibrated metric;
-   - give the complex arm a phase convention the learned maps can produce, such as BART `-P` or a phase-aligned
-     ESPIRiT target.
+   - give the complex arm a target phase the learned maps can produce. The most direct is Σ_c conj(S_c)·coil_c with
+     the arm's own maps detached, which is data-consistent by construction. Like kspace_gt's target, it lacks the RSS
+     noise bias, so it would likely still trail rss on this metric.
 
 ## Reproduce
 
@@ -263,6 +333,6 @@ Run `bash reports/loss_domain/run.sh` from the repo root. It needs:
 - the round-1 rss checkpoint in `.../loss_domain/runs`, for the model check in `mask_overlap.py`;
 - the v2 ESPIRiT cache `/export/scratch/bkadota/fastmri_complex_espirit_v2`;
 - the local v1 raw data;
-- one GPU, for about 30 min.
+- one GPU, for about 1 h.
 
 Check the folder with `python scripts/report_manifest.py check reports/loss_domain`.

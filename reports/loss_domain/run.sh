@@ -15,3 +15,5 @@ python scripts/eval/eval_loss_domain.py --runs-root ~/data/seqmri_checkpoints/lo
 python reports/loss_domain/diag/intensity_fit.py ~/data/seqmri_checkpoints/loss_domain/runs_v2 rss rss_M kspace_gt complex > reports/loss_domain/diag/intensity_fit_v2.txt 2>&1
 python reports/loss_domain/diag/mask_overlap.py > reports/loss_domain/diag/mask_overlap.txt 2>&1
 python reports/loss_domain/diag/plot_masks.py --out reports/loss_domain/diag/masks.png
+python reports/loss_domain/diag/complex_ssim.py ~/data/seqmri_checkpoints/loss_domain/runs_v2 > reports/loss_domain/diag/complex_ssim_v2.txt 2>&1
+python reports/loss_domain/diag/complex_cascades.py ~/data/seqmri_checkpoints/loss_domain/runs_v2 > reports/loss_domain/diag/complex_cascades_v2.txt 2>&1
