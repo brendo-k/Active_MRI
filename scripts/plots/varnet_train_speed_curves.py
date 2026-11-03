@@ -2,7 +2,7 @@
 scripts/eval/varnet_train_speed_curves.py): val PSNR_Masked and SSIM_Masked against epoch and against cumulative
 wall-clock (train + validation time from the run logs), seed mean with the seed range shaded.
 
-    python scripts/plots/varnet_train_speed_curves.py reports/varnet_train_speed/curves.json reports/varnet_train_speed/curves.png
+    python scripts/plots/varnet_train_speed_curves.py <curves.json> <out.png> [arm,arm,...] [data description for the title]
 """
 import json
 import sys
@@ -36,6 +36,7 @@ def with_wall_clock(runs):
 def main():
     curves_path, out_path = sys.argv[1], sys.argv[2]
     arms = sys.argv[3].split(',') if len(sys.argv) > 3 else None
+    data = sys.argv[4] if len(sys.argv) > 4 else '20% of local v1 FLAIR+knee'
     runs = with_wall_clock(json.load(open(curves_path))['runs'])
     if arms:
         runs = {k: v for k, v in runs.items() if v['arm'] in arms}
@@ -62,7 +63,7 @@ def main():
                 top = max(max(p[1] for p in s) for seeds in arm_curves(runs, key, x_key).values() for s in seeds)
                 ax.set_ylim(top - 0.06, top + 0.01)
     axes[0, 0].legend(fontsize=8, loc='lower right')
-    fig.suptitle('VarNet + LOUPE, R=8, 20% of local v1 FLAIR+knee: validation curves (seed mean, range shaded)')
+    fig.suptitle(f'VarNet + LOUPE, R=8, {data}: validation curves (seed mean, range shaded)')
     fig.tight_layout()
     fig.savefig(out_path, dpi=130)
     print(out_path)

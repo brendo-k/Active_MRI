@@ -31,5 +31,7 @@ python scripts/diagnostics/varnet_train_speed_masks.py $OUT/masks.json
 
 # Tables and figures
 python scripts/eval/varnet_train_speed_summary.py $OUT
-python scripts/plots/varnet_train_speed_curves.py $OUT/curves.json $OUT/figures/curves_20pct.png control,muon,norm_layer,norm_none,norm_chln
-python scripts/plots/varnet_train_speed_curves.py $OUT/curves.json $OUT/figures/curves_full_data.png full_control,full_muon,full_norm_layer
+python scripts/plots/varnet_train_speed_curves.py $OUT/curves.json $OUT/figures/curves_20pct.png \
+    control,muon,norm_layer,muon_layer,norm_none,norm_chln '20% of local v1 FLAIR+knee (val 390 slices)'
+python scripts/plots/varnet_train_speed_curves.py $OUT/curves.json $OUT/figures/curves_full_data.png \
+    full_control,full_muon,full_norm_layer,full_muon_layer 'all of local v1 FLAIR+knee (val 1,938 slices)'
