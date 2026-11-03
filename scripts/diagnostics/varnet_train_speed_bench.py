@@ -25,14 +25,18 @@ BASE = ['recon=varnet', 'datasets=fastmri_local_v1_flair_knee', 'misc.resolution
         'sampler.anatomy_conditioning=false', 'datasets.limit_volumes=0.2']
 SWITCHES = ['training.train_metrics_every=10', 'training.visualize_every=10']
 FUSED = ['recon.fused_coil_ops=true']
-VARIANTS = {
-    'control': [],
-    'switches': SWITCHES,
-    'fused': SWITCHES + FUSED,
-    'fused_norm_none': SWITCHES + FUSED + ['recon.norm=none', 'sampler.sens_norm=none'],
-    'fused_norm_layer': SWITCHES + FUSED + ['recon.norm=layer', 'sampler.sens_norm=layer'],
-    'fused_norm_chln': SWITCHES + FUSED + ['recon.norm=channel_layer', 'sampler.sens_norm=channel_layer'],
-    'fused_muon': SWITCHES + FUSED + ['training.optimizer=muon'],
+NHWC = {'TORCHINDUCTOR_FORCE_LAYOUT_OPT': '1'}  # inductor's channels-last layout for the compiled U-Nets (its heuristic skips them)
+VARIANTS = {  # name: (hydra overrides, environment)
+    'control': ([], {}),
+    'switches': (SWITCHES, {}),
+    'fused': (SWITCHES + FUSED, {}),
+    'fused_nhwc': (SWITCHES + FUSED, NHWC),
+    'fused_norm_none': (SWITCHES + FUSED + ['recon.norm=none', 'sampler.sens_norm=none'], {}),
+    'fused_norm_none_nhwc': (SWITCHES + FUSED + ['recon.norm=none', 'sampler.sens_norm=none'], NHWC),
+    'fused_norm_layer': (SWITCHES + FUSED + ['recon.norm=layer', 'sampler.sens_norm=layer'], {}),
+    'fused_norm_chln': (SWITCHES + FUSED + ['recon.norm=channel_layer', 'sampler.sens_norm=channel_layer'], {}),
+    'fused_norm_chln_nhwc': (SWITCHES + FUSED + ['recon.norm=channel_layer', 'sampler.sens_norm=channel_layer'], NHWC),
+    'fused_muon': (SWITCHES + FUSED + ['training.optimizer=muon'], {}),
 }
 
 
@@ -46,7 +50,7 @@ def run_variant(name, out_dir):
     from activemri.training.trainer import Sequential_Trainer
     import train as train_module
 
-    overrides = BASE + VARIANTS[name] + [f'output.out_dir={out_dir}/{name}']
+    overrides = BASE + VARIANTS[name][0] + [f'output.out_dir={out_dir}/{name}']
     with initialize_config_dir(config_dir=str(REPO / 'configs'), version_base=None):
         cfg = compose(config_name='config', overrides=overrides)
     config = build_train_config(cfg)
@@ -71,7 +75,7 @@ def run_variant(name, out_dir):
     trainer.val_epoch()
     torch.cuda.synchronize()
     val_s = time.perf_counter() - start
-    return {'variant': name, 'overrides': VARIANTS[name], 'step_s': train_s / TIMED_BATCHES, 'val_pass_s': val_s,
+    return {'variant': name, 'overrides': VARIANTS[name][0], 'env': VARIANTS[name][1], 'step_s': train_s / TIMED_BATCHES, 'val_pass_s': val_s,
             'val_batches': len(val_loader), 'train_batches_per_epoch': batches,
             'peak_GiB': torch.cuda.max_memory_allocated() / 2**30, 'gpu': torch.cuda.get_device_name()}
 
@@ -89,7 +93,7 @@ def main():
     results = []
     for name in args.variants:
         proc = subprocess.run([sys.executable, __file__, '--variant', name, '--work-dir', args.work_dir],
-                              capture_output=True, text=True)
+                              capture_output=True, text=True, env={**os.environ, **VARIANTS[name][1]})
         lines = [l for l in proc.stdout.splitlines() if l.startswith('RESULT ')]
         if proc.returncode or not lines:
             results.append({'variant': name, 'error': proc.stderr[-2000:]})
