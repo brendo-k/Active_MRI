@@ -100,7 +100,6 @@ class SequentialSampling(nn.Module):
             selection='bernoulli',
             dcm_vd_power=4.0,
             dcm_tau=5.0,
-            valid_area_budget=False,
             ppo_policy=None,
             fixed_mask_path=None,
             loupe_vd_init_power=0.0,
@@ -208,7 +207,6 @@ class SequentialSampling(nn.Module):
             selection=selection,
             dcm_vd_power=dcm_vd_power,
             dcm_tau=dcm_tau,
-            valid_area_budget=valid_area_budget,
         )
 
         if loupe_same_start:
