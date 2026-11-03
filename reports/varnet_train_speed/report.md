@@ -33,6 +33,11 @@ then post-freeze ones.
 | same | muon_layer, 20% data, 2 seeds | +0.70 / +1.00 dB; SSIM +0.014 / +0.019 | met (post-freeze) |
 | same | full_muon_layer, full data, 1 seed | +0.60 dB [+0.27, +0.92]; SSIM +0.010 | met in its one seed (post-freeze) |
 
+Read as frozen (against the control *mean*, 30.25 dB), no verdict changes:
+- LayerNorm's finals (30.90–31.07) and Muon + LayerNorm's (30.98, 31.02) all clear 30.35;
+- Muon's (30.38, 29.65) straddle it;
+- no norm and channel LayerNorm (29.91, 29.88) fall below 30.15.
+
 **Recommendation:** **merge** the exact fast path, and flip its defaults: `training.train_metrics_every=10`,
 `training.visualize_every=10`, `recon.fused_coil_ops=true`. That is −11% wall-clock per epoch with the training math
 unchanged.
@@ -197,16 +202,18 @@ excludes 0 in every seed: [+0.40, +1.17], [+0.50, +1.25], [+0.36, +0.81].
       (37%).
     - The final paired deltas are the robust evidence.
     - At half the epochs, norm_layer_short still ends +0.20 / +0.30 dB above the 40-epoch control.
-  - Its train loss stays higher (0.0753 vs 0.0695 at epoch 40, s42): it overfits the 772 slices less.
+  - Its train loss stays higher (0.0753 vs 0.0695 at epoch 40, s42) while its validation is better. That is
+    consistent with less overfitting of the 772 slices, a hypothesis this study does not test.
   - The gain is largest in brain FLAIR (+1.77 / +1.73 / +0.87 dB; all 8 volumes better in seed 42), then knee PDFS
     (+0.53 / +0.60 / +0.71) and knee PD (+0.20 / +0.43 / +0.23).
   - The learned mask correlates 0.91 with the control's, as two control seeds do, so the gain is mostly in the
     reconstructor (`masks.json`).
-  - LayerNorm in the cascades only (norm_layer_casc): +0.61 dB overall and +1.76 dB brain (seed 42), so about three quarters of the gain comes from the cascades, not the sensitivity net.
+  - LayerNorm in the cascades only (norm_layer_casc): +0.61 dB overall and +1.76 dB brain (seed 42). The cascades alone recover +0.61 of the +0.79 dB and essentially all of
+    the brain gain. That is one seed, and no sensitivity-net-only arm was run.
 - **Muon is inconsistent on 20% data.**
   - At 40 epochs, seed 42 is +0.10 dB and seed 43 is −0.37 dB (2-seed mean −0.14; the per-condition pattern is consistent: knee PD +0.48/+0.51, knee PDFS −0.54/−1.16).
   - At 20 epochs, seeds 42 and 43 are +0.24 and −0.89 against the same-seed 20-epoch control.
-  - Its train loss is always lower than the control's, so it fits faster and generalises unevenly on little data.
+  - Its train loss is lower than the control's at every epoch, while its validation PSNR is not consistently higher.
 - **No normalisation and channel LayerNorm are worse** (one seed each): −0.37 and −0.39 dB overall. Brain is
   +0.5 dB but knee PD is −1.35 dB. No normalisation also spiked at epochs 8 and 15; train loss jumped from 0.084 to
   0.117 at epoch 8. Its 12% faster step does not pay for that.
@@ -274,7 +281,7 @@ knee PDFS −0.6 dB.
   302 + 72 s. Channels-last does not help.
 - **Data size decides which convergence change helps.** On 772 training slices, the control stops improving after
   about epoch 13. On 3,929 slices it is still improving at epoch 12.
-  - **LayerNorm, 20% data: +0.75 dB mean** (3/3 seeds, every volume CI above 0), mostly brain FLAIR and mostly from
+  - **LayerNorm, 20% data: +0.75 dB mean** (3/3 seeds; the 95% CI over volumes excludes 0 in each seed; 15/16 volumes better in seed 42), mostly brain FLAIR and mostly from
     the cascades.
     - It matches, at 20 epochs, what the control reaches at 40.
     - It lowers the in-tissue error; its background comes out darker.
@@ -327,9 +334,10 @@ knee PDFS −0.6 dB.
 ## Figures
 
 - `figures/curves_20pct.png`: val PSNR_Masked and SSIM_Masked against epoch and against wall-clock (train + val
-  seconds from the logs), seed mean with the seed range shaded. Arms are control, Muon and the three norm swaps at
-  40 epochs.
-- `figures/curves_full_data.png`: the same for the full-data 12-epoch runs.
+  seconds from the logs), seed mean with the seed range shaded. Arms are control, Muon, LayerNorm, Muon + LayerNorm,
+  no norm and channel LayerNorm at 40 epochs.
+- `figures/curves_full_data.png`: the same for the full-data 12-epoch runs: control, Muon, LayerNorm and Muon +
+  LayerNorm.
 
 ## Next steps
 
