@@ -48,6 +48,7 @@ def build_train_config(cfg: DictConfig) -> TrainConfig:
         limit_batches=cfg.training.limit_batches,
         data_parallel=cfg.training.data_parallel,
         compile_unets=cfg.training.get('compile_unets', False),
+        channels_last_unets=cfg.training.get('channels_last_unets', False),
         cudnn_benchmark=cfg.training.get('cudnn_benchmark', True),
         train_masked_metrics_every=cfg.training.get('train_masked_metrics_every', 1),
         train_metrics_every=cfg.training.get('train_metrics_every', 1),

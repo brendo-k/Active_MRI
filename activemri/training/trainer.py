@@ -8,6 +8,7 @@ import shutil
 import warnings
 
 import torch
+import torch._inductor.config
 import torch.nn.functional as F
 import wandb
 import numpy as np
@@ -70,6 +71,8 @@ class Sequential_Trainer:
             self._init_mask_from(options.init_mask_checkpoint)
 
         if options.compile_unets:
+            if getattr(options, 'channels_last_unets', False):
+                torch._inductor.config.force_layout_optimization = True
             compile_unets(self.model)
 
         if options.data_parallel:
