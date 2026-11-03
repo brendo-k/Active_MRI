@@ -2,7 +2,8 @@
 
 Train mode trains 2 short epochs and saves the parameters, the epoch losses and the CPU/CUDA RNG states. It is
 deterministic: 2 cascades, no compile, cuDNN autotuner off, deterministic algorithms where available, batch 8,
-limit_batches 0.1. Compare mode checks two such files bitwise and writes a JSON verdict.
+limit_batches 0.1. Its base is the study's control (metrics every batch, images every epoch, eager coil ops); extra
+overrides replace those. Compare mode checks two such files bitwise and writes a JSON verdict.
 
     CUDA_VISIBLE_DEVICES=N python scripts/diagnostics/varnet_train_speed_equivalence.py train <repo> a.pt
     CUDA_VISIBLE_DEVICES=N python scripts/diagnostics/varnet_train_speed_equivalence.py train <repo> b.pt \
@@ -46,6 +47,7 @@ BASE = ['recon=varnet', 'datasets=fastmri_local_v1_flair_knee', 'misc.resolution
         'training.lr_step_size=36', 'training.seed=42', 'sampler.sampler_type=loupe_2d', 'sampler.loupe_vd_init_power=4',
         'sampler.anatomy_conditioning=false', 'datasets.limit_volumes=0.2', 'recon.num_cascades=2',
         'training.compile_unets=false', 'training.cudnn_benchmark=false', 'training.limit_batches=0.1',
+        'training.train_metrics_every=1', 'training.visualize_every=1', 'recon.fused_coil_ops=false',
         f'output.out_dir={os.path.dirname(out)}/equiv_run_{os.path.basename(out)}']
 with initialize_config_dir(config_dir=os.path.join(repo, 'configs'), version_base=None):
     cfg = compose(config_name='config', overrides=BASE + extra)

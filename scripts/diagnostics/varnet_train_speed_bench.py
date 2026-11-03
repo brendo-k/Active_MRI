@@ -23,12 +23,14 @@ BASE = ['recon=varnet', 'datasets=fastmri_local_v1_flair_knee', 'misc.resolution
         'sampler.budget_over=acquired', 'training.num_step=1', 'training.batch_size=16', 'training.num_epochs=40',
         'training.lr_step_size=36', 'training.seed=42', 'sampler.sampler_type=loupe_2d', 'sampler.loupe_vd_init_power=4',
         'sampler.anatomy_conditioning=false', 'datasets.limit_volumes=0.2']
+EVERY_BATCH = ['training.train_metrics_every=1', 'training.visualize_every=1']  # the defaults before the study
 SWITCHES = ['training.train_metrics_every=10', 'training.visualize_every=10']
+EAGER = ['recon.fused_coil_ops=false']
 FUSED = ['recon.fused_coil_ops=true']
 NHWC = {'TORCHINDUCTOR_FORCE_LAYOUT_OPT': '1'}  # inductor's channels-last layout for the compiled U-Nets (its heuristic skips them)
 VARIANTS = {  # name: (hydra overrides, environment)
-    'control': ([], {}),
-    'switches': (SWITCHES, {}),
+    'control': (EVERY_BATCH + EAGER, {}),
+    'switches': (SWITCHES + EAGER, {}),
     'fused': (SWITCHES + FUSED, {}),
     'fused_nhwc': (SWITCHES + FUSED, NHWC),
     'fused_norm_none': (SWITCHES + FUSED + ['recon.norm=none', 'sampler.sens_norm=none'], {}),
