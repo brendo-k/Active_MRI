@@ -1,6 +1,10 @@
 """Per-slice intensity diagnostics of the seed-42 loss-domain runs on a val subset: raw PSNR_Masked, after a
 least-squares gain, after gain+offset, the output/target mean ratio, and the share of masked error energy at low
-k-space frequency (radius < 16 px)."""
+k-space frequency (radius < 16 px).
+
+    python reports/loss_domain/diag/intensity_fit.py                     # round 1
+    python reports/loss_domain/diag/intensity_fit.py ~/data/seqmri_checkpoints/loss_domain/runs_v2 rss rss_M kspace_gt complex
+"""
 import sys
 from collections import defaultdict
 from pathlib import Path
@@ -12,7 +16,8 @@ from activemri.training.trainer import build_model
 from activemri.utils.metric_mask import metric_support_mask
 
 device = torch.device('cuda')
-runs = Path.home() / 'data/seqmri_checkpoints/loss_domain/runs'
+runs = Path(sys.argv[1]).expanduser() if len(sys.argv) > 1 else Path.home() / 'data/seqmri_checkpoints/loss_domain/runs'
+arms = sys.argv[2:] or ('rss', 'complex', 'kspace_rss', 'kspace_rss_M')
 _, val_loader = build_manifest_dataloaders(manifest='configs/datasets/fastmri_local_v1/manifest.csv', roots=e.ROOTS,
     classes=['FLAIR', 'knee'], image_shape=[320, 320], batch_size=16, num_coils=20, num_workers=8)
 subset = torch.utils.data.Subset(val_loader.dataset, list(range(0, len(val_loader.dataset), 12)))
@@ -23,7 +28,7 @@ low = ((yy ** 2 + xx ** 2) < 16 ** 2).to(device)
 def psnr(o, t, m):
     return 10 * torch.log10(t.amax(dim=(-2, -1)) ** 2 / (((t - o) ** 2 * m).sum(dim=(-2, -1)) / m.sum(dim=(-2, -1))))
 
-for arm in ('rss', 'complex', 'kspace_rss', 'kspace_rss_M'):
+for arm in arms:
     ck = torch.load(runs / e.run_name(arm, 42) / 'last_model.pt', map_location='cpu', weights_only=False)
     model = build_model(ck['options']).to(device)
     model.load_state_dict({k.removeprefix('module.'): v for k, v in ck['model'].items()})
