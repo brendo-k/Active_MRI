@@ -12,11 +12,14 @@ coil sum's order).
 """
 import torch
 
+from activemri.utils.compilers import use_system_compilers_if_missing
+
 _COMPILED = {}
 
 
 def _compiled(fn):
     if fn not in _COMPILED:
+        use_system_compilers_if_missing()
         _COMPILED[fn] = torch.compile(fn, dynamic=False, fullgraph=True)
     return _COMPILED[fn]
 

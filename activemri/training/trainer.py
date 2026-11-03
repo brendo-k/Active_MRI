@@ -4,7 +4,6 @@ import logging
 import math
 import os
 import random
-import shutil
 import warnings
 
 import torch
@@ -16,6 +15,7 @@ import numpy as np
 import time
 import matplotlib.pyplot as plt
 
+from activemri.utils.compilers import use_system_compilers_if_missing
 from activemri.utils.evaluate import build_metrics
 from activemri.utils.metrics import MaskedMetricAccumulator
 from activemri.utils.phase_scramble import scramble_phase_real
@@ -1135,13 +1135,6 @@ def compile_unets(model: torch.nn.Module) -> None:
             module.unet.compile(dynamic=False)
         elif isinstance(module, SensetivityModel_mc):
             module.model.compile(dynamic=False)
-
-
-def use_system_compilers_if_missing() -> None:
-    """Inductor builds its kernels with $CC / $CXX; a conda activation can point them at compilers the env lacks."""
-    for variable, system_compiler in (('CC', 'gcc'), ('CXX', 'g++')):
-        if os.environ.get(variable) and shutil.which(os.environ[variable]) is None:
-            os.environ[variable] = system_compiler
 
 
 def build_model(options: TrainConfig):
