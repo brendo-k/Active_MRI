@@ -96,12 +96,13 @@ def main():
     parser.add_argument('--control', default='control', help='arm the others are paired against, per seed')
     parser.add_argument('--seeds', type=int, nargs='+', default=[1234, 4321])
     parser.add_argument('--device', default='cuda')
+    parser.add_argument('--cache', type=Path, help='per-slice score cache shared between calls (default: next to --out)')
     args = parser.parse_args()
     device = torch.device(args.device)
 
     names = args.runs or sorted(p.name for p in QUEUE_DIR.iterdir()
                                 if p.is_dir() and RUN_NAME.match(p.name) and '.attempt' not in p.name and finished(p))
-    cache = args.out.with_suffix('.per_slice.npz')
+    cache = args.cache or args.out.with_suffix('.per_slice.npz')
     stored = dict(np.load(cache, allow_pickle=True)) if cache.exists() else {}
     _, val_loader = build_dataloaders(OmegaConf.load(QUEUE_DIR / names[0] / '.hydra' / 'config.yaml'))
     scores = {}
