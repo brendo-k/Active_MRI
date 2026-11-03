@@ -1,8 +1,11 @@
 """Per-epoch validation curves and epoch times of the varnet_train_speed runs (reports/varnet_train_speed/).
 
-Reads wandb (project SeqMRI, runs named vts_<arm>_s<seed>) for the validation metrics and each run's log for
-TrainTime / ValTime, and writes one JSON with every run's curves plus a per-arm summary against the control:
+Reads wandb (project SeqMRI, runs named <prefix><arm>_s<seed>, prefix vts_ by default) for the validation metrics and
+each run's log in the queue directory for TrainTime / ValTime, and writes one JSON with every run's curves plus a
+per-arm summary against the control:
     python scripts/eval/varnet_train_speed_curves.py --out reports/varnet_train_speed/curves.json
+    python scripts/eval/varnet_train_speed_curves.py --queue-dir ~/data/seqmri_checkpoints/muon_layernorm_100ep \
+        --prefix ml100_ --out reports/muon_layernorm_100ep/curves.json
 """
 import argparse
 import json
@@ -17,12 +20,12 @@ QUEUE_DIR = Path('~/data/seqmri_checkpoints/varnet_train_speed').expanduser()
 KEYS = ('epoch', 'val/PSNR_Masked', 'val/SSIM_Masked', 'val/loss', 'train/loss',
         'val/brain/PSNR', 'val/knee/PSNR', 'val/brain/SSIM', 'val/knee/SSIM')
 EPOCH_LINE = re.compile(r'Epoch = \[ *(\d+)/ *(\d+)\] TrainLoss = (\S+) ValLoss = (\S+) .*TrainTime = ([\d.]+)s ValTime = ([\d.]+)s')
-RUN_NAME = re.compile(r'vts_(?P<arm>.+)_s(?P<seed>\d+)$')
+RUN_NAME = re.compile(r'(?P<arm>.+)_s(?P<seed>\d+)$')
 CONTROL = 'control'
 
 
-def log_epochs(name):
-    log = QUEUE_DIR / f'{name}.log'
+def log_epochs(queue_dir, name):
+    log = queue_dir / f'{name}.log'
     if not log.exists():
         return {}
     rows = {}
@@ -36,10 +39,10 @@ def log_epochs(name):
     return rows
 
 
-def run_curves(api, path):
+def run_curves(api, path, queue_dir, prefix):
     runs = {}
-    for run in api.runs(path, filters={'display_name': {'$regex': '^vts_'}}):
-        match = RUN_NAME.match(run.name)
+    for run in api.runs(path, filters={'display_name': {'$regex': f'^{re.escape(prefix)}'}}):
+        match = RUN_NAME.match(run.name.removeprefix(prefix))
         if not match:
             continue
         history = defaultdict(dict)
@@ -47,8 +50,8 @@ def run_curves(api, path):
             for row in run.scan_history(keys=['epoch', key]):
                 if row.get('epoch') is not None and row.get(key) is not None:
                     history[int(row['epoch']) + 1][key] = row[key]
-        name = run.name.removeprefix('vts_')
-        times = log_epochs(name)
+        name = run.name.removeprefix(prefix)
+        times = log_epochs(queue_dir, name)
         epochs = sorted(set(history) | set(times))
         entry = {'arm': match['arm'], 'seed': int(match['seed']), 'wandb_id': run.id, 'state': run.state,
                  'created_at': run.created_at, 'curve': [{'epoch': e, **history.get(e, {}), **times.get(e, {})} for e in epochs]}
@@ -104,9 +107,11 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--out', default='reports/varnet_train_speed/curves.json')
     parser.add_argument('--project', default='SeqMRI')
+    parser.add_argument('--queue-dir', type=Path, default=QUEUE_DIR, help='the directory holding the run logs')
+    parser.add_argument('--prefix', default='vts_', help='wandb run-name prefix of the queue\'s runs')
     args = parser.parse_args()
     api = wandb.Api(timeout=60)
-    runs = run_curves(api, f'{api.default_entity}/{args.project}')
+    runs = run_curves(api, f'{api.default_entity}/{args.project}', args.queue_dir.expanduser(), args.prefix)
     out = {'runs': runs, 'summary': summarise(runs)}
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
     Path(args.out).write_text(json.dumps(out, indent=1))
