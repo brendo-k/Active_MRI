@@ -81,6 +81,46 @@ def score(run_dir, val_loader, device, seeds):
             'epochs': ckpt['epoch'] + 1}
 
 
+@torch.no_grad()
+def error_split(run_dir, val_loader, device, seed):
+    """Where the error sits, one mask draw: L1 inside and outside the metric mask, full-image L1 (the training loss)
+    and PSNR over the whole image and inside the mask, per slice."""
+    ckpt = torch.load(run_dir / 'last_model.pt', map_location='cpu', weights_only=False)
+    model = build_model(ckpt['options']).to(device)
+    model.load_state_dict(ckpt['model'])
+    model.eval()
+    if hasattr(model, 'store_visuals'):
+        model.store_visuals = False
+    classes = list(ckpt['options'].label_classes)
+    torch.manual_seed(seed)
+    rows = {k: [] for k in ('l1_in', 'l1_out', 'l1_full', 'psnr_full', 'psnr_in', 'out_mean_bg', 'target_mean_bg')}
+    conditions = []
+    for batch in val_loader:
+        kspace, target = batch['kspace'].to(device), batch['target'].to(device)
+        labels = torch.tensor([classes.index(c) for c in batch[ckpt['options'].label_key]], device=device) if classes else None
+        output = model(target, kspace, anatomy_labels=labels)['output']
+        target4 = target if target.dim() == 4 else target.unsqueeze(1)
+        output = output if output.dim() == 4 else output.unsqueeze(1)
+        mask = metric_mask_from_real_kspace(kspace, list(batch['anatomy'])).float()
+        mask = mask if mask.dim() == 4 else mask.unsqueeze(1)
+        outside = 1 - mask
+        err = (output - target4).abs()
+        dims = (1, 2, 3)
+        peak = target4.amax(dim=dims) ** 2
+        rows['l1_in'].append((err * mask).sum(dims) / mask.sum(dims).clamp(min=1))
+        rows['l1_out'].append((err * outside).sum(dims) / outside.sum(dims).clamp(min=1))
+        rows['l1_full'].append(err.mean(dims))
+        rows['psnr_full'].append(10 * torch.log10(peak / (err ** 2).mean(dims)))
+        rows['psnr_in'].append(10 * torch.log10(peak / ((err ** 2 * mask).sum(dims) / mask.sum(dims).clamp(min=1))))
+        rows['out_mean_bg'].append((output * outside).sum(dims) / outside.sum(dims).clamp(min=1))
+        rows['target_mean_bg'].append((target4 * outside).sum(dims) / outside.sum(dims).clamp(min=1))
+        conditions += list(batch['condition'])
+    conditions = np.array(conditions)
+    rows = {k: torch.cat(v).double().cpu().numpy() for k, v in rows.items()}
+    return {c: {k: float(v[conditions == c].mean() if c != 'all' else v.mean()) for k, v in rows.items()}
+            for c in ['all', *sorted(set(conditions))]}
+
+
 def paired(delta, volumes):
     names, index = np.unique(volumes, return_inverse=True)
     per_volume = np.bincount(index, weights=delta) / np.bincount(index)
@@ -97,8 +137,26 @@ def main():
     parser.add_argument('--seeds', type=int, nargs='+', default=[1234, 4321])
     parser.add_argument('--device', default='cuda')
     parser.add_argument('--cache', type=Path, help='per-slice score cache shared between calls (default: next to --out)')
+    parser.add_argument('--error-split', nargs='+', metavar='PATTERN',
+                        help='instead: L1 inside/outside the metric mask and full-image PSNR for runs matching these globs, to --out')
     args = parser.parse_args()
     device = torch.device(args.device)
+    if args.error_split:
+        import fnmatch
+        names = sorted(p.name for p in QUEUE_DIR.iterdir() if p.is_dir() and RUN_NAME.match(p.name) and '.attempt' not in p.name
+                       and finished(p) and any(fnmatch.fnmatch(p.name, pattern) for pattern in args.error_split))
+        _, val_loader = build_dataloaders(OmegaConf.load(QUEUE_DIR / 'control_s42' / '.hydra' / 'config.yaml'))
+        result = {}
+        for name in names:
+            print(f'error split {name}', flush=True)
+            result[name] = error_split(QUEUE_DIR / name, val_loader, device, args.seeds[0])
+            args.out.parent.mkdir(parents=True, exist_ok=True)
+            args.out.write_text(json.dumps({'seed': args.seeds[0], 'runs': result}, indent=1))
+        for name, row in result.items():
+            a = row['all']
+            print(f"{name:>22s} L1 in {a['l1_in']:.4f} out {a['l1_out']:.4f} full {a['l1_full']:.4f} "
+                  f"PSNR full {a['psnr_full']:.2f} in {a['psnr_in']:.2f} bg mean out/target {a['out_mean_bg']:.4f}/{a['target_mean_bg']:.4f}")
+        return
 
     names = args.runs or sorted(p.name for p in QUEUE_DIR.iterdir()
                                 if p.is_dir() and RUN_NAME.match(p.name) and '.attempt' not in p.name and finished(p))

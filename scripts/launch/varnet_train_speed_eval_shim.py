@@ -6,7 +6,9 @@ in a directory listed as the job's code snapshot does instead:
      `until=HH:MM`; `wait_for=all` waits for every other claimed job of the queue;
   2. runs scripts/eval/varnet_train_speed_eval.py from `snapshot=<dir>` once per control arm (control, control_short,
      control_10ep, full_control), all sharing one per-slice cache in the queue directory, writing into output.out_dir;
-  3. prints the last-epoch line the worker checks.
+  3. writes error_split.json: L1 inside / outside the metric mask and full-image PSNR for the controls, norm, full-data and
+     40-epoch Muon runs;
+  4. prints the last-epoch line the worker checks.
 """
 import datetime
 import os
@@ -54,4 +56,7 @@ for control, name in (('control', 'eval.json'), ('control_short', 'eval_vs_short
     rc = subprocess.call([sys.executable, f'{snapshot}/scripts/eval/varnet_train_speed_eval.py', '--out', str(out / name),
                           '--control', control, '--cache', str(cache)], cwd=snapshot, env=env)
     print(f'eval --control {control} exit {rc}', flush=True)
+rc = subprocess.call([sys.executable, f'{snapshot}/scripts/eval/varnet_train_speed_eval.py', '--out', str(out / 'error_split.json'),
+                      '--error-split', 'control_s4?', 'norm_*', 'full_*', 'muon_s4?'], cwd=snapshot, env=env)
+print(f'error split exit {rc}', flush=True)
 print('Epoch = [   1/   1] TrainLoss = 0 ValLoss = 0 MeanSparsity = 0 TrainTime = 0s ValTime = 0s', flush=True)
