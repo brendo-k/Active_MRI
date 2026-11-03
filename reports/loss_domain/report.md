@@ -237,8 +237,10 @@ These checks rule out a scoring bug:
 
 Reading the rest of the table:
 - **The phases don't match.** The fully sampled data, combined through either arm's maps, sit 1.7 rad from x_E's phase
-  in tissue. That is close to the π/2 median of an unrelated phase. The complex arm's maps did not move toward
-  ESPIRiT's convention (1.73 rad, against 1.74 for rss).
+  in tissue. Within a slice that difference is a smooth field with a large offset, not noise: the maps' phase table
+  above gives rss a circular std of 0.485 rad and 0.2% π/2 jumps. The complex arm's maps did not move toward ESPIRiT's
+  convention (1.73 rad, against 1.74 for rss). Each cascade's U-Net sees only the coil-combined image, in
+  the learned-map phase, so it has no direct cue to the slice's rotation (an interpretation, not tested).
 - **The phase is memorised.** complex matches x_E's phase on training slices (0.09 rad) but not on val (0.44 rad;
   brain 0.73, PD 0.31, PDFS 0.31). Phase error is 69% of its val loss (0.123 → 0.038 with the phase given), which
   explains the 2.5× train/val loss gap. rss's gap is 1.15×.
