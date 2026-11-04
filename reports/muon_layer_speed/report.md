@@ -11,8 +11,9 @@
 
 - **Branch:** `exp/muon_layer_speed`, not merged. Results come from the commit in the provenance block. The runs used the two
   code snapshots listed under Runs compared.
-- **Status:** waiting for the human verdict. Proposal frozen 2026-11-03 23:00 (`proposal.md`). Everything here is seed 42:
-  seed 43 and `e50_step` did not fit before the 08:00 limit, so any criterion that needs two seeds stays open.
+- **Status:** waiting for the merge decision. On 2026-11-04 the user set Muon + LayerNorm as the project default, ahead of the
+  100-epoch 2×2. The branch carries that change in `553f760`. Proposal frozen 2026-11-03 23:00 (`proposal.md`). Everything here is
+  seed 42: seed 43 and `e50_step` did not fit before the 08:00 limit, so any criterion that needs two seeds stays open.
 
 ## Proposal vs outcome
 
@@ -33,18 +34,36 @@ seed only where that seed already fails it. For example, "neither seed below −
 | EMA adopted: ≥0.05 dB over the last weights in both seeds of an arm | `e30_bs8`, `e30_step`, `e30_cos`, `e30_cos_muon2e3`, `e30_step_c16` | −0.024, −0.052, −0.022, −0.016, −0.024 dB | **not met, decided**: no arm can clear it in both seeds |
 | no frozen criterion (post-freeze arm) | `e30_step_c16` | −0.394 dB [−0.459, −0.329], ΔSSIM −0.0055, 19%; −0.087 dB [−0.103, −0.072] against `e30_step` | reported, not judged |
 
-**Recommendation** (made before the verdict): **merge** the exact step-time code. On the Muon + LayerNorm recipe that is 12% off
-every real epoch. The price is that bf16 runs after the merge do not reproduce runs before it bitwise, and the numeric 1e-5 bar
-holds only in float64. That is a deviation from the frozen wording, so it is your call. Results 2 gives the evidence.
+**Recommendation** (revised 2026-11-04): **merge**, with Muon + LayerNorm as the project default.
 
-Make `training.fused_adam=true` a default, since it changes no math, though its speed-up was measured only on this recipe. Tie
-`training.channels_last_unets=sens` to the recipe rather than making it a global default. It was measured only with LayerNorm,
-main still defaults to InstanceNorm, and `reports/varnet_train_speed/report.md` found channels-last +11% slower with InstanceNorm.
-Without it the profile gives −8.1% rather than −13.4%. The `_foreach_` Muon saving applies only when Muon is on.
+The default is the user's decision, made ahead of the 100-epoch 2×2. This study took the recipe as given and does not test it
+against Adam + InstanceNorm. The evidence so far is `reports/varnet_train_speed/report.md` and seed 42 of the 2×2, which ended at
+33.86 dB / 0.863 against 33.51 dB / 0.859 in trainer validation at 100 epochs (`curves_reference.json`). If the finished 2×2
+disagrees, reverting `553f760` undoes the change.
+
+That commit sets five YAML defaults:
+
+| setting | new default | why |
+|---|---|---|
+| `training.optimizer` | `muon` | the user's decision |
+| `recon.norm`, `sampler.sens_norm` | `layer` | the user's decision |
+| `training.fused_adam` | `true` | changes no math; its speed-up was measured on this recipe only |
+| `training.channels_last_unets` | `sens` | the profile gives −13.4% with it and −8.1% without; measured with LayerNorm only |
+
+With those five removed from `e30_step_s42`'s overrides, `train.py --print-config` resolves to the config that run trained with;
+only `output.out_dir` and `output.run_name` differ. A run that goes back to InstanceNorm should also set
+`training.channels_last_unets=false`, because `reports/varnet_train_speed/report.md` found channels-last +11% slower there.
+Caveats, under **The default change**, lists where the new default is untested or refuses a checkpoint.
+
+Merge the exact step-time code with it. That is 12% off every real epoch on the recipe, and it nearly cancels what the recipe
+costs: 301 s per epoch, against 340 s on the old step code and 298 s for Adam + InstanceNorm (`curves_reference.json`; different
+GPUs, so not a paired measure). The price is that bf16 runs after the merge do not reproduce runs before it bitwise, and the
+numeric 1e-5 bar holds only in float64. That is a deviation from the frozen wording, so it is the user's call. Results 2 gives
+the evidence.
 
 Do **not** change the default schedule or batch size yet. `e30_bs8` is the only arm still able to pass, and it needs seed 43.
-Do not adopt the EMA or `training.muon_lr=0.002`, and leave `recon.chans` at 18 until 16 channels has been run to convergence. The EMA option can stay on the branch, off by default, since it costs nothing
-when off. Dropping it is one commit if you would rather not carry it.
+Do not adopt the EMA or `training.muon_lr=0.002`, and leave `recon.chans` at 18 until 16 channels has been run to convergence.
+The EMA option can stay on the branch, off by default, since it costs nothing when off. Dropping it is one commit if it is not wanted.
 
 ## Question
 
@@ -267,6 +286,12 @@ The EMA was below the last weights in every arm, against an expected +0.03 to +0
 - **Trainer against paired eval.** The eval is uncompiled fp32 with 2 seeded draws, and the trainer is bf16. `e30_bs8`'s trainer validation also uses a different batch size, so different mask draws. "Matches reference epoch" uses trainer numbers and is approximate.
 - **Validation cadence.** The reference validated every epoch and the arms every 5, which helps the arms' shares (Results 3 gives both).
 - **Baseline.** Muon + LayerNorm is taken as true on the user's instruction. The 100-epoch 2×2 was still running on GPUs 0–1 throughout, and they were not used.
+- **The default change.** It rests on that instruction, not on this study.
+  - The recipe was measured on 12-cascade VarNet + LOUPE at R=8 only. `recon=unet` (the config's default group), `recon=cg_sense`, `recon=sdum` and the PromptMR backbone also change, untested: they now train under Muon, and their sensitivity nets take LayerNorm. The PromptMR U-Net has no norm layers of its own, so `recon.norm` does nothing there.
+  - Saved checkpoints keep their own settings. Evals rebuild the model from the options stored in the checkpoint, and the dataclass and `builders.py` fallbacks stay Adam + InstanceNorm for options saved before those fields existed.
+  - Two paths now stop with an error on a mismatch. `output.pretrained_recon` with an InstanceNorm checkpoint needs `recon.norm=instance sampler.sens_norm=instance`. PPO and DQN build their environment's networks with InstanceNorm and ignore `recon.norm`, so they cannot load a LayerNorm checkpoint.
+  - Launch scripts that relied on the old defaults now train the new recipe. The earlier default is `training.optimizer=adam recon.norm=instance sampler.sens_norm=instance training.channels_last_unets=false`.
+  - It was checked on CPU only, with the test suite and the config comparison in the recommendation, because GPUs 0–1 hold the 2×2 and GPUs 2–3 were not cleared for use. No training ran on commit `553f760` itself, though `e30_step_s42` ran the same resolved config at `e61a166`.
 - **Knee-PDFS SSIM.** It is about 0.78 in the reference and every arm, below the 0.80 line in `AGENTS.md`. Overall SSIM is 0.86. It predates this study: the controls in `reports/varnet_train_speed/eval.json` sit at 0.71–0.72. It was not debugged here. Hypothesis, untested: fat-suppressed knee is the lowest-SNR contrast, and SSIM against a noisy target is capped.
 - **Uncommitted code.** The bf16 LayerNorm behind `profile_layer_bf16*.json` was never committed; the class is kept in `layer_bf16_reverted.txt`.
 - **Training commit row.** The provenance block's row refers only to the EMA and mask-swap directories, which are scored-only and have no training of their own. Every trained run has its commit in `manifest.json`: `0920f8b` for `e30_cos`, `e61a166` for the other arms, `91932da` for the reference.
@@ -277,7 +302,7 @@ The EMA was below the last weights in every arm, against an expected +0.03 to +0
 
 ## Next steps
 
-1. Run seed 43 of `e30_bs8` and pair it with `ml100_muon_layer_s43` once the 2×2 finishes. That settles the one open verdict.
+1. Run seed 43 of `e30_bs8` and pair it with `ml100_muon_layer_s43` once the 2×2 finishes. That settles the one open verdict. The same 2×2 is the check on the new default.
 2. Test the updates hypothesis with one longer and one smaller-batch arm: `e50_bs8` (about 4.8 h, about 42% of the reference) and `e30_bs4`, both with the lr step at 90% of the run.
 3. If 16 channels is still of interest, run it through a full schedule at two seeds, since 30 epochs cannot say what it costs at convergence.
 4. Find out why knee-PD carries the largest deficit in every arm, since that is where the remaining dB are.
