@@ -171,6 +171,63 @@
    "verdict": "not faster, decided; provisional worse (1 of 2 seeds)",
    "ema_adopt": "not adopted, decided"
   },
+  "e30_step_c16": {
+   "seeds": {
+    "42": {
+     "psnr": 33.46461118534746,
+     "ssim": 0.8577092089173419,
+     "delta_psnr": {
+      "mean": -0.39428495794873,
+      "ci": [
+       -0.45924337031352047,
+       -0.3293265455839395
+      ],
+      "n_volumes": 80,
+      "frac_volumes_better": 0.025
+     },
+     "delta_ssim": {
+      "mean": -0.005475977979008022,
+      "ci": [
+       -0.006137271697179256,
+       -0.004814684260836788
+      ],
+      "n_volumes": 80,
+      "frac_volumes_better": 0.025
+     },
+     "per_condition": {
+      "brain": -0.4205490459095348,
+      "knee-PD": -0.6472007388700171,
+      "knee-PDFS": -0.11231208859067975
+     },
+     "epochs": 30,
+     "train_h": 1.9863785555555555,
+     "val_h": 0.11312911111111111,
+     "steady_train_h": 1.9522070833333334,
+     "median_train_s": 234.26485,
+     "wall_clock_h": 2.0995076666666668,
+     "wall_clock_share": 0.1857958237311295,
+     "steady_wall_clock_h": 2.0653361944444444,
+     "steady_wall_clock_share": 0.1827718210421023,
+     "share_at_val_cadence": 0.2129435175695952,
+     "schedule_share": 0.3,
+     "trainer_final_psnr": 33.461978912353516,
+     "reference_epoch_matched": 30,
+     "ema_minus_last": {
+      "mean": -0.024404515914995727,
+      "ci": [
+       -0.033017482855195464,
+       -0.01579154897479599
+      ],
+      "n_volumes": 80,
+      "frac_volumes_better": 0.15
+     },
+     "ema_minus_last_ssim": -0.00023560054329925973
+    }
+   },
+   "mean_delta_psnr": -0.39428495794873,
+   "verdict": "post-freeze, no frozen criterion",
+   "ema_adopt": "not adopted, decided"
+  },
   "e30_step": {
    "seeds": {
     "42": {
@@ -297,6 +354,29 @@
     ],
     "n_volumes": 80,
     "frac_volumes_better": 0.9375
+   }
+  },
+  {
+   "arm": "e30_step_c16",
+   "other": "e30_step",
+   "seed": "42",
+   "psnr": {
+    "mean": -0.08741711241542001,
+    "ci": [
+     -0.10303382286731033,
+     -0.07180040196352969
+    ],
+    "n_volumes": 80,
+    "frac_volumes_better": 0.0625
+   },
+   "ssim": {
+    "mean": -0.001008610071397495,
+    "ci": [
+     -0.0011768723727990842,
+     -0.0008403477699959057
+    ],
+    "n_volumes": 80,
+    "frac_volumes_better": 0.0625
    }
   },
   {

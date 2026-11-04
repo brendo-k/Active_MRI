@@ -1408,7 +1408,7 @@
    "arm": "e30_step_c16",
    "seed": 42,
    "wandb_id": "w3nukvuz",
-   "state": "running",
+   "state": "finished",
    "created_at": "2026-11-04T13:16:37Z",
    "curve": [
     {
@@ -1678,6 +1678,80 @@
      "train_loss_log": 0.02411,
      "val_loss_log": NaN,
      "timestamp": "2026-11-04 06:57:48,311"
+    },
+    {
+     "epoch": 25,
+     "val/PSNR_Masked": 33.30821990966797,
+     "val/SSIM_Masked": 0.856238842010498,
+     "val/loss": 0.027734273006437254,
+     "train/loss": 0.024072806456891017,
+     "val/brain/PSNR": 37.25706100463867,
+     "val/knee/PSNR": 32.07110595703125,
+     "val/brain/SSIM": 0.9621543884277344,
+     "val/knee/SSIM": 0.9301457405090332,
+     "train_time": 233.3121,
+     "val_time": 54.298,
+     "num_epochs": 30,
+     "train_loss_log": 0.02407,
+     "val_loss_log": 0.02773,
+     "timestamp": "2026-11-04 07:02:37,484"
+    },
+    {
+     "epoch": 26,
+     "train/loss": 0.02409498169412458,
+     "train_time": 233.5835,
+     "val_time": 0.0,
+     "num_epochs": 30,
+     "train_loss_log": 0.02409,
+     "val_loss_log": NaN,
+     "timestamp": "2026-11-04 07:06:31,914"
+    },
+    {
+     "epoch": 27,
+     "train/loss": 0.02395453282851514,
+     "train_time": 233.4987,
+     "val_time": 0.0,
+     "num_epochs": 30,
+     "train_loss_log": 0.02395,
+     "val_loss_log": NaN,
+     "timestamp": "2026-11-04 07:10:26,538"
+    },
+    {
+     "epoch": 28,
+     "train/loss": 0.02362972152290669,
+     "train_time": 232.4423,
+     "val_time": 0.0,
+     "num_epochs": 30,
+     "train_loss_log": 0.02363,
+     "val_loss_log": NaN,
+     "timestamp": "2026-11-04 07:14:19,875"
+    },
+    {
+     "epoch": 29,
+     "train/loss": 0.023554629373659448,
+     "train_time": 233.2596,
+     "val_time": 0.0,
+     "num_epochs": 30,
+     "train_loss_log": 0.02355,
+     "val_loss_log": NaN,
+     "timestamp": "2026-11-04 07:18:13,990"
+    },
+    {
+     "epoch": 30,
+     "val/PSNR_Masked": 33.461978912353516,
+     "val/SSIM_Masked": 0.8576918840408325,
+     "val/loss": 0.027302950391637496,
+     "train/loss": 0.02351135874878827,
+     "val/brain/PSNR": 37.420753479003906,
+     "val/knee/PSNR": 32.07278823852539,
+     "val/brain/SSIM": 0.9628116488456726,
+     "val/knee/SSIM": 0.9307467341423035,
+     "train_time": 232.9866,
+     "val_time": 60.2257,
+     "num_epochs": 30,
+     "train_loss_log": 0.02351,
+     "val_loss_log": 0.0273,
+     "timestamp": "2026-11-04 07:23:09,036"
     }
    ]
   }
@@ -1772,21 +1846,21 @@
    },
    "e30_step_c16": {
     "42": {
-     "finished": false,
-     "epochs_done": 24,
+     "finished": true,
+     "epochs_done": 30,
      "final": {
-      "val/PSNR_Masked": null,
-      "val/SSIM_Masked": null,
-      "val/loss": null,
-      "train/loss": 0.02411076691516531,
-      "val/brain/PSNR": null,
-      "val/knee/PSNR": null,
-      "val/brain/SSIM": null,
-      "val/knee/SSIM": null
+      "val/PSNR_Masked": 33.461978912353516,
+      "val/SSIM_Masked": 0.8576918840408325,
+      "val/loss": 0.027302950391637496,
+      "train/loss": 0.02351135874878827,
+      "val/brain/PSNR": 37.420753479003906,
+      "val/knee/PSNR": 32.07278823852539,
+      "val/brain/SSIM": 0.9628116488456726,
+      "val/knee/SSIM": 0.9307467341423035
      },
-     "best_psnr_masked": 33.18173599243164,
-     "median_train_time_s": 234.683,
-     "median_epoch_time_s": 234.9487,
+     "best_psnr_masked": 33.461978912353516,
+     "median_train_time_s": 234.2517,
+     "median_epoch_time_s": 234.8597,
      "epoch_reaching_control_final": null,
      "psnr_masked_minus_control_same_seed": {}
     }

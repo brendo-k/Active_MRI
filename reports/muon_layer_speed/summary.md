@@ -7,6 +7,7 @@ Paired against the same-seed 100-epoch reference on the full validation set, 2 m
 | e30_bs8 | 42 | 33.717 | 0.8609 | -0.142 [-0.180, -0.104] | -0.0023 | -0.11 / -0.31 / +0.01 | 30 | 332 | 3.19 (3.07 + 0.12) | 28% | 32% | 2.89 | -0.024 | not adopted, decided | 53 | provisional inconclusive (1 of 2 seeds) |
 | e30_cos_muon2e3 | 42 | 33.402 | 0.8566 | -0.457 [-0.533, -0.381] | -0.0066 | -0.50 / -0.75 / -0.12 | 30 | 303 | 2.69 (2.56 + 0.13) | 24% | 27% | 2.66 | -0.016 | not adopted, decided | 27 | not faster, decided; provisional worse (1 of 2 seeds) |
 | e30_cos | 42 | 33.435 | 0.8570 | -0.424 [-0.496, -0.351] | -0.0062 | -0.41 / -0.73 / -0.12 | 30 | 343 | 3.02 (2.89 + 0.14) | 27% | 31% | 2.99 | -0.022 | not adopted, decided | 28 | not faster, decided; provisional worse (1 of 2 seeds) |
+| e30_step_c16 | 42 | 33.465 | 0.8577 | -0.394 [-0.459, -0.329] | -0.0055 | -0.42 / -0.65 / -0.11 | 30 | 234 | 2.10 (1.99 + 0.11) | 19% | 21% | 2.07 | -0.024 | not adopted, decided | 30 | post-freeze, no frozen criterion |
 | e30_step | 42 | 33.552 | 0.8587 | -0.307 [-0.361, -0.252] | -0.0045 | -0.30 / -0.53 / -0.08 | 30 | 301 | 2.65 (2.54 + 0.11) | 23% | 27% | 2.62 | -0.052 | not adopted, decided | 38 | not faster, decided; provisional worse (1 of 2 seeds) |
 
 Reference, 100 epochs: 11.30 h (9.50 train + 1.80 val), median 340 s per epoch; 9.86 h at the arms' val cadence.
@@ -18,6 +19,7 @@ Between arms, same seed, per slice (exploratory):
 | e30_step - e30_cos | 42 | +0.117 [+0.097, +0.137] | +0.0018 |
 | e30_cos_muon2e3 - e30_cos | 42 | -0.033 [-0.046, -0.020] | -0.0004 |
 | e30_bs8 - e30_step | 42 | +0.165 [+0.143, +0.187] | +0.0022 |
+| e30_step_c16 - e30_step | 42 | -0.087 [-0.103, -0.072] | -0.0010 |
 | e30_step_maskof_ref - e30_step | 42 | -0.017 [-0.038, +0.005] | +0.0004 |
 | ref - ref_maskof_e30_step | 42 | +0.158 [+0.137, +0.179] | +0.0015 |
 | ref_maskof_e30_step - e30_step | 42 | +0.149 [+0.099, +0.199] | +0.0029 |
@@ -40,7 +42,7 @@ Trainer val PSNR_Masked by epoch:
 | e30_step_s42 | 32.27 | 32.85 | 33.03 | 33.23 | 33.40 | 33.55 |
 | e30_bs8_s42 | 32.48 | 33.06 | 33.26 | 33.37 | 33.50 | 33.71 |
 | e30_cos_muon2e3_s42 | 32.52 | 32.95 | 33.13 | 33.30 | 33.38 | 33.40 |
-| e30_step_c16_s42 | 32.46 | 32.86 | 33.06 | 33.18 | - | - |
+| e30_step_c16_s42 | 32.46 | 32.86 | 33.06 | 33.18 | 33.31 | 33.46 |
 
 Absolute scores per condition (PSNR / SSIM):
 
@@ -53,6 +55,8 @@ Absolute scores per condition (PSNR / SSIM):
 | e30_cos_muon2e3_ema_s42 | 30 | 33.39 / 0.856 | 32.50 / 0.877 | 35.27 / 0.912 | 32.28 / 0.781 |
 | e30_cos_s42 | 30 | 33.44 / 0.857 | 32.61 / 0.878 | 35.31 / 0.912 | 32.28 / 0.781 |
 | e30_cos_ema_s42 | 30 | 33.41 / 0.857 | 32.58 / 0.878 | 35.29 / 0.912 | 32.27 / 0.781 |
+| e30_step_c16_s42 | 30 | 33.46 / 0.858 | 32.60 / 0.879 | 35.39 / 0.914 | 32.29 / 0.781 |
+| e30_step_c16_ema_s42 | 30 | 33.44 / 0.857 | 32.56 / 0.878 | 35.36 / 0.913 | 32.29 / 0.781 |
 | e30_step_maskof_ref_s42 | 30 | 33.54 / 0.859 | 32.75 / 0.881 | 35.48 / 0.916 | 32.27 / 0.781 |
 | e30_step_s42 | 30 | 33.55 / 0.859 | 32.72 / 0.880 | 35.50 / 0.915 | 32.32 / 0.782 |
 | e30_step_ema_s42 | 30 | 33.50 / 0.858 | 32.66 / 0.879 | 35.43 / 0.914 | 32.30 / 0.781 |
@@ -67,6 +71,7 @@ Learned mask p(k), against the same-seed reference, and mean p by radial band in
 | e30_step_s42 | 0.1292 | 0.775 | 0.866 | 0.555 | 0.292 | 0.148 | 0.055 | 0.000 |
 | e30_bs8_s42 | 0.1291 | 0.741 | 0.839 | 0.541 | 0.286 | 0.149 | 0.058 | 0.001 |
 | e30_cos_muon2e3_s42 | 0.1294 | 0.738 | 0.887 | 0.583 | 0.305 | 0.141 | 0.051 | 0.000 |
+| e30_step_c16_s42 | 0.1299 | 0.726 | 0.888 | 0.577 | 0.298 | 0.145 | 0.053 | 0.000 |
 
 | profile | step ms | change | forward | backward | grad_stats | clip | optimizer | sens net ms | steady GiB |
 |---|---|---|---|---|---|---|---|---|---|
@@ -97,9 +102,12 @@ Two epochs on 5% of the data, final weights, relative distance:
 |---|---|---|---|---|
 | before vs before_again | 0.00e+00 | 0.00e+00 | 0.00e+00 | 0.00e+00 |
 | before vs after | 2.73e-02 | 9.34e-03 | 1.37e-01 | 1.80e-03 |
+| before vs after_plain | 2.67e-02 | 8.45e-03 | 1.48e-01 | 1.74e-03 |
+| after_plain vs after | 2.71e-02 | 8.75e-03 | 1.36e-01 | 1.79e-03 |
 
 | run | last train loss | last val loss |
 |---|---|---|
 | before | 0.08205 | 0.101 |
 | before_again | 0.08205 | 0.101 |
 | after | 0.08215 | 0.101 |
+| after_plain | 0.08212 | 0.1015 |

@@ -1,6 +1,13 @@
 # How much less wall-clock does Muon + LayerNorm VarNet + LOUPE need to reach its 100-epoch quality? (2026-11-04)
 
-PROVENANCE_BLOCK
+| | |
+|---|---|
+| Code | results produced at `60eb6dc` (muon_layer_speed_curves: the panel title names the reference); branch `exp/muon_layer_speed` |
+| Metric mask | **apodized**: k-space-apodized per-anatomy mask (activemri/utils/metric_mask.py), the trainer metric since 2026-10-20 |
+| Runs | 13 checkpoint directories under `checkpoints/` (untracked; names, overrides, wandb ids in `manifest.json`) |
+| Results | 29 files next to this report, hashed in `manifest.json` |
+| Reproduce | `bash run.sh` from the repo root |
+| Training commit | not recorded for these runs (they predate `run_info.json`) |
 
 - **Branch:** `exp/muon_layer_speed`, not merged. Results come from the commit in the provenance block. The runs used the two
   code snapshots listed under Runs compared.
@@ -14,7 +21,7 @@ seed only where that seed already fails it. For example, "neither seed below −
 
 | criterion (frozen) | arm | evidence | met? |
 |---|---|---|---|
-| Exact change: match to float rounding (bitwise, or ≤1e-5 relative) **and** bench step or epoch time −5% or more | exact bundle | speed: real epochs −12% (301 vs 343 s), bench step −18.8%. Match: ≤9.4e-9 in float64, but 4.6e-5 to 5.8e-4 in fp32 and 0.46% to 8.4% in bf16 | speed **met**; 1e-5 bar **not met as written**, met in float64 only |
+| Exact change: match to float rounding (bitwise, or ≤1e-5 relative) **and** bench step or epoch time −5% or more | exact bundle | speed: real epochs −12% (301 vs 343 s), bench step −18.8%. Match: ≤9.4e-9 in float64, but 4.6e-5 to 5.8e-4 in fp32 and 0.46% to 8.4% in bf16. A same-math control moves a 2-epoch training as far as the new code does (2.71e-2 vs 2.73e-2) | speed **met**; 1e-5 bar **not met as written**, met in float64 only |
 | Bitwise-identical removal of unused work: adopted at any gain | unused forward work | not shown bitwise in the real pipeline, because it was only run inside the bundle | not decided |
 | Faster: mean ΔPSNR ≥ −0.10 dB, neither seed below −0.20 dB, ΔSSIM ≥ −0.002, wall-clock ≤50% | `e30_bs8` | −0.142 dB [−0.180, −0.104], ΔSSIM −0.0023, 28% | not met on seed 42; still open, seed 43 would need about −0.06 dB or better |
 | same | `e30_step` | −0.307 dB [−0.361, −0.252], ΔSSIM −0.0045, 23% | **not met, decided** |
@@ -23,8 +30,8 @@ seed only where that seed already fails it. For example, "neither seed below −
 | same | `e50_step` | not run | not decided |
 | Worse: mean ΔPSNR below −0.25 dB | `e30_step`, `e30_cos`, `e30_cos_muon2e3` | −0.307, −0.424, −0.457 dB on one seed | provisional: met on seed 42, the mean needs seed 43 |
 | same | `e30_bs8` | −0.142 dB | not met on seed 42 |
-| EMA adopted: ≥0.05 dB over the last weights in both seeds of an arm | all four scored arms | −0.024, −0.052, −0.022, −0.016 dB | **not met, decided**: no arm can clear it in both seeds |
-| no frozen criterion (post-freeze arm) | `e30_step_c16` | C16_ROW | reported, not judged |
+| EMA adopted: ≥0.05 dB over the last weights in both seeds of an arm | `e30_bs8`, `e30_step`, `e30_cos`, `e30_cos_muon2e3`, `e30_step_c16` | −0.024, −0.052, −0.022, −0.016, −0.024 dB | **not met, decided**: no arm can clear it in both seeds |
+| no frozen criterion (post-freeze arm) | `e30_step_c16` | −0.394 dB [−0.459, −0.329], ΔSSIM −0.0055, 19%; −0.087 dB [−0.103, −0.072] against `e30_step` | reported, not judged |
 
 **Recommendation** (made before the verdict): **merge** the exact step-time code, and make `training.fused_adam=true` and
 `training.channels_last_unets=sens` the defaults. That is 12% off every real epoch. The price is that bf16 runs after the merge
@@ -32,7 +39,7 @@ do not reproduce runs before it bitwise, and the numeric 1e-5 bar holds only in 
 wording, so it is your call. Results 2 gives the evidence.
 
 Do **not** change the default schedule or batch size yet. `e30_bs8` is the only arm still able to pass, and it needs seed 43.
-Do not adopt the EMA or `training.muon_lr=0.002`. The EMA option can stay on the branch, off by default, since it costs nothing
+Do not adopt the EMA or `training.muon_lr=0.002`, and leave `recon.chans` at 18 until 16 channels has been run to convergence. The EMA option can stay on the branch, off by default, since it costs nothing
 when off. Dropping it is one commit if you would rather not carry it.
 
 ## Question
@@ -60,7 +67,7 @@ an EMA (decay 0.999) and validate every 5 epochs. The reference validates every 
 | `e30_step_s42` | `muon_layer_speed/e30_step_s42` | lr step at 27 | 30 | `e61a166`, exact bundle | 33.55 / 0.859 | 33.55 |
 | `e30_bs8_s42` | `muon_layer_speed/e30_bs8_s42` | batch 8, same lr, lr step at 27 | 30 | `e61a166`, exact bundle | 33.72 / 0.861 | 33.71 |
 | `e30_cos_muon2e3_s42` | `muon_layer_speed/e30_cos_muon2e3_s42` | cosine lr, `training.muon_lr=0.002` | 30 | `e61a166`, exact bundle | 33.40 / 0.857 | 33.40 |
-| `e30_step_c16_s42` (post-freeze) | `muon_layer_speed/e30_step_c16_s42` | as `e30_step`, plus `recon.chans=16`, all U-Nets channels-last | 30 | `e61a166`, exact bundle | C16_SCORES | C16_TRAINER |
+| `e30_step_c16_s42` (post-freeze) | `muon_layer_speed/e30_step_c16_s42` | as `e30_step`, plus `recon.chans=16`, all U-Nets channels-last | 30 | `e61a166`, exact bundle | 33.46 / 0.858 | 33.46 |
 | `ref_maskof_e30_step_s42` (exploratory) | `muon_layer_speed/ref_maskof_e30_step_s42` | reference networks, `e30_step`'s mask | none | scored only | 33.70 / 0.862 | n/a |
 | `e30_step_maskof_ref_s42` (exploratory) | `muon_layer_speed/e30_step_maskof_ref_s42` | `e30_step`'s networks, reference mask | none | scored only | 33.54 / 0.859 | n/a |
 
@@ -108,7 +115,7 @@ Most of the saving is spread across small changes. Only the last stage clears 5%
 
 | measure | old code | exact bundle | change | 16 channels | change |
 |---|---|---|---|---|---|
-| Real training epoch, median train s | 343 (`e30_cos`) | 301 (`e30_step`) | −12% | 235 (`e30_step_c16`) | C16_EPOCH_CHANGE |
+| Real training epoch, median train s | 343 (`e30_cos`) | 301 (`e30_step`) | −12% | 234 (`e30_step_c16`) | −32% |
 | Bench step s | 1.781 | 1.446 | −18.8% | 1.207 | −32.3% |
 | Bench validation pass s (25 batches) | 19.4 | 13.7 | −30% | 15.8 | −19% |
 | Bench steady peak GiB | 36.3 | 36.2 | | 34.5 | |
@@ -139,11 +146,14 @@ Two epochs on 5% of the data, relative distance between final weights:
 
 | pair | whole model | median parameter | worst parameter | mask |
 |---|---|---|---|---|
-EQUIVALENCE_ROWS
+| old vs old, rerun | 0.00e+00 | 0.00e+00 | 0.00e+00 | 0.00e+00 |
+| old vs new, with the arms' options | 2.73e-02 | 9.34e-03 | 1.37e-01 | 1.80e-03 |
+| old vs new, without the options | 2.67e-02 | 8.45e-03 | 1.48e-01 | 1.74e-03 |
+| new without vs new with the options (same math) | 2.71e-02 | 8.75e-03 | 1.36e-01 | 1.79e-03 |
 
-LOSS_LINE
+Last train loss 0.08205 (old, both runs), 0.08215 (new with the options), 0.08212 (new without). Last val loss 0.101, 0.101, 0.1015.
 
-Same code, same settings gives the same weights bitwise, so the old-to-new distance is not run noise. EQUIVALENCE_READING
+Same code, same settings gives the same weights bitwise, so the old-to-new distance is not run noise. The control that changes no math moves a training just as far, 2.71e-2 against 2.73e-2, so the new code's distance is no larger than a pure rounding change's. That supports reading it as rounding. It does not meet the 1e-5 bar, and it says nothing about a full-length run.
 
 ### 3. Convergence arms
 
@@ -153,9 +163,9 @@ Same code, same settings gives the same weights bitwise, so the old-to-new dista
 | `e30_step` | 33.552 | 0.8587 | −0.307 [−0.361, −0.252] | −0.0045 | −0.30 / −0.53 / −0.08 | 301 | 2.65 | 23% | 2.62 | not faster, decided; provisional worse |
 | `e30_cos` | 33.435 | 0.8570 | −0.424 [−0.496, −0.351] | −0.0062 | −0.41 / −0.73 / −0.12 | 343 | 3.02 | 27% | 2.99 | not faster, decided; provisional worse |
 | `e30_cos_muon2e3` | 33.402 | 0.8566 | −0.457 [−0.533, −0.381] | −0.0066 | −0.50 / −0.75 / −0.12 | 303 | 2.69 | 24% | 2.66 | not faster, decided; provisional worse |
-C16_ARM_ROW
+| `e30_step_c16` (post-freeze) | 33.465 | 0.8577 | −0.394 [−0.459, −0.329] | −0.0055 | −0.42 / −0.65 / −0.11 | 234 | 2.10 | 19% | 2.07 | post-freeze, no frozen criterion |
 
-The reference took 11.30 h (9.50 train + 1.80 val), or 9.86 h at the arms' val cadence. Against that, the shares are 27–32%, still under the 50% bar.
+The reference took 11.30 h (9.50 train + 1.80 val), or 9.86 h at the arms' val cadence. Against that, the shares are 21–32%, still under the 50% bar.
 "Steady h" uses the median epoch, which removes the stretch below where scoring shared `e30_bs8`'s GPU.
 
 No 30-epoch arm reached the bar. `e30_bs8` came closest, 0.04 dB and 0.0003 SSIM short of it. The knee-PD deficit is the largest in every arm, and knee-PDFS barely moves.
@@ -165,7 +175,7 @@ Between arms, seed 42, per slice (exploratory, no frozen criterion):
 | pair | same code snapshot? | ΔPSNR [95% CI] | ΔSSIM |
 |---|---|---|---|
 | `e30_bs8` − `e30_step` | yes | +0.165 [+0.143, +0.187] | +0.0022 |
-C16_BETWEEN_ROW
+| `e30_step_c16` − `e30_step` | yes | −0.087 [−0.103, −0.072] | −0.0010 |
 | `e30_step` − `e30_cos` | no | +0.117 [+0.097, +0.137] | +0.0018 |
 | `e30_cos_muon2e3` − `e30_cos` | no | −0.033 [−0.046, −0.020] | −0.0004 |
 
@@ -178,9 +188,9 @@ Trainer val PSNR_Masked by epoch:
 | `e30_step` | 32.27 | 32.85 | 33.03 | 33.23 | 33.40 | 33.55 |
 | `e30_bs8` | 32.48 | 33.06 | 33.26 | 33.37 | 33.50 | 33.71 |
 | `e30_cos_muon2e3` | 32.52 | 32.95 | 33.13 | 33.30 | 33.38 | 33.40 |
-C16_CURVE_ROW
+| `e30_step_c16` | 32.46 | 32.86 | 33.06 | 33.18 | 33.31 | 33.46 |
 
-`e30_bs8` stays above the reference at every epoch, and its final score matches the reference's smoothed curve at epoch 53. `e30_step` matches epoch 38, and the two cosine arms match epochs 27–28.
+`e30_bs8` stays above the reference at every epoch, and its final score matches the reference's smoothed curve at epoch 53. `e30_step` matches epoch 38, `e30_step_c16` epoch 30, and the two cosine arms epochs 27–28.
 At constant lr the reference's smoothed curve reaches the bar (33.76 dB) at epoch 65, about 5.7 h at `e30_step`'s epoch time. That is an estimate from the curve, not a run.
 
 ### 4. Where the 0.31 dB gap sits: mask swap
@@ -202,7 +212,7 @@ Paired score PSNR / SSIM, seed 42, from `eval.json`:
 Both routes around the 2×2 sum to the 0.31 dB gap. The networks account for 0.15–0.32 dB of it and the mask for −0.02 to +0.16 dB, depending on the route.
 This is a bracket, not a split: the difference between routes is the mismatch cost plus co-adaptation of network and mask.
 
-Masks at 30 epochs are still moving. Correlation of p(k) with the 100-epoch mask is 0.74–0.78:
+Masks at 30 epochs are still moving. Correlation of p(k) with the 100-epoch mask is 0.73–0.78:
 
 | run | mean p | correlation with reference | 0–20 px | 20–40 | 40–80 | 80–120 | 120–160 | 160–230 |
 |---|---|---|---|---|---|---|---|---|
@@ -211,7 +221,7 @@ Masks at 30 epochs are still moving. Correlation of p(k) with the 100-epoch mask
 | `e30_step` | 0.1292 | 0.775 | 0.866 | 0.555 | 0.292 | 0.148 | 0.055 | 0.000 |
 | `e30_bs8` | 0.1291 | 0.741 | 0.839 | 0.541 | 0.286 | 0.149 | 0.058 | 0.001 |
 | `e30_cos_muon2e3` | 0.1294 | 0.738 | 0.887 | 0.583 | 0.305 | 0.141 | 0.051 | 0.000 |
-C16_MASK_ROW
+| `e30_step_c16` | 0.1299 | 0.726 | 0.888 | 0.577 | 0.298 | 0.145 | 0.053 | 0.000 |
 
 Every short run keeps more of its budget at the centre than the reference, and less at high frequency.
 
@@ -223,19 +233,19 @@ Every short run keeps more of its budget at the centre than the reference, and l
 | `e30_step` | −0.052 |
 | `e30_cos` | −0.022 |
 | `e30_cos_muon2e3` | −0.016 |
-C16_EMA_ROW
+| `e30_step_c16` | −0.024 |
 
 The EMA was below the last weights in every arm, against an expected +0.03 to +0.1 dB.
 
 ## Conclusions
 
 - The exact bundle takes 12% off a real epoch (343 to 301 s) and 18.8% off a bench step, with no change in peak memory. Evidence: Results 1.
-- In float64 the hand-written backward agrees with autograd to under 1e-8, so it is the same math. In bf16 it is not the same numbers. Evidence: Results 2.
+- In float64 the hand-written backward agrees with autograd to under 1e-8, so it is the same math. In bf16 it is not the same numbers, and a change with no math in it moves a 2-epoch training just as far (2.71e-2 against 2.73e-2). Evidence: Results 2.
 - No schedule tested reaches 100-epoch quality in 30 epochs on seed 42. Evidence: Results 3.
 - At 30 epochs, batch 8 was worth +0.165 dB over batch 16 for 10% more time per epoch, the largest single effect measured here, on one seed. It is the only arm still able to pass.
 - The largest part of the gap at 30 epochs sits in the networks (0.15–0.32 dB), with the mask at −0.02 to +0.16 dB. The mask is not shown to be irrelevant. Evidence: Results 4.
 - The EMA at decay 0.999 does not help. Evidence: Results 5.
-- C16_CONCLUSION
+- 16 channels takes a real epoch from 301 to 234 s on top of the exact bundle (−22%) and costs 0.087 dB [0.072, 0.103] at 30 epochs, same snapshot, one seed. It is a model change with no frozen criterion, and whether that cost holds at convergence is untested.
 - Hypothesis, untested: convergence here is limited by the number of updates, not samples. `e30_bs8` took about 14,800 steps and matches the reference at epoch 53, about 13,100 steps.
 - Hypothesis, untested: `e30_step`'s EMA is the worst of the four because a 0.999 horizon, about 4 epochs at batch 16, straddles its lr drop at epoch 27.
 - Hypothesis, untested: Muon is why 0.5% gradient rounding becomes a 2.7% weight distance in two epochs. Newton–Schulz gives every singular direction the same size, including the ones rounding dominates.
@@ -264,7 +274,7 @@ The EMA was below the last weights in every arm, against an expected +0.03 to +0
 
 1. Run seed 43 of `e30_bs8` and pair it with `ml100_muon_layer_s43` once the 2×2 finishes. That settles the one open verdict.
 2. Test the updates hypothesis with one longer and one smaller-batch arm: `e50_bs8` (about 4.8 h, about 42% of the reference) and `e30_bs4`, both with the lr step at 90% of the run.
-3. NEXT_C16
+3. If 16 channels is still of interest, run it through a full schedule at two seeds, since 30 epochs cannot say what it costs at convergence.
 4. Find out why knee-PD carries the largest deficit in every arm, since that is where the remaining dB are.
 
 ## Reproduce

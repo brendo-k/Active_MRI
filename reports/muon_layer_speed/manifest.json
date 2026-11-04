@@ -1,0 +1,731 @@
+{
+  "schema": 1,
+  "generated_at": "2026-11-04T15:38:05+00:00",
+  "code": {
+    "produced_at": "60eb6dc55e923d51d5e3e34af50e671899ca9309",
+    "produced_at_subject": "muon_layer_speed_curves: the panel title names the reference",
+    "head": "60eb6dc55e923d51d5e3e34af50e671899ca9309",
+    "branch": "exp/muon_layer_speed",
+    "dirty_tracked_files": [],
+    "scripts": [
+      {
+        "path": "scripts/diagnostics/muon_layer_speed_fused_check.py",
+        "changed_since_produced_at": false
+      },
+      {
+        "path": "scripts/diagnostics/muon_layer_speed_gradcheck.py",
+        "changed_since_produced_at": false
+      },
+      {
+        "path": "scripts/diagnostics/muon_layer_speed_equivalence.py",
+        "changed_since_produced_at": false
+      },
+      {
+        "path": "scripts/diagnostics/muon_layer_speed_bench.py",
+        "changed_since_produced_at": false
+      },
+      {
+        "path": "scripts/diagnostics/muon_layer_speed_profile.py",
+        "changed_since_produced_at": false
+      },
+      {
+        "path": "scripts/diagnostics/muon_layer_speed_swap_masks.py",
+        "changed_since_produced_at": false
+      },
+      {
+        "path": "scripts/diagnostics/varnet_train_speed_masks.py",
+        "changed_since_produced_at": false
+      },
+      {
+        "path": "scripts/eval/varnet_train_speed_eval.py",
+        "changed_since_produced_at": false
+      },
+      {
+        "path": "scripts/eval/varnet_train_speed_curves.py",
+        "changed_since_produced_at": false
+      },
+      {
+        "path": "scripts/eval/muon_layer_speed_summary.py",
+        "changed_since_produced_at": false
+      },
+      {
+        "path": "scripts/plots/muon_layer_speed_curves.py",
+        "changed_since_produced_at": false
+      },
+      {
+        "path": "scripts/launch/varnet_train_speed_worker.sh",
+        "changed_since_produced_at": false
+      }
+    ]
+  },
+  "metric_mask": {
+    "version": "apodized",
+    "definition": "k-space-apodized per-anatomy mask (activemri/utils/metric_mask.py), the trainer metric since 2026-10-20",
+    "apodization_sigma": 16,
+    "params": {
+      "brain": {
+        "fraction": 0.15,
+        "radius": 6
+      },
+      "knee": {
+        "fraction": 0.06,
+        "radius": 12
+      }
+    }
+  },
+  "data": {
+    "config": {
+      "loader": "fastmri_manifest",
+      "manifest": "configs/datasets/fastmri_local_v1/manifest.csv",
+      "roots": {
+        "local_batch2": "/export/scratch/bkadota/fastmri_knee/batch2",
+        "hpc": "/export/scratch/bkadota/fastmri_raw/{anatomy}"
+      },
+      "train_tier": "S",
+      "limit_volumes": 1,
+      "train_anatomies": [],
+      "condition_classes": [
+        "brain",
+        "knee-PD",
+        "knee-PDFS"
+      ],
+      "classes": [
+        "FLAIR",
+        "knee"
+      ],
+      "anatomy": [
+        "brain",
+        "knee"
+      ],
+      "num_coils": 20,
+      "num_workers": 8
+    },
+    "note": "Full local v1 FLAIR + knee at 320x320. Validation: 80 volumes, 1938 slices (brain 605, knee-PD 673, knee-PDFS 660), scored at 2 seeded mask draws."
+  },
+  "runs": [
+    {
+      "name": "e30_bs8_ema_s42",
+      "path": "checkpoints/e30_bs8_ema_s42",
+      "config_sha256": "e06217ed9b320a45",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair_knee",
+        "misc.resolution=[320,320]",
+        "sampler.accelerations=[8.0]",
+        "sampler.budget_over=acquired",
+        "training.num_step=1",
+        "sampler.sampler_type=loupe_2d",
+        "sampler.loupe_vd_init_power=4",
+        "sampler.anatomy_conditioning=false",
+        "datasets.limit_volumes=1",
+        "training.optimizer=muon",
+        "recon.norm=layer",
+        "sampler.sens_norm=layer",
+        "training.ema_decay=0.999",
+        "training.val_every=5",
+        "training.batch_size=8",
+        "training.num_epochs=30",
+        "training.lr_step_size=27",
+        "training.seed=42",
+        "training.fused_adam=true",
+        "training.channels_last_unets=sens",
+        "output.out_dir=/home/bkadota/data/seqmri_checkpoints/muon_layer_speed/e30_bs8_s42",
+        "output.run_name=mls_e30_bs8_s42"
+      ],
+      "trained_at_commit": null,
+      "checkpoints": {
+        "last_model.pt": {
+          "bytes": 120791866,
+          "modified": "2026-11-04T13:15:22+00:00"
+        }
+      }
+    },
+    {
+      "name": "e30_bs8_s42",
+      "path": "checkpoints/e30_bs8_s42",
+      "config_sha256": "e06217ed9b320a45",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair_knee",
+        "misc.resolution=[320,320]",
+        "sampler.accelerations=[8.0]",
+        "sampler.budget_over=acquired",
+        "training.num_step=1",
+        "sampler.sampler_type=loupe_2d",
+        "sampler.loupe_vd_init_power=4",
+        "sampler.anatomy_conditioning=false",
+        "datasets.limit_volumes=1",
+        "training.optimizer=muon",
+        "recon.norm=layer",
+        "sampler.sens_norm=layer",
+        "training.ema_decay=0.999",
+        "training.val_every=5",
+        "training.batch_size=8",
+        "training.num_epochs=30",
+        "training.lr_step_size=27",
+        "training.seed=42",
+        "training.fused_adam=true",
+        "training.channels_last_unets=sens",
+        "output.out_dir=/home/bkadota/data/seqmri_checkpoints/muon_layer_speed/e30_bs8_s42",
+        "output.run_name=mls_e30_bs8_s42"
+      ],
+      "wandb_run_id": "1osxf6d3",
+      "trained_at_commit": "e61a16632ae84d73b78a687801cc9a1ffe8da0cd",
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 242375736,
+          "modified": "2026-11-04T13:15:22+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 242375736,
+          "modified": "2026-11-04T13:15:21+00:00"
+        }
+      }
+    },
+    {
+      "name": "e30_cos_ema_s42",
+      "path": "checkpoints/e30_cos_ema_s42",
+      "config_sha256": "9feec602326d06ce",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair_knee",
+        "misc.resolution=[320,320]",
+        "sampler.accelerations=[8.0]",
+        "sampler.budget_over=acquired",
+        "training.num_step=1",
+        "sampler.sampler_type=loupe_2d",
+        "sampler.loupe_vd_init_power=4",
+        "sampler.anatomy_conditioning=false",
+        "datasets.limit_volumes=1",
+        "training.optimizer=muon",
+        "recon.norm=layer",
+        "sampler.sens_norm=layer",
+        "training.ema_decay=0.999",
+        "training.val_every=5",
+        "training.batch_size=16",
+        "training.num_epochs=30",
+        "training.lr_scheduler=cosine",
+        "training.seed=42",
+        "output.out_dir=/home/bkadota/data/seqmri_checkpoints/muon_layer_speed/e30_cos_s42",
+        "output.run_name=mls_e30_cos_s42"
+      ],
+      "trained_at_commit": null,
+      "checkpoints": {
+        "last_model.pt": {
+          "bytes": 120791802,
+          "modified": "2026-11-04T10:01:55+00:00"
+        }
+      }
+    },
+    {
+      "name": "e30_cos_muon2e3_ema_s42",
+      "path": "checkpoints/e30_cos_muon2e3_ema_s42",
+      "config_sha256": "d82f0a378dc0365f",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair_knee",
+        "misc.resolution=[320,320]",
+        "sampler.accelerations=[8.0]",
+        "sampler.budget_over=acquired",
+        "training.num_step=1",
+        "sampler.sampler_type=loupe_2d",
+        "sampler.loupe_vd_init_power=4",
+        "sampler.anatomy_conditioning=false",
+        "datasets.limit_volumes=1",
+        "training.optimizer=muon",
+        "recon.norm=layer",
+        "sampler.sens_norm=layer",
+        "training.ema_decay=0.999",
+        "training.val_every=5",
+        "training.batch_size=16",
+        "training.num_epochs=30",
+        "training.lr_scheduler=cosine",
+        "training.muon_lr=0.002",
+        "training.seed=42",
+        "training.fused_adam=true",
+        "training.channels_last_unets=sens",
+        "output.out_dir=/home/bkadota/data/seqmri_checkpoints/muon_layer_speed/e30_cos_muon2e3_s42",
+        "output.run_name=mls_e30_cos_muon2e3_s42"
+      ],
+      "trained_at_commit": null,
+      "checkpoints": {
+        "last_model.pt": {
+          "bytes": 120791866,
+          "modified": "2026-11-04T13:52:46+00:00"
+        }
+      }
+    },
+    {
+      "name": "e30_cos_muon2e3_s42",
+      "path": "checkpoints/e30_cos_muon2e3_s42",
+      "config_sha256": "d82f0a378dc0365f",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair_knee",
+        "misc.resolution=[320,320]",
+        "sampler.accelerations=[8.0]",
+        "sampler.budget_over=acquired",
+        "training.num_step=1",
+        "sampler.sampler_type=loupe_2d",
+        "sampler.loupe_vd_init_power=4",
+        "sampler.anatomy_conditioning=false",
+        "datasets.limit_volumes=1",
+        "training.optimizer=muon",
+        "recon.norm=layer",
+        "sampler.sens_norm=layer",
+        "training.ema_decay=0.999",
+        "training.val_every=5",
+        "training.batch_size=16",
+        "training.num_epochs=30",
+        "training.lr_scheduler=cosine",
+        "training.muon_lr=0.002",
+        "training.seed=42",
+        "training.fused_adam=true",
+        "training.channels_last_unets=sens",
+        "output.out_dir=/home/bkadota/data/seqmri_checkpoints/muon_layer_speed/e30_cos_muon2e3_s42",
+        "output.run_name=mls_e30_cos_muon2e3_s42"
+      ],
+      "wandb_run_id": "d3enuiba",
+      "trained_at_commit": "e61a16632ae84d73b78a687801cc9a1ffe8da0cd",
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 242375800,
+          "modified": "2026-11-04T13:52:45+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 242375800,
+          "modified": "2026-11-04T13:52:45+00:00"
+        }
+      }
+    },
+    {
+      "name": "e30_cos_s42",
+      "path": "checkpoints/e30_cos_s42",
+      "config_sha256": "9feec602326d06ce",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair_knee",
+        "misc.resolution=[320,320]",
+        "sampler.accelerations=[8.0]",
+        "sampler.budget_over=acquired",
+        "training.num_step=1",
+        "sampler.sampler_type=loupe_2d",
+        "sampler.loupe_vd_init_power=4",
+        "sampler.anatomy_conditioning=false",
+        "datasets.limit_volumes=1",
+        "training.optimizer=muon",
+        "recon.norm=layer",
+        "sampler.sens_norm=layer",
+        "training.ema_decay=0.999",
+        "training.val_every=5",
+        "training.batch_size=16",
+        "training.num_epochs=30",
+        "training.lr_scheduler=cosine",
+        "training.seed=42",
+        "output.out_dir=/home/bkadota/data/seqmri_checkpoints/muon_layer_speed/e30_cos_s42",
+        "output.run_name=mls_e30_cos_s42"
+      ],
+      "wandb_run_id": "wd899bmu",
+      "trained_at_commit": "0920f8b8e647be13bfa06b02bc4705f83bb683c9",
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 242368888,
+          "modified": "2026-11-04T10:01:54+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 242368888,
+          "modified": "2026-11-04T10:01:53+00:00"
+        }
+      }
+    },
+    {
+      "name": "e30_step_c16_ema_s42",
+      "path": "checkpoints/e30_step_c16_ema_s42",
+      "config_sha256": "d098429897cac00a",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair_knee",
+        "misc.resolution=[320,320]",
+        "sampler.accelerations=[8.0]",
+        "sampler.budget_over=acquired",
+        "training.num_step=1",
+        "sampler.sampler_type=loupe_2d",
+        "sampler.loupe_vd_init_power=4",
+        "sampler.anatomy_conditioning=false",
+        "datasets.limit_volumes=1",
+        "training.optimizer=muon",
+        "recon.norm=layer",
+        "sampler.sens_norm=layer",
+        "training.ema_decay=0.999",
+        "training.val_every=5",
+        "training.batch_size=16",
+        "training.num_epochs=30",
+        "training.lr_step_size=27",
+        "training.seed=42",
+        "training.fused_adam=true",
+        "training.channels_last_unets=true",
+        "recon.chans=16",
+        "output.out_dir=/home/bkadota/data/seqmri_checkpoints/muon_layer_speed/e30_step_c16_s42",
+        "output.run_name=mls_e30_step_c16_s42"
+      ],
+      "trained_at_commit": null,
+      "checkpoints": {
+        "last_model.pt": {
+          "bytes": 96056122,
+          "modified": "2026-11-04T15:23:09+00:00"
+        }
+      }
+    },
+    {
+      "name": "e30_step_c16_s42",
+      "path": "checkpoints/e30_step_c16_s42",
+      "config_sha256": "d098429897cac00a",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair_knee",
+        "misc.resolution=[320,320]",
+        "sampler.accelerations=[8.0]",
+        "sampler.budget_over=acquired",
+        "training.num_step=1",
+        "sampler.sampler_type=loupe_2d",
+        "sampler.loupe_vd_init_power=4",
+        "sampler.anatomy_conditioning=false",
+        "datasets.limit_volumes=1",
+        "training.optimizer=muon",
+        "recon.norm=layer",
+        "sampler.sens_norm=layer",
+        "training.ema_decay=0.999",
+        "training.val_every=5",
+        "training.batch_size=16",
+        "training.num_epochs=30",
+        "training.lr_step_size=27",
+        "training.seed=42",
+        "training.fused_adam=true",
+        "training.channels_last_unets=true",
+        "recon.chans=16",
+        "output.out_dir=/home/bkadota/data/seqmri_checkpoints/muon_layer_speed/e30_step_c16_s42",
+        "output.run_name=mls_e30_step_c16_s42"
+      ],
+      "wandb_run_id": "w3nukvuz",
+      "trained_at_commit": "e61a16632ae84d73b78a687801cc9a1ffe8da0cd",
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 192888888,
+          "modified": "2026-11-04T15:23:08+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 192888888,
+          "modified": "2026-11-04T15:23:08+00:00"
+        }
+      }
+    },
+    {
+      "name": "e30_step_ema_s42",
+      "path": "checkpoints/e30_step_ema_s42",
+      "config_sha256": "24f32f0849dbb6e6",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair_knee",
+        "misc.resolution=[320,320]",
+        "sampler.accelerations=[8.0]",
+        "sampler.budget_over=acquired",
+        "training.num_step=1",
+        "sampler.sampler_type=loupe_2d",
+        "sampler.loupe_vd_init_power=4",
+        "sampler.anatomy_conditioning=false",
+        "datasets.limit_volumes=1",
+        "training.optimizer=muon",
+        "recon.norm=layer",
+        "sampler.sens_norm=layer",
+        "training.ema_decay=0.999",
+        "training.val_every=5",
+        "training.batch_size=16",
+        "training.num_epochs=30",
+        "training.lr_step_size=27",
+        "training.seed=42",
+        "training.fused_adam=true",
+        "training.channels_last_unets=sens",
+        "output.out_dir=/home/bkadota/data/seqmri_checkpoints/muon_layer_speed/e30_step_s42",
+        "output.run_name=mls_e30_step_s42"
+      ],
+      "trained_at_commit": null,
+      "checkpoints": {
+        "last_model.pt": {
+          "bytes": 120791866,
+          "modified": "2026-11-04T11:09:05+00:00"
+        }
+      }
+    },
+    {
+      "name": "e30_step_maskof_ref_s42",
+      "path": "checkpoints/e30_step_maskof_ref_s42",
+      "trained_at_commit": null,
+      "checkpoints": {
+        "last_model.pt": {
+          "bytes": 120654782,
+          "modified": "2026-11-04T11:22:21+00:00"
+        }
+      }
+    },
+    {
+      "name": "e30_step_s42",
+      "path": "checkpoints/e30_step_s42",
+      "config_sha256": "24f32f0849dbb6e6",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair_knee",
+        "misc.resolution=[320,320]",
+        "sampler.accelerations=[8.0]",
+        "sampler.budget_over=acquired",
+        "training.num_step=1",
+        "sampler.sampler_type=loupe_2d",
+        "sampler.loupe_vd_init_power=4",
+        "sampler.anatomy_conditioning=false",
+        "datasets.limit_volumes=1",
+        "training.optimizer=muon",
+        "recon.norm=layer",
+        "sampler.sens_norm=layer",
+        "training.ema_decay=0.999",
+        "training.val_every=5",
+        "training.batch_size=16",
+        "training.num_epochs=30",
+        "training.lr_step_size=27",
+        "training.seed=42",
+        "training.fused_adam=true",
+        "training.channels_last_unets=sens",
+        "output.out_dir=/home/bkadota/data/seqmri_checkpoints/muon_layer_speed/e30_step_s42",
+        "output.run_name=mls_e30_step_s42"
+      ],
+      "wandb_run_id": "5aswqksg",
+      "trained_at_commit": "e61a16632ae84d73b78a687801cc9a1ffe8da0cd",
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 242375736,
+          "modified": "2026-11-04T11:09:05+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 242375736,
+          "modified": "2026-11-04T11:09:04+00:00"
+        }
+      }
+    },
+    {
+      "name": "ref_maskof_e30_step_s42",
+      "path": "checkpoints/ref_maskof_e30_step_s42",
+      "trained_at_commit": null,
+      "checkpoints": {
+        "last_model.pt": {
+          "bytes": 120654718,
+          "modified": "2026-11-04T11:22:20+00:00"
+        }
+      }
+    },
+    {
+      "name": "ref_s42",
+      "path": "checkpoints/ref_s42",
+      "config_sha256": "9ef0e4f90841c568",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair_knee",
+        "misc.resolution=[320,320]",
+        "sampler.accelerations=[8.0]",
+        "sampler.budget_over=acquired",
+        "training.num_step=1",
+        "training.batch_size=16",
+        "training.num_epochs=100",
+        "training.lr_step_size=90",
+        "sampler.sampler_type=loupe_2d",
+        "sampler.loupe_vd_init_power=4",
+        "sampler.anatomy_conditioning=false",
+        "datasets.limit_volumes=1",
+        "training.seed=42",
+        "training.optimizer=muon",
+        "recon.norm=layer",
+        "sampler.sens_norm=layer",
+        "output.out_dir=/home/bkadota/data/seqmri_checkpoints/muon_layernorm_100ep/muon_layer_s42",
+        "output.run_name=ml100_muon_layer_s42"
+      ],
+      "wandb_run_id": "nidd1x7z",
+      "trained_at_commit": "91932dacfcada0ccabd7182697b4ff21ac6f0302",
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 242368888,
+          "modified": "2026-11-04T06:56:21+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 242368888,
+          "modified": "2026-11-04T07:44:08+00:00"
+        }
+      }
+    }
+  ],
+  "commands": [
+    "python scripts/diagnostics/muon_layer_speed_fused_check.py $OUT/fused_check_full_scale.json",
+    "python scripts/diagnostics/muon_layer_speed_gradcheck.py $OUT/gradcheck.json",
+    "MLS_NO_TF32=1 python scripts/diagnostics/muon_layer_speed_gradcheck.py $OUT/gradcheck_fp32.json recon.unet_precision=fp32 sampler.sens_precision=fp32 training.batch_size=6",
+    "MLS_SMOOTH_LOSS=1 MLS_NO_TF32=1 python scripts/diagnostics/muon_layer_speed_gradcheck.py $OUT/gradcheck_fp32_smooth.json recon.unet_precision=fp32 sampler.sens_precision=fp32 training.batch_size=6",
+    "python scripts/diagnostics/muon_layer_speed_equivalence.py --before \"$BEFORE\" --after \"$AFTER\" --work-dir \"$WORK/equivalence\" --out $OUT/equivalence.json",
+    "python scripts/diagnostics/muon_layer_speed_bench.py --out $OUT/bench.json --before \"$BEFORE\" --after \"$AFTER\" --work-dir \"$WORK/bench\"",
+    "python scripts/diagnostics/muon_layer_speed_profile.py $OUT/profile_control.json",
+    "python scripts/diagnostics/muon_layer_speed_profile.py $OUT/profile_channels_last.json training.channels_last_unets=true",
+    "python scripts/diagnostics/muon_layer_speed_profile.py $OUT/profile_cheap.json training.fused_adam=true",
+    "python scripts/diagnostics/muon_layer_speed_profile.py $OUT/profile_fused_backward.json training.fused_adam=true",
+    "MLS_GC_FREEZE=1 python scripts/diagnostics/muon_layer_speed_profile.py $OUT/profile_gc_freeze.json training.fused_adam=true",
+    "MLS_GC_FREEZE=1 python scripts/diagnostics/muon_layer_speed_profile.py $OUT/profile_group_senscl.json training.fused_adam=true training.channels_last_unets=sens",
+    "MLS_GC_FREEZE=1 python scripts/diagnostics/muon_layer_speed_profile.py $OUT/profile_chans16_nhwc.json training.fused_adam=true recon.chans=16 training.channels_last_unets=true",
+    "python scripts/diagnostics/muon_layer_speed_swap_masks.py \"$QUEUE\" e30_step ref 42",
+    "(cd \"$BEFORE\" && PYTHONPATH=$PWD python scripts/eval/varnet_train_speed_eval.py --queue-dir \"$QUEUE\" --runs $RUNS --control ref --out \"$OLDPWD/$OUT/eval.json\")",
+    "python scripts/eval/varnet_train_speed_curves.py --queue-dir \"$QUEUE\" --prefix mls_ --out $OUT/curves.json",
+    "python scripts/eval/varnet_train_speed_curves.py --queue-dir \"$REFERENCE_QUEUE\" --prefix ml100_ --out $OUT/curves_reference.json",
+    "python scripts/diagnostics/varnet_train_speed_masks.py $OUT/masks.json --queue-dir \"$QUEUE\" --control ref --runs $TRAINED",
+    "python scripts/eval/muon_layer_speed_summary.py $OUT --queue-dir \"$QUEUE\"",
+    "python scripts/plots/muon_layer_speed_curves.py $OUT/curves.json $OUT/curves_reference.json $OUT/figures/curves.png"
+  ],
+  "results": [
+    {
+      "path": "bench.json",
+      "bytes": 1014,
+      "sha256": "afcd68578540fb0d"
+    },
+    {
+      "path": "curves.json",
+      "bytes": 50450,
+      "sha256": "c77004ab4864f930"
+    },
+    {
+      "path": "curves_reference.json",
+      "bytes": 206891,
+      "sha256": "20406e3568acd7f0"
+    },
+    {
+      "path": "equivalence.json",
+      "bytes": 1582,
+      "sha256": "ca0dbbf7659145f0"
+    },
+    {
+      "path": "eval.json",
+      "bytes": 27274,
+      "sha256": "40bbe08435e5f9c3"
+    },
+    {
+      "path": "eval.per_slice.npz",
+      "bytes": 5258552,
+      "sha256": "bccf0c10b5893548"
+    },
+    {
+      "path": "figures/curves.png",
+      "bytes": 174025,
+      "sha256": "222cf98b6e1c03e6"
+    },
+    {
+      "path": "fused_check_full_scale.json",
+      "bytes": 151,
+      "sha256": "cee62fe77ba02a2a"
+    },
+    {
+      "path": "gradcheck.json",
+      "bytes": 349,
+      "sha256": "971f9b8456c6dab4"
+    },
+    {
+      "path": "gradcheck_fp32.json",
+      "bytes": 357,
+      "sha256": "1ec015c1de8cdb00"
+    },
+    {
+      "path": "gradcheck_fp32_smooth.json",
+      "bytes": 355,
+      "sha256": "39fc5e5bf8f1ec0b"
+    },
+    {
+      "path": "layer_bf16_reverted.txt",
+      "bytes": 1118,
+      "sha256": "051e638661ce3e0c"
+    },
+    {
+      "path": "masks.json",
+      "bytes": 1988,
+      "sha256": "34794e24f9ec122d"
+    },
+    {
+      "path": "profile_channels_last.json",
+      "bytes": 14987,
+      "sha256": "9b44cb21bd74e8db"
+    },
+    {
+      "path": "profile_chans16_nhwc.json",
+      "bytes": 14146,
+      "sha256": "91972fe93105c399"
+    },
+    {
+      "path": "profile_cheap.json",
+      "bytes": 15250,
+      "sha256": "9da751a8af07d64d"
+    },
+    {
+      "path": "profile_control.json",
+      "bytes": 15312,
+      "sha256": "f0e40037237d706a"
+    },
+    {
+      "path": "profile_fused_backward.json",
+      "bytes": 15114,
+      "sha256": "c3f23dac2683089a"
+    },
+    {
+      "path": "profile_fused_pinned.json",
+      "bytes": 15219,
+      "sha256": "d781f181d5f011d1"
+    },
+    {
+      "path": "profile_gc_freeze.json",
+      "bytes": 15228,
+      "sha256": "2a1128c9da9eada0"
+    },
+    {
+      "path": "profile_group_senscl.json",
+      "bytes": 15188,
+      "sha256": "dcb501005a8ec493"
+    },
+    {
+      "path": "profile_layer_bf16.json",
+      "bytes": 14585,
+      "sha256": "3f0281d55dd25842"
+    },
+    {
+      "path": "profile_layer_bf16_nchw.json",
+      "bytes": 14791,
+      "sha256": "0a12d10fdecc7717"
+    },
+    {
+      "path": "profile_layer_bf16_senscl.json",
+      "bytes": 14712,
+      "sha256": "3e3bcb27563ff325"
+    },
+    {
+      "path": "proposal.md",
+      "bytes": 5772,
+      "sha256": "dd6282b43b6805d5"
+    },
+    {
+      "path": "queue_jobs.txt",
+      "bytes": 7102,
+      "sha256": "77acc12db7554713"
+    },
+    {
+      "path": "queue_rolling_eval.sh",
+      "bytes": 2537,
+      "sha256": "254cfe7130b809e9"
+    },
+    {
+      "path": "summary.json",
+      "bytes": 13983,
+      "sha256": "b7d91ba02e089d3c"
+    },
+    {
+      "path": "summary.md",
+      "bytes": 7418,
+      "sha256": "fd488c7665e6d2c1"
+    }
+  ]
+}
