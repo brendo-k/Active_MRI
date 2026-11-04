@@ -5,11 +5,13 @@
 Reads eval.json and eval.per_slice.npz (scripts/eval/varnet_train_speed_eval.py with --control ref, run <arm>_ema_s<seed>
 scored as a run of its own), bench.json, curves.json and curves_reference.json from the report folder, and each run's
 TrainTime and ValTime from its log. Writes summary.json and summary.md there. A criterion the frozen proposal states over
-two seeds stays undecided on one seed: the verdict then reads 'provisional', and the seed counts as what it would need to be.
+two seeds stays undecided on one seed, where the verdict reads 'provisional', unless that seed already fails it: 'neither seed
+below' rules out faster and 'in both seeds' rules out the EMA, whatever the second seed does.
 
 Beyond the frozen criteria it reports:
 - steady wall-clock: the median epoch's train time times the epochs, plus validation, so a stretch shared with another job
   does not count;
+- each arm's share against the reference as if it had validated every 5 epochs like the arms;
 - paired differences between arms, same seed, per slice: exploratory, since no criterion was frozen for them. The swapped
   runs give the 2x2 of 30-epoch against 100-epoch networks and masks;
 - the reference epoch each arm matches (trainer val PSNR_Masked; the reference's curve is a centred 5-epoch median, so a
@@ -71,7 +73,18 @@ def verdict(deltas, ssim_deltas, wall_clock_share):
         outcome = 'faster'
     else:
         outcome = 'inconclusive'
-    return outcome if len(deltas) >= SEEDS_NEEDED else f'provisional {outcome} ({len(deltas)} of {SEEDS_NEEDED} seeds)'
+    if len(deltas) >= SEEDS_NEEDED:
+        return outcome
+    provisional = f'provisional {outcome} ({len(deltas)} of {SEEDS_NEEDED} seeds)'
+    return f'not faster, decided; {provisional}' if worst < FASTER_WORST_SEED_DB else provisional
+
+
+def ema_verdict(gains):
+    if not gains:
+        return None
+    if min(gains) < EMA_ADOPT_DB:
+        return 'not adopted, decided'
+    return 'adopted' if len(gains) >= SEEDS_NEEDED else f'provisional adopted ({len(gains)} of {SEEDS_NEEDED} seeds)'
 
 
 def between_arms(slices, arm, other, seed):
@@ -202,12 +215,14 @@ def main():
             name, reference = f'{arm}_s{seed}', f'{REFERENCE}_s{seed}'
             clock, reference_clock = wall_clock_hours(queue_dir, name), wall_clock_hours(queue_dir, reference)
             total, reference_total = clock['train_h'] + clock['val_h'], reference_clock['train_h'] + reference_clock['val_h']
+            reference_at_val_cadence = reference_clock['train_h'] + reference_clock['val_h'] / VAL_EVERY
             rows[seed] = {'psnr': per_run[name]['all']['psnr_masked'], 'ssim': per_run[name]['all']['ssim_masked'],
                           'delta_psnr': entry['all']['psnr'], 'delta_ssim': entry['all']['ssim'],
                           'per_condition': {c: entry[c]['psnr']['mean'] for c in entry if c != 'all'},
                           **clock, 'wall_clock_h': total, 'wall_clock_share': total / reference_total,
                           'steady_wall_clock_h': clock['steady_train_h'] + clock['val_h'],
                           'steady_wall_clock_share': (clock['steady_train_h'] + clock['val_h']) / reference_total,
+                          'share_at_val_cadence': total / reference_at_val_cadence,
                           'schedule_share': clock['epochs'] / reference_clock['epochs']}
             if name in finals:
                 rows[seed]['trainer_final_psnr'] = finals[name]
@@ -221,9 +236,7 @@ def main():
         gains = [row['ema_minus_last']['mean'] for row in rows.values() if 'ema_minus_last' in row]
         decided = 'post-freeze, no frozen criterion' if arm in POST_FREEZE_ARMS else verdict(
             deltas, ssims, max(row['wall_clock_share'] for row in rows.values()))
-        arms[arm] = {'seeds': rows, 'mean_delta_psnr': float(np.mean(deltas)), 'verdict': decided,
-                     'ema_adopt': None if not gains else (
-                         (min(gains) >= EMA_ADOPT_DB) if len(gains) >= SEEDS_NEEDED else f'provisional {min(gains) >= EMA_ADOPT_DB}')}
+        arms[arm] = {'seeds': rows, 'mean_delta_psnr': float(np.mean(deltas)), 'verdict': decided, 'ema_adopt': ema_verdict(gains)}
 
     comparisons = [row for arm, other in BETWEEN_ARMS for seed in sorted({s for entry in arms.values() for s in entry['seeds']})
                    if (row := between_arms(slices, arm, other, seed)) is not None]
@@ -243,8 +256,8 @@ def main():
                                                           'reference': {k: v for k, v in per_run.items() if k.startswith(REFERENCE)}}, indent=1))
 
     lines = ['# muon_layer_speed summary', '', 'Paired against the same-seed 100-epoch reference on the full validation set, 2 mask draws.', '',
-             '| arm | seed | PSNR | SSIM | delta PSNR [95% CI] | delta SSIM | brain / PD / PDFS delta | epochs | median train s | wall-clock h (train + val) | share | steady h | EMA - last dB | matches reference epoch | verdict |',
-             '|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|']
+             '| arm | seed | PSNR | SSIM | delta PSNR [95% CI] | delta SSIM | brain / PD / PDFS delta | epochs | median train s | wall-clock h (train + val) | share | share, reference at the arms\' val cadence | steady h | EMA - last dB | EMA verdict | matches reference epoch | verdict |',
+             '|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|']
     for arm, entry in arms.items():
         for seed, row in entry['seeds'].items():
             delta, conditions = row['delta_psnr'], row['per_condition']
@@ -252,8 +265,8 @@ def main():
             lines.append(
                 f"| {arm} | {seed} | {row['psnr']:.3f} | {row['ssim']:.4f} | {delta['mean']:+.3f} [{delta['ci'][0]:+.3f}, {delta['ci'][1]:+.3f}] | "
                 f"{row['delta_ssim']['mean']:+.4f} | {' / '.join(f'{conditions[c]:+.2f}' for c in sorted(conditions))} | {row['epochs']} | {row['median_train_s']:.0f} | "
-                f"{row['wall_clock_h']:.2f} ({row['train_h']:.2f} + {row['val_h']:.2f}) | {row['wall_clock_share']:.0%} | {row['steady_wall_clock_h']:.2f} | "
-                f"{'-' if ema is None else format(ema['mean'], '+.3f')} | {row.get('reference_epoch_matched', '-')} | {entry['verdict']} |")
+                f"{row['wall_clock_h']:.2f} ({row['train_h']:.2f} + {row['val_h']:.2f}) | {row['wall_clock_share']:.0%} | {row['share_at_val_cadence']:.0%} | {row['steady_wall_clock_h']:.2f} | "
+                f"{'-' if ema is None else format(ema['mean'], '+.3f')} | {entry['ema_adopt'] or '-'} | {row.get('reference_epoch_matched', '-')} | {entry['verdict']} |")
     lines += ['', 'Between arms, same seed, per slice (exploratory):', '', '| arm minus arm | seed | delta PSNR [95% CI] | delta SSIM |', '|---|---|---|---|']
     for row in comparisons:
         psnr, ssim = row['psnr'], row['ssim']
