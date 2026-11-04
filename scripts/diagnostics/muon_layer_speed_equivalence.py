@@ -1,8 +1,10 @@
 """How far the exact step-time changes move a real training, against how far the same code moves when run twice.
 
-Trains two epochs on 5% of the data three times, through train.py with bf16 and compiled U-Nets as in a run: the code from
-before the changes twice, and the code after them once, with the options the arms use. The cuDNN autotuner is off. It
-reports the relative distance between final weights, whole-model and per parameter, and each run's last losses.
+Trains two epochs on 5% of the data four times, through train.py with bf16 and compiled U-Nets as in a run: the code from
+before the changes twice, and the code after them with and without the options the arms use. Those options change no math,
+only Adam's kernels and the sensitivity net's layout, so that last pair shows how far a pure rounding change moves a training.
+The cuDNN autotuner is off. It reports the relative distance between final weights, whole-model and per parameter, and each
+run's last losses. A run whose checkpoint is already in the work dir is not trained again.
 
     python scripts/diagnostics/muon_layer_speed_equivalence.py --before <repo> --after <repo> --work-dir <dir> --out equivalence.json
 """
@@ -23,8 +25,8 @@ COMMON = ['recon=varnet', 'datasets=fastmri_local_v1_flair_knee', 'misc.resoluti
           'training.lr_step_size=2', 'training.seed=42', 'training.optimizer=muon', 'recon.norm=layer', 'sampler.sens_norm=layer',
           'training.cudnn_benchmark=false', 'training.ema_decay=0.999']
 FAST = ['training.fused_adam=true', 'training.channels_last_unets=sens']
-RUNS = {'before': ('before', []), 'before_again': ('before', []), 'after': ('after', FAST)}
-PAIRS = [('before', 'before_again'), ('before', 'after')]
+RUNS = {'before': ('before', []), 'before_again': ('before', []), 'after': ('after', FAST), 'after_plain': ('after', [])}
+PAIRS = [('before', 'before_again'), ('before', 'after'), ('before', 'after_plain'), ('after_plain', 'after')]
 LAST_EPOCH = re.compile(r'Epoch = \[ *2/ *2\] TrainLoss = (\S+) ValLoss = (\S+)')
 MASK_PARAMETER = 'mask_net.mask'
 
@@ -32,9 +34,10 @@ MASK_PARAMETER = 'mask_net.mask'
 def train(name, repo, overrides, work_dir):
     environment = {**os.environ, 'PYTHONPATH': repo, 'WANDB_MODE': 'disabled', 'CC': 'gcc', 'CXX': 'g++'}
     log = work_dir / f'{name}.log'
-    with log.open('w') as handle:
-        subprocess.run([sys.executable, 'train.py', '--model', 'sequential', *COMMON, *overrides, f'output.out_dir={work_dir / name}'],
-                       cwd=repo, env=environment, stdout=handle, stderr=subprocess.STDOUT, check=True)
+    if not (work_dir / name / 'last_model.pt').exists():
+        with log.open('w') as handle:
+            subprocess.run([sys.executable, 'train.py', '--model', 'sequential', *COMMON, *overrides, f'output.out_dir={work_dir / name}'],
+                           cwd=repo, env=environment, stdout=handle, stderr=subprocess.STDOUT, check=True)
     train_loss, val_loss = LAST_EPOCH.findall(log.read_text(errors='replace'))[-1]
     return {'train_loss': float(train_loss), 'val_loss': float(val_loss)}
 
@@ -48,8 +51,9 @@ def distance(first, second):
     per_parameter = {key: ((first[key] - second[key]).norm() / first[key].norm().clamp(min=1e-30)).item() for key in keys}
     squared = sum((first[key] - second[key]).pow(2).sum() for key in keys) / sum(first[key].pow(2).sum() for key in keys)
     mask = next(value for key, value in per_parameter.items() if key.endswith(MASK_PARAMETER))
+    worst = max(per_parameter, key=per_parameter.get)
     return {'whole_model': squared.sqrt().item(), 'median_parameter': statistics.median(per_parameter.values()),
-            'worst_parameter': max(per_parameter.values()), 'mask': mask}
+            'worst_parameter': per_parameter[worst], 'worst_parameter_name': worst, 'mask': mask}
 
 
 def main():
