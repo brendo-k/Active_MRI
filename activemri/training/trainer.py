@@ -26,6 +26,7 @@ from activemri.samplers.loupe import LineConstrainedProbMask, ProbMask
 from activemri.utils.util import compute_ssim_torch, compute_psnr_torch
 from activemri.config import TrainConfig
 from activemri.training.run_naming import run_group, run_name, run_tags
+from activemri.training.ema import ParameterEMA
 from activemri.training.muon import MuonAdam, muon_parameters
 from activemri.reconstructors.norms import replace_instance_norms
 from activemri.reconstructors.config import UNetReconConfig, CGSenseReconConfig, SDUMReconConfig, VarNetReconConfig
@@ -86,6 +87,9 @@ class Sequential_Trainer:
         self.visual_examples = select_visual_examples(self.val_loader.dataset)
 
         self.scheduler = build_lr_scheduler(options, self.optimizer)
+        ema_decay = getattr(options, 'ema_decay', 0.0)
+        self.ema = None if ema_decay <= 0 else ParameterEMA(
+            [p for module in self._recon_modules() for p in module.parameters() if p.requires_grad], ema_decay)
         self.best_val_loss = np.inf
         self.previous_mask_logits = None
         self.epoch = 0
@@ -318,6 +322,7 @@ class Sequential_Trainer:
                 f'TrainTime = {train_time:.4f}s ValTime = {val_time:.4f}s',
             )
 
+        self.save_ema_model()
         wandb.finish()
 
     def _is_every(self, every: int) -> bool:
@@ -485,6 +490,8 @@ class Sequential_Trainer:
             self.optimizer.zero_grad()
             return None
         self.optimizer.step()
+        if self.ema is not None:
+            self.ema.update()
         return grad_log
 
     def val_epoch(self):
@@ -719,6 +726,14 @@ class Sequential_Trainer:
         best_tmp.replace(best_path)
         for old_checkpoint in self.exp_dir.glob('model_epoch_*.pt'):
             old_checkpoint.unlink()
+
+    def save_ema_model(self):
+        """`ema_model.pt`: a `last_model.pt` with the averaged weights, for the same eval scripts."""
+        if self.ema is None:
+            return
+        with self.ema.applied():
+            torch.save({'epoch': self.epoch, 'options': self.options, 'model': self.model.state_dict(),
+                        'best_val_loss': self.best_val_loss}, self.exp_dir / 'ema_model.pt')
 
     def load_checkpoint(self):
         checkpoint = torch.load(self.options.checkpoint, weights_only=False)
