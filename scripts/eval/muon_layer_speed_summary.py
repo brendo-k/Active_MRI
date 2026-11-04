@@ -14,7 +14,8 @@ Beyond the frozen criteria it reports:
   runs give the 2x2 of 30-epoch against 100-epoch networks and masks;
 - the reference epoch each arm matches (trainer val PSNR_Masked; the reference's curve is a centred 5-epoch median, so a
   one-epoch dip does not count), and from it the hours a constant-lr run needs to come within the proposal's bar;
-- every profile_*.json, gradcheck*.json, fused_check_full_scale.json and equivalence.json in the report folder as tables.
+- every profile_*.json, gradcheck*.json, fused_check_full_scale.json, masks.json and equivalence.json in the report folder
+  as tables, and the trainer's validation curves at the arms' validation epochs.
 """
 import argparse
 import json
@@ -149,6 +150,29 @@ def equivalence_table(report):
     return lines + [f"| {name} | {row['train_loss']} | {row['val_loss']} |" for name, row in result['losses'].items()]
 
 
+def curve_table(report):
+    arms_path, reference_path = report / 'curves.json', report / 'curves_reference.json'
+    if not (arms_path.exists() and reference_path.exists()):
+        return []
+    runs = {'100-epoch reference': json.loads(reference_path.read_text())['runs'][REFERENCE_RUN], **json.loads(arms_path.read_text())['runs']}
+    curves = {name: {row['epoch']: row[PSNR] for row in run['curve'] if PSNR in row} for name, run in runs.items()}
+    epochs = sorted({epoch for name, curve in curves.items() if name != '100-epoch reference' for epoch in curve})
+    lines = ['', 'Trainer val PSNR_Masked by epoch:', '', '| run | ' + ' | '.join(str(epoch) for epoch in epochs) + ' |', '|---|' + '---|' * len(epochs)]
+    return lines + [f"| {name} | " + ' | '.join(format(curve[epoch], '.2f') if epoch in curve else '-' for epoch in epochs) + ' |' for name, curve in curves.items()]
+
+
+def mask_table(report):
+    path = report / 'masks.json'
+    if not path.exists():
+        return []
+    masks = json.loads(path.read_text())
+    bands = list(next(iter(masks.values()))['radial_mean_p'])
+    lines = ['', 'Learned mask p(k), against the same-seed reference, and mean p by radial band in pixels from the centre:', '',
+             '| run | mean p | correlation | ' + ' | '.join(bands) + ' |', '|---|---|---|' + '---|' * len(bands)]
+    return lines + [f"| {name} | {mask['mean_p']:.4f} | {mask['corr_with_control_same_seed']:.3f} | " + ' | '.join(f"{mask['radial_mean_p'][band]:.3f}" for band in bands) + ' |'
+                    for name, mask in masks.items()]
+
+
 def condition_table(per_run):
     conditions = sorted(condition for condition in next(iter(per_run.values())) if condition not in ('epochs', 'all'))
     lines = ['', 'Absolute scores per condition (PSNR / SSIM):', '', '| run | epochs | all | ' + ' | '.join(conditions) + ' |', '|---|---|---|' + '---|' * len(conditions)]
@@ -241,7 +265,8 @@ def main():
     for row in bench:
         if 'step_s' in row:
             lines.append(f"| {row['arm']} | {row['step_s']:.3f} | {row.get('step_change', 0):+.1%} | {row['val_pass_s']:.1f} | {row['steady_peak_GiB']:.1f} |")
-    lines += condition_table(per_run) + profile_table(args.report) + exactness_table(args.report) + equivalence_table(args.report)
+    lines += curve_table(args.report) + condition_table(per_run) + mask_table(args.report) + profile_table(args.report) + exactness_table(args.report) \
+        + equivalence_table(args.report)
     (args.report / 'summary.md').write_text('\n'.join(lines) + '\n')
     print('\n'.join(lines))
 
