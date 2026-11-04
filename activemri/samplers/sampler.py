@@ -441,8 +441,15 @@ class Sampler(nn.Module):
         draws_policy = not (uniform or evaluating)
         return binary_mask, data_to_vis_sampler, (logp if draws_policy else None), (entropy if draws_policy else None)
 
+    @property
+    def reads_input(self) -> bool:
+        """Whether the k-space passed to `forward` matters; the input-independent samplers only take its shape from it."""
+        return not (self.is_loupe or self.sampler_type in ("caipi_2d", "poisson_2d", "autosamp_2d"))
+
     def unscaled_probabilities(self, observed_kspace, old_mask, recon_complex=None, gfactor=None, anatomy_labels=None):
         """The network's per-location scores before budget control: (scores NCHW, uncertainty or None, anatomy_logits or None)."""
+        if not self.reads_input:
+            return self._predict_probabilities(observed_kspace, old_mask, recon_complex, gfactor, anatomy_labels)
         sampler_input = torch.cat([observed_kspace, observed_kspace * old_mask.permute(0, 2, 3, 1)], dim=-1)
         if self.image_domain_input:
             sampler_input = self._to_image_domain(sampler_input)

@@ -979,8 +979,9 @@ def build_optimizer(options: TrainConfig, param_groups, model):
     """Adam over `param_groups` (a parameter list or Adam group dicts), or with `options.optimizer='muon'` the same
     groups with the U-Nets' hidden convolutions moved into one Muon group (activemri/training/muon.py)."""
     kind = getattr(options, 'optimizer', 'adam')
+    fused = getattr(options, 'fused_adam', False) or None
     if kind == 'adam':
-        return torch.optim.Adam(param_groups, options.lr, weight_decay=options.weight_decay)
+        return torch.optim.Adam(param_groups, options.lr, weight_decay=options.weight_decay, fused=fused)
     if kind != 'muon':
         raise ValueError(f"optimizer must be one of {OPTIMIZERS}, got {kind!r}")
     groups = [dict(group) for group in param_groups] if isinstance(param_groups[0], dict) else [{'params': list(param_groups)}]
@@ -992,7 +993,7 @@ def build_optimizer(options: TrainConfig, param_groups, model):
     groups = [group for group in groups if group['params']]
     groups.append({'params': muon, 'use_muon': True, 'lr': options.muon_lr or options.lr,
                    'momentum': options.muon_momentum, 'weight_decay': options.weight_decay})
-    return MuonAdam(groups, options.lr, weight_decay=options.weight_decay)
+    return MuonAdam(groups, options.lr, weight_decay=options.weight_decay, fused=fused)
 
 
 COSINE_FLOOR = 0.01  # fraction of the base lr the cosine schedules decay to
@@ -1095,7 +1096,7 @@ def gradient_stats(model, max_norm):
         names += [f'grad/{group}_norm', f'grad/{group}_max_abs', f'grad/{group}_nonfinite_tensors']
         values += [
             per_tensor_norm.norm(),
-            torch.stack([g.abs().max() for g in grads]).max(),
+            torch.stack(torch._foreach_norm(grads, math.inf)).max(),
             (~torch.isfinite(per_tensor_norm)).sum().float(),
         ]
     return dict(zip(names, torch.stack([v.float() for v in values]).tolist()))

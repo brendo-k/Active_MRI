@@ -54,6 +54,7 @@ def build_train_config(cfg: DictConfig) -> TrainConfig:
         train_metrics_every=cfg.training.get('train_metrics_every', 1),
         val_every=cfg.training.get('val_every', 1),
         ema_decay=cfg.training.get('ema_decay', 0.0),
+        fused_adam=cfg.training.get('fused_adam', False),
         visualize_every=cfg.training.get('visualize_every', 1),
         loss_type=cfg.loss.loss_type,
         uncertainty_loss=cfg.loss.uncertainty_loss,
