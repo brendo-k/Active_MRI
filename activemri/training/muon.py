@@ -83,6 +83,8 @@ class MuonAdam(torch.optim.Adam):
 
     def _muon_step(self, group):
         params = [p for p in group['params'] if p.grad is not None]
+        if not params:
+            return
         grads = [p.grad for p in params]
         buffers = []
         for p in params:

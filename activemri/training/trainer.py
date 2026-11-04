@@ -997,8 +997,9 @@ def build_optimizer(options: TrainConfig, param_groups, model):
     for group in groups:
         group['params'] = [p for p in group['params'] if id(p) not in muon_ids]
     groups = [group for group in groups if group['params']]
-    groups.append({'params': muon, 'use_muon': True, 'lr': options.muon_lr or options.lr,
-                   'momentum': options.muon_momentum, 'weight_decay': options.weight_decay})
+    if muon:  # slot 1, so the last group stays the sampler's: the trainer logs train/policy_lr and train/autosamp_lr from it
+        groups.insert(1, {'params': muon, 'use_muon': True, 'lr': options.muon_lr or options.lr,
+                          'momentum': options.muon_momentum, 'weight_decay': options.weight_decay})
     return MuonAdam(groups, options.lr, weight_decay=options.weight_decay, fused=fused)
 
 
