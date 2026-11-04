@@ -66,7 +66,7 @@ def main():
                 axis.plot([row[column] for row in rows], [row[2] for row in rows], color=color, lw=2, marker=marker,
                           markersize=8, markeredgecolor=SURFACE, markeredgewidth=1.5, label=arm_label)
     by_epoch.set_title('Same epoch: batch 8 stays above the reference', color=INK, loc='left', fontsize=11)
-    by_hours.set_title('Same wall-clock: batch 8 gets closest to its final', color=INK, loc='left', fontsize=11)
+    by_hours.set_title('Same wall-clock: batch 8 gets closest to the reference final', color=INK, loc='left', fontsize=11)
     by_epoch.legend(frameon=False, fontsize=9, loc='lower right', labelcolor=SECONDARY_INK)
     fig.suptitle('VarNet + LOUPE, R=8, Muon + LayerNorm, seed 42, full local v1 FLAIR + knee', color=INK, x=0.01, ha='left', fontsize=12)
     fig.tight_layout()
