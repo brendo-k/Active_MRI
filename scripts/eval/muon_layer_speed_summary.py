@@ -252,7 +252,9 @@ def main():
     to_bar = time_to_bar(reference_curve, fast_run['median_train_s'], fast_run['val_h'] * 3600 / max(1, fast_run['epochs'] // VAL_EVERY)) \
         if reference_curve and fast_run else None
 
+    reference_clock = wall_clock_hours(queue_dir, f'{REFERENCE}_s42')
     (args.report / 'summary.json').write_text(json.dumps({'arms': arms, 'between_arms': comparisons, 'bench': bench, 'time_to_bar': to_bar,
+                                                          'reference_clock': reference_clock,
                                                           'reference': {k: v for k, v in per_run.items() if k.startswith(REFERENCE)}}, indent=1))
 
     lines = ['# muon_layer_speed summary', '', 'Paired against the same-seed 100-epoch reference on the full validation set, 2 mask draws.', '',
@@ -267,6 +269,9 @@ def main():
                 f"{row['delta_ssim']['mean']:+.4f} | {' / '.join(f'{conditions[c]:+.2f}' for c in sorted(conditions))} | {row['epochs']} | {row['median_train_s']:.0f} | "
                 f"{row['wall_clock_h']:.2f} ({row['train_h']:.2f} + {row['val_h']:.2f}) | {row['wall_clock_share']:.0%} | {row['share_at_val_cadence']:.0%} | {row['steady_wall_clock_h']:.2f} | "
                 f"{'-' if ema is None else format(ema['mean'], '+.3f')} | {entry['ema_adopt'] or '-'} | {row.get('reference_epoch_matched', '-')} | {entry['verdict']} |")
+    lines += ['', f"Reference, {reference_clock['epochs']} epochs: {reference_clock['train_h'] + reference_clock['val_h']:.2f} h ({reference_clock['train_h']:.2f} train + "
+                  f"{reference_clock['val_h']:.2f} val), median {reference_clock['median_train_s']:.0f} s per epoch; "
+                  f"{reference_clock['train_h'] + reference_clock['val_h'] / VAL_EVERY:.2f} h at the arms' val cadence."]
     lines += ['', 'Between arms, same seed, per slice (exploratory):', '', '| arm minus arm | seed | delta PSNR [95% CI] | delta SSIM |', '|---|---|---|---|']
     for row in comparisons:
         psnr, ssim = row['psnr'], row['ssim']
