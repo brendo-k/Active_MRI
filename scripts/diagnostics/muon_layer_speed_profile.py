@@ -6,6 +6,7 @@ tables separate the forward's kernels from the backward's. Needs an idle GPU.
 
     CUDA_VISIBLE_DEVICES=N python scripts/diagnostics/muon_layer_speed_profile.py <out.json> [hydra overrides...]
 """
+import gc
 import json
 import os
 import re
@@ -106,11 +107,16 @@ kernel_times = defaultdict(lambda: defaultdict(float))
 for batch in batches:  # torch.compile, and the cuDNN autotuner for each coil bucket
     step(batch)
 
+if os.environ.get('MLS_GC_FREEZE'):
+    gc.collect()
+    gc.freeze()
+torch.cuda.reset_peak_memory_stats()
 per_step = defaultdict(list)
 for index in range(TIMED_BATCHES):
     for phase, value in step(batches[index % WARMUP_BATCHES]).items():
         per_step[phase].append(value * 1000)
 phases_ms = {phase: statistics.median(values) for phase, values in per_step.items()}
+steady_peak_gib = torch.cuda.max_memory_allocated() / 2**30
 
 sens_seconds = []
 for batch in batches[:TIMED_BATCHES]:
@@ -128,7 +134,7 @@ for phase in ('to_device', 'forward', 'backward', 'optimizer'):
         step(batch, profiled=phase)
 
 report = {'extra': extra, 'phases_ms': phases_ms, 'step_ms': sum(phases_ms.values()), 'sens_net_fwd_bwd_ms': statistics.median(sens_seconds) * 1000,
-          'peak_GiB': torch.cuda.max_memory_allocated() / 2**30, 'kernels': {}}
+          'steady_peak_GiB': steady_peak_gib, 'kernels': {}}
 for phase, kernels in kernel_times.items():
     kinds = defaultdict(float)
     for name, total in kernels.items():

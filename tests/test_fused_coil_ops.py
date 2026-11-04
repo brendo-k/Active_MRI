@@ -36,3 +36,20 @@ def test_fused_coil_ops_match_eager_in_float64():
     for name, a, b in zip(('output', 'weight grads', 'map grads', 'mask grads'), fused, eager):
         rel = ((a - b).norm() / b.norm()).item()
         assert rel < 1e-12, f'{name}: relative difference {rel:.2e}'
+
+
+def test_fused_graph_is_freed_after_backward():
+    kspace, maps, mask = _inputs()
+    net = VarNet(num_cascades=2, chans=8, pools=2, fused_coil_ops=True).cuda().double()
+    kspace, maps = kspace.to(torch.complex128), maps.to(torch.complex128).requires_grad_(True)
+    mask = mask.double().requires_grad_(True)
+
+    def step():
+        net.zero_grad()
+        maps.grad = mask.grad = None
+        net(kspace * mask, maps, mask).abs().square().mean().backward()
+        return torch.cuda.memory_allocated()
+
+    step()
+    allocated = [step() for _ in range(5)]
+    assert allocated[-1] == allocated[0], f'allocated memory grew per step: {allocated}'

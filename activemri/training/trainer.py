@@ -1,5 +1,6 @@
 from collections import defaultdict
 from typing import Dict, List, Optional
+import gc
 import logging
 import math
 import os
@@ -72,9 +73,10 @@ class Sequential_Trainer:
             self._init_mask_from(options.init_mask_checkpoint)
 
         if options.compile_unets:
-            if getattr(options, 'channels_last_unets', False):
+            channels_last = getattr(options, 'channels_last_unets', False)
+            if channels_last is True:
                 torch._inductor.config.force_layout_optimization = True
-            compile_unets(self.model)
+            compile_unets(self.model, channels_last)
 
         if options.data_parallel:
             if options.sampler_type == 'autosamp_2d':
@@ -315,6 +317,10 @@ class Sequential_Trainer:
             is_new_best = val_loss < self.best_val_loss
             self.best_val_loss = min(self.best_val_loss, val_loss)
             self.save_model(is_new_best)
+            if epoch == self.start_epoch:
+                # Compiled graphs and hydra's config stay alive all run; left in the collector, every full collection walks them.
+                gc.collect()
+                gc.freeze()
 
             self.logger.info(
                 f'Epoch = [{1 + self.epoch:4d}/{self.options.num_epochs:4d}] TrainLoss = {train_loss:.4g} '
@@ -1141,16 +1147,19 @@ def _cg_iters_by_label(iters_by_anatomy, label_classes):
     return [int(iters_by_anatomy[c.split('-')[0]]) for c in label_classes]
 
 
-def compile_unets(model: torch.nn.Module) -> None:
+def compile_unets(model: torch.nn.Module, channels_last=False) -> None:
     """torch.compile every U-Net body in place (the VarNet cascades' and the sensitivity net's), so state_dict keys
     stay as they are. Shapes are static: each new batch shape (the smaller last batch, validation) compiles once, except
-    the sensitivity net's batch of live coils, which it marks dynamic."""
+    the sensitivity net's batch of live coils, which it marks dynamic.
+
+    `channels_last` True lays out every U-Net channels-last; 'sens' only the sensitivity net, whose channel counts are
+    multiples of 8. cuDNN pads the cascades' 18 and 36 channels in that layout, which costs more than it saves."""
     use_system_compilers_if_missing()
     for module in list(model.modules()):
         if isinstance(module, NormUnet):
             module.unet.compile(dynamic=False)
         elif isinstance(module, SensetivityModel_mc):
-            module.model.compile(dynamic=False)
+            module.model.compile(dynamic=False, options={'force_layout_optimization': True} if channels_last == 'sens' else None)
 
 
 def build_model(options: TrainConfig):

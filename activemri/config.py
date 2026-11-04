@@ -40,7 +40,7 @@ class TrainConfig:
     device: str = 'cuda'
     data_parallel: bool = False
     compile_unets: bool = False
-    channels_last_unets: bool = False  # with compile_unets: inductor runs the U-Nets channels-last (its heuristic skips them), no cuDNN layout transposes
+    channels_last_unets: object = False  # False | True | 'sens' (the sensitivity net alone); with compile_unets: inductor runs the U-Nets channels-last (its heuristic skips them), no cuDNN layout transposes
     cudnn_benchmark: bool = True
     train_masked_metrics_every: int = 1
     train_metrics_every: int = 1  # train-batch metrics (PSNR/SSIM/NMSE, masked and per anatomy) from every Nth batch only
