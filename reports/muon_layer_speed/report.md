@@ -23,7 +23,7 @@ seed only where that seed already fails it. For example, "neither seed below −
 |---|---|---|---|
 | Exact change: match to float rounding (bitwise, or ≤1e-5 relative) **and** bench step or epoch time −5% or more | exact bundle | speed: real epochs −12% (301 vs 343 s), bench step −18.8%. Match: ≤9.4e-9 in float64, but 4.6e-5 to 5.8e-4 in fp32 and 0.46% to 8.4% in bf16. A same-math control moves a 2-epoch training as far as the new code does (2.71e-2 vs 2.73e-2) | speed **met**; 1e-5 bar **not met as written**, met in float64 only |
 | Bitwise-identical removal of unused work: adopted at any gain | unused forward work | not shown bitwise in the real pipeline, because it was only run inside the bundle | not decided |
-| Faster: mean ΔPSNR ≥ −0.10 dB, neither seed below −0.20 dB, ΔSSIM ≥ −0.002, wall-clock ≤50% | `e30_bs8` | −0.142 dB [−0.180, −0.104], ΔSSIM −0.0023, 28% | not met on seed 42; still open, seed 43 would need about −0.06 dB or better |
+| Faster: mean ΔPSNR ≥ −0.10 dB, neither seed below −0.20 dB, ΔSSIM ≥ −0.002, wall-clock ≤50% | `e30_bs8` | −0.142 dB [−0.180, −0.104], ΔSSIM −0.0023, 28% | not met on seed 42; still open, seed 43 would need about −0.06 dB or better and ΔSSIM −0.0017 or better |
 | same | `e30_step` | −0.307 dB [−0.361, −0.252], ΔSSIM −0.0045, 23% | **not met, decided** |
 | same | `e30_cos` | −0.424 dB [−0.496, −0.351], ΔSSIM −0.0062, 27% | **not met, decided** |
 | same | `e30_cos_muon2e3` | −0.457 dB [−0.533, −0.381], ΔSSIM −0.0066, 24% | **not met, decided** |
@@ -33,10 +33,14 @@ seed only where that seed already fails it. For example, "neither seed below −
 | EMA adopted: ≥0.05 dB over the last weights in both seeds of an arm | `e30_bs8`, `e30_step`, `e30_cos`, `e30_cos_muon2e3`, `e30_step_c16` | −0.024, −0.052, −0.022, −0.016, −0.024 dB | **not met, decided**: no arm can clear it in both seeds |
 | no frozen criterion (post-freeze arm) | `e30_step_c16` | −0.394 dB [−0.459, −0.329], ΔSSIM −0.0055, 19%; −0.087 dB [−0.103, −0.072] against `e30_step` | reported, not judged |
 
-**Recommendation** (made before the verdict): **merge** the exact step-time code, and make `training.fused_adam=true` and
-`training.channels_last_unets=sens` the defaults. That is 12% off every real epoch. The price is that bf16 runs after the merge
-do not reproduce runs before it bitwise, and the numeric 1e-5 bar holds only in float64. That is a deviation from the frozen
-wording, so it is your call. Results 2 gives the evidence.
+**Recommendation** (made before the verdict): **merge** the exact step-time code. On the Muon + LayerNorm recipe that is 12% off
+every real epoch. The price is that bf16 runs after the merge do not reproduce runs before it bitwise, and the numeric 1e-5 bar
+holds only in float64. That is a deviation from the frozen wording, so it is your call. Results 2 gives the evidence.
+
+Make `training.fused_adam=true` a default, since it changes no math, though its speed-up was measured only on this recipe. Tie
+`training.channels_last_unets=sens` to the recipe rather than making it a global default. It was measured only with LayerNorm,
+main still defaults to InstanceNorm, and `reports/varnet_train_speed/report.md` found channels-last +11% slower with InstanceNorm.
+Without it the profile gives −8.1% rather than −13.4%. The `_foreach_` Muon saving applies only when Muon is on.
 
 Do **not** change the default schedule or batch size yet. `e30_bs8` is the only arm still able to pass, and it needs seed 43.
 Do not adopt the EMA or `training.muon_lr=0.002`, and leave `recon.chans` at 18 until 16 channels has been run to convergence. The EMA option can stay on the branch, off by default, since it costs nothing
@@ -269,7 +273,7 @@ The EMA was below the last weights in every arm, against an expected +0.03 to +0
 
 ## Figures
 
-- `figures/curves.png`: trainer val PSNR_Masked of the reference and the arms, against epoch and against wall-clock, with the bar at the reference's final minus 0.10 dB.
+- `figures/curves.png`: trainer val PSNR_Masked of the reference and the arms, against epoch and against wall-clock, with the bar at the reference's final minus 0.10 dB. The reference validated every epoch, so its wall-clock line sits to the right of the arms.
 
 ## Next steps
 
