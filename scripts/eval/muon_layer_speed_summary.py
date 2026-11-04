@@ -10,7 +10,8 @@ two seeds stays undecided on one seed: the verdict then reads 'provisional', and
 Beyond the frozen criteria it reports:
 - steady wall-clock: the median epoch's train time times the epochs, plus validation, so a stretch shared with another job
   does not count;
-- paired differences between arms, same seed, per slice: exploratory, since no criterion was frozen for them;
+- paired differences between arms, same seed, per slice: exploratory, since no criterion was frozen for them. The swapped
+  runs give the 2x2 of 30-epoch against 100-epoch networks and masks;
 - the reference epoch each arm matches (trainer val PSNR_Masked; the reference's curve is a centred 5-epoch median, so a
   one-epoch dip does not count), and from it the hours a constant-lr run needs to come within the proposal's bar.
 """
@@ -37,7 +38,10 @@ SEEDS_NEEDED = 2
 REFERENCE = 'ref'
 REFERENCE_RUN = 'muon_layer_s42'
 POST_FREEZE_ARMS = {'e30_step_c16'}
-BETWEEN_ARMS = [('e30_step', 'e30_cos'), ('e30_cos_muon2e3', 'e30_cos'), ('e30_bs8', 'e30_step'), ('e30_step_c16', 'e30_step')]
+SWAPPED = '_maskof_'  # scripts/diagnostics/muon_layer_speed_swap_masks.py: scored runs without a training of their own
+BETWEEN_ARMS = [('e30_step', 'e30_cos'), ('e30_cos_muon2e3', 'e30_cos'), ('e30_bs8', 'e30_step'), ('e30_step_c16', 'e30_step'),
+                ('e30_step_maskof_ref', 'e30_step'), ('ref', 'ref_maskof_e30_step'),
+                ('ref_maskof_e30_step', 'e30_step'), ('ref', 'e30_step_maskof_ref')]
 BENCH_CONTROL = 'control'
 SMOOTHING_RADIUS = 2
 VAL_EVERY = 5
@@ -114,7 +118,7 @@ def main():
     per_run = result['per_run']
     arms = {}
     for arm, seeds in result['paired'].items():
-        if arm.endswith('_ema'):
+        if arm.endswith('_ema') or SWAPPED in arm:
             continue
         rows = {}
         for seed, entry in seeds.items():
