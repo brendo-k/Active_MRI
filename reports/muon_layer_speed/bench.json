@@ -1,0 +1,39 @@
+[
+ {
+  "arm": "control",
+  "repo": "/home/bkadota/code/active_mri/SeqMRI-worktrees/run-mls-0920f8b",
+  "overrides": [],
+  "step_s": 1.7813194356276654,
+  "val_pass_s": 19.435897084884346,
+  "val_batches": 25,
+  "steady_peak_GiB": 36.28900718688965,
+  "gpu": "NVIDIA RTX A6000"
+ },
+ {
+  "arm": "exact",
+  "repo": "/home/bkadota/code/active_mri/SeqMRI-worktrees/run-mls-e61a166",
+  "overrides": [
+   "training.fused_adam=true",
+   "training.channels_last_unets=sens"
+  ],
+  "step_s": 1.4464292559520497,
+  "val_pass_s": 13.652583323186263,
+  "val_batches": 25,
+  "steady_peak_GiB": 36.21448564529419,
+  "gpu": "NVIDIA RTX A6000"
+ },
+ {
+  "arm": "exact_16_channels",
+  "repo": "/home/bkadota/code/active_mri/SeqMRI-worktrees/run-mls-e61a166",
+  "overrides": [
+   "training.fused_adam=true",
+   "training.channels_last_unets=true",
+   "recon.chans=16"
+  ],
+  "step_s": 1.2066568110409814,
+  "val_pass_s": 15.81237650103867,
+  "val_batches": 25,
+  "steady_peak_GiB": 34.476924419403076,
+  "gpu": "NVIDIA RTX A6000"
+ }
+]

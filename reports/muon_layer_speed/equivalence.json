@@ -1,0 +1,36 @@
+{
+ "losses": {
+  "before": {
+   "train_loss": 0.08205,
+   "val_loss": 0.101
+  },
+  "before_again": {
+   "train_loss": 0.08205,
+   "val_loss": 0.101
+  },
+  "after": {
+   "train_loss": 0.08215,
+   "val_loss": 0.101
+  }
+ },
+ "distances": {
+  "before vs before_again": {
+   "whole_model": 0.0,
+   "median_parameter": 0.0,
+   "worst_parameter": 0.0,
+   "mask": 0.0
+  },
+  "before vs after": {
+   "whole_model": 0.027289556339383125,
+   "median_parameter": 0.009344180580228567,
+   "worst_parameter": 0.13716796040534973,
+   "mask": 0.0018027180340141058
+  }
+ },
+ "before": "/home/bkadota/code/active_mri/SeqMRI-worktrees/run-mls-0920f8b",
+ "after": "/home/bkadota/code/active_mri/SeqMRI-worktrees/run-mls-e61a166",
+ "after_options": [
+  "training.fused_adam=true",
+  "training.channels_last_unets=sens"
+ ]
+}

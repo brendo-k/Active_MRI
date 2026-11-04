@@ -1,0 +1,497 @@
+{
+ "arms": {
+  "e30_bs8": {
+   "seeds": {
+    "42": {
+     "psnr": 33.717010275621284,
+     "ssim": 0.8609268195905714,
+     "delta_psnr": {
+      "mean": -0.1418858676748994,
+      "ci": [
+       -0.17974733255399883,
+       -0.10402440279580001
+      ],
+      "n_volumes": 80,
+      "frac_volumes_better": 0.2375
+     },
+     "delta_ssim": {
+      "mean": -0.0022583673057784076,
+      "ci": [
+       -0.002616124467263477,
+       -0.001900610144293338
+      ],
+      "n_volumes": 80,
+      "frac_volumes_better": 0.1125
+     },
+     "per_condition": {
+      "brain": -0.1111838774247603,
+      "knee-PD": -0.3144563714604144,
+      "knee-PDFS": 0.005940261031642104
+     },
+     "epochs": 30,
+     "train_h": 3.0658575,
+     "val_h": 0.12452747222222223,
+     "steady_train_h": 2.7680433333333334,
+     "median_train_s": 332.1652,
+     "wall_clock_h": 3.190384972222222,
+     "wall_clock_share": 0.28233295517065404,
+     "steady_wall_clock_h": 2.8925708055555557,
+     "steady_wall_clock_share": 0.2559779057020882,
+     "share_at_val_cadence": 0.3235862431809054,
+     "schedule_share": 0.3,
+     "trainer_final_psnr": 33.714481353759766,
+     "reference_epoch_matched": 53,
+     "ema_minus_last": {
+      "mean": -0.02426138947745718,
+      "ci": [
+       -0.0284866830581196,
+       -0.020036095896794757
+      ],
+      "n_volumes": 80,
+      "frac_volumes_better": 0.0125
+     },
+     "ema_minus_last_ssim": -0.00010940320646887517
+    }
+   },
+   "mean_delta_psnr": -0.1418858676748994,
+   "verdict": "provisional inconclusive (1 of 2 seeds)",
+   "ema_adopt": "not adopted, decided"
+  },
+  "e30_cos_muon2e3": {
+   "seeds": {
+    "42": {
+     "psnr": 33.40212154634474,
+     "ssim": 0.8565712681003947,
+     "delta_psnr": {
+      "mean": -0.4567745969514483,
+      "ci": [
+       -0.5329815289229358,
+       -0.38056766497996075
+      ],
+      "n_volumes": 80,
+      "frac_volumes_better": 0.025
+     },
+     "delta_ssim": {
+      "mean": -0.006613918795955211,
+      "ci": [
+       -0.007476177001939116,
+       -0.005751660589971307
+      ],
+      "n_volumes": 80,
+      "frac_volumes_better": 0.05
+     },
+     "per_condition": {
+      "brain": -0.49843483916984116,
+      "knee-PD": -0.7475917782152921,
+      "knee-PDFS": -0.12204064311403216
+     },
+     "epochs": 30,
+     "train_h": 2.5625833055555556,
+     "val_h": 0.13180130555555555,
+     "steady_train_h": 2.5270779166666664,
+     "median_train_s": 303.24935,
+     "wall_clock_h": 2.694384611111111,
+     "wall_clock_share": 0.23843942854691544,
+     "steady_wall_clock_h": 2.6588792222222217,
+     "steady_wall_clock_share": 0.2352973809706002,
+     "share_at_val_cadence": 0.27327918153607716,
+     "schedule_share": 0.3,
+     "trainer_final_psnr": 33.40261459350586,
+     "reference_epoch_matched": 27,
+     "ema_minus_last": {
+      "mean": -0.015953190924582465,
+      "ci": [
+       -0.019701801135937138,
+       -0.01220458071322779
+      ],
+      "n_volumes": 80,
+      "frac_volumes_better": 0.1375
+     },
+     "ema_minus_last_ssim": -0.00029911216964342353
+    }
+   },
+   "mean_delta_psnr": -0.4567745969514483,
+   "verdict": "not faster, decided; provisional worse (1 of 2 seeds)",
+   "ema_adopt": "not adopted, decided"
+  },
+  "e30_cos": {
+   "seeds": {
+    "42": {
+     "psnr": 33.435312887217364,
+     "ssim": 0.8569576793108459,
+     "delta_psnr": {
+      "mean": -0.4235832560788244,
+      "ci": [
+       -0.4958435674659406,
+       -0.3513229446917082
+      ],
+      "n_volumes": 80,
+      "frac_volumes_better": 0.025
+     },
+     "delta_ssim": {
+      "mean": -0.006227507585504033,
+      "ci": [
+       -0.0070337857254458985,
+       -0.005421229445562167
+      ],
+      "n_volumes": 80,
+      "frac_volumes_better": 0.05
+     },
+     "per_condition": {
+      "brain": -0.41450586555417906,
+      "knee-PD": -0.7250343240565035,
+      "knee-PDFS": -0.12451545686432809
+     },
+     "epochs": 30,
+     "train_h": 2.8860645833333334,
+     "val_h": 0.1363706388888889,
+     "steady_train_h": 2.8552908333333336,
+     "median_train_s": 342.6349,
+     "wall_clock_h": 3.022435222222222,
+     "wall_clock_share": 0.2674702506222922,
+     "steady_wall_clock_h": 2.9916614722222223,
+     "steady_wall_clock_share": 0.2647469291877848,
+     "share_at_val_cadence": 0.30655186359384945,
+     "schedule_share": 0.3,
+     "trainer_final_psnr": 33.43415832519531,
+     "reference_epoch_matched": 28,
+     "ema_minus_last": {
+      "mean": -0.02166334591167753,
+      "ci": [
+       -0.025298523107259125,
+       -0.018028168716095933
+      ],
+      "n_volumes": 80,
+      "frac_volumes_better": 0.0375
+     },
+     "ema_minus_last_ssim": -0.00018925988468548446
+    }
+   },
+   "mean_delta_psnr": -0.4235832560788244,
+   "verdict": "not faster, decided; provisional worse (1 of 2 seeds)",
+   "ema_adopt": "not adopted, decided"
+  },
+  "e30_step": {
+   "seeds": {
+    "42": {
+     "psnr": 33.552028297762874,
+     "ssim": 0.8587178189887393,
+     "delta_psnr": {
+      "mean": -0.30686784553331,
+      "ci": [
+       -0.36137480183303394,
+       -0.252360889233586
+      ],
+      "n_volumes": 80,
+      "frac_volumes_better": 0.025
+     },
+     "delta_ssim": {
+      "mean": -0.004467367907610526,
+      "ci": [
+       -0.0050418155788751326,
+       -0.0038929202363459188
+      ],
+      "n_volumes": 80,
+      "frac_volumes_better": 0.05
+     },
+     "per_condition": {
+      "brain": -0.3004265619703561,
+      "knee-PD": -0.533617569468528,
+      "knee-PDFS": -0.0815563490896514
+     },
+     "epochs": 30,
+     "train_h": 2.537084166666667,
+     "val_h": 0.11220819444444445,
+     "steady_train_h": 2.5071975,
+     "median_train_s": 300.8637,
+     "wall_clock_h": 2.649292361111111,
+     "wall_clock_share": 0.23444899218621312,
+     "steady_wall_clock_h": 2.6194056944444446,
+     "steady_wall_clock_share": 0.2318041731459821,
+     "share_at_val_cadence": 0.2687056796229489,
+     "schedule_share": 0.3,
+     "trainer_final_psnr": 33.54983139038086,
+     "reference_epoch_matched": 38,
+     "ema_minus_last": {
+      "mean": -0.052433852440801565,
+      "ci": [
+       -0.06106148554196734,
+       -0.04380621933963579
+      ],
+      "n_volumes": 80,
+      "frac_volumes_better": 0.025
+     },
+     "ema_minus_last_ssim": -0.0007504090699167418
+    }
+   },
+   "mean_delta_psnr": -0.30686784553331,
+   "verdict": "not faster, decided; provisional worse (1 of 2 seeds)",
+   "ema_adopt": "not adopted, decided"
+  }
+ },
+ "between_arms": [
+  {
+   "arm": "e30_step",
+   "other": "e30_cos",
+   "seed": "42",
+   "psnr": {
+    "mean": 0.11671541054551446,
+    "ci": [
+     0.09661936304286185,
+     0.13681145804816705
+    ],
+    "n_volumes": 80,
+    "frac_volumes_better": 0.9375
+   },
+   "ssim": {
+    "mean": 0.0017601396778935067,
+    "ci": [
+     0.0015023127754877383,
+     0.002017966580299275
+    ],
+    "n_volumes": 80,
+    "frac_volumes_better": 0.925
+   }
+  },
+  {
+   "arm": "e30_cos_muon2e3",
+   "other": "e30_cos",
+   "seed": "42",
+   "psnr": {
+    "mean": -0.03319134087262385,
+    "ci": [
+     -0.04590926894946214,
+     -0.02047341279578556
+    ],
+    "n_volumes": 80,
+    "frac_volumes_better": 0.175
+   },
+   "ssim": {
+    "mean": -0.0003864112104511783,
+    "ci": [
+     -0.0005778950098481866,
+     -0.00019492741105416994
+    ],
+    "n_volumes": 80,
+    "frac_volumes_better": 0.25
+   }
+  },
+  {
+   "arm": "e30_bs8",
+   "other": "e30_step",
+   "seed": "42",
+   "psnr": {
+    "mean": 0.16498197785841054,
+    "ci": [
+     0.1429435078649058,
+     0.18702044785191527
+    ],
+    "n_volumes": 80,
+    "frac_volumes_better": 1.0
+   },
+   "ssim": {
+    "mean": 0.0022090006018321185,
+    "ci": [
+     0.0019389794688740305,
+     0.0024790217347902066
+    ],
+    "n_volumes": 80,
+    "frac_volumes_better": 0.9375
+   }
+  },
+  {
+   "arm": "e30_step_maskof_ref",
+   "other": "e30_step",
+   "seed": "42",
+   "psnr": {
+    "mean": -0.016629409002691845,
+    "ci": [
+     -0.037787439322161914,
+     0.004528621316778225
+    ],
+    "n_volumes": 80,
+    "frac_volumes_better": 0.475
+   },
+   "ssim": {
+    "mean": 0.0003818507575870057,
+    "ci": [
+     9.21124123653065e-05,
+     0.0006715891028087049
+    ],
+    "n_volumes": 80,
+    "frac_volumes_better": 0.6125
+   }
+  },
+  {
+   "arm": "ref",
+   "other": "ref_maskof_e30_step",
+   "seed": "42",
+   "psnr": {
+    "mean": 0.1578216931645223,
+    "ci": [
+     0.13669008628411064,
+     0.17895330004493396
+    ],
+    "n_volumes": 80,
+    "frac_volumes_better": 0.9
+   },
+   "ssim": {
+    "mean": 0.001519575559451927,
+    "ci": [
+     0.001219512920568031,
+     0.0018196381983358232
+    ],
+    "n_volumes": 80,
+    "frac_volumes_better": 0.85
+   }
+  },
+  {
+   "arm": "ref_maskof_e30_step",
+   "other": "e30_step",
+   "seed": "42",
+   "psnr": {
+    "mean": 0.14904615236878765,
+    "ci": [
+     0.09866795546781269,
+     0.1994243492697626
+    ],
+    "n_volumes": 80,
+    "frac_volumes_better": 0.8125
+   },
+   "ssim": {
+    "mean": 0.0029477923481585995,
+    "ci": [
+     0.0025778090885137032,
+     0.0033177756078034957
+    ],
+    "n_volumes": 80,
+    "frac_volumes_better": 0.975
+   }
+  },
+  {
+   "arm": "ref",
+   "other": "e30_step_maskof_ref",
+   "seed": "42",
+   "psnr": {
+    "mean": 0.3234972545360018,
+    "ci": [
+     0.26346348292255073,
+     0.3835310261494529
+    ],
+    "n_volumes": 80,
+    "frac_volumes_better": 0.9625
+   },
+   "ssim": {
+    "mean": 0.004085517150023521,
+    "ci": [
+     0.003646097828570379,
+     0.004524936471476663
+    ],
+    "n_volumes": 80,
+    "frac_volumes_better": 0.9875
+   }
+  }
+ ],
+ "bench": [
+  {
+   "arm": "control",
+   "repo": "/home/bkadota/code/active_mri/SeqMRI-worktrees/run-mls-0920f8b",
+   "overrides": [],
+   "step_s": 1.7813194356276654,
+   "val_pass_s": 19.435897084884346,
+   "val_batches": 25,
+   "steady_peak_GiB": 36.28900718688965,
+   "gpu": "NVIDIA RTX A6000",
+   "step_change": 0.0
+  },
+  {
+   "arm": "exact",
+   "repo": "/home/bkadota/code/active_mri/SeqMRI-worktrees/run-mls-e61a166",
+   "overrides": [
+    "training.fused_adam=true",
+    "training.channels_last_unets=sens"
+   ],
+   "step_s": 1.4464292559520497,
+   "val_pass_s": 13.652583323186263,
+   "val_batches": 25,
+   "steady_peak_GiB": 36.21448564529419,
+   "gpu": "NVIDIA RTX A6000",
+   "step_change": -0.18800119337249233
+  },
+  {
+   "arm": "exact_16_channels",
+   "repo": "/home/bkadota/code/active_mri/SeqMRI-worktrees/run-mls-e61a166",
+   "overrides": [
+    "training.fused_adam=true",
+    "training.channels_last_unets=true",
+    "recon.chans=16"
+   ],
+   "step_s": 1.2066568110409814,
+   "val_pass_s": 15.81237650103867,
+   "val_batches": 25,
+   "steady_peak_GiB": 34.476924419403076,
+   "gpu": "NVIDIA RTX A6000",
+   "step_change": -0.32260503820539965
+  }
+ ],
+ "time_to_bar": {
+  "bar_db": 33.75589218139648,
+  "reference_epoch": 65,
+  "hours": 5.6753790046296295
+ },
+ "reference_clock": {
+  "epochs": 100,
+  "train_h": 9.4993025,
+  "val_h": 1.800777472222222,
+  "steady_train_h": 9.432890277777778,
+  "median_train_s": 339.58405
+ },
+ "reference": {
+  "ref_s42": {
+   "epochs": 100,
+   "all": {
+    "psnr_masked": 33.858896143296185,
+    "ssim_masked": 0.8631851868963498,
+    "n_slices": 1938
+   },
+   "brain": {
+    "psnr_masked": 33.02454728843752,
+    "ssim_masked": 0.8845235651289775,
+    "n_slices": 605
+   },
+   "knee-PD": {
+    "psnr_masked": 36.037287119770475,
+    "ssim_masked": 0.9214856670675765,
+    "n_slices": 673
+   },
+   "knee-PDFS": {
+    "psnr_masked": 32.402417249390574,
+    "ssim_masked": 0.7841761838872966,
+    "n_slices": 660
+   }
+  },
+  "ref_maskof_e30_step_s42": {
+   "epochs": 100,
+   "all": {
+    "psnr_masked": 33.701074450131664,
+    "ssim_masked": 0.861665611336898,
+    "n_slices": 1938
+   },
+   "brain": {
+    "psnr_masked": 32.907697250429266,
+    "ssim_masked": 0.8831178973633164,
+    "n_slices": 605
+   },
+   "knee-PD": {
+    "psnr_masked": 35.81726740940542,
+    "ssim_masked": 0.9186115458260354,
+    "n_slices": 673
+   },
+   "knee-PDFS": {
+    "psnr_masked": 32.27046133532669,
+    "ssim_masked": 0.7839334189775452,
+    "n_slices": 660
+   }
+  }
+ }
+}
