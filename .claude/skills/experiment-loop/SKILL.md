@@ -1,17 +1,18 @@
 ---
 name: experiment-loop
-description: The SeqMRI experiment loop - propose an experiment with control, treatment and expected outcomes, run it on its own git branch in a worktree, write a report, then wait for the human verdict (merge on success, park the branch on failure and record its commit hash in the report on main). Use whenever the user wants to propose, start, run, close out or abandon an experiment.
+description: The SeqMRI experiment loop - propose an experiment with control, treatment and expected outcomes, run it on its own git branch in a worktree, write a report, then wait for the human verdict (squash-merge into one summarized commit on main on success, park the branch on failure and record its commit hash in the report on main). Use whenever the user wants to propose, start, run, close out or abandon an experiment.
 ---
 
 # Experiment loop
 
-One experiment = one branch = one worktree = one report. `main` only ever receives (a) merged successful experiments and
-(b) reports of parked ones. Never run experiments in the main checkout.
+One experiment = one branch = one worktree = one report = one commit on `main`. That commit is either (a) the summarized
+squash of a successful experiment or (b) the report of a parked one; `main` receives nothing else. Never run experiments in
+the main checkout.
 
 ```
  main clean + synced -> propose (human OKs) -> branch + worktree -> freeze proposal commit -> run -> report -> WAIT
                                                                                                             |
-                          success: merge --no-ff into main, drop worktree  <-------- human verdict --------+
+                          success: squash to one main commit, drop worktree  <------ human verdict --------+
                           failure: commit all on branch, drop worktree, report on main with branch hash <---+
 ```
 
@@ -65,15 +66,30 @@ provenance block:
 Then stop. Show the user the report path and the criteria table, and wait. Do not merge, delete or move anything
 until the user gives the verdict.
 
-## 5a. Verdict: success -> merge
+## 5a. Verdict: success -> squash into one commit on main
 ```bash
 cd <worktree>; git add -A; git commit -m "<topic>: results and report"
+BRANCH_HASH=$(git rev-parse HEAD)
 cd /home/bkadota/code/active_mri/SeqMRI; git switch main
-git merge --no-ff exp/<topic>
+git merge --squash exp/<topic>                 # stages the net change; makes no commit
+# add the report's row to the "Conforming reports" table in reports/README.md
+git add reports/README.md
+git commit -F <summary-message-file>           # the summary below, not git's generated list of branch commits
+.venv/bin/python scripts/report_manifest.py check reports/<topic>   # must print conforms; fix with --amend, not a new commit
 git worktree remove ../SeqMRI-worktrees/exp-<topic>
-git branch -d exp/<topic>
 ```
-Add the report to the "Conforming reports" table in `reports/README.md` and commit. Ask before pushing.
+The commit message summarizes the whole experiment, so `git log main` reads as a list of experiments:
+```
+<topic>: <outcome and what changes on main, one line>
+
+Question: <what was asked>
+Result: <key numbers against control and noise floor; each frozen criterion met or not met>
+Changes on main: <code, defaults and configs a later reader must know about>
+Report: reports/<topic>/report.md
+Branch: exp/<topic> @ <BRANCH_HASH>
+```
+Keep the branch: `run_info.json` and `manifest.json` cite its commits, and `report_manifest.py check` needs them to exist.
+`git branch -d` refuses a squashed branch; do not force it with `-D`. Ask before pushing.
 
 ## 5b. Verdict: failure or inconclusive -> park the branch
 ```bash
@@ -86,7 +102,7 @@ git checkout exp/<topic> -- reports/<topic>
 ```
 Edit `reports/<topic>/report.md` on main: set **Status: parked**, add `Branch: exp/<topic> @ $BRANCH_HASH` and
 `Return to the code with: git worktree add ../SeqMRI-worktrees/exp-<topic> exp/<topic>` under the provenance block, and
-fill in the verdict and why. Add a row to `reports/README.md` marked parked, commit on main
+fill in the verdict and why. Add a row to `reports/README.md` marked parked, and make the one commit on main
 (`<topic>: parked report, branch exp/<topic> @ <short hash>`). Keep the branch; never delete it.
 
 If a parked experiment is resumed, add a new worktree on the same branch, and write a follow-up report rather than
@@ -95,5 +111,11 @@ rewriting the old one.
 ## Rules
 - The human decides success; the agent only compares against the frozen criteria and recommends.
 - One question per branch. A second idea starts at step 0 on a new branch.
-- Hash in the main report is the branch tip after the final commit; check with `git rev-parse exp/<topic>`.
+- `main` is linear, with exactly one commit per experiment: the squash in 5a or the parked report in 5b. No merge commits and
+  no follow-up commits. Late fixes go in with `--amend` before that commit is pushed; anything later goes through a new branch.
+- Sync `main` with `--ff-only`. If `main` and `origin/main` have diverged, stop and ask; never `git merge origin/main`.
+- Every `exp/*` branch is kept, merged or parked. A follow-up to a squash-merged experiment starts a new branch from `main`;
+  never continue a branch that was already squashed, because squashing it again re-applies its old changes.
+- The hash on main is the branch tip after the final commit, in the squash message (merged) or the report (parked); check
+  with `git rev-parse exp/<topic>`.
 - `main` is never left dirty at the end of a loop.
