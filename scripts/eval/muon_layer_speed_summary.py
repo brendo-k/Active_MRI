@@ -13,7 +13,8 @@ Beyond the frozen criteria it reports:
 - paired differences between arms, same seed, per slice: exploratory, since no criterion was frozen for them. The swapped
   runs give the 2x2 of 30-epoch against 100-epoch networks and masks;
 - the reference epoch each arm matches (trainer val PSNR_Masked; the reference's curve is a centred 5-epoch median, so a
-  one-epoch dip does not count), and from it the hours a constant-lr run needs to come within the proposal's bar.
+  one-epoch dip does not count), and from it the hours a constant-lr run needs to come within the proposal's bar;
+- every profile_*.json, gradcheck*.json, fused_check_full_scale.json and equivalence.json in the report folder as tables.
 """
 import argparse
 import json
@@ -45,6 +46,12 @@ BETWEEN_ARMS = [('e30_step', 'e30_cos'), ('e30_cos_muon2e3', 'e30_cos'), ('e30_b
 BENCH_CONTROL = 'control'
 SMOOTHING_RADIUS = 2
 VAL_EVERY = 5
+PROFILE_CONTROL = 'control'
+PROFILE_PHASES = ('forward', 'backward', 'grad_stats', 'clip', 'optimizer')
+GRADCHECKS = [('float64, full size', 'fused_check_full_scale.json'), ('fp32, TF32 off', 'gradcheck_fp32.json'),
+              ('fp32, TF32 off, smooth loss', 'gradcheck_fp32_smooth.json'), ('bf16, as trained', 'gradcheck.json')]
+GRADCHECK_FIELDS = {'output': ('output', 'output'), 'reconstructor': ('reconstructor', 'weight_grads'),
+                    'sensitivity net': ('sensetivity_net', 'map_grads'), 'mask': ('sampler', 'mask_grads')}
 
 
 def wall_clock_hours(queue_dir, name):
@@ -103,6 +110,52 @@ def time_to_bar(reference_curve, seconds_per_epoch, val_seconds):
     epoch = first_epoch_reaching(reference_curve, final + FASTER_MEAN_DB)
     return {'bar_db': final + FASTER_MEAN_DB, 'reference_epoch': epoch,
             'hours': (epoch * seconds_per_epoch + epoch // VAL_EVERY * val_seconds) / 3600}
+
+
+def profile_table(report):
+    profiles = {path.stem.removeprefix('profile_'): json.loads(path.read_text()) for path in sorted(report.glob('profile_*.json'))}
+    if not profiles:
+        return []
+    baseline = profiles[PROFILE_CONTROL]['step_ms']
+    lines = ['', '| profile | step ms | change | ' + ' | '.join(PROFILE_PHASES) + ' | sens net ms | steady GiB |', '|---|' + '---|' * (len(PROFILE_PHASES) + 4)]
+    for name, profile in sorted(profiles.items(), key=lambda item: item[0] != PROFILE_CONTROL):
+        phases = ' | '.join(f"{profile['phases_ms'][phase]:.1f}" for phase in PROFILE_PHASES)
+        lines.append(f"| {name} | {profile['step_ms']:.1f} | {profile['step_ms'] / baseline - 1:+.1%} | {phases} | "
+                     f"{profile['sens_net_fwd_bwd_ms']:.1f} | {format(profile['steady_peak_GiB'], '.1f') if profile.get('steady_peak_GiB') else '-'} |")
+    return lines
+
+
+def gradcheck_value(result, first, second):
+    value = result[first] if first in result else result[second]
+    return value['fused_vs_eager'] if isinstance(value, dict) else value
+
+
+def exactness_table(report):
+    rows = [(label, json.loads((report / name).read_text())) for label, name in GRADCHECKS if (report / name).exists()]
+    lines = ['', 'Relative distance, hand-written backward against autograd, one step:', '', '| precision | ' + ' | '.join(GRADCHECK_FIELDS) + ' |',
+             '|---|' + '---|' * len(GRADCHECK_FIELDS)]
+    return lines + [f"| {label} | " + ' | '.join(f'{gradcheck_value(result, *keys):.1e}' for keys in GRADCHECK_FIELDS.values()) + ' |' for label, result in rows]
+
+
+def equivalence_table(report):
+    path = report / 'equivalence.json'
+    if not path.exists():
+        return []
+    result = json.loads(path.read_text())
+    lines = ['', 'Two epochs on 5% of the data, final weights, relative distance:', '', '| pair | whole model | median parameter | worst parameter | mask |', '|---|---|---|---|---|']
+    lines += [f"| {pair} | {row['whole_model']:.2e} | {row['median_parameter']:.2e} | {row['worst_parameter']:.2e} | {row['mask']:.2e} |"
+              for pair, row in result['distances'].items()]
+    lines += ['', '| run | last train loss | last val loss |', '|---|---|---|']
+    return lines + [f"| {name} | {row['train_loss']} | {row['val_loss']} |" for name, row in result['losses'].items()]
+
+
+def condition_table(per_run):
+    conditions = sorted(condition for condition in next(iter(per_run.values())) if condition not in ('epochs', 'all'))
+    lines = ['', 'Absolute scores per condition (PSNR / SSIM):', '', '| run | epochs | all | ' + ' | '.join(conditions) + ' |', '|---|---|---|' + '---|' * len(conditions)]
+    for name, run in per_run.items():
+        cells = ' | '.join(f"{run[column]['psnr_masked']:.2f} / {run[column]['ssim_masked']:.3f}" for column in ['all', *conditions])
+        lines.append(f"| {name} | {run['epochs']} | {cells} |")
+    return lines
 
 
 def main():
@@ -166,15 +219,15 @@ def main():
                                                           'reference': {k: v for k, v in per_run.items() if k.startswith(REFERENCE)}}, indent=1))
 
     lines = ['# muon_layer_speed summary', '', 'Paired against the same-seed 100-epoch reference on the full validation set, 2 mask draws.', '',
-             '| arm | seed | PSNR | SSIM | delta PSNR [95% CI] | delta SSIM | brain / PD / PDFS delta | epochs | wall-clock h (train + val) | share | steady h | EMA - last dB | matches reference epoch | verdict |',
-             '|---|---|---|---|---|---|---|---|---|---|---|---|---|---|']
+             '| arm | seed | PSNR | SSIM | delta PSNR [95% CI] | delta SSIM | brain / PD / PDFS delta | epochs | median train s | wall-clock h (train + val) | share | steady h | EMA - last dB | matches reference epoch | verdict |',
+             '|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|']
     for arm, entry in arms.items():
         for seed, row in entry['seeds'].items():
             delta, conditions = row['delta_psnr'], row['per_condition']
             ema = row.get('ema_minus_last')
             lines.append(
                 f"| {arm} | {seed} | {row['psnr']:.3f} | {row['ssim']:.4f} | {delta['mean']:+.3f} [{delta['ci'][0]:+.3f}, {delta['ci'][1]:+.3f}] | "
-                f"{row['delta_ssim']['mean']:+.4f} | {' / '.join(f'{conditions[c]:+.2f}' for c in sorted(conditions))} | {row['epochs']} | "
+                f"{row['delta_ssim']['mean']:+.4f} | {' / '.join(f'{conditions[c]:+.2f}' for c in sorted(conditions))} | {row['epochs']} | {row['median_train_s']:.0f} | "
                 f"{row['wall_clock_h']:.2f} ({row['train_h']:.2f} + {row['val_h']:.2f}) | {row['wall_clock_share']:.0%} | {row['steady_wall_clock_h']:.2f} | "
                 f"{'-' if ema is None else format(ema['mean'], '+.3f')} | {row.get('reference_epoch_matched', '-')} | {entry['verdict']} |")
     lines += ['', 'Between arms, same seed, per slice (exploratory):', '', '| arm minus arm | seed | delta PSNR [95% CI] | delta SSIM |', '|---|---|---|---|']
@@ -188,6 +241,7 @@ def main():
     for row in bench:
         if 'step_s' in row:
             lines.append(f"| {row['arm']} | {row['step_s']:.3f} | {row.get('step_change', 0):+.1%} | {row['val_pass_s']:.1f} | {row['steady_peak_GiB']:.1f} |")
+    lines += condition_table(per_run) + profile_table(args.report) + exactness_table(args.report) + equivalence_table(args.report)
     (args.report / 'summary.md').write_text('\n'.join(lines) + '\n')
     print('\n'.join(lines))
 
