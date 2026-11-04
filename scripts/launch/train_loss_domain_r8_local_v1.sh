@@ -7,6 +7,7 @@
 #   ARM=rss_M         rss with both RSS images multiplied by M = |x_espirit| > 0
 #   ARM=kspace_gt     mean |F(S x) E - k E| over coils: coil k-space through the learned maps against the measured k
 #   ARM=complex       mean |x_E - x|: the extent-projected coil-combined image against the cached ESPIRiT image x
+#   ARM=complex_maps  complex against sum_c conj(S_c.detach()) F^-1(k_c E): the measured k-space through the learned maps
 #   ARM=kspace_sense  mean |F(S x) E - F(S.detach() x_espirit) E| over coils: coil k-space through the learned maps
 #   ARM=kspace_rss    mean |F(rss) - F(target)|: the RSS images in k-space, phase-blind
 #   ARM=kspace_rss_M  kspace_rss with both RSS images multiplied by M = |x_espirit| > 0
@@ -24,7 +25,7 @@ set -euo pipefail
 cd "$(dirname "$0")/../.."
 export PYTHONPATH="${PYTHONPATH:-}:$(pwd)"
 
-ARM="${ARM:?set ARM=rss, rss_M, kspace_gt, complex, kspace_sense, kspace_rss or kspace_rss_M}"
+ARM="${ARM:?set ARM=rss, rss_M, kspace_gt, complex, complex_maps, kspace_sense, kspace_rss or kspace_rss_M}"
 GPU="${GPU:-0}"
 SEED="${SEED:-42}"
 EPOCHS="${EPOCHS:-100}"
@@ -36,10 +37,11 @@ case "$ARM" in
     rss_M) LOSS=(loss.loss_type=l1 loss.support_mask=true "${CACHE[@]}") ;;
     kspace_gt) LOSS=(loss.loss_type=kspace_gt_l1) ;;
     complex) LOSS=(loss.loss_type=complex_l1 "${CACHE[@]}") ;;
+    complex_maps) LOSS=(loss.loss_type=complex_maps_l1) ;;
     kspace_sense) LOSS=(loss.loss_type=kspace_sense_l1 "${CACHE[@]}") ;;
     kspace_rss) LOSS=(loss.loss_type=kspace_rss_l1) ;;
     kspace_rss_M) LOSS=(loss.loss_type=kspace_rss_l1 loss.support_mask=true "${CACHE[@]}") ;;
-    *) echo "ARM must be rss, rss_M, kspace_gt, complex, kspace_sense, kspace_rss or kspace_rss_M, got $ARM" >&2; exit 1 ;;
+    *) echo "ARM must be rss, rss_M, kspace_gt, complex, complex_maps, kspace_sense, kspace_rss or kspace_rss_M, got $ARM" >&2; exit 1 ;;
 esac
 
 OUT="$OUT_ROOT/loss_domain_${ARM}_r8_flair_knee_${EPOCHS}ep_seed${SEED}"

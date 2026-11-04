@@ -25,7 +25,7 @@ from activemri.utils.util import compute_gaussian_nll_loss, compute_psnr_torch, 
 RSS_EPSILON = 1e-12
 BUDGET_REGIONS = ('grid', 'acquired')
 # Mean |error| in another domain than the RSS image (`SequentialSampling.loss_domain_l1`, docs/experiments/loss_domain).
-LOSS_DOMAINS = ('complex_l1', 'kspace_sense_l1', 'kspace_gt_l1', 'kspace_rss_l1')
+LOSS_DOMAINS = ('complex_l1', 'complex_maps_l1', 'kspace_sense_l1', 'kspace_gt_l1', 'kspace_rss_l1')
 SAMPLER_COIL_COMBINES = ('sense', 'rss')
 
 
@@ -779,6 +779,9 @@ class SequentialSampling(nn.Module):
         the scored RSS output is built from, k_c = F(S_c x) E (x = `recon_complex`, E = the acquired extent):
 
         - complex_l1: the coil-combined image sum_c conj(S_c) F^-1(k_c) against the cached ESPIRiT image.
+        - complex_maps_l1: the same image against the measured, fully sampled coil k-space `kspace` combined through the
+          detached maps, sum_c conj(S_c) F^-1(kspace_c E). The target shares the maps' phase convention, so moving a
+          common phase between the maps and x leaves the loss unchanged, and the target cannot train the maps.
         - kspace_sense_l1: k_c against F(S_c x_espirit) E, with the maps detached on the target so the loss cannot
           shrink by editing it.
         - kspace_gt_l1: k_c against the measured, fully sampled coil k-space `kspace` (times E). The target has no maps,
@@ -789,6 +792,8 @@ class SequentialSampling(nn.Module):
         """
         if loss_type in ('complex_l1', 'kspace_sense_l1') and complex_target is None:
             raise ValueError(f"loss_type={loss_type} needs the cached ESPIRiT image: set datasets.complex_cache_dir")
+        if loss_type in ('kspace_gt_l1', 'complex_maps_l1') and kspace is None:
+            raise ValueError(f"loss_type={loss_type} needs the measured, fully sampled coil k-space")
         if loss_type == 'kspace_gt_l1' and support_mask:
             raise ValueError("kspace_gt_l1 compares against measured k-space, which has no image to mask")
         support = SequentialSampling.espirit_support(complex_target) if support_mask else None
@@ -806,9 +811,12 @@ class SequentialSampling(nn.Module):
             return (coil_kspace - reference).abs().mean()
         if loss_type == 'kspace_gt_l1':
             return ((torch_fft2(maps * recon) - kspace) * extent).abs().mean()
-        if loss_type == 'complex_l1':
+        if loss_type in ('complex_l1', 'complex_maps_l1'):
             combined = (torch_ifft2(torch_fft2(maps * recon) * extent) * maps.conj()).sum(dim=1, keepdim=True)
-            return (masked(combined) - masked(complex_target)).abs().mean()
+            if loss_type == 'complex_l1':
+                return (masked(combined) - masked(complex_target)).abs().mean()
+            reference = (torch_ifft2(kspace * extent) * maps.detach().conj()).sum(dim=1, keepdim=True)
+            return (masked(combined) - masked(reference)).abs().mean()
         raise NotImplementedError(f"Unknown loss domain: {loss_type}")
 
     @staticmethod

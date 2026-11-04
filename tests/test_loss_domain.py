@@ -130,6 +130,48 @@ def test_ground_truth_kspace_loss_refuses_the_support_mask():
                                           kspace=fft_2d_img(maps * espirit))
 
 
+def test_learned_maps_complex_loss_is_zero_on_the_measured_data_combined_through_the_maps():
+    maps, espirit, _, extent = _example()
+    extent[..., :, :6] = 0
+    pred = _pred(espirit, maps, extent)
+    measured = fft_2d_img(maps * espirit) + 5.0 * (1 - extent)
+    loss = SequentialSampling.loss_domain_l1(pred, pred['output'], None, 'complex_maps_l1', kspace=measured)
+    assert loss.item() < 1e-6
+
+
+def test_learned_maps_complex_loss_ignores_a_common_phase_moved_between_maps_and_image():
+    maps, espirit, _, extent = _example()
+    measured = fft_2d_img(maps * espirit)
+    recon = espirit + 0.1 * torch.randn_like(espirit)
+    rows = torch.arange(espirit.shape[-2], dtype=torch.float32)[:, None]
+    phase = torch.exp(1j * (1.7 + 0.2 * rows + 0.05 * rows.T))
+    losses = [SequentialSampling.loss_domain_l1(_pred(r, m, extent), None, None, 'complex_maps_l1', kspace=measured)
+              for r, m in ((recon, maps), (recon * phase.conj(), maps * phase))]
+    assert torch.allclose(losses[0], losses[1], atol=1e-6)
+
+
+def test_learned_maps_complex_target_does_not_train_the_maps():
+    maps, espirit, _, extent = _example()
+    measured = fft_2d_img(maps * espirit)
+    maps.requires_grad_(True)
+    pred = _pred(torch.zeros_like(espirit), maps, extent)
+    SequentialSampling.loss_domain_l1(pred, pred['output'], None, 'complex_maps_l1', kspace=measured).backward()
+    assert maps.grad is None or maps.grad.abs().max().item() == 0
+
+
+def test_learned_maps_complex_loss_has_finite_gradients_and_needs_the_measured_kspace():
+    maps, espirit, support, extent = _example()
+    measured = fft_2d_img(maps * espirit)
+    recon = (espirit + 0.1 * support).requires_grad_(True)
+    maps.requires_grad_(True)
+    pred = _pred(recon, maps, extent)
+    SequentialSampling.loss_domain_l1(pred, None, None, 'complex_maps_l1', kspace=measured).backward()
+    assert torch.isfinite(torch.view_as_real(recon.grad)).all()
+    assert torch.isfinite(torch.view_as_real(maps.grad)).all()
+    with pytest.raises(ValueError, match='complex_maps_l1'):
+        SequentialSampling.loss_domain_l1(pred, None, None, 'complex_maps_l1')
+
+
 def test_missing_espirit_image_raises():
     maps, espirit, _, extent = _example()
     pred = _pred(espirit, maps, extent)
