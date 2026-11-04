@@ -265,6 +265,7 @@ The EMA was below the last weights in every arm, against an expected +0.03 to +0
 - **Baseline.** Muon + LayerNorm is taken as true on the user's instruction. The 100-epoch 2×2 was still running on GPUs 0–1 throughout, and they were not used.
 - **Knee-PDFS SSIM.** It is about 0.78 in the reference and every arm, below the 0.80 line in `AGENTS.md`. Overall SSIM is 0.86. It predates this study: the controls in `reports/varnet_train_speed/eval.json` sit at 0.71–0.72. It was not debugged here. Hypothesis, untested: fat-suppressed knee is the lowest-SNR contrast, and SSIM against a noisy target is capped.
 - **Uncommitted code.** The bf16 LayerNorm behind `profile_layer_bf16*.json` was never committed; the class is kept in `layer_bf16_reverted.txt`.
+- **Training commit row.** The provenance block's row refers only to the EMA and mask-swap directories, which are scored-only and have no training of their own. Every trained run has its commit in `manifest.json`: `0920f8b` for `e30_cos`, `e61a166` for the other arms, `91932da` for the reference.
 
 ## Figures
 
