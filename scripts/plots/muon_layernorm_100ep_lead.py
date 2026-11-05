@@ -47,7 +47,7 @@ def main():
         heights = spaced(ends, LABEL_GAP_DB)
         for lead, (label, epoch) in ends.items():
             ax.text(epoch + 1.5, heights[lead], f'{label} {lead:+.2f}', va='center', fontsize=9, color=INK)
-        ax.axhline(0, color=SECONDARY_INK, lw=1)
+        ax.hlines(0, 1, 100, color=SECONDARY_INK, lw=1)
         ax.axvline(LR_STEP_EPOCH, color=BASELINE, lw=1, ls=(0, (4, 3)))
         ax.text(LR_STEP_EPOCH - 1, Y_LIMITS[1], 'lr step', ha='right', va='top', fontsize=9, color=SECONDARY_INK)
         ax.set_title(f'Seed {seed}', loc='left', fontsize=11, color=INK)
