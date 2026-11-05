@@ -77,7 +77,9 @@ def factor_effects(scores):
         rows = [{'arm': arm, 'other': other, 'seed': seed, **scores.difference(run(arm, seed), run(other, seed)),
                  'per_condition': {c: scores.difference(run(arm, seed), run(other, seed), condition=c)['mean'] for c in CONDITIONS}}
                 for seed in SEEDS for arm, other in comparisons if scores.has(run(arm, seed), run(other, seed))]
-        effects[factor] = {'differences': rows, 'complete': len(rows) == 4,
+        by_level = {f'{arm} - {other}': statistics.mean(r['mean'] for r in rows if (r['arm'], r['other']) == (arm, other))
+                    for arm, other in comparisons}
+        effects[factor] = {'differences': rows, 'by_level': by_level, 'complete': len(rows) == 4,
                            'mean': statistics.mean(r['mean'] for r in rows) if rows else None,
                            'positive': sum(r['mean'] > 0 for r in rows), 'negative': sum(r['mean'] < 0 for r in rows)}
     effects['interaction'] = {seed: scores.difference(run('muon_layer', seed), run('layer', seed))['mean']
@@ -101,8 +103,13 @@ def median_times(curves, name):
 
 
 def timing(curves, reference):
-    return {'runs': {name: median_times(curves, name) for name in sorted(curves['runs'])},
-            'reference_12_epochs': {name: median_times(reference, name) for name in REFERENCE_RUNS}}
+    def with_change_over(control, name, source):
+        row, base = median_times(source, name), median_times(source, control)
+        return {**row, **{f'{key}_vs_control': row[key] / base[key] - 1 for key in ('train_s', 'epoch_s')}}
+
+    runs = {name: with_change_over(f"control_s{name.rsplit('_s', 1)[1]}", name, curves) for name in sorted(curves['runs'])}
+    reference_runs = {name: with_change_over(REFERENCE_RUNS[0], name, reference) for name in REFERENCE_RUNS}
+    return {'runs': runs, 'reference_12_epochs': reference_runs}
 
 
 def trajectory(curves):
@@ -203,6 +210,7 @@ def decide(scores, effects, speed, evals, queue_dir):
     ssim_all = {name: row['all']['ssim_masked'] for name, row in evals['per_run'].items()}
     control_final = [speed.get('control', {}).get(s, {}).get('target_psnr_masked') for s in SEEDS]
     criteria['S'] = {'min_ssim_masked': min(ssim_all.values()) if ssim_all else None, 'control_final_trainer_psnr': control_final,
+                     'control_logs': [stability(queue_dir, run('control', s)) for s in SEEDS],
                      'passed': (min(ssim_all.values()) >= 0.80 and all(v is not None and v >= 31.8 for v in control_final))
                      if len(ssim_all) == 8 else None}
     return criteria
@@ -273,9 +281,13 @@ def markdown(evals, effects, speed, times, late, criteria, lines):
         for row in effects[factor]['differences']:
             out.append(f"| {factor} | {row['arm']} - {row['other']} | {row['seed']} | {row['mean']:+.3f} [{row['ci'][0]:+.2f}, {row['ci'][1]:+.2f}] | "
                        + ' | '.join(f"{row['per_condition'][c]:+.2f}" for c in CONDITIONS) + ' |')
+        for level, value in effects[factor]['by_level'].items():
+            out.append(f'| {factor} | mean of {level} | | {value:+.3f} | | | |')
         out.append(f"| {factor} | **mean of {len(effects[factor]['differences'])}** | | **{fmt(effects[factor]['mean'], 3)}** | | | |")
     for seed, value in sorted(effects['interaction'].items()):
         out.append(f'| interaction | (muon_layer - layer) - (muon - control) | {seed} | {value:+.3f} | | | |')
+    if effects['interaction']:
+        out.append(f"| interaction | mean over seeds | | {statistics.mean(effects['interaction'].values()):+.3f} | | | |")
     out += ['', '## Time to the control\'s final (trainer val PSNR_Masked, full val set)', '',
             '| arm | seed | target (control ep 96-100) | reach epoch (trailing 3) | median epoch s | control median s | wall fraction |',
             '|---|---|---|---|---|---|---|']
@@ -283,10 +295,12 @@ def markdown(evals, effects, speed, times, late, criteria, lines):
         for seed, row in sorted(seeds.items()):
             out.append(f"| {arm} | {seed} | {row['target_psnr_masked']:.3f} | {row['reach_epoch'] or 'not reached'} | "
                        f"{fmt(row['median_epoch_s'], 1, False)} | {fmt(row['control_median_epoch_s'], 1, False)} | {fmt(row['wall_fraction'], 3, False)} |")
-    out += ['', '## Median epoch time (s, epoch 1 excluded)', '', '| run | train | val | epoch |', '|---|---|---|---|']
+    out += ['', '## Median epoch time (s, epoch 1 excluded; change against the same-seed control)', '',
+            '| run | train | val | epoch | train change | epoch change |', '|---|---|---|---|---|---|']
     for group in ('runs', 'reference_12_epochs'):
         for name, row in times[group].items():
-            out.append(f"| `{name}` | {fmt(row['train_s'], 1, False)} | {fmt(row['val_s'], 1, False)} | {fmt(row['epoch_s'], 1, False)} |")
+            out.append(f"| `{name}` | {fmt(row['train_s'], 1, False)} | {fmt(row['val_s'], 1, False)} | {fmt(row['epoch_s'], 1, False)} | "
+                       f"{row['train_s_vs_control']:+.1%} | {row['epoch_s_vs_control']:+.1%} |")
     windows = [f'{lo}-{hi}' for lo, hi in LATE_WINDOWS]
     out += ['', '## Late training (trainer val PSNR_Masked: window mean, then lead over the same-seed control)', '',
             '| arm | seed | ' + ' | '.join(windows) + ' | ' + ' | '.join(f'lead {w}' for w in windows) + ' | best epoch | best | final |',
