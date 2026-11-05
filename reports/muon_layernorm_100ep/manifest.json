@@ -1,0 +1,420 @@
+{
+  "schema": 1,
+  "generated_at": "2026-11-05T16:12:10+00:00",
+  "code": {
+    "produced_at": "fbbf1c888696a795011f7c1058b25c0675833a14",
+    "produced_at_subject": "muon_layernorm_100ep summary: hours to target and each arm's own late gain",
+    "head": "fbbf1c888696a795011f7c1058b25c0675833a14",
+    "branch": "exp/muon_layernorm_100ep",
+    "dirty_tracked_files": [],
+    "scripts": [
+      {
+        "path": "scripts/eval/varnet_train_speed_eval.py",
+        "changed_since_produced_at": false
+      },
+      {
+        "path": "scripts/eval/varnet_train_speed_curves.py",
+        "changed_since_produced_at": false
+      },
+      {
+        "path": "scripts/eval/muon_layernorm_100ep_summary.py",
+        "changed_since_produced_at": false
+      },
+      {
+        "path": "scripts/plots/varnet_train_speed_curves.py",
+        "changed_since_produced_at": false
+      },
+      {
+        "path": "scripts/plots/muon_layernorm_100ep_lead.py",
+        "changed_since_produced_at": false
+      }
+    ]
+  },
+  "metric_mask": {
+    "version": "apodized",
+    "definition": "k-space-apodized per-anatomy mask (activemri/utils/metric_mask.py), the trainer metric since 2026-10-20",
+    "apodization_sigma": 16,
+    "params": {
+      "brain": {
+        "fraction": 0.15,
+        "radius": 6
+      },
+      "knee": {
+        "fraction": 0.06,
+        "radius": 12
+      }
+    }
+  },
+  "data": {
+    "config": {
+      "loader": "fastmri_manifest",
+      "manifest": "configs/datasets/fastmri_local_v1/manifest.csv",
+      "roots": {
+        "local_batch2": "/export/scratch/bkadota/fastmri_knee/batch2",
+        "hpc": "/export/scratch/bkadota/fastmri_raw/{anatomy}"
+      },
+      "train_tier": "S",
+      "limit_volumes": 1,
+      "train_anatomies": [],
+      "condition_classes": [
+        "brain",
+        "knee-PD",
+        "knee-PDFS"
+      ],
+      "classes": [
+        "FLAIR",
+        "knee"
+      ],
+      "anatomy": [
+        "brain",
+        "knee"
+      ],
+      "num_coils": 20,
+      "num_workers": 8
+    },
+    "note": "All of local v1 FLAIR + knee: train 160 volumes, 3,929 slices (brain 80 / 1,211, knee-PD 40 / 1,369, knee-PDFS 40 / 1,349); val 80 volumes, 1,938 slices (brain 40 / 605, knee-PD 20 / 673, knee-PDFS 20 / 660)."
+  },
+  "runs": [
+    {
+      "name": "control_s42",
+      "path": "checkpoints/control_s42",
+      "config_sha256": "9a59fd49a0508486",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair_knee",
+        "misc.resolution=[320,320]",
+        "sampler.accelerations=[8.0]",
+        "sampler.budget_over=acquired",
+        "training.num_step=1",
+        "training.batch_size=16",
+        "training.num_epochs=100",
+        "training.lr_step_size=90",
+        "sampler.sampler_type=loupe_2d",
+        "sampler.loupe_vd_init_power=4",
+        "sampler.anatomy_conditioning=false",
+        "datasets.limit_volumes=1",
+        "training.seed=42",
+        "output.out_dir=/home/bkadota/data/seqmri_checkpoints/muon_layernorm_100ep/control_s42",
+        "output.run_name=ml100_control_s42"
+      ],
+      "wandb_run_id": "o7t0yo37",
+      "trained_at_commit": "91932dacfcada0ccabd7182697b4ff21ac6f0302",
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 361003570,
+          "modified": "2026-11-04T06:28:24+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 361003570,
+          "modified": "2026-11-04T06:28:23+00:00"
+        }
+      }
+    },
+    {
+      "name": "control_s43",
+      "path": "checkpoints/control_s43",
+      "config_sha256": "7e6d893e5dadc759",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair_knee",
+        "misc.resolution=[320,320]",
+        "sampler.accelerations=[8.0]",
+        "sampler.budget_over=acquired",
+        "training.num_step=1",
+        "training.batch_size=16",
+        "training.num_epochs=100",
+        "training.lr_step_size=90",
+        "sampler.sampler_type=loupe_2d",
+        "sampler.loupe_vd_init_power=4",
+        "sampler.anatomy_conditioning=false",
+        "datasets.limit_volumes=1",
+        "training.seed=43",
+        "output.out_dir=/home/bkadota/data/seqmri_checkpoints/muon_layernorm_100ep/control_s43",
+        "output.run_name=ml100_control_s43"
+      ],
+      "wandb_run_id": "dr45hai8",
+      "trained_at_commit": "91932dacfcada0ccabd7182697b4ff21ac6f0302",
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 361003570,
+          "modified": "2026-11-05T04:27:39+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 361003570,
+          "modified": "2026-11-05T04:27:37+00:00"
+        }
+      }
+    },
+    {
+      "name": "layer_s42",
+      "path": "checkpoints/layer_s42",
+      "config_sha256": "f904ab3ae7b5a018",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair_knee",
+        "misc.resolution=[320,320]",
+        "sampler.accelerations=[8.0]",
+        "sampler.budget_over=acquired",
+        "training.num_step=1",
+        "training.batch_size=16",
+        "training.num_epochs=100",
+        "training.lr_step_size=90",
+        "sampler.sampler_type=loupe_2d",
+        "sampler.loupe_vd_init_power=4",
+        "sampler.anatomy_conditioning=false",
+        "datasets.limit_volumes=1",
+        "training.seed=42",
+        "recon.norm=layer",
+        "sampler.sens_norm=layer",
+        "output.out_dir=/home/bkadota/data/seqmri_checkpoints/muon_layernorm_100ep/layer_s42",
+        "output.run_name=ml100_layer_s42"
+      ],
+      "wandb_run_id": "uz6esl6k",
+      "trained_at_commit": "91932dacfcada0ccabd7182697b4ff21ac6f0302",
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 362253090,
+          "modified": "2026-11-04T17:12:09+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 362253090,
+          "modified": "2026-11-04T17:18:35+00:00"
+        }
+      }
+    },
+    {
+      "name": "layer_s43",
+      "path": "checkpoints/layer_s43",
+      "config_sha256": "71d7ce325a52d5e5",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair_knee",
+        "misc.resolution=[320,320]",
+        "sampler.accelerations=[8.0]",
+        "sampler.budget_over=acquired",
+        "training.num_step=1",
+        "training.batch_size=16",
+        "training.num_epochs=100",
+        "training.lr_step_size=90",
+        "sampler.sampler_type=loupe_2d",
+        "sampler.loupe_vd_init_power=4",
+        "sampler.anatomy_conditioning=false",
+        "datasets.limit_volumes=1",
+        "training.seed=43",
+        "recon.norm=layer",
+        "sampler.sens_norm=layer",
+        "output.out_dir=/home/bkadota/data/seqmri_checkpoints/muon_layernorm_100ep/layer_s43",
+        "output.run_name=ml100_layer_s43"
+      ],
+      "wandb_run_id": "5hjwc0e9",
+      "trained_at_commit": "91932dacfcada0ccabd7182697b4ff21ac6f0302",
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 362253090,
+          "modified": "2026-11-05T15:17:25+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 362253090,
+          "modified": "2026-11-05T15:17:24+00:00"
+        }
+      }
+    },
+    {
+      "name": "muon_layer_s42",
+      "path": "checkpoints/muon_layer_s42",
+      "config_sha256": "9ef0e4f90841c568",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair_knee",
+        "misc.resolution=[320,320]",
+        "sampler.accelerations=[8.0]",
+        "sampler.budget_over=acquired",
+        "training.num_step=1",
+        "training.batch_size=16",
+        "training.num_epochs=100",
+        "training.lr_step_size=90",
+        "sampler.sampler_type=loupe_2d",
+        "sampler.loupe_vd_init_power=4",
+        "sampler.anatomy_conditioning=false",
+        "datasets.limit_volumes=1",
+        "training.seed=42",
+        "training.optimizer=muon",
+        "recon.norm=layer",
+        "sampler.sens_norm=layer",
+        "output.out_dir=/home/bkadota/data/seqmri_checkpoints/muon_layernorm_100ep/muon_layer_s42",
+        "output.run_name=ml100_muon_layer_s42"
+      ],
+      "wandb_run_id": "nidd1x7z",
+      "trained_at_commit": "91932dacfcada0ccabd7182697b4ff21ac6f0302",
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 242368888,
+          "modified": "2026-11-04T06:56:21+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 242368888,
+          "modified": "2026-11-04T07:44:08+00:00"
+        }
+      }
+    },
+    {
+      "name": "muon_layer_s43",
+      "path": "checkpoints/muon_layer_s43",
+      "config_sha256": "fed20d8d47c537b1",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair_knee",
+        "misc.resolution=[320,320]",
+        "sampler.accelerations=[8.0]",
+        "sampler.budget_over=acquired",
+        "training.num_step=1",
+        "training.batch_size=16",
+        "training.num_epochs=100",
+        "training.lr_step_size=90",
+        "sampler.sampler_type=loupe_2d",
+        "sampler.loupe_vd_init_power=4",
+        "sampler.anatomy_conditioning=false",
+        "datasets.limit_volumes=1",
+        "training.seed=43",
+        "training.optimizer=muon",
+        "recon.norm=layer",
+        "sampler.sens_norm=layer",
+        "output.out_dir=/home/bkadota/data/seqmri_checkpoints/muon_layernorm_100ep/muon_layer_s43",
+        "output.run_name=ml100_muon_layer_s43"
+      ],
+      "wandb_run_id": "467g3cyy",
+      "trained_at_commit": "91932dacfcada0ccabd7182697b4ff21ac6f0302",
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 242368888,
+          "modified": "2026-11-05T01:37:10+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 242368888,
+          "modified": "2026-11-05T04:40:29+00:00"
+        }
+      }
+    },
+    {
+      "name": "muon_s42",
+      "path": "checkpoints/muon_s42",
+      "config_sha256": "a06387c790f1c49a",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair_knee",
+        "misc.resolution=[320,320]",
+        "sampler.accelerations=[8.0]",
+        "sampler.budget_over=acquired",
+        "training.num_step=1",
+        "training.batch_size=16",
+        "training.num_epochs=100",
+        "training.lr_step_size=90",
+        "sampler.sampler_type=loupe_2d",
+        "sampler.loupe_vd_init_power=4",
+        "sampler.anatomy_conditioning=false",
+        "datasets.limit_volumes=1",
+        "training.seed=42",
+        "training.optimizer=muon",
+        "output.out_dir=/home/bkadota/data/seqmri_checkpoints/muon_layernorm_100ep/muon_s42",
+        "output.run_name=ml100_muon_s42"
+      ],
+      "wandb_run_id": "sfvpma2v",
+      "trained_at_commit": "91932dacfcada0ccabd7182697b4ff21ac6f0302",
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 241119810,
+          "modified": "2026-11-04T15:48:00+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 241119810,
+          "modified": "2026-11-04T18:17:36+00:00"
+        }
+      }
+    },
+    {
+      "name": "muon_s43",
+      "path": "checkpoints/muon_s43",
+      "config_sha256": "92d43f64a1d5bec1",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair_knee",
+        "misc.resolution=[320,320]",
+        "sampler.accelerations=[8.0]",
+        "sampler.budget_over=acquired",
+        "training.num_step=1",
+        "training.batch_size=16",
+        "training.num_epochs=100",
+        "training.lr_step_size=90",
+        "sampler.sampler_type=loupe_2d",
+        "sampler.loupe_vd_init_power=4",
+        "sampler.anatomy_conditioning=false",
+        "datasets.limit_volumes=1",
+        "training.seed=43",
+        "training.optimizer=muon",
+        "output.out_dir=/home/bkadota/data/seqmri_checkpoints/muon_layernorm_100ep/muon_s43",
+        "output.run_name=ml100_muon_s43"
+      ],
+      "wandb_run_id": "0ud9npcl",
+      "trained_at_commit": "91932dacfcada0ccabd7182697b4ff21ac6f0302",
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 241119810,
+          "modified": "2026-11-05T10:21:44+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 241119810,
+          "modified": "2026-11-05T15:20:05+00:00"
+        }
+      }
+    }
+  ],
+  "commands": [
+    "CUDA_VISIBLE_DEVICES=0 python scripts/eval/varnet_train_speed_eval.py --queue-dir $QUEUE --out $OUT/eval.json",
+    "python scripts/eval/varnet_train_speed_curves.py --queue-dir $QUEUE --prefix ml100_ --out $OUT/curves.json",
+    "python scripts/eval/muon_layernorm_100ep_summary.py $OUT --queue-dir $QUEUE",
+    "python scripts/plots/varnet_train_speed_curves.py $OUT/curves.json $OUT/figures/curves.png",
+    "python scripts/plots/muon_layernorm_100ep_lead.py $OUT/curves.json $OUT/figures/lead_over_control.png"
+  ],
+  "results": [
+    {
+      "path": "criteria.json",
+      "bytes": 18451,
+      "sha256": "96697b83e9707fe7"
+    },
+    {
+      "path": "curves.json",
+      "bytes": 462335,
+      "sha256": "be076c0b3ae2a0ac"
+    },
+    {
+      "path": "eval.json",
+      "bytes": 14256,
+      "sha256": "6fcdb89fa4698949"
+    },
+    {
+      "path": "eval.per_slice.npz",
+      "bytes": 3235582,
+      "sha256": "f8515762a37b3bde"
+    },
+    {
+      "path": "figures/curves.png",
+      "bytes": 422308,
+      "sha256": "8ebaec9972ffbda6"
+    },
+    {
+      "path": "figures/lead_over_control.png",
+      "bytes": 180407,
+      "sha256": "88048b7da775468a"
+    },
+    {
+      "path": "proposal.md",
+      "bytes": 10741,
+      "sha256": "286cd366d1b4144c"
+    },
+    {
+      "path": "summary.md",
+      "bytes": 9579,
+      "sha256": "1af81c185b93f29c"
+    }
+  ]
+}
