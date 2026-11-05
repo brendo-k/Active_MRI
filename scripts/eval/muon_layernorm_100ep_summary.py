@@ -127,6 +127,7 @@ def trajectory(curves):
                 'window_mean': {f'{lo}-{hi}': mean_over(psnr, (lo, hi)) for lo, hi in LATE_WINDOWS},
                 'window_lead': {f'{lo}-{hi}': mean_over(psnr, (lo, hi)) - mean_over(control, (lo, hi)) for lo, hi in LATE_WINDOWS},
                 'lead_at_epoch': {epoch: psnr[epoch] - control[epoch] for epoch in LEAD_EPOCHS},
+                'own_gain_66_to_96': mean_over(psnr, (96, 100)) - mean_over(psnr, (66, 70)),
                 'best_epoch': best, 'best_psnr': psnr[best], 'final_psnr': psnr[100]}
     return result
 
@@ -159,6 +160,8 @@ def time_to_target(curves):
             result.setdefault(arm, {})[seed] = {
                 'target_psnr_masked': target, 'reach_epoch': reach, 'median_epoch_s': arm_time,
                 'control_median_epoch_s': control_time, 'epochs_done': max(psnr, default=0),
+                'hours_to_target': reach * arm_time / 3600 if reach and arm_time else None,
+                'control_hours_100_epochs': 100 * control_time / 3600 if control_time else None,
                 'wall_fraction': reach * arm_time / (100 * control_time) if reach and arm_time and control_time else None}
     return result
 
@@ -289,12 +292,13 @@ def markdown(evals, effects, speed, times, late, criteria, lines):
     if effects['interaction']:
         out.append(f"| interaction | mean over seeds | | {statistics.mean(effects['interaction'].values()):+.3f} | | | |")
     out += ['', '## Time to the control\'s final (trainer val PSNR_Masked, full val set)', '',
-            '| arm | seed | target (control ep 96-100) | reach epoch (trailing 3) | median epoch s | control median s | wall fraction |',
-            '|---|---|---|---|---|---|---|']
+            '| arm | seed | target (control ep 96-100) | reach epoch (trailing 3) | median epoch s | control median s | wall fraction | hours to target | control hours, 100 epochs |',
+            '|---|---|---|---|---|---|---|---|---|']
     for arm, seeds in sorted(speed.items()):
         for seed, row in sorted(seeds.items()):
             out.append(f"| {arm} | {seed} | {row['target_psnr_masked']:.3f} | {row['reach_epoch'] or 'not reached'} | "
-                       f"{fmt(row['median_epoch_s'], 1, False)} | {fmt(row['control_median_epoch_s'], 1, False)} | {fmt(row['wall_fraction'], 3, False)} |")
+                       f"{fmt(row['median_epoch_s'], 1, False)} | {fmt(row['control_median_epoch_s'], 1, False)} | {fmt(row['wall_fraction'], 3, False)} | "
+                       f"{fmt(row['hours_to_target'], 2, False)} | {fmt(row['control_hours_100_epochs'], 2, False)} |")
     out += ['', '## Median epoch time (s, epoch 1 excluded; change against the same-seed control)', '',
             '| run | train | val | epoch | train change | epoch change |', '|---|---|---|---|---|---|']
     for group in ('runs', 'reference_12_epochs'):
@@ -303,13 +307,13 @@ def markdown(evals, effects, speed, times, late, criteria, lines):
                        f"{row['train_s_vs_control']:+.1%} | {row['epoch_s_vs_control']:+.1%} |")
     windows = [f'{lo}-{hi}' for lo, hi in LATE_WINDOWS]
     out += ['', '## Late training (trainer val PSNR_Masked: window mean, then lead over the same-seed control)', '',
-            '| arm | seed | ' + ' | '.join(windows) + ' | ' + ' | '.join(f'lead {w}' for w in windows) + ' | best epoch | best | final |',
-            '|---|---|' + '---|' * (2 * len(windows) + 3)]
+            '| arm | seed | ' + ' | '.join(windows) + ' | ' + ' | '.join(f'lead {w}' for w in windows) + ' | own gain 66-70 to 96-100 | best epoch | best | final |',
+            '|---|---|' + '---|' * (2 * len(windows) + 4)]
     for arm, seeds in late.items():
         for seed, row in seeds.items():
             out.append(f"| {arm} | {seed} | " + ' | '.join(f"{row['window_mean'][w]:.3f}" for w in windows) + ' | '
                        + ' | '.join(f"{row['window_lead'][w]:+.3f}" for w in windows)
-                       + f" | {row['best_epoch']} | {row['best_psnr']:.3f} | {row['final_psnr']:.3f} |")
+                       + f" | {row['own_gain_66_to_96']:+.3f} | {row['best_epoch']} | {row['best_psnr']:.3f} | {row['final_psnr']:.3f} |")
     out += ['', '## Lead over the same-seed control by epoch (trainer val PSNR_Masked, dB)', '',
             '| arm | seed | ' + ' | '.join(str(epoch) for epoch in LEAD_EPOCHS) + ' |', '|---|---|' + '---|' * len(LEAD_EPOCHS)]
     for arm in ARMS:
