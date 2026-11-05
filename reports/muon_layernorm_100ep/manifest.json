@@ -1,10 +1,10 @@
 {
   "schema": 1,
-  "generated_at": "2026-11-05T16:12:10+00:00",
+  "generated_at": "2026-11-05T16:16:48+00:00",
   "code": {
-    "produced_at": "fbbf1c888696a795011f7c1058b25c0675833a14",
-    "produced_at_subject": "muon_layernorm_100ep summary: hours to target and each arm's own late gain",
-    "head": "fbbf1c888696a795011f7c1058b25c0675833a14",
+    "produced_at": "83507ad5cf0dc2b85f952ddf5e7bbf69d790f6c1",
+    "produced_at_subject": "muon_layernorm_100ep summary: the 12-epoch arms' leads on all val slices",
+    "head": "83507ad5cf0dc2b85f952ddf5e7bbf69d790f6c1",
     "branch": "exp/muon_layernorm_100ep",
     "dirty_tracked_files": [],
     "scripts": [
@@ -378,8 +378,8 @@
   "results": [
     {
       "path": "criteria.json",
-      "bytes": 18451,
-      "sha256": "96697b83e9707fe7"
+      "bytes": 18703,
+      "sha256": "d955176af1a52ddb"
     },
     {
       "path": "curves.json",
@@ -413,8 +413,8 @@
     },
     {
       "path": "summary.md",
-      "bytes": 9579,
-      "sha256": "1af81c185b93f29c"
+      "bytes": 9893,
+      "sha256": "79ccf27229f0f9b5"
     }
   ]
 }

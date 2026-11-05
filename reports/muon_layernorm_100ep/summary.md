@@ -76,6 +76,16 @@
 | `full_norm_layer_s42` | 326.3 | 64.1 | 391.5 | +7.9% | +4.7% |
 | `full_muon_layer_s42` | 340.8 | 64.3 | 405.8 | +12.7% | +8.5% |
 
+## Lead at epoch 12 of the 12-epoch full-data runs (trainer val PSNR_Masked, all val slices, dB)
+
+| run | lead over the same-seed control |
+|---|---|
+| `full_muon_layer_s42` | +0.679 |
+| `full_muon_s42` | +0.406 |
+| `full_muon_s43` | +0.429 |
+| `full_norm_layer_s42` | +0.056 |
+| `full_norm_layer_s43` | +0.091 |
+
 ## Late training (trainer val PSNR_Masked: window mean, then lead over the same-seed control)
 
 | arm | seed | 46-50 | 66-70 | 86-90 | 96-100 | lead 46-50 | lead 66-70 | lead 86-90 | lead 96-100 | own gain 66-70 to 96-100 | best epoch | best | final |

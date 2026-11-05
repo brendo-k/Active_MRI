@@ -329,6 +329,13 @@
    }
   }
  },
+ "reference_12_epochs_leads": {
+  "full_muon_layer_s42": 0.6787738800048828,
+  "full_muon_s42": 0.40580177307128906,
+  "full_muon_s43": 0.42884254455566406,
+  "full_norm_layer_s42": 0.05636024475097656,
+  "full_norm_layer_s43": 0.09146499633789062
+ },
  "trajectory": {
   "control": {
    "42": {

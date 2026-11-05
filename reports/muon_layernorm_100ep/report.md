@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Code | results produced at `fbbf1c8` (muon_layernorm_100ep summary: hours to target and each arm's own late gain); branch `exp/muon_layernorm_100ep` |
+| Code | results produced at `83507ad` (muon_layernorm_100ep summary: the 12-epoch arms' leads on all val slices); branch `exp/muon_layernorm_100ep` |
 | Metric mask | **apodized**: k-space-apodized per-anatomy mask (activemri/utils/metric_mask.py), the trainer metric since 2026-10-20 |
 | Runs | 8 checkpoint directories under `checkpoints/` (untracked; names, overrides, wandb ids in `manifest.json`) |
 | Results | 8 files next to this report, hashed in `manifest.json` |
@@ -72,8 +72,8 @@ A 2×2 factorial with 2 seeds, 8 runs. Within a seed only the optimizer and the 
 | `muon_layer` | Muon | LayerNorm | both | `muon_layer_s42` (nidd1x7z), `muon_layer_s43` (467g3cyy) | 33.86 / 0.863; 33.61 / 0.860 |
 
 Checkpoints are in `~/data/seqmri_checkpoints/muon_layernorm_100ep/<run>` (linked from `checkpoints/`). Every arm uses a 12-cascade,
-18-channel VarNet, Adam or Muon at lr 1e-3, stepped by 0.1 at epoch 90, and `main`'s defaults at `91932da`: the fast path
-and `sampler.sense_mask_method=null`. The common overrides are:
+18-channel VarNet at lr 1e-3 with a 2-epoch warmup, stepped by 0.1 at epoch 90, and `main`'s defaults at `91932da`: the fast path
+and `sampler.sense_mask_method=null`. Muon uses the same lr (`training.muon_lr` unset) with momentum 0.95. The common overrides are:
 
 ```
 recon=varnet datasets=fastmri_local_v1_flair_knee misc.resolution=[320,320] sampler.accelerations=[8.0]
@@ -173,14 +173,18 @@ and +14.6% here.
 
 ### 6. Effect size against budget
 
-Paired d in dB against the same-seed control. The first two rows are from `reports/varnet_train_speed/report.md` and used
-`sampler.sense_mask_method=pre_network`; this study uses `null`.
+Paired d in dB against the same-seed control. The first row is the paired eval in `reports/varnet_train_speed/report.md`, on its
+390-slice val set. The second is that study's trainer validation at epoch 12 on all 1,938 val slices, from its `curves.json`. Both
+used `sampler.sense_mask_method=pre_network`; this study uses `null`.
 
-| Budget | Muon | LayerNorm | Muon + LayerNorm |
-|---|---|---|---|
-| 20% of the data, 40 epochs | +0.10, −0.37 | +0.79, +0.88, +0.59 | +0.70, +1.00 |
-| All data, 12 epochs | +0.26, +0.45 | +0.02, +0.05 | +0.60 (1 seed) |
-| All data, 100 epochs (this study) | +0.12, +0.17 | +0.01, +0.09 | +0.35, +0.33 |
+| Budget | Val slices | Muon | LayerNorm | Muon + LayerNorm |
+|---|---|---|---|---|
+| 20% of the data, 40 epochs | 390 | +0.10, −0.37 | +0.79, +0.88, +0.59 | +0.70, +1.00 |
+| All data, 12 epochs | 1,938 | +0.41, +0.43 | +0.06, +0.09 | +0.68 (1 seed) |
+| All data, 100 epochs (this study) | 1,938 | +0.12, +0.17 | +0.01, +0.09 | +0.35, +0.33 |
+
+On all val slices, the combination's lead halves between 12 and 100 epochs and Muon's falls by about two thirds, while LayerNorm's
+stays small.
 
 ### 7. How the lead changes during training
 
@@ -214,7 +218,8 @@ epoch 70, while both Adam arms gain 0.23–0.28 dB. `muon_layer_s43` peaked at e
   (Results 2).
 - **Most of the gain is in knee-PD:** +0.63 and +0.51 dB, against +0.30 and +0.20 for brain and +0.10 and +0.25 for knee-PDFS
   (Results 3).
-- **The final gain is about half of what short runs showed** (Results 6), though the change in sense mask is mixed into that comparison.
+- **The final gain is about half of what short runs showed:** +0.68 dB at 12 epochs against +0.33 to +0.35 dB here (Results 6). The
+  change of sense mask between those studies is mixed into that comparison.
 - **Hypothesis, untested:** the lead would shrink further with a longer schedule, because the control is still climbing at
   epoch 100 and the Muon arms are flat (Results 7). No run here goes past 100 epochs.
 - **Hypothesis, untested:** Muon + LayerNorm needs fewer than 100 epochs, since it stops improving around epoch 70 in seed 43.
@@ -227,8 +232,8 @@ epoch 70, while both Adam arms gain 0.23–0.28 dB. `muon_layer_s43` peaked at e
   independent.
 - **Knee-PDFS SSIM is under the 0.80 line in every run.** S is frozen on pooled SSIM (0.855–0.863), but knee-PDFS alone is
   0.779–0.784 in all 8 runs, including the control. `AGENTS.md` treats SSIM below 0.80 as a bug. This predates the study:
-  `fulldata_ref_s42` is 0.731 and the 12-epoch controls about 0.72 (`reports/varnet_train_speed/eval_vs_full.json`). The comparison is
-  paired and no arm moves it by more than 0.005, so the verdict does not depend on it. It has not been debugged.
+  `fulldata_ref_s42` is 0.731 and the 12-epoch controls about 0.72 (`reports/varnet_train_speed/eval_vs_full.json`, on its 390-slice
+  val set with `pre_network`). The comparison is paired and no arm moves it by more than 0.005, so the verdict does not depend on it. It has not been debugged.
 - **The +0.33 dB depends on the budget.** It is the gap at epoch 100 of this schedule, measured while the control is still improving.
 - **Reach is measured inside a 100-epoch schedule**, with lr 1e-3 until epoch 90. A run stopped or stepped earlier is a different
   run. See Next steps 2.
