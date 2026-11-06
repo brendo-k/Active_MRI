@@ -9,11 +9,15 @@
 | Reproduce | `bash run.sh` from the repo root |
 | Training commit | not recorded for these runs (they predate `run_info.json`) |
 
-- **Branch:** `exp/muon_layer_speed`, not merged. Results come from the commit in the provenance block. The runs used the two
-  code snapshots listed under Runs compared.
-- **Status:** waiting for the merge decision. On 2026-11-04 the user set Muon + LayerNorm as the project default, ahead of the
+- **Branch:** `exp/muon_layer_speed`, squash-merged into `main`. Results come from the commit in the provenance block. The runs used
+  the two code snapshots listed under Runs compared.
+- **Status:** adopted 2026-11-06. On 2026-11-04 the user set Muon + LayerNorm as the project default, ahead of the
   100-epoch 2×2. The branch carries that change in `553f760`. Proposal frozen 2026-11-03 23:00 (`proposal.md`). Everything here is
   seed 42: seed 43 and `e50_step` did not fit before the 08:00 limit, so any criterion that needs two seeds stays open.
+- **Verdict (user, 2026-11-06):** merge, with Muon + LayerNorm as the default. The finished 2×2 supports that default: +0.35 and
+  +0.33 dB over Adam + InstanceNorm at 100 epochs (`reports/muon_layernorm_100ep/report.md`). The exact step-time code comes with the
+  merge, so the deviation from the frozen 1e-5 bar (Results 2) came in with it rather than as a separate decision. The schedule,
+  batch size and `recon.chans` keep their defaults, and the EMA option stays off.
 
 ## Proposal vs outcome
 
@@ -302,7 +306,7 @@ The EMA was below the last weights in every arm, against an expected +0.03 to +0
 
 ## Next steps
 
-1. Run seed 43 of `e30_bs8` and pair it with `ml100_muon_layer_s43` once the 2×2 finishes. That settles the one open verdict. The same 2×2 is the check on the new default.
+1. Run seed 43 of `e30_bs8` and pair it with `ml100_muon_layer_s43`, which now exists. That settles the one open verdict.
 2. Test the updates hypothesis with one longer and one smaller-batch arm: `e50_bs8` (about 4.8 h, about 42% of the reference) and `e30_bs4`, both with the lr step at 90% of the run.
 3. If 16 channels is still of interest, run it through a full schedule at two seeds, since 30 epochs cannot say what it costs at convergence.
 4. Find out why knee-PD carries the largest deficit in every arm, since that is where the remaining dB are.
