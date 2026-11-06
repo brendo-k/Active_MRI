@@ -8,10 +8,13 @@
 | Results | 8 files next to this report, hashed in `manifest.json` |
 | Reproduce | `bash run.sh` from the repo root |
 
-- **Branch:** `exp/muon_layernorm_100ep`, not merged. Results come from the commit in the provenance block. All 8 runs trained
-  from a detached snapshot at `91932da`, and nothing under `activemri/`, `configs/` or `train.py` changed after it on this branch.
-- **Status:** waiting for the user's verdict. The proposal (`proposal.md`) was frozen at `4c5c2f3` on 2026-11-03, and the later
+- **Branch:** `exp/muon_layernorm_100ep`, squash-merged into `main`. Results come from the commit in the provenance block. All 8 runs
+  trained from a detached snapshot at `91932da`, and nothing under `activemri/`, `configs/` or `train.py` changed after it on this branch.
+- **Status:** adopted 2026-11-06. The proposal (`proposal.md`) was frozen at `4c5c2f3` on 2026-11-03, and the later
   amendments change the compute plan only (2 GPUs, the user's request).
+- **Verdict (user, 2026-11-06):** merge, together with `exp/muon_layer_speed`, which carries the default change and follows this
+  report onto `main`. Muon + LayerNorm is the default from that commit on. The `control` arm here relied on the defaults at
+  `91932da`, which no longer hold, so repeat an arm from that commit rather than from `main`.
 
 ## Proposal vs outcome
 
@@ -37,8 +40,8 @@ Muon + LayerNorm +0.1 to +0.4 dB at ≤ 40% of the wall-clock came out +0.35 and
 **Recommendation** (the user decides): **merge** this branch as a successful experiment.
 
 This branch changes no default. The user set Muon + LayerNorm as the project default on 2026-11-04, ahead of this result, in
-`553f760` on `exp/muon_layer_speed`, which is not merged. This result supports that change. The helper scripts both branches
-share are identical, so the squash order does not matter for them.
+`553f760` on `exp/muon_layer_speed`. This result supports that change. The helper scripts both branches share are identical, so
+the squash order does not matter for them.
 
 - **Adopt the two together.** The combination is the only arm that clears the quality bar by a clear margin in both seeds.
 - **Quote +0.34 dB, not +0.6 to +0.85 dB.** Those larger numbers came from short runs (Results 6). The direction holds and the
@@ -260,13 +263,11 @@ epoch 70, while both Adam arms gain 0.23–0.28 dB. `muon_layer_s43` peaked at e
 
 ## Next steps
 
-1. **Merge order.** Decide on this branch and `exp/muon_layer_speed` together, since that branch holds the default change this
-   study supports.
-2. **Retime `training.num_epochs`.** `e30_step_s42` in `reports/muon_layer_speed/report.md` (branch `exp/muon_layer_speed`) ended at
-   33.55 dB in 30 epochs, close to this study's 100-epoch control at 33.51 dB on the same seed, but on different step code. Test
-   30–70 epochs of the recipe with 2 seeds, including an lr step before epoch 90.
-3. **Bound the budget dependence.** Extend one control and recipe pair past 100 epochs to see how much of the +0.33 dB survives.
-4. **Look at knee-PDFS SSIM.** Find out why it sits at 0.78 while the other conditions are 0.88–0.92, and whether the 0.80 line should
+1. **Retime `training.num_epochs`.** `e30_step_s42` in `reports/muon_layer_speed/report.md` ended at 33.55 dB in 30 epochs, close to
+   this study's 100-epoch control at 33.51 dB on the same seed, but on different step code. Test 30–70 epochs of the recipe with
+   2 seeds, including an lr step before epoch 90.
+2. **Bound the budget dependence.** Extend one control and recipe pair past 100 epochs to see how much of the +0.33 dB survives.
+3. **Look at knee-PDFS SSIM.** Find out why it sits at 0.78 while the other conditions are 0.88–0.92, and whether the 0.80 line should
    apply per condition.
 
 ## Reproduce
