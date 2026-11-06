@@ -1,0 +1,17 @@
+The LayerNorm behind profile_layer_bf16*.json. It was tried, measured no faster, and reverted without being committed, so the
+class is kept here. `recon.norm=layer_bf16 sampler.sens_norm=layer_bf16` selected it in activemri/reconstructors/norms.py.
+
+class LayerNorm2d(nn.GroupNorm):
+    """GroupNorm(1, C) that returns the input's dtype. Autocast runs group_norm in float32, so inside a bf16 U-Net every
+    activation and every gradient is cast and stored as float32 around each norm. This one computes in float32 inside its
+    kernels, which fuse with the casts, and hands bf16 on. Its parameters are GroupNorm's, so checkpoints load either way."""
+
+    def __init__(self, channels: int):
+        super().__init__(1, channels)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        values = x.float()
+        mean = values.mean(dim=(1, 2, 3), keepdim=True)
+        variance = (values - mean).square().mean(dim=(1, 2, 3), keepdim=True)
+        normalised = (values - mean) / (variance + self.eps).sqrt()
+        return (normalised * self.weight.view(1, -1, 1, 1) + self.bias.view(1, -1, 1, 1)).to(x.dtype)

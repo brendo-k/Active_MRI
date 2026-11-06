@@ -1,0 +1,18 @@
+{
+ "output": {
+  "fused_vs_eager": 5.171988277652417e-07,
+  "eager_vs_eager": 0.0
+ },
+ "reconstructor": {
+  "fused_vs_eager": 5.075658191344701e-05,
+  "eager_vs_eager": 0.0
+ },
+ "sensetivity_net": {
+  "fused_vs_eager": 6.686032429570332e-05,
+  "eager_vs_eager": 0.0
+ },
+ "sampler": {
+  "fused_vs_eager": 0.0005323350778780878,
+  "eager_vs_eager": 0.0
+ }
+}

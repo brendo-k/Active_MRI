@@ -324,18 +324,21 @@ class SequentialSampling(nn.Module):
         if budget is None:
             budget = self.budget / self.num_step
 
-        # Combine coils to single-coil equivalent for sampler input
-        pred_single_coil_img = self._sampler_image(torch.view_as_complex(pred_kspace), sense_maps)
-        pred_single_coil_k = torch.view_as_real(torch_fft2(pred_single_coil_img))
-
-        if torch.isnan(pred_single_coil_k).any():
-            print(f"NaN in pred_single_coil_k at step {step}")
-
-        # Prepare complex recon image for sampler conditioning
         recon_complex = None
-        if self.sampler.with_recon:
-            recon_2ch = torch.stack([pred_single_coil_img.real, pred_single_coil_img.imag], dim=1)
-            recon_complex = recon_2ch.detach()
+        if fixed_mask is not None or not self.sampler.reads_input:
+            pred_single_coil_k = pred_kspace[:, 0]  # the right shape, which is all the sampler takes from it
+        else:
+            # Combine coils to single-coil equivalent for sampler input
+            pred_single_coil_img = self._sampler_image(torch.view_as_complex(pred_kspace), sense_maps)
+            pred_single_coil_k = torch.view_as_real(torch_fft2(pred_single_coil_img))
+
+            if torch.isnan(pred_single_coil_k).any():
+                print(f"NaN in pred_single_coil_k at step {step}")
+
+            # Prepare complex recon image for sampler conditioning
+            if self.sampler.with_recon:
+                recon_2ch = torch.stack([pred_single_coil_img.real, pred_single_coil_img.imag], dim=1)
+                recon_complex = recon_2ch.detach()
 
         if fixed_mask is not None:
             mask = fixed_mask if valid_mask is None else fixed_mask * valid_mask
@@ -363,12 +366,15 @@ class SequentialSampling(nn.Module):
             or any(p.requires_grad for p in self.reconstructor.parameters())
         )
         with torch.set_grad_enabled(recon_needs_grad):
-            # Zero-filled reconstruction (coil-combined)
-            zero_filled_complex = (torch_ifft2(torch.view_as_complex(masked_kspace)) * sense_maps.conj()).sum(dim=1, keepdim=True)
-            zero_filled_mag = zero_filled_complex.abs()
+            kspace_recon = self.recon_type in ('lls', 'cg_sense', 'varnet', 'sdum')
+            # Zero-filled reconstruction (coil-combined). In training it reaches no loss term, only the logged baseline.
+            zero_filled_complex = zero_filled_mag = None
+            if not kspace_recon or self.store_visuals or not self.training:
+                zero_filled_complex = (torch_ifft2(torch.view_as_complex(masked_kspace)) * sense_maps.conj()).sum(dim=1, keepdim=True)
+                zero_filled_mag = zero_filled_complex.abs()
 
             # Full reconstruction
-            if self.recon_type in ('lls', 'cg_sense', 'varnet', 'sdum'):
+            if kspace_recon:
                 masked_kspace_complex = torch.view_as_complex(masked_kspace.contiguous())
                 recon_kwargs = {'anatomy_labels': anatomy_labels} \
                     if self.condition_reconstructor or getattr(self.reconstructor, 'iters_by_label', None) else {}
@@ -577,7 +583,8 @@ class SequentialSampling(nn.Module):
                 step_entropy = pred_dict['reinforce_entropy']
                 reinforce_entropy = step_entropy if reinforce_entropy is None else reinforce_entropy + step_entropy
 
-            pred_kspace = torch.view_as_real(torch_fft2(new_img * sense_maps) * output_extent)
+            if i + 1 < self.num_step:
+                pred_kspace = torch.view_as_real(torch_fft2(new_img * sense_maps) * output_extent)
 
         final_recon = self._coil_rss(final_complex, sense_maps, output_extent)
         if self.zero_unacquired:
@@ -619,6 +626,11 @@ class SequentialSampling(nn.Module):
             target = target.unsqueeze(1)
         zero_filled = pred_dict['zero_filled_recon'][-1]
         gt_kspace = target_dict['kspace']
+
+        def zero_filled_baseline(error):
+            """`error` of the zero-filled image, NaN when the forward did not form one."""
+            return pred.new_tensor(float('nan')) if zero_filled is None else error(zero_filled)
+
         self_supervised = 'holdout_mask' in target_dict
         per_example_ssdu = None
 
@@ -637,16 +649,16 @@ class SequentialSampling(nn.Module):
             zero_loss = torch.tensor(0.0, device=pred.device)
         elif loss_type == 'l1':
             reconstruction_loss = F.l1_loss(pred, target, size_average=True)
-            zero_loss = F.l1_loss(zero_filled, target, size_average=True)
+            zero_loss = zero_filled_baseline(lambda image: F.l1_loss(image, target, size_average=True))
         elif loss_type == 'ssim':
             reconstruction_loss = -torch.mean(compute_ssim_torch(pred, target))
-            zero_loss = -torch.mean(compute_ssim_torch(zero_filled, target))
+            zero_loss = zero_filled_baseline(lambda image: -torch.mean(compute_ssim_torch(image, target)))
         elif loss_type == 'nmse':
             reconstruction_loss = torch.norm(pred - target) ** 2 / torch.norm(target) ** 2
-            zero_loss = torch.norm(zero_filled - target) ** 2 / torch.norm(target) ** 2
+            zero_loss = zero_filled_baseline(lambda image: torch.norm(image - target) ** 2 / torch.norm(target) ** 2)
         elif loss_type == 'psnr':
             reconstruction_loss = -torch.mean(compute_psnr_torch(pred, target))
-            zero_loss = -torch.mean(compute_psnr_torch(zero_filled, target))
+            zero_loss = zero_filled_baseline(lambda image: -torch.mean(compute_psnr_torch(image, target)))
         elif loss_type == 'xentropy':
             label = target_dict['label']
             reconstruction_loss = nn.CrossEntropyLoss()(pred, label)

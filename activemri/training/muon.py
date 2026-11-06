@@ -82,24 +82,28 @@ class MuonAdam(torch.optim.Adam):
         return loss
 
     def _muon_step(self, group):
-        by_shape = defaultdict(list)
-        for p in group['params']:
-            if p.grad is None:
-                continue
+        params = [p for p in group['params'] if p.grad is not None]
+        if not params:
+            return
+        grads = [p.grad for p in params]
+        buffers = []
+        for p in params:
             state = self.state[p]
             if 'momentum_buffer' not in state:
                 state['momentum_buffer'] = torch.zeros_like(p)
-            buffer = state['momentum_buffer']
-            buffer.mul_(group['momentum']).add_(p.grad)
-            update = p.grad.add(buffer, alpha=group['momentum']) if group['nesterov'] else buffer
+            buffers.append(state['momentum_buffer'])
+        torch._foreach_mul_(buffers, group['momentum'])
+        torch._foreach_add_(buffers, grads)
+        updates = torch._foreach_add(grads, buffers, alpha=group['momentum']) if group['nesterov'] else buffers
+        if group['weight_decay']:
+            torch._foreach_mul_(params, 1 - group['lr'] * group['weight_decay'])
+        by_shape = defaultdict(list)
+        for p, update in zip(params, updates):
             by_shape[update.shape].append((p, update))
         for shape, items in by_shape.items():
             rows = shape[0]
             cols = shape.numel() // rows
             matrices = torch.stack([update.reshape(rows, cols) for _, update in items])
-            orthogonal = orthogonalize(matrices, group['ns_steps'])
-            scale = ADAM_RMS * max(rows, cols) ** 0.5
-            for (p, _), direction in zip(items, orthogonal):
-                if group['weight_decay']:
-                    p.mul_(1 - group['lr'] * group['weight_decay'])
-                p.add_(direction.view(shape).to(p.dtype), alpha=-group['lr'] * scale)
+            directions = orthogonalize(matrices, group['ns_steps']).to(items[0][0].dtype)
+            torch._foreach_add_([p for p, _ in items], [direction.view(shape) for direction in directions.unbind(0)],
+                                alpha=-group['lr'] * ADAM_RMS * max(rows, cols) ** 0.5)

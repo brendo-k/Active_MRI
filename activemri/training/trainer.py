@@ -1,5 +1,6 @@
 from collections import defaultdict
 from typing import Dict, List, Optional
+import gc
 import logging
 import math
 import os
@@ -26,6 +27,7 @@ from activemri.samplers.loupe import LineConstrainedProbMask, ProbMask
 from activemri.utils.util import compute_ssim_torch, compute_psnr_torch
 from activemri.config import TrainConfig
 from activemri.training.run_naming import run_group, run_name, run_tags
+from activemri.training.ema import ParameterEMA
 from activemri.training.muon import MuonAdam, muon_parameters
 from activemri.reconstructors.norms import replace_instance_norms
 from activemri.reconstructors.config import UNetReconConfig, CGSenseReconConfig, SDUMReconConfig, VarNetReconConfig
@@ -71,9 +73,10 @@ class Sequential_Trainer:
             self._init_mask_from(options.init_mask_checkpoint)
 
         if options.compile_unets:
-            if getattr(options, 'channels_last_unets', False):
+            channels_last = getattr(options, 'channels_last_unets', False)
+            if channels_last is True:
                 torch._inductor.config.force_layout_optimization = True
-            compile_unets(self.model)
+            compile_unets(self.model, channels_last)
 
         if options.data_parallel:
             if options.sampler_type == 'autosamp_2d':
@@ -86,6 +89,9 @@ class Sequential_Trainer:
         self.visual_examples = select_visual_examples(self.val_loader.dataset)
 
         self.scheduler = build_lr_scheduler(options, self.optimizer)
+        ema_decay = getattr(options, 'ema_decay', 0.0)
+        self.ema = None if ema_decay <= 0 else ParameterEMA(
+            [p for module in self._recon_modules() for p in module.parameters() if p.requires_grad], ema_decay)
         self.best_val_loss = np.inf
         self.previous_mask_logits = None
         self.epoch = 0
@@ -311,6 +317,10 @@ class Sequential_Trainer:
             is_new_best = val_loss < self.best_val_loss
             self.best_val_loss = min(self.best_val_loss, val_loss)
             self.save_model(is_new_best)
+            if epoch == self.start_epoch:
+                # Compiled graphs and hydra's config stay alive all run; left in the collector, every full collection walks them.
+                gc.collect()
+                gc.freeze()
 
             self.logger.info(
                 f'Epoch = [{1 + self.epoch:4d}/{self.options.num_epochs:4d}] TrainLoss = {train_loss:.4g} '
@@ -318,6 +328,7 @@ class Sequential_Trainer:
                 f'TrainTime = {train_time:.4f}s ValTime = {val_time:.4f}s',
             )
 
+        self.save_ema_model()
         wandb.finish()
 
     def _is_every(self, every: int) -> bool:
@@ -485,6 +496,8 @@ class Sequential_Trainer:
             self.optimizer.zero_grad()
             return None
         self.optimizer.step()
+        if self.ema is not None:
+            self.ema.update()
         return grad_log
 
     def val_epoch(self):
@@ -719,6 +732,14 @@ class Sequential_Trainer:
         best_tmp.replace(best_path)
         for old_checkpoint in self.exp_dir.glob('model_epoch_*.pt'):
             old_checkpoint.unlink()
+
+    def save_ema_model(self):
+        """`ema_model.pt`: a `last_model.pt` with the averaged weights, for the same eval scripts."""
+        if self.ema is None:
+            return
+        with self.ema.applied():
+            torch.save({'epoch': self.epoch, 'options': self.options, 'model': self.model.state_dict(),
+                        'best_val_loss': self.best_val_loss}, self.exp_dir / 'ema_model.pt')
 
     def load_checkpoint(self):
         checkpoint = torch.load(self.options.checkpoint, weights_only=False)
@@ -964,8 +985,9 @@ def build_optimizer(options: TrainConfig, param_groups, model):
     """Adam over `param_groups` (a parameter list or Adam group dicts), or with `options.optimizer='muon'` the same
     groups with the U-Nets' hidden convolutions moved into one Muon group (activemri/training/muon.py)."""
     kind = getattr(options, 'optimizer', 'adam')
+    fused = getattr(options, 'fused_adam', False) or None
     if kind == 'adam':
-        return torch.optim.Adam(param_groups, options.lr, weight_decay=options.weight_decay)
+        return torch.optim.Adam(param_groups, options.lr, weight_decay=options.weight_decay, fused=fused)
     if kind != 'muon':
         raise ValueError(f"optimizer must be one of {OPTIMIZERS}, got {kind!r}")
     groups = [dict(group) for group in param_groups] if isinstance(param_groups[0], dict) else [{'params': list(param_groups)}]
@@ -975,9 +997,10 @@ def build_optimizer(options: TrainConfig, param_groups, model):
     for group in groups:
         group['params'] = [p for p in group['params'] if id(p) not in muon_ids]
     groups = [group for group in groups if group['params']]
-    groups.append({'params': muon, 'use_muon': True, 'lr': options.muon_lr or options.lr,
-                   'momentum': options.muon_momentum, 'weight_decay': options.weight_decay})
-    return MuonAdam(groups, options.lr, weight_decay=options.weight_decay)
+    if muon:  # slot 1, so the last group stays the sampler's: the trainer logs train/policy_lr and train/autosamp_lr from it
+        groups.insert(1, {'params': muon, 'use_muon': True, 'lr': options.muon_lr or options.lr,
+                          'momentum': options.muon_momentum, 'weight_decay': options.weight_decay})
+    return MuonAdam(groups, options.lr, weight_decay=options.weight_decay, fused=fused)
 
 
 COSINE_FLOOR = 0.01  # fraction of the base lr the cosine schedules decay to
@@ -1080,7 +1103,7 @@ def gradient_stats(model, max_norm):
         names += [f'grad/{group}_norm', f'grad/{group}_max_abs', f'grad/{group}_nonfinite_tensors']
         values += [
             per_tensor_norm.norm(),
-            torch.stack([g.abs().max() for g in grads]).max(),
+            torch.stack(torch._foreach_norm(grads, math.inf)).max(),
             (~torch.isfinite(per_tensor_norm)).sum().float(),
         ]
     return dict(zip(names, torch.stack([v.float() for v in values]).tolist()))
@@ -1125,16 +1148,19 @@ def _cg_iters_by_label(iters_by_anatomy, label_classes):
     return [int(iters_by_anatomy[c.split('-')[0]]) for c in label_classes]
 
 
-def compile_unets(model: torch.nn.Module) -> None:
+def compile_unets(model: torch.nn.Module, channels_last=False) -> None:
     """torch.compile every U-Net body in place (the VarNet cascades' and the sensitivity net's), so state_dict keys
     stay as they are. Shapes are static: each new batch shape (the smaller last batch, validation) compiles once, except
-    the sensitivity net's batch of live coils, which it marks dynamic."""
+    the sensitivity net's batch of live coils, which it marks dynamic.
+
+    `channels_last` True lays out every U-Net channels-last; 'sens' only the sensitivity net, whose channel counts are
+    multiples of 8. cuDNN pads the cascades' 18 and 36 channels in that layout, which costs more than it saves."""
     use_system_compilers_if_missing()
     for module in list(model.modules()):
         if isinstance(module, NormUnet):
             module.unet.compile(dynamic=False)
         elif isinstance(module, SensetivityModel_mc):
-            module.model.compile(dynamic=False)
+            module.model.compile(dynamic=False, options={'force_layout_optimization': True} if channels_last == 'sens' else None)
 
 
 def build_model(options: TrainConfig):

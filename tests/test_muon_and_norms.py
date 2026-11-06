@@ -5,8 +5,17 @@ import torch
 import torch.nn as nn
 from fastmri.models import Unet
 
+from activemri.config import TrainConfig
 from activemri.reconstructors.norms import NORM_LAYERS, replace_instance_norms
 from activemri.training.muon import MuonAdam, muon_parameters, orthogonalize
+from activemri.training.trainer import build_optimizer
+
+
+class SamplerAndUnet(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.sampler = nn.Linear(4, 4)
+        self.unet = nn.Sequential(nn.Conv2d(2, 8, 3), nn.Conv2d(8, 8, 3), nn.Conv2d(8, 2, 3))
 
 
 def test_orthogonalize_gives_near_unit_singular_values():
@@ -50,6 +59,35 @@ def test_muon_step_is_rms_matched_to_adam():
     weight.grad = torch.randn_like(weight)
     MuonAdam([{'params': [weight], 'use_muon': True, 'nesterov': False}], lr=1.0).step()
     assert weight.detach().square().mean().sqrt().item() == pytest.approx(0.2, rel=0.2)
+
+
+def test_a_step_with_no_gradient_on_the_muon_group_updates_only_adam():
+    adam_weight = nn.Parameter(torch.ones(3))
+    muon_weight = nn.Parameter(torch.ones(8, 8, 3, 3))
+    optimizer = MuonAdam([{'params': [adam_weight]}, {'params': [muon_weight], 'use_muon': True}], lr=1e-3)
+    adam_weight.grad = torch.ones(3)
+    optimizer.step()
+    assert not torch.equal(adam_weight, torch.ones(3))
+    assert torch.equal(muon_weight, torch.ones(8, 8, 3, 3))
+
+
+def test_frozen_unets_leave_no_muon_group():
+    model = SamplerAndUnet()
+    model.unet.requires_grad_(False)
+    trainable = [p for p in model.parameters() if p.requires_grad]
+    optimizer = build_optimizer(TrainConfig(optimizer='muon'), trainable, model)
+    assert not any(group.get('use_muon') for group in optimizer.param_groups)
+    model.sampler.weight.grad = torch.ones_like(model.sampler.weight)
+    optimizer.step()
+
+
+def test_the_samplers_group_stays_last_under_muon():
+    model = SamplerAndUnet()
+    groups = [{'params': list(model.unet.parameters())}, {'params': list(model.sampler.parameters()), 'lr': 0.05}]
+    optimizer = build_optimizer(TrainConfig(optimizer='muon', lr=1e-3), groups, model)
+    assert optimizer.param_groups[0]['lr'] == 1e-3
+    assert optimizer.param_groups[1].get('use_muon')
+    assert optimizer.param_groups[-1]['lr'] == 0.05
 
 
 @pytest.mark.parametrize('kind', NORM_LAYERS)
