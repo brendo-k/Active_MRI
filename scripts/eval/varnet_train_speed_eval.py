@@ -1,7 +1,8 @@
 """Per-condition validation scores of the varnet_train_speed runs, and paired arm - control differences.
 
-Every finished run (its log reached its last epoch) under the queue directory is scored from its last_model.pt on the
-run's validation set (20% of the local v1 FLAIR+knee val volumes). Per slice it computes PSNR_Masked and SSIM_Masked as
+Every finished run (its log reached its last epoch) under the queue directory (--queue-dir) is scored from its
+last_model.pt on the validation set of the first run's config (for varnet_train_speed, 20% of the local v1 FLAIR+knee
+val volumes). Per slice it computes PSNR_Masked and SSIM_Masked as
 the trainer does (`MaskedMetricAccumulator`: inside the apodized per-anatomy metric mask, data range = the slice's
 max). Each run uses the same seeded mask draws (`--seeds`, the global RNG seeded before each pass), so two runs differ
 only by their weights and learned mask probabilities.
@@ -132,6 +133,7 @@ def paired(delta, volumes):
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('--out', type=Path, default=Path('reports/varnet_train_speed/eval.json'))
+    parser.add_argument('--queue-dir', type=Path, default=QUEUE_DIR, help='the directory holding the runs and their logs')
     parser.add_argument('--runs', nargs='*', help='run names (default: every finished run)')
     parser.add_argument('--control', default='control', help='arm the others are paired against, per seed')
     parser.add_argument('--seeds', type=int, nargs='+', default=[1234, 4321])
@@ -140,16 +142,17 @@ def main():
     parser.add_argument('--error-split', nargs='+', metavar='PATTERN',
                         help='instead: L1 inside/outside the metric mask and full-image PSNR for runs matching these globs, to --out')
     args = parser.parse_args()
+    queue_dir = args.queue_dir.expanduser()
     device = torch.device(args.device)
     if args.error_split:
         import fnmatch
-        names = sorted(p.name for p in QUEUE_DIR.iterdir() if p.is_dir() and RUN_NAME.match(p.name) and '.attempt' not in p.name
+        names = sorted(p.name for p in queue_dir.iterdir() if p.is_dir() and RUN_NAME.match(p.name) and '.attempt' not in p.name
                        and finished(p) and any(fnmatch.fnmatch(p.name, pattern) for pattern in args.error_split))
-        _, val_loader = build_dataloaders(OmegaConf.load(QUEUE_DIR / 'control_s42' / '.hydra' / 'config.yaml'))
+        _, val_loader = build_dataloaders(OmegaConf.load(queue_dir / 'control_s42' / '.hydra' / 'config.yaml'))
         result = {}
         for name in names:
             print(f'error split {name}', flush=True)
-            result[name] = error_split(QUEUE_DIR / name, val_loader, device, args.seeds[0])
+            result[name] = error_split(queue_dir / name, val_loader, device, args.seeds[0])
             args.out.parent.mkdir(parents=True, exist_ok=True)
             args.out.write_text(json.dumps({'seed': args.seeds[0], 'runs': result}, indent=1))
         for name, row in result.items():
@@ -158,18 +161,18 @@ def main():
                   f"PSNR full {a['psnr_full']:.2f} in {a['psnr_in']:.2f} bg mean out/target {a['out_mean_bg']:.4f}/{a['target_mean_bg']:.4f}")
         return
 
-    names = args.runs or sorted(p.name for p in QUEUE_DIR.iterdir()
+    names = args.runs or sorted(p.name for p in queue_dir.iterdir()
                                 if p.is_dir() and RUN_NAME.match(p.name) and '.attempt' not in p.name and finished(p))
     cache = args.cache or args.out.with_suffix('.per_slice.npz')
     stored = dict(np.load(cache, allow_pickle=True)) if cache.exists() else {}
-    _, val_loader = build_dataloaders(OmegaConf.load(QUEUE_DIR / names[0] / '.hydra' / 'config.yaml'))
+    _, val_loader = build_dataloaders(OmegaConf.load(queue_dir / names[0] / '.hydra' / 'config.yaml'))
     scores = {}
     for name in names:
         if f'{name}/psnr' in stored:
             scores[name] = {k: stored[f'{name}/{k}'] for k in ('psnr', 'ssim', 'condition', 'volume', 'epochs')}
             continue
         print(f'scoring {name}', flush=True)
-        scores[name] = score(QUEUE_DIR / name, val_loader, device, args.seeds)
+        scores[name] = score(queue_dir / name, val_loader, device, args.seeds)
         stored.update({f'{name}/{k}': v for k, v in scores[name].items()})
         np.savez(cache, **stored)
 

@@ -14,6 +14,7 @@ data, runs, commands, result hashes), `run.sh` (regenerates every result file) a
 | `varnet_caipi_promptmr_anatcond_r4/` | Does an anatomy label help a PromptMR+-style VarNet on fixed CAIPI R=4 sampling? |
 | `sense_mask_varnet/` | Does the body multiply on the sensitivity maps help a 12-cascade VarNet? Exploratory, 1 seed: `null` beat `pre_network` by 1.26 dB; `null` is now the default. |
 | `varnet_train_speed/` | How much faster can 1-step LOUPE + VarNet (R=8) train? Exact fast path adopted as the default; Muon and LayerNorm opt-in |
+| `muon_layernorm_100ep/` | Do Muon and LayerNorm still help at full data and 100 epochs? Muon + LayerNorm +0.34 dB at 28-37% of the wall-clock, 2 seeds; LayerNorm alone inconclusive |
 
 ## Planning reports
 
