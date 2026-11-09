@@ -98,7 +98,7 @@ checkpoint, as in the source reports.
 | muon_layer_s42 | 33.86 | −2.205 [−2.579, −1.831] | −0.0075 | −1.569 | −0.978 | −4.039 |
 | muon_layer_s43 | 33.61 | −2.012 [−2.320, −1.704] | −0.0310 | −1.375 | −1.128 | −3.496 |
 
-The loss is 1–2 dB in every checkpoint, about 4–10 times the 0.3–0.5 dB seed spread, and largest in knee-PDFS.
+The loss is 1.0–2.2 dB, every per-checkpoint CI excludes zero, and it is largest in knee-PDFS.
 
 ### 2. No scalar gate helps (mean over the 8 checkpoints; ΔPSNR dB / ΔSSIM against λ = 0)
 
@@ -110,6 +110,7 @@ The loss is 1–2 dB in every checkpoint, about 4–10 times the 0.3–0.5 dB se
 | knee-PDFS | −1.043 / +0.0006 | −2.482 / −0.0055 | −3.440 / −0.0140 | −3.726 / −0.0186 |
 
 PSNR falls monotonically with λ in every condition, so neither a scalar gate nor a per-condition one has a positive setting.
+A gate by k-space radius, which would leave the densely sampled centre to the network, was not tested.
 
 ### 3. Why: the output's phase and brightness differ from the data (post-freeze; means by condition: all / brain / knee-PD / knee-PDFS)
 
@@ -132,10 +133,12 @@ PSNR falls monotonically with λ in every condition, so neither a scalar gate no
   (0.40) is more than twice the maps floor (0.17); after the oracle rotation it is near the floor (0.21). The offset is as large
   for rss on the fixed loader as on the old-flip 2x2, and it is present in knee, which was never flipped. So it goes with the
   RSS loss, not the brain flip. kspace_gt, same loader, k-space loss: 0.06 rad, error at the floor.
-- **Brightness.** With the phase aligned, hard DC still costs a near-constant −1.06 to −1.11 dB in all 8 checkpoints
-  (`summary.json`, `mechanism_2x2_per_run`), while SSIM rises (+0.0014 to +0.0046). Hard DC darkens the output (knee-PDFS
-  0.99 → 0.88–0.92, 6 of 8 at 0.882–0.883, the same as kspace_gt at λ = 1). An oracle affine fit takes the λ = 1 loss from
-  −2.0 to −0.2 dB. Most of what remains after phase alignment is therefore an intensity offset, not lost structure.
+- **Brightness.** Raw hard DC darkens the output: knee-PDFS 0.99 → 0.88–0.92, 6 of 8 at 0.882–0.883, the same as kspace_gt
+  at λ = 1. An oracle affine fit takes the raw λ = 1 loss from −2.0 to −0.2 dB. That raw darkening mixes two causes: phase
+  cancellation and any overwrite of the network's brightness. With the phase aligned, hard DC still costs a near-constant
+  −1.06 to −1.11 dB in all 8 checkpoints (`summary.json`, `mechanism_2x2_per_run`), while SSIM rises (+0.0014 to +0.0046).
+  Brightness and the affine fit were not recorded for the aligned output. Hypothesis, untested: the aligned residual is
+  mostly an intensity offset, not lost structure.
 - **The estimated alignment** (sampled data only, σ = 8 px) is worse than none (−2.25 vs −2.00 dB). It rotates low-signal
   regions by a noisy phase.
 
@@ -160,11 +163,12 @@ rss falls 2.24 dB.
 - **Measured:** the RSS-trained models' coil images carry a per-pixel common phase 0.15–0.45 rad from the measured data. The
   offset does not depend on the brain flip, and it accounts for about half of the hard-DC loss: −2.0 dB raw, −1.1 dB after
   oracle alignment.
-- **Measured:** with the phase aligned, the step still darkens the output, to the same knee-PDFS brightness as the k-space-loss
-  model (0.88). An oracle affine fit recovers all but about 0.2 dB. This matches the frozen prediction: an RSS-trained network
-  reproduces the target's noise floor as low-frequency signal, and DC overwrites it with measured data from the densely
-  sampled centre. Hypothesis, consistent with the prediction but not tested directly (no noise-only control): the remaining
-  loss is the RSS target's noise bias.
+- **Measured:** raw hard DC darkens the RSS-trained outputs to the knee-PDFS brightness of the k-space-loss model at λ = 1
+  (0.88), and an oracle affine fit recovers all but about 0.2 dB of the raw loss. With the phase aligned, a constant −1.1 dB
+  remains while SSIM rises; its brightness was not recorded. Hypothesis, consistent with the frozen prediction but not tested
+  directly (no aligned brightness readout, no noise-only control): an RSS-trained network reproduces the target's noise floor
+  as low-frequency signal, DC overwrites it with measured data from the densely sampled centre, and that noise bias is the
+  remaining loss.
 - **Measured:** the k-space-loss model gains +0.58 dB from hard DC (+0.94 in knee-PDFS) but stays 1.81 dB below the RSS
   control. The step does not recover the contrast gap, because what it lacks is the target's noise floor, which data
   consistency cannot add.
