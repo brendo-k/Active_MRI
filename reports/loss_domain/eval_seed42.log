@@ -1,0 +1,37 @@
+Manifest train set (volumes, slices): {'brain': (80, 1211), 'knee-PD': (40, 1369), 'knee-PDFS': (40, 1349)}
+Manifest val set (volumes, slices): {'brain': (40, 605), 'knee-PD': (20, 673), 'knee-PDFS': (20, 660)}
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+loss_domain_rss_r8_flair_knee_100ep_seed42: epoch 100  PSNR_Masked 32.083  SSIM_Masked 0.8352  NMSE 0.00993  phase std 0.653
+loss_domain_rss_r8_flair_knee_100ep_seed43: no checkpoint, skipped
+loss_domain_rss_r8_flair_knee_100ep_seed44: no checkpoint, skipped
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+loss_domain_complex_r8_flair_knee_100ep_seed42: epoch 100  PSNR_Masked 24.878  SSIM_Masked 0.7220  NMSE 0.04074  phase std 0.572
+loss_domain_complex_r8_flair_knee_100ep_seed43: no checkpoint, skipped
+loss_domain_complex_r8_flair_knee_100ep_seed44: no checkpoint, skipped
+loss_domain_kspace_sense_r8_flair_knee_100ep_seed42: no checkpoint, skipped
+loss_domain_kspace_sense_r8_flair_knee_100ep_seed43: no checkpoint, skipped
+loss_domain_kspace_sense_r8_flair_knee_100ep_seed44: no checkpoint, skipped
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+loss_domain_kspace_rss_r8_flair_knee_100ep_seed42: epoch 100  PSNR_Masked 22.698  SSIM_Masked 0.7633  NMSE 0.08779  phase std 0.648
+loss_domain_kspace_rss_r8_flair_knee_100ep_seed43: no checkpoint, skipped
+loss_domain_kspace_rss_r8_flair_knee_100ep_seed44: no checkpoint, skipped
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+loss_domain_kspace_rss_M_r8_flair_knee_100ep_seed42: epoch 100  PSNR_Masked 24.786  SSIM_Masked 0.7949  NMSE 0.05915  phase std 0.648
+loss_domain_kspace_rss_M_r8_flair_knee_100ep_seed43: no checkpoint, skipped
+loss_domain_kspace_rss_M_r8_flair_knee_100ep_seed44: no checkpoint, skipped
+
+Loss bar (arm - rss, PSNR_Masked dB, all val slices):
+  complex       s42 -7.205  mean -7.205  miss (incomplete)
+  kspace_rss    s42 -9.385  mean -9.385  miss (incomplete)
+  kspace_rss_M  s42 -7.297  mean -7.297  miss (incomplete)
+Mask bar (kspace_rss_M - kspace_rss): s42 +2.088  mean +2.088  miss
+Health: {"loss_domain_complex_r8_flair_knee_100ep_seed42": {"ssim_minus_twin": {"brain": -0.0884446980509822, "knee-PD": -0.12370554581137105, "knee-PDFS": -0.12521962406285359}, "pass": false}, "loss_domain_kspace_rss_r8_flair_knee_100ep_seed42": {"ssim_minus_twin": {"brain": -0.02185775085976438, "knee-PD": -0.038295601326115536, "knee-PDFS": -0.15226417531749692}, "pass": false}, "loss_domain_kspace_rss_M_r8_flair_knee_100ep_seed42": {"ssim_minus_twin": {"brain": 0.015253073561134811, "knee-PD": -0.026834337456504098, "knee-PDFS": -0.1051588255000594}, "pass": false}, "twins": {"ssim": {"42": 0.8352472572460682}, "pass": true}}
+Mask correlation: {"complex vs rss seed42": 0.5820947844368888, "kspace_rss vs rss seed42": 0.6057860987100087, "kspace_rss_M vs rss seed42": 0.5866129316642078}

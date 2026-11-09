@@ -1,0 +1,413 @@
+{
+  "schema": 1,
+  "generated_at": "2026-11-09T22:09:42+00:00",
+  "code": {
+    "produced_at": "4b7122ddf1b9e77f3bf2600f9150785d9e8ffe96",
+    "produced_at_subject": "loss_domain: diagnose the complex arm's SSIM < 0.80 on the round-2 checkpoint",
+    "head": "a5d0e78a7396bd80a111c3de9a1867e7b6bef1d4",
+    "branch": "exp/loss_domain",
+    "dirty_tracked_files": [],
+    "scripts": [
+      {
+        "path": "scripts/eval/eval_loss_domain.py",
+        "changed_since_produced_at": false
+      },
+      {
+        "path": "reports/loss_domain/diag/intensity_fit.py",
+        "changed_since_produced_at": false
+      },
+      {
+        "path": "reports/loss_domain/diag/mask_overlap.py",
+        "changed_since_produced_at": false
+      },
+      {
+        "path": "reports/loss_domain/diag/plot_masks.py",
+        "changed_since_produced_at": false
+      },
+      {
+        "path": "reports/loss_domain/diag/complex_ssim.py",
+        "changed_since_produced_at": false
+      },
+      {
+        "path": "reports/loss_domain/diag/complex_cascades.py",
+        "changed_since_produced_at": false
+      }
+    ]
+  },
+  "metric_mask": {
+    "version": "apodized",
+    "definition": "k-space-apodized per-anatomy mask (activemri/utils/metric_mask.py), the trainer metric since 2026-10-20",
+    "apodization_sigma": 16,
+    "params": {
+      "brain": {
+        "fraction": 0.15,
+        "radius": 6
+      },
+      "knee": {
+        "fraction": 0.06,
+        "radius": 12
+      }
+    }
+  },
+  "data": {
+    "config": {
+      "loader": "fastmri_manifest",
+      "manifest": "configs/datasets/fastmri_local_v1/manifest.csv",
+      "roots": {
+        "local_batch2": "/export/scratch/bkadota/fastmri_knee/batch2",
+        "hpc": "/export/scratch/bkadota/fastmri_raw/{anatomy}"
+      },
+      "train_tier": "S",
+      "complex_cache_dir": "/export/scratch/bkadota/fastmri_complex_espirit_v2",
+      "train_anatomies": [],
+      "condition_classes": [
+        "brain",
+        "knee-PD",
+        "knee-PDFS"
+      ],
+      "classes": [
+        "FLAIR",
+        "knee"
+      ],
+      "anatomy": [
+        "brain",
+        "knee"
+      ],
+      "num_coils": 20,
+      "num_workers": 8
+    },
+    "note": "local v1 val: brain FLAIR 40 volumes / 605 slices, knee-PD 20 / 673, knee-PDFS 20 / 660 (1938 slices), 320x320, two fixed mask draws per slice; intensity_fit and the complex diagnostics use every 12th val slice (162), complex_ssim also every 24th train slice (164), one mask draw"
+  },
+  "runs": [
+    {
+      "name": "loss_domain_complex_r8_flair_knee_100ep_seed42",
+      "path": "checkpoints/loss_domain_complex_r8_flair_knee_100ep_seed42",
+      "config_sha256": "4bc7356e09717380",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair_knee",
+        "misc.resolution=[320,320]",
+        "sampler.accelerations=[8.0]",
+        "sampler.budget_over=acquired",
+        "sampler.sampler_type=loupe_2d",
+        "sampler.loupe_vd_init_power=4",
+        "sampler.anatomy_conditioning=false",
+        "sampler.mask_train_mode=straight_through",
+        "sampler.coil_combine=sense",
+        "+sampler.sense_mask_method=null",
+        "recon.csme=false",
+        "training.num_step=1",
+        "training.batch_size=16",
+        "training.num_epochs=100",
+        "training.lr_step_size=90",
+        "training.seed=42",
+        "loss.loss_type=complex_l1",
+        "datasets.complex_cache_dir=/export/scratch/bkadota/fastmri_complex_espirit_v2",
+        "output.out_dir=/home/bkadota/data/seqmri_checkpoints/loss_domain/runs_v2/loss_domain_complex_r8_flair_knee_100ep_seed42"
+      ],
+      "wandb_run_id": "epp867rr",
+      "trained_at_commit": "676675b467ec0fd7b8151b90c23f288b7883d201",
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 360999286,
+          "modified": "2026-11-03T05:32:34+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 360999286,
+          "modified": "2026-11-03T06:26:37+00:00"
+        }
+      }
+    },
+    {
+      "name": "loss_domain_kspace_gt_r8_flair_knee_100ep_seed42",
+      "path": "checkpoints/loss_domain_kspace_gt_r8_flair_knee_100ep_seed42",
+      "config_sha256": "52a2c72496820e7f",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair_knee",
+        "misc.resolution=[320,320]",
+        "sampler.accelerations=[8.0]",
+        "sampler.budget_over=acquired",
+        "sampler.sampler_type=loupe_2d",
+        "sampler.loupe_vd_init_power=4",
+        "sampler.anatomy_conditioning=false",
+        "sampler.mask_train_mode=straight_through",
+        "sampler.coil_combine=sense",
+        "+sampler.sense_mask_method=null",
+        "recon.csme=false",
+        "training.num_step=1",
+        "training.batch_size=16",
+        "training.num_epochs=100",
+        "training.lr_step_size=90",
+        "training.seed=42",
+        "loss.loss_type=kspace_gt_l1",
+        "output.out_dir=/home/bkadota/data/seqmri_checkpoints/loss_domain/runs_v2/loss_domain_kspace_gt_r8_flair_knee_100ep_seed42"
+      ],
+      "wandb_run_id": "9nvbuqj0",
+      "trained_at_commit": "676675b467ec0fd7b8151b90c23f288b7883d201",
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 360999286,
+          "modified": "2026-11-02T16:19:19+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 360999286,
+          "modified": "2026-11-02T17:27:57+00:00"
+        }
+      }
+    },
+    {
+      "name": "loss_domain_rss_M_r8_flair_knee_100ep_seed42",
+      "path": "checkpoints/loss_domain_rss_M_r8_flair_knee_100ep_seed42",
+      "config_sha256": "66085169f245e5ed",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair_knee",
+        "misc.resolution=[320,320]",
+        "sampler.accelerations=[8.0]",
+        "sampler.budget_over=acquired",
+        "sampler.sampler_type=loupe_2d",
+        "sampler.loupe_vd_init_power=4",
+        "sampler.anatomy_conditioning=false",
+        "sampler.mask_train_mode=straight_through",
+        "sampler.coil_combine=sense",
+        "+sampler.sense_mask_method=null",
+        "recon.csme=false",
+        "training.num_step=1",
+        "training.batch_size=16",
+        "training.num_epochs=100",
+        "training.lr_step_size=90",
+        "training.seed=42",
+        "loss.loss_type=l1",
+        "loss.support_mask=true",
+        "datasets.complex_cache_dir=/export/scratch/bkadota/fastmri_complex_espirit_v2",
+        "output.out_dir=/home/bkadota/data/seqmri_checkpoints/loss_domain/runs_v2/loss_domain_rss_M_r8_flair_knee_100ep_seed42"
+      ],
+      "wandb_run_id": "kta13bb1",
+      "trained_at_commit": "676675b467ec0fd7b8151b90c23f288b7883d201",
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 360999286,
+          "modified": "2026-11-03T06:03:29+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 360999286,
+          "modified": "2026-11-03T06:11:07+00:00"
+        }
+      }
+    },
+    {
+      "name": "loss_domain_rss_r8_flair_knee_100ep_seed42",
+      "path": "checkpoints/loss_domain_rss_r8_flair_knee_100ep_seed42",
+      "config_sha256": "17590c85dabc1c15",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair_knee",
+        "misc.resolution=[320,320]",
+        "sampler.accelerations=[8.0]",
+        "sampler.budget_over=acquired",
+        "sampler.sampler_type=loupe_2d",
+        "sampler.loupe_vd_init_power=4",
+        "sampler.anatomy_conditioning=false",
+        "sampler.mask_train_mode=straight_through",
+        "sampler.coil_combine=sense",
+        "+sampler.sense_mask_method=null",
+        "recon.csme=false",
+        "training.num_step=1",
+        "training.batch_size=16",
+        "training.num_epochs=100",
+        "training.lr_step_size=90",
+        "training.seed=42",
+        "loss.loss_type=l1",
+        "output.out_dir=/home/bkadota/data/seqmri_checkpoints/loss_domain/runs_v2/loss_domain_rss_r8_flair_knee_100ep_seed42"
+      ],
+      "wandb_run_id": "nle6f5hs",
+      "trained_at_commit": "676675b467ec0fd7b8151b90c23f288b7883d201",
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 360999286,
+          "modified": "2026-11-02T17:23:25+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 360999286,
+          "modified": "2026-11-02T17:23:24+00:00"
+        }
+      }
+    }
+  ],
+  "commands": [
+    "python scripts/eval/eval_loss_domain.py --runs-root ~/data/seqmri_checkpoints/loss_domain/runs_v2 --out reports/loss_domain/eval_v2 > reports/loss_domain/eval_v2/eval.log 2>&1",
+    "python reports/loss_domain/diag/intensity_fit.py ~/data/seqmri_checkpoints/loss_domain/runs_v2 rss rss_M kspace_gt complex > reports/loss_domain/diag/intensity_fit_v2.txt 2>&1",
+    "python reports/loss_domain/diag/mask_overlap.py > reports/loss_domain/diag/mask_overlap.txt 2>&1",
+    "python reports/loss_domain/diag/plot_masks.py --out reports/loss_domain/diag/masks.png",
+    "python reports/loss_domain/diag/complex_ssim.py ~/data/seqmri_checkpoints/loss_domain/runs_v2 > reports/loss_domain/diag/complex_ssim_v2.txt 2>&1",
+    "python reports/loss_domain/diag/complex_cascades.py ~/data/seqmri_checkpoints/loss_domain/runs_v2 > reports/loss_domain/diag/complex_cascades_v2.txt 2>&1"
+  ],
+  "results": [
+    {
+      "path": "check_cache_coverage.py",
+      "bytes": 2149,
+      "sha256": "8f70c74ae13628d9"
+    },
+    {
+      "path": "check_pairing.py",
+      "bytes": 4616,
+      "sha256": "56a03c84d79e78a8"
+    },
+    {
+      "path": "diag/complex_cascades.py",
+      "bytes": 4672,
+      "sha256": "8004691655e7ba8d"
+    },
+    {
+      "path": "diag/complex_cascades_v2.txt",
+      "bytes": 3037,
+      "sha256": "4e87df892614543e"
+    },
+    {
+      "path": "diag/complex_phase.py",
+      "bytes": 4097,
+      "sha256": "9d95b30ba250a7dd"
+    },
+    {
+      "path": "diag/complex_ssim.py",
+      "bytes": 6383,
+      "sha256": "0d47ea6e0e8f231e"
+    },
+    {
+      "path": "diag/complex_ssim_v2.txt",
+      "bytes": 5489,
+      "sha256": "0cbcefd02c921a0d"
+    },
+    {
+      "path": "diag/cross_loss.py",
+      "bytes": 4842,
+      "sha256": "978b2a44a0438abc"
+    },
+    {
+      "path": "diag/espirit_check.py",
+      "bytes": 4338,
+      "sha256": "76c41901efb76ab3"
+    },
+    {
+      "path": "diag/espirit_check_v2.txt",
+      "bytes": 3599,
+      "sha256": "b9ee431a13a7daac"
+    },
+    {
+      "path": "diag/floor_check.py",
+      "bytes": 700,
+      "sha256": "1f6f045bdfb5ffad"
+    },
+    {
+      "path": "diag/floor_counterfactual.py",
+      "bytes": 1216,
+      "sha256": "de96dc050d82d50c"
+    },
+    {
+      "path": "diag/gain_sweep.py",
+      "bytes": 2643,
+      "sha256": "8aedc94cfd34333b"
+    },
+    {
+      "path": "diag/intensity_fit.py",
+      "bytes": 3524,
+      "sha256": "433ddee063f410f5"
+    },
+    {
+      "path": "diag/intensity_fit_v2.txt",
+      "bytes": 2216,
+      "sha256": "f1578d2750c9d4ca"
+    },
+    {
+      "path": "diag/kspace_consistency.py",
+      "bytes": 4539,
+      "sha256": "2c6f2e80c1abdc44"
+    },
+    {
+      "path": "diag/mask_overlap.py",
+      "bytes": 5583,
+      "sha256": "bf2ccd792a267d67"
+    },
+    {
+      "path": "diag/mask_overlap.txt",
+      "bytes": 3561,
+      "sha256": "d2975fc10cd7d81c"
+    },
+    {
+      "path": "diag/phase_maps.py",
+      "bytes": 7125,
+      "sha256": "a95577cd447936d5"
+    },
+    {
+      "path": "diag/plot_examples.py",
+      "bytes": 1469,
+      "sha256": "4a755c5561eaa612"
+    },
+    {
+      "path": "diag/plot_masks.py",
+      "bytes": 6182,
+      "sha256": "d7398214ca00207e"
+    },
+    {
+      "path": "eval/summary.json",
+      "bytes": 17336,
+      "sha256": "1fd9e1ee3c826624"
+    },
+    {
+      "path": "eval_seed42.log",
+      "bytes": 2892,
+      "sha256": "d265f716fd6889f0"
+    },
+    {
+      "path": "eval_v2/eval.log",
+      "bytes": 2665,
+      "sha256": "04058acb666386a9"
+    },
+    {
+      "path": "eval_v2/summary.json",
+      "bytes": 14505,
+      "sha256": "f5ab10dc60988fd6"
+    },
+    {
+      "path": "proposal.md",
+      "bytes": 12952,
+      "sha256": "84db506120a85243"
+    },
+    {
+      "path": "qc/qc_baseline_penalty.json",
+      "bytes": 6388,
+      "sha256": "711038cc4199b0d1"
+    },
+    {
+      "path": "qc/qc_baseline_penalty.py",
+      "bytes": 6342,
+      "sha256": "f98130b47dc696b1"
+    },
+    {
+      "path": "qc/qc_checks.json",
+      "bytes": 4392,
+      "sha256": "36eabaeb145ec0b0"
+    },
+    {
+      "path": "qc/qc_checks.py",
+      "bytes": 3800,
+      "sha256": "d6f9d25f46dcab9b"
+    },
+    {
+      "path": "qc/qc_complex_maps.py",
+      "bytes": 5534,
+      "sha256": "7139d83ac8435f00"
+    },
+    {
+      "path": "qc/qc_support_mask.py",
+      "bytes": 6370,
+      "sha256": "c4b3f3b43bee9d01"
+    },
+    {
+      "path": "qc/qc_val.json",
+      "bytes": 10883,
+      "sha256": "152de23dc86d898f"
+    }
+  ]
+}

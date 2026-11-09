@@ -1,0 +1,46 @@
+Manifest train set (volumes, slices): {'brain': (80, 1211), 'knee-PD': (40, 1369), 'knee-PDFS': (40, 1349)}
+Manifest val set (volumes, slices): {'brain': (40, 605), 'knee-PD': (20, 673), 'knee-PDFS': (20, 660)}
+== all (n=41)
+   cache vs fresh BART (rel err)                        median 0.0000   max 0.0000
+   sum|S|^2 in tissue: median                           median 1.0000   max 1.0000
+   sum|S|^2 in tissue: 5th percentile                   median 1.0000   max 1.0000
+   phase of (A^HA)^-1 A^H y vs x_E (rad)                median 0.0000   max 0.0000
+   coil fit with conj (x_E)                             median 0.1434   max 0.4317
+   coil fit without conj                                median 1.1867   max 1.5474
+   |x without conj| vs |x_E| (rel err)                  median 0.5181   max 0.8250
+   |phase(x_E) - phase(sum_c v_c^* coil_c)|             median 1.5480   max 2.9117
+   |phase(x_E) - phase(sum_c v_c coil_c)|               median 1.6172   max 3.0529
+   |phase(x_E)| median                                  median 1.4960   max 2.9727
+== brain (n=13)
+   cache vs fresh BART (rel err)                        median 0.0000   max 0.0000
+   sum|S|^2 in tissue: median                           median 1.0000   max 1.0000
+   sum|S|^2 in tissue: 5th percentile                   median 0.9999   max 1.0000
+   phase of (A^HA)^-1 A^H y vs x_E (rad)                median 0.0000   max 0.0000
+   coil fit with conj (x_E)                             median 0.1170   max 0.2761
+   coil fit without conj                                median 1.1996   max 1.5474
+   |x without conj| vs |x_E| (rel err)                  median 0.6330   max 0.7468
+   |phase(x_E) - phase(sum_c v_c^* coil_c)|             median 1.0190   max 1.9178
+   |phase(x_E) - phase(sum_c v_c coil_c)|               median 2.1373   max 3.0529
+   |phase(x_E)| median                                  median 1.2084   max 2.8139
+== knee-PD (n=13)
+   cache vs fresh BART (rel err)                        median 0.0000   max 0.0000
+   sum|S|^2 in tissue: median                           median 1.0000   max 1.0000
+   sum|S|^2 in tissue: 5th percentile                   median 1.0000   max 1.0000
+   phase of (A^HA)^-1 A^H y vs x_E (rad)                median 0.0000   max 0.0000
+   coil fit with conj (x_E)                             median 0.1074   max 0.1664
+   coil fit without conj                                median 0.9719   max 1.3939
+   |x without conj| vs |x_E| (rel err)                  median 0.4837   max 0.7051
+   |phase(x_E) - phase(sum_c v_c^* coil_c)|             median 1.3016   max 2.9117
+   |phase(x_E) - phase(sum_c v_c coil_c)|               median 1.9859   max 2.7954
+   |phase(x_E)| median                                  median 1.8762   max 2.7135
+== knee-PDFS (n=15)
+   cache vs fresh BART (rel err)                        median 0.0000   max 0.0000
+   sum|S|^2 in tissue: median                           median 1.0000   max 1.0000
+   sum|S|^2 in tissue: 5th percentile                   median 1.0000   max 1.0000
+   phase of (A^HA)^-1 A^H y vs x_E (rad)                median 0.0000   max 0.0000
+   coil fit with conj (x_E)                             median 0.2207   max 0.4317
+   coil fit without conj                                median 1.1867   max 1.3940
+   |x without conj| vs |x_E| (rel err)                  median 0.4970   max 0.8250
+   |phase(x_E) - phase(sum_c v_c^* coil_c)|             median 1.9675   max 2.5600
+   |phase(x_E) - phase(sum_c v_c coil_c)|               median 1.4121   max 2.8763
+   |phase(x_E)| median                                  median 2.1201   max 2.9727

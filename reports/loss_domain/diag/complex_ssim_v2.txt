@@ -1,0 +1,58 @@
+Manifest train set (volumes, slices): {'brain': (80, 1211), 'knee-PD': (40, 1369), 'knee-PDFS': (40, 1349)}
+Manifest val set (volumes, slices): {'brain': (40, 605), 'knee-PD': (20, 673), 'knee-PDFS': (20, 660)}
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+== rss / train (n=164)
+   SSIM out vs RSS target (scored)               all  0.8827  brain  0.9053  knee-PD  0.9331  knee-PDFS  0.8087
+   PSNR out vs RSS target (scored)               all 34.8801  brain 34.2910  knee-PD 36.9633  knee-PDFS 33.2295
+   SSIM out vs |x_E|                             all  0.8571  brain  0.8954  knee-PD  0.9164  knee-PDFS  0.7591
+   SSIM ceiling x=x_E vs RSS target              all  0.9566  brain  0.9870  knee-PD  0.9789  knee-PDFS  0.9048
+   complex L1 as trained                         all  0.4189  brain  0.3656  knee-PD  0.3807  knee-PDFS  0.5085
+   complex L1, ESPIRiT phase given               all  0.0841  brain  0.0810  knee-PD  0.0400  knee-PDFS  0.1335
+   median |dphi| recon vs x_E (tissue, rad)      all  1.7138  brain  1.4877  knee-PD  1.8452  knee-PDFS  1.7849
+   median |dphi| S^H coils vs x_E (tissue, rad)  all  1.7161  brain  1.4857  knee-PD  1.8611  knee-PDFS  1.7769
+   |recon| / |x_E| (tissue, median)              all  1.0125  brain  1.0069  knee-PD  1.0039  knee-PDFS  1.0267
+   rel data err on sampled k                     all  0.4005  brain  0.3445  knee-PD  0.2312  knee-PDFS  0.6310
+   max |scored(x) - output| (FFT check)          all  0.0000  brain  0.0000  knee-PD  0.0000  knee-PDFS  0.0000
+== rss / val (n=162)
+   SSIM out vs RSS target (scored)               all  0.8643  brain  0.8919  knee-PD  0.9125  knee-PDFS  0.7898
+   PSNR out vs RSS target (scored)               all 33.7948  brain 33.2726  knee-PD 35.3471  knee-PDFS 32.6984
+   SSIM out vs |x_E|                             all  0.8406  brain  0.8792  knee-PD  0.8983  knee-PDFS  0.7459
+   SSIM ceiling x=x_E vs RSS target              all  0.9507  brain  0.9834  knee-PD  0.9741  knee-PDFS  0.8965
+   complex L1 as trained                         all  0.4269  brain  0.4068  knee-PD  0.3942  knee-PDFS  0.4789
+   complex L1, ESPIRiT phase given               all  0.0872  brain  0.0923  knee-PD  0.0454  knee-PDFS  0.1250
+   median |dphi| recon vs x_E (tissue, rad)      all  1.7139  brain  1.5992  knee-PD  1.8143  knee-PDFS  1.7179
+   median |dphi| S^H coils vs x_E (tissue, rad)  all  1.7391  brain  1.5653  knee-PD  1.8292  knee-PDFS  1.8084
+   |recon| / |x_E| (tissue, median)              all  1.0149  brain  1.0062  knee-PD  1.0049  knee-PDFS  1.0332
+   rel data err on sampled k                     all  0.4130  brain  0.3918  knee-PD  0.2406  knee-PDFS  0.6083
+   max |scored(x) - output| (FFT check)          all  0.0000  brain  0.0000  knee-PD  0.0000  knee-PDFS  0.0000
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+== complex / train (n=164)
+   SSIM out vs RSS target (scored)               all  0.7860  brain  0.8184  knee-PD  0.8364  knee-PDFS  0.7030
+   PSNR out vs RSS target (scored)               all 26.8715  brain 28.2883  knee-PD 27.9024  knee-PDFS 24.4706
+   SSIM out vs |x_E|                             all  0.8065  brain  0.8230  knee-PD  0.8504  knee-PDFS  0.7449
+   SSIM ceiling x=x_E vs RSS target              all  0.9542  brain  0.9793  knee-PD  0.9789  knee-PDFS  0.9048
+   complex L1 as trained                         all  0.0502  brain  0.0470  knee-PD  0.0378  knee-PDFS  0.0663
+   complex L1, ESPIRiT phase given               all  0.0320  brain  0.0296  knee-PD  0.0237  knee-PDFS  0.0429
+   median |dphi| recon vs x_E (tissue, rad)      all  0.0879  brain  0.0895  knee-PD  0.0622  knee-PDFS  0.1135
+   median |dphi| S^H coils vs x_E (tissue, rad)  all  1.7052  brain  1.4853  knee-PD  1.8302  knee-PDFS  1.7773
+   |recon| / |x_E| (tissue, median)              all  0.9704  brain  0.9664  knee-PD  0.9813  knee-PDFS  0.9626
+   rel data err on sampled k                     all  1.3510  brain  1.2829  knee-PD  1.3936  knee-PDFS  1.3693
+   max |scored(x) - output| (FFT check)          all  0.0000  brain  0.0000  knee-PD  0.0000  knee-PDFS  0.0000
+== complex / val (n=162)
+   SSIM out vs RSS target (scored)               all  0.7602  brain  0.7901  knee-PD  0.8092  knee-PDFS  0.6825
+   PSNR out vs RSS target (scored)               all 25.3148  brain 26.1095  knee-PD 26.3051  knee-PDFS 23.5696
+   SSIM out vs |x_E|                             all  0.7826  brain  0.7960  knee-PD  0.8234  knee-PDFS  0.7285
+   SSIM ceiling x=x_E vs RSS target              all  0.9485  brain  0.9765  knee-PD  0.9741  knee-PDFS  0.8965
+   complex L1 as trained                         all  0.1227  brain  0.1667  knee-PD  0.0947  knee-PDFS  0.1105
+   complex L1, ESPIRiT phase given               all  0.0378  brain  0.0399  knee-PD  0.0277  knee-PDFS  0.0462
+   median |dphi| recon vs x_E (tissue, rad)      all  0.4408  brain  0.7342  knee-PD  0.3066  knee-PDFS  0.3054
+   median |dphi| S^H coils vs x_E (tissue, rad)  all  1.7278  brain  1.6044  knee-PD  1.8037  knee-PDFS  1.7649
+   |recon| / |x_E| (tissue, median)              all  0.9556  brain  0.9322  knee-PD  0.9845  knee-PDFS  0.9480
+   rel data err on sampled k                     all  1.3430  brain  1.2667  knee-PD  1.4316  knee-PDFS  1.3237
+   max |scored(x) - output| (FFT check)          all  0.0000  brain  0.0000  knee-PD  0.0000  knee-PDFS  0.0000
+train: Spearman(SSIM gap rss - complex, complex |dphi|) = 0.172
+val: Spearman(SSIM gap rss - complex, complex |dphi|) = 0.135
