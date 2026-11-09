@@ -5,7 +5,7 @@
 | Code | results produced at `4b7122d` (loss_domain: diagnose the complex arm's SSIM < 0.80 on the round-2 checkpoint); branch `exp/loss_domain` |
 | Metric mask | **apodized**: k-space-apodized per-anatomy mask (activemri/utils/metric_mask.py), the trainer metric since 2026-10-20 |
 | Runs | 4 checkpoint directories under `checkpoints/` (untracked; names, overrides, wandb ids in `manifest.json`) |
-| Results | 29 files next to this report, hashed in `manifest.json` |
+| Results | 33 files next to this report, hashed in `manifest.json` |
 | Reproduce | `bash run.sh` from the repo root |
 
 - **Status:** awaiting the human verdict.

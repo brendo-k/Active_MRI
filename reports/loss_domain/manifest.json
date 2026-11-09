@@ -1,10 +1,10 @@
 {
   "schema": 1,
-  "generated_at": "2026-11-03T17:37:47+00:00",
+  "generated_at": "2026-11-09T22:09:42+00:00",
   "code": {
     "produced_at": "4b7122ddf1b9e77f3bf2600f9150785d9e8ffe96",
     "produced_at_subject": "loss_domain: diagnose the complex arm's SSIM < 0.80 on the round-2 checkpoint",
-    "head": "4b7122ddf1b9e77f3bf2600f9150785d9e8ffe96",
+    "head": "a5d0e78a7396bd80a111c3de9a1867e7b6bef1d4",
     "branch": "exp/loss_domain",
     "dirty_tracked_files": [],
     "scripts": [
@@ -285,6 +285,16 @@
       "sha256": "978b2a44a0438abc"
     },
     {
+      "path": "diag/espirit_check.py",
+      "bytes": 4338,
+      "sha256": "76c41901efb76ab3"
+    },
+    {
+      "path": "diag/espirit_check_v2.txt",
+      "bytes": 3599,
+      "sha256": "b9ee431a13a7daac"
+    },
+    {
       "path": "diag/floor_check.py",
       "bytes": 700,
       "sha256": "1f6f045bdfb5ffad"
@@ -323,6 +333,11 @@
       "path": "diag/mask_overlap.txt",
       "bytes": 3561,
       "sha256": "d2975fc10cd7d81c"
+    },
+    {
+      "path": "diag/phase_maps.py",
+      "bytes": 7125,
+      "sha256": "a95577cd447936d5"
     },
     {
       "path": "diag/plot_examples.py",
@@ -378,6 +393,11 @@
       "path": "qc/qc_checks.py",
       "bytes": 3800,
       "sha256": "d6f9d25f46dcab9b"
+    },
+    {
+      "path": "qc/qc_complex_maps.py",
+      "bytes": 5534,
+      "sha256": "7139d83ac8435f00"
     },
     {
       "path": "qc/qc_support_mask.py",
