@@ -16,6 +16,7 @@ data, runs, commands, result hashes), `run.sh` (regenerates every result file) a
 | `varnet_train_speed/` | How much faster can 1-step LOUPE + VarNet (R=8) train? Exact fast path adopted as the default; Muon and LayerNorm opt-in |
 | `muon_layernorm_100ep/` | Do Muon and LayerNorm still help at full data and 100 epochs? Muon + LayerNorm +0.34 dB at 28-37% of the wall-clock, 2 seeds; LayerNorm alone inconclusive |
 | `muon_layer_speed/` | How much less wall-clock does Muon + LayerNorm need to reach its 100-epoch quality? Exact step code -12% per epoch, adopted; shorter schedules not faster so far, 1 seed. Muon + LayerNorm is now the default |
+| `final_dc/` | **Parked** (`exp/final_dc` @ `9f55c2e`). Does a final data-consistency step on the scored output help R=8 LOUPE + VarNet at inference? Hard DC -2.0 dB on 8 RSS-trained checkpoints, no scalar gate helps; their coil images drift 0.15-0.45 rad from the data's phase; kspace_gt +0.58 dB, gap to RSS not recovered |
 
 ## Planning reports
 

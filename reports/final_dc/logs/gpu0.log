@@ -1,0 +1,31 @@
+activemri from /home/bkadota/code/active_mri/SeqMRI-worktrees/run-ml100-91932da
+Manifest train set (volumes, slices): {'brain': (80, 1211), 'knee-PD': (40, 1369), 'knee-PDFS': (40, 1349)}
+Manifest val set (volumes, slices): {'brain': (40, 605), 'knee-PD': (20, 673), 'knee-PDFS': (20, 660)}
+scoring /home/bkadota/data/seqmri_checkpoints/muon_layernorm_100ep/control_s42
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+control_s42: ep 100  own-output gap 0.00e+00  l0 33.513/0.8586  l0.25 32.871/0.8592  l0.5 31.959/0.8561  l0.75 31.388/0.8522  l1 31.318/0.8517  dc_error 0.429  maps_floor 0.176  error_share_sampled 0.545  phase_offset 0.260 rad  aligned l0/l1 33.533/32.403  dc_error_aligned 0.211  estimated l0/l1 33.513/30.874  phase_estimate_error 0.096 rad
+scoring /home/bkadota/data/seqmri_checkpoints/muon_layernorm_100ep/control_s43
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+control_s43: ep 100  own-output gap 0.00e+00  l0 33.279/0.8552  l0.25 32.940/0.8561  l0.5 32.267/0.8545  l0.75 31.633/0.8517  l1 31.186/0.8496  dc_error 0.372  maps_floor 0.197  error_share_sampled 0.474  phase_offset 0.086 rad  aligned l0/l1 33.302/32.197  dc_error_aligned 0.233  estimated l0/l1 33.279/30.762  phase_estimate_error 0.074 rad
+scoring /home/bkadota/data/seqmri_checkpoints/muon_layernorm_100ep/muon_s42
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+muon_s42: ep 100  own-output gap 0.00e+00  l0 33.637/0.8608  l0.25 33.008/0.8612  l0.5 32.123/0.8579  l0.75 31.561/0.8540  l1 31.497/0.8535  dc_error 0.423  maps_floor 0.165  error_share_sampled 0.537  phase_offset 0.260 rad  aligned l0/l1 33.652/32.576  dc_error_aligned 0.200  estimated l0/l1 33.636/30.982  phase_estimate_error 0.096 rad
+scoring /home/bkadota/data/seqmri_checkpoints/muon_layernorm_100ep/muon_s43
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+muon_s43: ep 100  own-output gap 0.00e+00  l0 33.450/0.8593  l0.25 33.305/0.8601  l0.5 33.024/0.8597  l0.75 32.710/0.8583  l1 32.412/0.8559  dc_error 0.265  maps_floor 0.169  error_share_sampled 0.231  phase_offset 0.165 rad  aligned l0/l1 33.483/32.392  dc_error_aligned 0.203  estimated l0/l1 33.450/32.352  phase_estimate_error 0.161 rad
+activemri from /home/bkadota/code/active_mri/SeqMRI-worktrees/exp-loss_domain
+Manifest train set (volumes, slices): {'brain': (80, 1211), 'knee-PD': (40, 1369), 'knee-PDFS': (40, 1349)}
+Manifest val set (volumes, slices): {'brain': (40, 605), 'knee-PD': (20, 673), 'knee-PDFS': (20, 660)}
+scoring /home/bkadota/data/seqmri_checkpoints/loss_domain/runs_v2/loss_domain_rss_r8_flair_knee_100ep_seed42
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+loss_domain_rss_r8_flair_knee_100ep_seed42: ep 100  own-output gap 0.00e+00  l0 33.623/0.8600  l0.25 32.972/0.8606  l0.5 32.020/0.8571  l0.75 31.431/0.8530  l1 31.382/0.8525  dc_error 0.438  maps_floor 0.173  error_share_sampled 0.554  phase_offset 0.280 rad  aligned l0/l1 33.640/32.505  dc_error_aligned 0.209  estimated l0/l1 33.623/31.015  phase_estimate_error 0.097 rad
