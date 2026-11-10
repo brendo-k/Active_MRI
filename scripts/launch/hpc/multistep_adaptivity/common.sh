@@ -16,7 +16,7 @@ SCORES_DIR="$EXP_DIR/scores"
 
 DATA_OVERRIDES=(
     'datasets.roots.hpc="~/scratch/data/fastmri/{anatomy}/data"'
-    'datasets.roots.local_batch2=~/scratch/data/fastmri/knee/data'
+    'datasets.roots.local_batch2="~/scratch/data/fastmri/knee/data"'
 )
 if [[ "${LAB_SERVER_TEST:-0}" == 1 ]]; then
     DATA_OVERRIDES=()
