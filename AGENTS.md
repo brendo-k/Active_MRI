@@ -38,7 +38,8 @@ Main operating point is R=8, E2E VarNet reconstructor, fastMRI brain + knee. See
 ## Experiment loop
 
 Follow `.claude/skills/experiment-loop/SKILL.md`: clean, synced `main` -> proposal (control, experiment, expected outcomes,
-success criteria) -> branch `exp/<topic>` in a git worktree -> run -> report -> wait for the human verdict. Success squash-merges
+success criteria) -> branch `exp/<topic>` in a git worktree -> run -> report -> wait for the human verdict. The branch holds the
+frozen proposal, then one commit per run state (the code a set of runs launched from), then the results. Success squash-merges
 the branch into one summarized commit on `main` and keeps the branch for its run commits; failure commits everything on the branch,
 removes the worktree, and leaves the report on `main` with the branch commit hash. Either way `main` gains exactly one commit per
 experiment and stays linear.

@@ -51,7 +51,9 @@ branch (`proposal: <topic>`). The success criteria are not edited after this com
 report and why.
 
 ## 3. Run
-- Commit code changes in small commits on the branch before launching, so each run's recorded commit is real.
+- One commit per run state. Before each launch, commit everything those runs use as a single commit, so each run records
+  a real commit and every commit on the branch is a state some runs ran at. Work between launches is not committed on its
+  own; when later runs need changed code, that state is the next single commit.
 - Launch control and experiment with the same seeds, the same data and the same budget. Log to wandb.
 - Apply the metric gotchas in `AGENTS.md` (SSIM < 0.80 means a bug: debug before reporting).
 - Resubmit crashed runs in full; do not report partial runs as results.
@@ -111,6 +113,7 @@ rewriting the old one.
 ## Rules
 - The human decides success; the agent only compares against the frozen criteria and recommends.
 - One question per branch. A second idea starts at step 0 on a new branch.
+- A branch holds the frozen proposal, one commit per run state, and the final results and report commit (5a or 5b).
 - `main` is linear, with exactly one commit per experiment: the squash in 5a or the parked report in 5b. No merge commits and
   no follow-up commits. Late fixes go in with `--amend` before that commit is pushed; anything later goes through a new branch.
 - Sync `main` with `--ff-only`. If `main` and `origin/main` have diverged, stop and ask; never `git merge origin/main`.
