@@ -119,6 +119,16 @@ class TrainConfig:
     fixed_mask_checkpoints: Optional[Dict[str, str]] = None  # anatomy -> loupe_2d checkpoint whose learned mask is copied into that anatomy's slot and frozen; needs anatomy_conditioning
     budget_over: str = 'grid'  # 'acquired': 1/R of each slice's acquired k-space; 'grid' (older runs): 1/R of the grid, spent inside the acquired region
     sampler_coil_combine: str = 'sense'  # sampler input image: 'sense' (maps' free common phase makes it phase-random) or 'rss' of the coil images
+    data_blind: bool = False  # seq_adapt_2d: the twin, whose residual sees M_i, the step and the header but a fixed tensor for the data
+    residual_chans: int = 16  # seq_adapt_2d: first-conv width of the residual U-Net
+    residual_depth: int = 4  # seq_adapt_2d: down/up-sampling stages of the residual U-Net
+    residual_limit: float = 6.0  # seq_adapt_2d: the residual is bounded to +/- this many logits (limit * tanh(. / limit))
+    residual_lr: float = 1e-4  # seq_adapt_2d: lr of the residual U-Net, in its own Adam group (the static maps keep sampler_lr or lr)
+    residual_checkpoint: bool = True  # seq_adapt_2d: recompute the residual U-Net in backward instead of storing every step's activations
+    sampler_input: str = 'measured'  # seq_adapt_2d: 'recon' also feeds the residual a frozen reconstructor's image of y * M_i
+    input_recon_checkpoint: Optional[str] = None  # sampler_input='recon': the run whose reconstructor and sensitivity net, frozen, make that image
+    data_channels: List[str] = field(default_factory=lambda: ['image', 'kspace'])  # seq_adapt_2d: the measured-data channels the residual reads; the others get the twin's fixed values
+    save_epochs: List[int] = field(default_factory=list)  # also keep epoch_NNN.pt (weights only) after these 1-indexed epochs
     sense_mask_method: Optional[str] = 'pre_network'
     with_recon: bool = False
     with_gfactor: bool = False

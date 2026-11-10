@@ -1,0 +1,14 @@
+
+== full grid (knee-like): acquired 102400 locations, K=1 mean count 12799
+K=1 marginal bins:       [0.00,0.05) [0.05,0.20) [0.20,0.50) [0.50,0.80) [0.80,0.95) [0.95,1.00)
+locations per bin:              79089         2055         5094        14984         1078          100
+K=1 mean marginal:              0.001        0.112        0.388        0.632        0.854        1.000
+K=4  mean coverage:              0.002        0.143        0.429        0.620        0.750        1.000 | count 12806 | mean |coverage - K=1| 0.0111
+K=16 mean coverage:              0.002        0.152        0.438        0.616        0.732        1.000 | count 12798 | mean |coverage - K=1| 0.0122
+
+== 204 of 320 columns (FLAIR-like extent): acquired 65280 locations, K=1 mean count 8158
+K=1 marginal bins:       [0.00,0.05) [0.05,0.20) [0.20,0.50) [0.50,0.80) [0.80,0.95) [0.95,1.00)
+locations per bin:              47445         1614         8578         7543            0          100
+K=1 mean marginal:              0.001        0.117        0.406        0.573          nan        1.000
+K=4  mean coverage:              0.002        0.138        0.420        0.550          nan        1.000 | count 8154 | mean |coverage - K=1| 0.0113
+K=16 mean coverage:              0.002        0.145        0.423        0.544          nan        1.000 | count 8152 | mean |coverage - K=1| 0.0120

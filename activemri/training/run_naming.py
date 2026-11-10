@@ -113,6 +113,14 @@ def _family_tokens(options, sampler):
     elif sampler == 'bank_adapt_2d':
         fields = [('bank_size', 'bank'), ('gate_temperature', 'gT'), ('gate_logit_limit', 'glim'), ('gate_lr', 'glr')]
         tokens = []
+    elif sampler == 'seq_adapt_2d':
+        fields = [('residual_chans', 'resc'), ('residual_depth', 'resd'), ('residual_limit', 'reslim'),
+                  ('residual_lr', 'reslr')]
+        tokens = ['data-blind'] if _get(options, 'data_blind') else []
+        tokens += ['recon-input'] if _get(options, 'sampler_input') == 'recon' else []
+        channels = _get(options, 'data_channels')
+        if channels and set(channels) != {'image', 'kspace'}:
+            tokens.append('data-' + '+'.join(channels))
     elif sampler == 'mnet_2d':
         fields = [('mnet_accept', 'accept-'), ('mnet_label_steps', 'T'), ('mnet_sampler_steps', 'c'),
                   ('mnet_init_margin', 'margin'), ('mnet_sparsity_weight', 'sp'), ('mnet_consistency_weight', 'cons'),

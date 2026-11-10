@@ -3,6 +3,8 @@
 Composes a `Sampler` with an injected reconstructor. The reconstructor is a
 constructor argument, so this model is independent of which one is used.
 """
+import contextlib
+import copy
 import os
 
 import einops
@@ -17,6 +19,7 @@ from activemri.reconstructors.SensetivityModel_mc import SensetivityModel_mc
 from activemri.samplers.fixed_mask import FileMaskPolicy
 from activemri.samplers.ppo import PPOMaskPolicy
 from activemri.samplers.sampler import Sampler, is_line_constrained
+from activemri.samplers.seq_adapt import StepContext, calibration_peaks
 from activemri.utils.image_processing import fft_2d_img as torch_fft2
 from activemri.utils.image_processing import ifft_2d_img as torch_ifft2
 from activemri.utils.util import compute_gaussian_nll_loss, compute_psnr_torch, compute_ssim_torch
@@ -25,6 +28,7 @@ from activemri.utils.util import compute_gaussian_nll_loss, compute_psnr_torch, 
 RSS_EPSILON = 1e-12
 BUDGET_REGIONS = ('grid', 'acquired')
 SAMPLER_COIL_COMBINES = ('sense', 'rss')
+SAMPLER_INPUTS = ('measured', 'recon')
 
 
 def reinforce_group_size(batch_size, configured):
@@ -108,17 +112,32 @@ class SequentialSampling(nn.Module):
             budget_over='grid',
             restrict_recon_to_extent=False,
             sampler_coil_combine='sense',
+            residual_chans=16,
+            residual_depth=4,
+            residual_limit=6.0,
+            data_blind=False,
+            residual_checkpoint=True,
+            data_channels=None,
+            sampler_input='measured',
             ):
         """`budget_over='acquired'` makes `sparsity` a fraction of each slice's acquired k-space (`mask_budget`);
         'grid' (the default, as older runs trained) a fraction of the whole grid, all of it spent inside the acquired
         region. `restrict_recon_to_extent` confines a VarNet's regularizer to the acquired extent when the data
         supplies no `kspace_support`. `sampler_coil_combine` is how the sampler's input image is formed from the
-        observed coil k-space (`_sampler_image`)."""
+        observed coil k-space (`_sampler_image`). `residual_*` and `data_blind` configure seq_adapt_2d's residual
+        network, its data-blind twin and the data channels it reads (`activemri.samplers.seq_adapt`). `sampler_input='recon'`
+        also feeds that residual a frozen copy of the reconstructor's image of y * M_i at every step; the copy's weights
+        are loaded by the trainer (`input_recon_checkpoint`) and never train.
+
+        At num_step > 1 the steps share the budget equally, each reads the k-space measured so far, and only the final
+        mask is reconstructed, so the sampler inputs that need an intermediate reconstruction are refused."""
         super().__init__()
         if budget_over not in BUDGET_REGIONS:
             raise ValueError(f"budget_over must be one of {BUDGET_REGIONS}, got {budget_over!r}")
         if sampler_coil_combine not in SAMPLER_COIL_COMBINES:
             raise ValueError(f"sampler_coil_combine must be one of {SAMPLER_COIL_COMBINES}, got {sampler_coil_combine!r}")
+        if sampler_input not in SAMPLER_INPUTS:
+            raise ValueError(f"sampler_input must be one of {SAMPLER_INPUTS}, got {sampler_input!r}")
         self.sampler_coil_combine = sampler_coil_combine
         self.sparsity = sparsity
         self.budget_over = budget_over
@@ -149,6 +168,7 @@ class SequentialSampling(nn.Module):
         self.zero_unacquired = False  # inference-only switch: fixed masks and the predicted k-space are zeroed where the scan acquired nothing (padded columns)
         self.data_for_vis: list[dict] = [dict() for _ in range(num_step)]
         self.store_visuals = True  # copy the first slice's images to data_for_vis on every forward (a host sync); the trainer turns it off between logged batches
+        self.step_recorder = None  # an activemri.utils.multistep.StepRecorder that every step of the next forwards reports to
 
         self.reconstructor = reconstructor
 
@@ -162,6 +182,9 @@ class SequentialSampling(nn.Module):
 
         if sampler_type == 'autosamp_2d' and num_step != 1:
             raise ValueError(f"autosamp_2d learns one fixed set of positions, so it needs num_step=1, got {num_step}")
+        if num_step > 1 and (with_recon or with_gfactor):
+            raise ValueError("a multi-step run reconstructs only its final mask, so there is no intermediate "
+                             f"reconstruction to feed the sampler (with_recon={with_recon}, with_gfactor={with_gfactor})")
 
         # Built before the sampler, whose random draws depend on its mask count, so arms that differ only in their
         # sampler start from the same sensitivity net.
@@ -208,6 +231,13 @@ class SequentialSampling(nn.Module):
             selection=selection,
             dcm_vd_power=dcm_vd_power,
             dcm_tau=dcm_tau,
+            residual_chans=residual_chans,
+            residual_depth=residual_depth,
+            residual_limit=residual_limit,
+            data_blind=data_blind,
+            residual_checkpoint=residual_checkpoint,
+            data_channels=data_channels,
+            reads_reconstruction=sampler_input == 'recon',
         )
 
         if loupe_same_start:
@@ -227,6 +257,11 @@ class SequentialSampling(nn.Module):
             self.mask_policy = None
         if self.mask_policy is not None and num_step != 1:
             raise ValueError(f"a mask policy produces the whole mask at once, so it needs num_step=1, got {num_step}")
+
+        # Copied after the sampler so they draw nothing from the random stream; build_model gives them the same norms.
+        frozen = sampler_input == 'recon'
+        self.input_reconstructor = copy.deepcopy(self.reconstructor).requires_grad_(False).eval() if frozen else None
+        self.input_sensetivity_net = copy.deepcopy(self.sensetivity_net).requires_grad_(False).eval() if frozen else None
 
         print(f"Sampler: {sampler_type}")
         print(f"Number of sequential steps: {num_step}")
@@ -299,12 +334,13 @@ class SequentialSampling(nn.Module):
 
     def step_forward(self, full_kspace, pred_kspace, old_mask, target, step,
                      sense_maps, sense_mask, uncertainty_map=None, valid_mask=None,
-                     prev_gfactor=None, anatomy_labels=None, fixed_mask=None, kspace_support=None, budget=None):
-        """Execute one sampling + reconstruction step.
+                     prev_gfactor=None, anatomy_labels=None, fixed_mask=None, kspace_support=None, budget=None,
+                     context=None):
+        """Execute one sampling + reconstruction step (`_sample`, then `_reconstruct`).
 
         Args:
             full_kspace: Ground truth multicoil kspace, shape [B, C, H, W, 2]
-            pred_kspace: Current predicted kspace, shape [B, C, H, W, 2]
+            pred_kspace: The k-space the sampler reads, shape [B, C, H, W, 2]: the measured full_kspace * old_mask
             old_mask: Previous sampling mask, shape [B, 1, H, W]
             target: Ground truth image, shape [B, 1, H, W]
             step: Current iteration index
@@ -317,80 +353,74 @@ class SequentialSampling(nn.Module):
                 condition the sampler (and the reconstructor, if it supports it).
             fixed_mask: Optional mask [B, 1, H, W] used instead of the sampler's; it is cut to `valid_mask`.
             budget: New locations this step, a number or one per slice; None = an equal share of `self.budget`.
+            context: The StepContext a `reads_context` sampler (seq_adapt_2d) reads.
 
         Returns:
-            Dict with keys: output, mask, zero_recon, uncertainty_map, gfactor
+            Dict with keys: output, mask, zero_recon, uncertainty_map, gfactor, anatomy_logits, reinforce_logp,
+            reinforce_entropy
+        """
+        sampled = self._sample(full_kspace, pred_kspace, old_mask, step, sense_maps, uncertainty_map, valid_mask,
+                               prev_gfactor, anatomy_labels, fixed_mask, budget, context)
+        reconstructed = self._reconstruct(full_kspace, sampled['mask'], target, step, sense_maps, sense_mask,
+                                          uncertainty_map, anatomy_labels, kspace_support)
+        return {**reconstructed, **sampled}
+
+    def _sample(self, full_kspace, observed_kspace, old_mask, step, sense_maps, uncertainty_map=None, valid_mask=None,
+                prev_gfactor=None, anatomy_labels=None, fixed_mask=None, budget=None, context=None, threshold=None):
+        """This step's mask, old_mask union its new locations: the sampler's, or `fixed_mask` cut to `valid_mask`.
+
+        `observed_kspace` [B, C, H, W, 2] is the k-space the sampler reads; a `reads_context` sampler reads `context`
+        instead. `threshold` [B, 1, H, W] of U(0, 1) values replaces the Bernoulli draw's fresh noise, so runs can share
+        their draws. Returns a dict with the mask, the sampler's anatomy logits and REINFORCE terms, and `details`: the
+        step's unscaled and rescaled probabilities and, for seq_adapt_2d, its residual (empty for a fixed mask).
         """
         if budget is None:
             budget = self.budget / self.num_step
 
         recon_complex = None
         if fixed_mask is not None or not self.sampler.reads_input:
-            pred_single_coil_k = pred_kspace[:, 0]  # the right shape, which is all the sampler takes from it
+            sampler_kspace = observed_kspace[:, 0]  # the right shape, which is all the sampler takes from it
         else:
-            # Combine coils to single-coil equivalent for sampler input
-            pred_single_coil_img = self._sampler_image(torch.view_as_complex(pred_kspace), sense_maps)
-            pred_single_coil_k = torch.view_as_real(torch_fft2(pred_single_coil_img))
+            sampler_image = self._sampler_image(torch.view_as_complex(observed_kspace), sense_maps)
+            sampler_kspace = torch.view_as_real(torch_fft2(sampler_image))
 
-            if torch.isnan(pred_single_coil_k).any():
-                print(f"NaN in pred_single_coil_k at step {step}")
+            if torch.isnan(sampler_kspace).any():
+                print(f"NaN in the sampler's input at step {step}")
 
-            # Prepare complex recon image for sampler conditioning
             if self.sampler.with_recon:
-                recon_2ch = torch.stack([pred_single_coil_img.real, pred_single_coil_img.imag], dim=1)
+                recon_2ch = torch.stack([sampler_image.real, sampler_image.imag], dim=1)
                 recon_complex = recon_2ch.detach()
 
+        details = {}
         if fixed_mask is not None:
             mask = fixed_mask if valid_mask is None else fixed_mask * valid_mask
             data_to_vis_sampler = dict.fromkeys(('prob_mask', 'rescaled_mask', 'binarized_mask'), fixed_mask[0, 0])
             anatomy_logits = reinforce_logp = reinforce_entropy = None
         else:
             mask, data_to_vis_sampler, anatomy_logits, reinforce_logp, reinforce_entropy = self.sampler(
-                pred_single_coil_k, old_mask, budget, uncertainty_map, valid_mask,
-                recon_complex, gfactor=prev_gfactor, anatomy_labels=anatomy_labels,
+                sampler_kspace, old_mask, budget, uncertainty_map, valid_mask,
+                recon_complex, gfactor=prev_gfactor, anatomy_labels=anatomy_labels, context=context,
+                threshold=threshold, details=details,
             )
         if self.zero_unacquired and valid_mask is not None:
             mask = mask * valid_mask
-        masked_kspace = torch.view_as_real(mask * torch.view_as_complex(full_kspace))
-        self.data_for_vis[step].update(data_to_vis_sampler)
+        if self.store_visuals:
+            self.data_for_vis[step].update(data_to_vis_sampler)
+        if self.step_recorder is not None:
+            self.step_recorder.add(step, old_mask, mask, details)
+        return {'mask': mask, 'anatomy_logits': anatomy_logits, 'reinforce_logp': reinforce_logp,
+                'reinforce_entropy': reinforce_entropy, 'details': details}
 
-        # In `straight_through` mode the mask is differentiable, so gradients must
-        # flow through the reconstructor's *operations* to reach it, even if the
-        # reconstructor's own weights are frozen. In `reinforce`/`random` mode the
-        # mask draw is non-differentiable (credit flows through the REINFORCE
-        # log-prob term instead), so tracking this forward pass is only needed if
-        # the reconstructor's own weights are still being trained -- skipping it
-        # otherwise avoids building a multi-cascade autograd graph nothing uses.
-        recon_needs_grad = torch.is_grad_enabled() and (
-            self.mask_train_mode == 'straight_through'
-            or any(p.requires_grad for p in self.reconstructor.parameters())
-        )
-        with torch.set_grad_enabled(recon_needs_grad):
-            kspace_recon = self.recon_type in ('lls', 'cg_sense', 'varnet', 'sdum')
-            # Zero-filled reconstruction (coil-combined). In training it reaches no loss term, only the logged baseline.
-            zero_filled_complex = zero_filled_mag = None
-            if not kspace_recon or self.store_visuals or not self.training:
-                zero_filled_complex = (torch_ifft2(torch.view_as_complex(masked_kspace)) * sense_maps.conj()).sum(dim=1, keepdim=True)
-                zero_filled_mag = zero_filled_complex.abs()
+    def _reconstruct(self, full_kspace, mask, target, step, sense_maps, sense_mask, uncertainty_map=None,
+                     anatomy_labels=None, kspace_support=None):
+        """Reconstruct from the k-space `mask` acquires, storing the visuals as step `step`'s.
 
-            # Full reconstruction
-            if kspace_recon:
-                masked_kspace_complex = torch.view_as_complex(masked_kspace.contiguous())
-                recon_kwargs = {'anatomy_labels': anatomy_labels} \
-                    if self.condition_reconstructor or getattr(self.reconstructor, 'iters_by_label', None) else {}
-                if getattr(self.reconstructor, 'dc_mode', None) == 'multiply':
-                    recon_kwargs['full_kspace'] = torch.view_as_complex(full_kspace.contiguous())
-                if kspace_support is not None and self.recon_type == 'varnet':
-                    recon_kwargs['kspace_support'] = kspace_support
-                recon_mag = self.reconstructor(masked_kspace_complex, sense_maps, mask, **recon_kwargs)
-                recon = recon_mag.to(torch.complex64)
-            else:
-                zero_filled_2ch = torch.view_as_real(zero_filled_complex)
-                zero_filled_2ch = einops.rearrange(zero_filled_2ch, 'b c h w two -> b (c two) h w')
-                recon_2ch = self.reconstructor(zero_filled_2ch)
-                recon = torch.view_as_complex(
-                    einops.rearrange(recon_2ch, 'b (c two) h w -> b c h w two', two=2).contiguous()
-                )
+        Returns:
+            Dict with keys: output, zero_recon, uncertainty_map, gfactor
+        """
+        recon, zero_filled_complex, zero_filled_mag = self._run_reconstructor(
+            full_kspace, mask, sense_maps, anatomy_labels, kspace_support,
+            zero_filled=self.store_visuals or not self.training)
 
         # Compute g-factor map for SENSE-based reconstructors (detached — not differentiable)
         gfactor = None
@@ -402,12 +432,165 @@ class SequentialSampling(nn.Module):
             self._store_visuals(step, target, full_kspace, zero_filled_complex, zero_filled_mag, recon, uncertainty_map,
                                 sense_mask, gfactor)
 
-        return {
-            'output': recon, 'mask': mask, 'zero_recon': zero_filled_mag,
-            'uncertainty_map': uncertainty_map, 'gfactor': gfactor,
-            'anatomy_logits': anatomy_logits, 'reinforce_logp': reinforce_logp,
-            'reinforce_entropy': reinforce_entropy,
-        }
+        return {'output': recon, 'zero_recon': zero_filled_mag, 'uncertainty_map': uncertainty_map, 'gfactor': gfactor}
+
+    def _run_reconstructor(self, full_kspace, mask, sense_maps, anatomy_labels=None, kspace_support=None,
+                           zero_filled=False, reconstructor=None):
+        """(complex image [B, 1, H, W], zero-filled SENSE image or None, its magnitude or None) from the k-space `mask`
+        acquires. The zero-filled image is formed when `zero_filled`, and always for an image-domain reconstructor.
+        `reconstructor` defaults to the trained one."""
+        reconstructor = self.reconstructor if reconstructor is None else reconstructor
+        masked_kspace = torch.view_as_real(mask * torch.view_as_complex(full_kspace))
+
+        # In `straight_through` mode the mask is differentiable, so gradients must
+        # flow through the reconstructor's *operations* to reach it, even if the
+        # reconstructor's own weights are frozen. In `reinforce`/`random` mode the
+        # mask draw is non-differentiable (credit flows through the REINFORCE
+        # log-prob term instead), so tracking this forward pass is only needed if
+        # the reconstructor's own weights are still being trained -- skipping it
+        # otherwise avoids building a multi-cascade autograd graph nothing uses.
+        recon_needs_grad = torch.is_grad_enabled() and (
+            self.mask_train_mode == 'straight_through'
+            or any(p.requires_grad for p in reconstructor.parameters())
+        )
+        with torch.set_grad_enabled(recon_needs_grad):
+            kspace_recon = self.recon_type in ('lls', 'cg_sense', 'varnet', 'sdum')
+            # Zero-filled reconstruction (coil-combined). In training it reaches no loss term, only the logged baseline.
+            zero_filled_complex = zero_filled_mag = None
+            if not kspace_recon or zero_filled:
+                zero_filled_complex = (torch_ifft2(torch.view_as_complex(masked_kspace)) * sense_maps.conj()).sum(dim=1, keepdim=True)
+                zero_filled_mag = zero_filled_complex.abs()
+
+            # Full reconstruction
+            if kspace_recon:
+                masked_kspace_complex = torch.view_as_complex(masked_kspace.contiguous())
+                recon_kwargs = {'anatomy_labels': anatomy_labels} \
+                    if self.condition_reconstructor or getattr(reconstructor, 'iters_by_label', None) else {}
+                if getattr(reconstructor, 'dc_mode', None) == 'multiply':
+                    recon_kwargs['full_kspace'] = torch.view_as_complex(full_kspace.contiguous())
+                if kspace_support is not None and self.recon_type == 'varnet':
+                    recon_kwargs['kspace_support'] = kspace_support
+                recon_mag = reconstructor(masked_kspace_complex, sense_maps, mask, **recon_kwargs)
+                recon = recon_mag.to(torch.complex64)
+            else:
+                zero_filled_2ch = torch.view_as_real(zero_filled_complex)
+                zero_filled_2ch = einops.rearrange(zero_filled_2ch, 'b c h w two -> b (c two) h w')
+                recon_2ch = reconstructor(zero_filled_2ch)
+                recon = torch.view_as_complex(
+                    einops.rearrange(recon_2ch, 'b (c two) h w -> b c h w two', two=2).contiguous()
+                )
+        return recon, zero_filled_complex, zero_filled_mag
+
+    def _output_image(self, recon, sense_maps, output_extent, valid_mask):
+        """The magnitude image [B, 1, H, W] the model outputs for its complex reconstruction `recon`."""
+        image = self._coil_rss(recon, sense_maps, output_extent)
+        if self.zero_unacquired:
+            # Mask the output magnitude image in k-space where the scan acquired nothing. The complex network image carries a
+            # phase that moves most of its spectrum out of the acquired columns, so only the magnitude image is masked.
+            image = torch_ifft2(torch_fft2(image.to(torch.complex64)) * valid_mask).abs()
+        return image
+
+    def sense_maps_for(self, full_kspace):
+        """(sensitivity maps [B, C, H, W], body mask [B, 1, H, W]) the forward estimates for `full_kspace`.
+
+        The maps depend only on the k-space, never the mask, so their forward is tracked only when the sensitivity
+        network's own weights are training, and never inside a caller's no_grad (e.g. validation).
+        """
+        sens_needs_grad = torch.is_grad_enabled() and any(
+            p.requires_grad for p in self.sensetivity_net.parameters()
+        )
+        with torch.set_grad_enabled(sens_needs_grad):
+            return self.sensetivity_net(torch.view_as_complex(full_kspace.contiguous()),
+                                        mask_method=self.sense_mask_method)
+
+    def reconstruct_from_mask(self, full_kspace, mask, sense_maps, anatomy_labels=None, kspace_support=None,
+                              reconstructor=None):
+        """The output image [B, 1, H, W] for the complete mask `mask` [B, 1, H, W] (centre included), by the forward's
+        own final reconstruction: a forward whose steps end in `mask` outputs exactly this. Any num_step.
+        `reconstructor` defaults to the trained one."""
+        valid_mask = self._valid_kspace_mask(full_kspace)
+        if self.zero_unacquired:
+            mask = mask * valid_mask
+        output_extent = self._kspace_extent(full_kspace) if kspace_support is None else kspace_support
+        recon, _, _ = self._run_reconstructor(full_kspace.contiguous(), mask, sense_maps, anatomy_labels,
+                                              self._recon_support(kspace_support, output_extent),
+                                              reconstructor=reconstructor)
+        return self._output_image(recon, sense_maps, output_extent, valid_mask)
+
+    @torch.no_grad()
+    def _input_reconstruction(self, full_kspace, mask, image_peak, anatomy_labels=None):
+        """The recon input [B, H, W]: the frozen copies' magnitude image of the k-space `mask` acquires, over the ACS
+        image peak [B], as the data channels are scaled."""
+        maps, _ = self.input_sensetivity_net(torch.view_as_complex(full_kspace.contiguous()),
+                                             mask_method=self.sense_mask_method)
+        image = self.reconstruct_from_mask(full_kspace, mask, maps, anatomy_labels, reconstructor=self.input_reconstructor)
+        return (image[:, 0] / image_peak.view(-1, 1, 1)).float()
+
+    def train(self, mode=True):
+        """The frozen input copies stay in eval mode."""
+        super().train(mode)
+        for frozen in (self.input_reconstructor, self.input_sensetivity_net):
+            if frozen is not None:
+                frozen.eval()
+        return self
+
+    @contextlib.contextmanager
+    def _quietly(self):
+        """No visuals stored and no steps recorded, for the forwards a diagnostic runs besides the model's own."""
+        stored = self.store_visuals, self.step_recorder
+        self.store_visuals, self.step_recorder = False, None
+        try:
+            yield
+        finally:
+            self.store_visuals, self.step_recorder = stored
+
+    @torch.no_grad()
+    def sample_trajectory(self, full_kspace, anatomy_labels=None, thresholds=None, sense_maps=None):
+        """The steps' draws for `full_kspace`, with no reconstruction: (masks after each step [M_1, ..., M_K], each
+        [B, 1, H, W] with the centre included, and each step's details). `thresholds` as in forward."""
+        if sense_maps is None and self.sampler.reads_input:
+            sense_maps, _ = self.sense_maps_for(full_kspace)
+        old_mask, valid_mask = self._initial_masks(full_kspace)
+        step_budget = self.mask_budget(old_mask, valid_mask) / self.num_step
+        with self._quietly():
+            steps = self._sample_steps(full_kspace, old_mask, valid_mask, sense_maps, step_budget, anatomy_labels,
+                                       thresholds=thresholds, uncertainty_map=torch.zeros_like(old_mask))
+        return steps['masks'], steps['details']
+
+    @torch.no_grad()
+    def counterfactual_step(self, full_kspace, mask, step, data_kspace, threshold=None, anatomy_labels=None):
+        """Step `step`'s draw from the mask `mask` [B, 1, H, W] when the sampler reads `data_kspace` (another slice's coil
+        k-space, [B, C, H, W, 2], scaled by its own ACS) in place of the slice's own data. The mask, header, acquired
+        region, budget and `threshold` stay the slice's own, so data_kspace = full_kspace gives the step itself.
+
+        Returns the step's details plus `new`, the locations it adds [B, 1, H, W]. seq_adapt_2d only.
+        """
+        if not self.sampler.reads_context:
+            raise ValueError(f"a counterfactual data swap needs a sampler that reads a StepContext, not {self.sampler_type}")
+        old_mask, valid_mask = self._initial_masks(full_kspace)
+        budget = self.mask_budget(old_mask, valid_mask) / self.num_step
+        extent, coil_fraction, _ = self._step_header(full_kspace, old_mask)
+        context = StepContext(step, self.num_step, extent, coil_fraction)
+        if not self.sampler.data_blind:
+            data = torch.view_as_complex(data_kspace.contiguous())
+            context.measured = torch.view_as_complex((data_kspace * mask.unsqueeze(-1)).contiguous())
+            context.calibration_peaks = calibration_peaks(data * old_mask)
+            if self.sampler.reads_reconstruction:
+                context.reconstruction = self._input_reconstruction(data_kspace, mask, context.calibration_peaks[0],
+                                                                    anatomy_labels)
+        with self._quietly():
+            sampled = self._sample(full_kspace, full_kspace * mask.unsqueeze(-1), mask, step, None,
+                                   valid_mask=valid_mask, anatomy_labels=anatomy_labels, budget=budget,
+                                   context=context, threshold=threshold)
+        return {**sampled['details'], 'new': sampled['mask'] - mask}
+
+    @torch.no_grad()
+    def _store_sampling_visuals(self, step, target, full_kspace, mask, sense_maps, sense_mask, uncertainty_map):
+        """Visuals of a step that is not reconstructed: its zero-filled image, and a blank reconstruction panel."""
+        zero_filled_complex = (torch_ifft2(mask * torch.view_as_complex(full_kspace.contiguous()))
+                               * sense_maps.conj()).sum(dim=1, keepdim=True)
+        self._store_visuals(step, target, full_kspace, zero_filled_complex, zero_filled_complex.abs(), None,
+                            uncertainty_map, sense_mask, None)
 
     def _store_visuals(self, step, target, full_kspace, zero_filled_complex, zero_filled_mag, recon, uncertainty_map,
                        sense_mask, gfactor):
@@ -416,7 +599,7 @@ class SequentialSampling(nn.Module):
             'kspace': torch.view_as_complex(full_kspace[0, :, :, :]).cpu().detach().numpy(),
             'masked_kspace': zero_filled_complex[0].cpu().detach().numpy(),
             'zero_filled_recon': zero_filled_mag[0, 0, :, :].cpu().detach().numpy(),
-            'recon': recon[0, 0, :, :].abs().cpu().detach().numpy(),
+            'recon': recon[0, 0, :, :].abs().cpu().detach().numpy() if recon is not None else np.zeros(self.shape),
             'uncertainty_map': uncertainty_map[0, 0].cpu().detach().numpy() if uncertainty_map is not None else np.zeros(self.shape),
             'sense_mask': sense_mask[0, 0, :, :].cpu().detach().numpy() if sense_mask is not None else np.zeros(self.shape),
             'gfactor': gfactor[0, 0].cpu().detach().numpy() if gfactor is not None else None,
@@ -494,15 +677,18 @@ class SequentialSampling(nn.Module):
             sense_maps, _ = self.sensetivity_net(torch.view_as_complex(full_kspace.contiguous()),
                                                  mask_method=self.sense_mask_method)
         old_mask, valid_mask = self._initial_masks(full_kspace)
-        observed = torch.view_as_complex((full_kspace * old_mask.unsqueeze(-1)).contiguous())
-        combined = self._sampler_image(observed, sense_maps)
+        observed_kspace = full_kspace * old_mask.unsqueeze(-1)
+        combined = self._sampler_image(torch.view_as_complex(observed_kspace.contiguous()), sense_maps)
+        header = self._step_header(full_kspace, old_mask) if self.sampler.reads_context else None
         unscaled, _, _ = self.sampler.unscaled_probabilities(
-            torch.view_as_real(torch_fft2(combined)), old_mask, anatomy_labels=anatomy_labels)
+            torch.view_as_real(torch_fft2(combined)), old_mask, anatomy_labels=anatomy_labels,
+            context=self._step_context(header, observed_kspace, 0, full_kspace, old_mask, anatomy_labels))
         rescaled, mask = self.sampler.select_locations(unscaled, old_mask, self.mask_budget(old_mask, valid_mask),
                                                        valid_mask)
         return {'old_mask': old_mask, 'valid_mask': valid_mask, 'unscaled': unscaled, 'rescaled': rescaled, 'mask': mask}
 
-    def forward(self, target, full_kspace, idx=None, anatomy_labels=None, sense_maps=None, kspace_support=None, fixed_mask=None):  # noqa: ARG002
+    def forward(self, target, full_kspace, idx=None, anatomy_labels=None, sense_maps=None, kspace_support=None, fixed_mask=None,  # noqa: ARG002
+                thresholds=None):
         """Run full sequential sampling pipeline.
 
         Args:
@@ -516,97 +702,112 @@ class SequentialSampling(nn.Module):
                 and keeps the extent of `full_kspace` (`_kspace_extent`) in the output
             fixed_mask: Optional [B, 1, H, W] complete mask (pre-selected centre included) that replaces
                 the sampler's. Single-step only; it stays differentiable, so a caller can optimise it.
+            thresholds: Optional sequence of num_step [B, 1, H, W] U(0, 1) maps, one per step, that replace the
+                Bernoulli draws' fresh noise (activemri.utils.multistep.step_thresholds), so runs share their draws
 
         Returns:
             Dict with final reconstruction, intermediate results, masks, and sense maps.
         """
-        full_kspace_complex = torch.view_as_complex(full_kspace.contiguous())
-
-        # Sensitivity maps depend only on the ground-truth k-space, never the
-        # mask, so tracking their forward pass is only needed if the sensitivity
-        # network's own weights are still being trained. Never re-enable grad
-        # inside a caller's no_grad (e.g. validation).
-        sens_needs_grad = torch.is_grad_enabled() and any(
-            p.requires_grad for p in self.sensetivity_net.parameters()
-        )
         if sense_maps is None:
-            with torch.set_grad_enabled(sens_needs_grad):
-                sense_maps, sense_mask = self.sensetivity_net(full_kspace_complex, mask_method=self.sense_mask_method)
+            sense_maps, sense_mask = self.sense_maps_for(full_kspace)
         else:
             sense_mask = (sense_maps.abs().pow(2).sum(dim=1, keepdim=True) > 0.5).to(full_kspace.dtype)
         old_mask, valid_mask = self._initial_masks(full_kspace)
         output_extent = self._kspace_extent(full_kspace) if kspace_support is None else kspace_support
         recon_support = self._recon_support(kspace_support, output_extent)
         step_budget = self.mask_budget(old_mask, valid_mask) / self.num_step
-        pred_kspace = full_kspace * old_mask.unsqueeze(-1)
-
         uncertainty_map = torch.zeros_like(old_mask)
-        gfactor = None
 
-        reconstructions = []
-        final_complex = None
-        zero_filled = []
-        uncertainty_maps = []
-        masks = []
-        anatomy_logits_list = []
-        reinforce_logp = None  # [B], sum of every step's Plackett-Luce log-prob
-        reinforce_entropy = None  # [B], sum of every step's draw entropy
         if fixed_mask is not None and self.num_step != 1:
             raise ValueError(f"a fixed_mask is the whole mask, so it needs num_step=1, got {self.num_step}")
         if fixed_mask is None and self.mask_policy is not None:
             fixed_mask = self.mask_policy(full_kspace)
 
-        for i in range(self.num_step):
-            pred_dict = self.step_forward(
-                full_kspace, pred_kspace, old_mask, target, i,
-                sense_maps, sense_mask, uncertainty_map, valid_mask,
-                prev_gfactor=gfactor, anatomy_labels=anatomy_labels, fixed_mask=fixed_mask,
-                kspace_support=recon_support, budget=step_budget,
-            )
-
-            new_img = pred_dict['output']
-            final_complex = new_img
-            old_mask = pred_dict['mask'].detach()
-            uncertainty_map = pred_dict['uncertainty_map']
-            gfactor = pred_dict.get('gfactor')
-
-            reconstructions.append(new_img.detach())
-            zero_filled.append(pred_dict['zero_recon'])
-            uncertainty_maps.append(uncertainty_map)
-            masks.append(old_mask)
-            if pred_dict['anatomy_logits'] is not None:
-                anatomy_logits_list.append(pred_dict['anatomy_logits'])
-            if pred_dict.get('reinforce_logp') is not None:
-                step_logp = pred_dict['reinforce_logp']
-                reinforce_logp = step_logp if reinforce_logp is None else reinforce_logp + step_logp
-            if pred_dict.get('reinforce_entropy') is not None:
-                step_entropy = pred_dict['reinforce_entropy']
-                reinforce_entropy = step_entropy if reinforce_entropy is None else reinforce_entropy + step_entropy
-
-            if i + 1 < self.num_step:
-                pred_kspace = torch.view_as_real(torch_fft2(new_img * sense_maps) * output_extent)
-
-        final_recon = self._coil_rss(final_complex, sense_maps, output_extent)
-        if self.zero_unacquired:
-            # Mask the output magnitude image in k-space where the scan acquired nothing. The complex network image carries a
-            # phase that moves most of its spectrum out of the acquired columns, so only the magnitude image is masked.
-            final_recon = torch_ifft2(torch_fft2(final_recon.to(torch.complex64)) * valid_mask).abs()
-
-        anatomy_logits = torch.stack(anatomy_logits_list).mean(dim=0) if anatomy_logits_list else None
+        steps = self._sample_steps(full_kspace, old_mask, valid_mask, sense_maps, step_budget, anatomy_labels,
+                                   fixed_mask, thresholds, uncertainty_map,
+                                   visuals=(target, sense_mask) if self.store_visuals else None)
+        reconstructed = self._reconstruct(full_kspace, steps['mask'], target, self.num_step - 1, sense_maps, sense_mask,
+                                          uncertainty_map, anatomy_labels, recon_support)
+        final_complex = reconstructed['output']
+        final_recon = self._output_image(final_complex, sense_maps, output_extent, valid_mask)
 
         return {
             'output': final_recon,
             'recon_complex': final_complex,
-            'intermediate_recons': reconstructions,
-            'mask': old_mask,
-            'masks': masks,
-            'zero_filled_recon': zero_filled,
-            'uncertainty_maps': uncertainty_maps,
+            'intermediate_recons': [final_complex.detach()],
+            'mask': steps['mask'].detach(),
+            'masks': steps['masks'],
+            'zero_filled_recon': [reconstructed['zero_recon']],
+            'uncertainty_maps': [uncertainty_map] * self.num_step,
             'sense_maps': sense_maps,
-            'reinforce_logp': reinforce_logp,
-            'reinforce_entropy': reinforce_entropy,
-            'anatomy_logits': anatomy_logits,
+            'reinforce_logp': steps['reinforce_logp'],
+            'reinforce_entropy': steps['reinforce_entropy'],
+            'anatomy_logits': steps['anatomy_logits'],
         }
+
+    def _sample_steps(self, full_kspace, old_mask, valid_mask, sense_maps, step_budget, anatomy_labels=None,
+                      fixed_mask=None, thresholds=None, uncertainty_map=None, visuals=None):
+        """Every step's draw, from the pre-selected centre `old_mask` to the final mask.
+
+        Each step reads only the measured k-space y * M_i and sees M_i detached, as its input and to find the locations
+        still available. The union keeps every step's straight-through increment, so a loss on the final mask reaches
+        each step's choices. `visuals` (target, body mask) stores the panels of the steps that are not reconstructed.
+
+        Returns a dict: `mask` (the final mask, differentiable), `masks` (detached, after each step), `details` (each
+        step's), the sampler's mean anatomy logits and its REINFORCE terms summed over the steps.
+        """
+        header = self._step_header(full_kspace, old_mask) if self.sampler.reads_context else None
+        mask = old_mask
+        masks, details, anatomy_logits = [], [], []
+        reinforce_logp = None  # [B], sum of every step's Plackett-Luce log-prob
+        reinforce_entropy = None  # [B], sum of every step's draw entropy
+        for i in range(self.num_step):
+            observed = full_kspace * mask.detach().unsqueeze(-1)
+            sampled = self._sample(
+                full_kspace, observed, mask.detach(), i, sense_maps, uncertainty_map, valid_mask,
+                anatomy_labels=anatomy_labels, fixed_mask=fixed_mask, budget=step_budget,
+                context=self._step_context(header, observed, i, full_kspace, mask.detach(), anatomy_labels),
+                threshold=None if thresholds is None else thresholds[i])
+            mask = sampled['mask'] if i == 0 else mask + (sampled['mask'] - mask.detach())
+            masks.append(mask.detach())
+            details.append(sampled['details'])
+            if sampled['anatomy_logits'] is not None:
+                anatomy_logits.append(sampled['anatomy_logits'])
+            if sampled['reinforce_logp'] is not None:
+                step_logp = sampled['reinforce_logp']
+                reinforce_logp = step_logp if reinforce_logp is None else reinforce_logp + step_logp
+            if sampled['reinforce_entropy'] is not None:
+                step_entropy = sampled['reinforce_entropy']
+                reinforce_entropy = step_entropy if reinforce_entropy is None else reinforce_entropy + step_entropy
+            if visuals is not None and i + 1 < self.num_step:
+                self._store_sampling_visuals(i, visuals[0], full_kspace, mask.detach(), sense_maps, visuals[1],
+                                             uncertainty_map)
+        return {'mask': mask, 'masks': masks, 'details': details,
+                'anatomy_logits': torch.stack(anatomy_logits).mean(dim=0) if anatomy_logits else None,
+                'reinforce_logp': reinforce_logp, 'reinforce_entropy': reinforce_entropy}
+
+    def _step_header(self, full_kspace, calibration_mask):
+        """What every step of a `reads_context` sampler reads besides its mask and data: (acquired extent [B, 1, H, W],
+        active coil fraction [B], ACS peaks scaling the data, None for a data-blind sampler)."""
+        coil_kspace = torch.view_as_complex(full_kspace.contiguous())
+        active_coils = (coil_kspace.abs().flatten(2).sum(dim=-1) > 0).sum(dim=1)
+        coil_fraction = active_coils.to(full_kspace.dtype) / coil_kspace.shape[1]
+        peaks = None if self.sampler.data_blind else calibration_peaks(coil_kspace * calibration_mask)
+        return self._kspace_extent(full_kspace), coil_fraction, peaks
+
+    def _step_context(self, header, observed_kspace, step, full_kspace=None, mask=None, anatomy_labels=None):
+        """The StepContext of step `step` (None for a sampler that reads none); a data-blind one gets no data. A sampler
+        with a recon input also gets the frozen reconstruction of the k-space `mask` [B, 1, H, W] acquires."""
+        if header is None:
+            return None
+        extent, coil_fraction, peaks = header
+        measured = None if self.sampler.data_blind else torch.view_as_complex(observed_kspace.contiguous())
+        reconstruction = None
+        if self.sampler.reads_reconstruction:
+            if full_kspace is None or mask is None:
+                raise ValueError("a recon-input sampler's context needs the slice's k-space and the mask so far")
+            reconstruction = self._input_reconstruction(full_kspace, mask, peaks[0], anatomy_labels)
+        return StepContext(step, self.num_step, extent, coil_fraction, measured, peaks, reconstruction)
 
     def loss(self, pred_dict, target_dict, meta, loss_type):
         """Compute training loss.

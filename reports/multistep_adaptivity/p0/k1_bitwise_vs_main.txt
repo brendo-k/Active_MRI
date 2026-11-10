@@ -1,0 +1,5 @@
+loupe_2d loss 0.36255553364753723 grads 54
+loupe_2d_cond loss 0.3480411469936371 grads 54
+conv_2d loss 0.35684239864349365 grads 79
+conv_2d_rss loss 0.3556864559650421 grads 79
+BITWISE EQUAL

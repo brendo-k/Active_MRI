@@ -1,0 +1,1018 @@
+{
+  "name": "k4_blind",
+  "run": "/tmp/claude-2081/-home-bkadota-code-active-mri-SeqMRI/c7ec8449-71b5-430d-80e2-e5e096769ce4/scratchpad/smoke_fullval/k4_blind",
+  "checkpoint": "last_model.pt",
+  "epoch": 0,
+  "training_code": {
+    "commit": "9123f445ae0b907b647911e42dc04a7a1dad9c6f",
+    "branch": "exp/multistep_adaptivity",
+    "dirty_tracked_files": [
+      "activemri/config.py",
+      "activemri/models/sequential_sampling.py",
+      "activemri/reconstructors/UNet.py",
+      "activemri/samplers/sampler.py",
+      "activemri/training/builders.py",
+      "activemri/training/run_naming.py",
+      "activemri/training/trainer.py",
+      "configs/config.yaml"
+    ],
+    "started_at": "2026-11-10T00:13:13+00:00",
+    "argv": [
+      "train.py",
+      "hydra.job.name=train_sequential",
+      "recon=varnet",
+      "training.batch_size=16",
+      "training.seed=42",
+      "output.out_dir=/tmp/claude-2081/-home-bkadota-code-active-mri-SeqMRI/c7ec8449-71b5-430d-80e2-e5e096769ce4/scratchpad/smoke/k4_blind",
+      "sampler.accelerations=[8.0]",
+      "training.num_epochs=1",
+      "datasets=fastmri_local_v1_flair_knee",
+      "misc.resolution=[320,320]",
+      "sampler.budget_over=acquired",
+      "training.num_step=4",
+      "sampler.sampler_type=seq_adapt_2d",
+      "sampler.anatomy_conditioning=true",
+      "sampler.data_blind=true",
+      "datasets.limit_volumes=0.05",
+      "training.lr_scheduler=constant",
+      "training.lr=1e-4"
+    ]
+  },
+  "eval_code": {
+    "commit": "9123f445ae0b907b647911e42dc04a7a1dad9c6f",
+    "branch": "exp/multistep_adaptivity",
+    "dirty_tracked_files": [
+      "M activemri/config.py",
+      " M activemri/models/sequential_sampling.py",
+      " M activemri/reconstructors/UNet.py",
+      " M activemri/samplers/sampler.py",
+      " M activemri/training/builders.py",
+      " M activemri/training/run_naming.py",
+      " M activemri/training/trainer.py",
+      " M configs/config.yaml"
+    ]
+  },
+  "options": {
+    "sampler_type": "seq_adapt_2d",
+    "num_step": 4,
+    "data_blind": true,
+    "accelerations": [
+      8.0
+    ],
+    "budget_over": "acquired",
+    "seed": 42,
+    "residual_chans": 16,
+    "residual_depth": 4,
+    "residual_limit": 6.0,
+    "residual_lr": 0.0001,
+    "anatomy_conditioning": true,
+    "loss_type": "l1"
+  },
+  "draw_seeds": [
+    1234,
+    4321
+  ],
+  "slices": {
+    "count": 120,
+    "hash": "8a8f3bd61fd02026ee129606a8595743f182ddf0"
+  },
+  "means": {
+    "psnr": {
+      "brain": 16.133777342344587,
+      "knee-PD": 16.233146883192518,
+      "knee-PDFS": 18.865056109428405,
+      "all": 17.07898293733597
+    },
+    "ssim": {
+      "brain": 0.18185060865447927,
+      "knee-PD": 0.16820781695365106,
+      "knee-PDFS": 0.23009182392308106,
+      "all": 0.19315603664872333
+    },
+    "nmse": {
+      "brain": 0.1864932945096179,
+      "knee-PD": 0.19640840430344855,
+      "knee-PDFS": 0.17615282107144595,
+      "all": 0.18651675845806798
+    },
+    "realised_fraction": {
+      "brain": 0.12518169456406644,
+      "knee-PD": 0.1250544080422038,
+      "knee-PDFS": 0.12502185059711338,
+      "all": 0.12508386295909682
+    }
+  },
+  "by_step": {
+    "step_new": {
+      "brain": [
+        2067.2894736842104,
+        2061.0394736842104,
+        2072.5,
+        2063.7105263157896
+      ],
+      "knee-PD": [
+        3178.5,
+        3176.809523809524,
+        3169.035714285714,
+        3181.2261904761904
+      ],
+      "knee-PDFS": [
+        3176.175,
+        3179.5625,
+        3172.2125,
+        3174.2875
+      ],
+      "all": [
+        2825.8416666666667,
+        2824.4,
+        2822.858333333333,
+        2825.0333333333333
+      ]
+    },
+    "step_budget": {
+      "brain": [
+        2063.2105263157896,
+        2063.2105263157896,
+        2063.2105263157896,
+        2063.2105263157896
+      ],
+      "knee-PD": [
+        3175.0,
+        3175.0,
+        3175.0,
+        3175.0
+      ],
+      "knee-PDFS": [
+        3175.0,
+        3175.0,
+        3175.0,
+        3175.0
+      ],
+      "all": [
+        2822.9333333333334,
+        2822.9333333333334,
+        2822.9333333333334,
+        2822.9333333333334
+      ]
+    },
+    "residual_rms": {
+      "brain": [
+        0.00759211732809873,
+        0.0075176251611035125,
+        0.007479189815440853,
+        0.007454227172083368
+      ],
+      "knee-PD": [
+        0.007769698742777109,
+        0.007576290196517394,
+        0.00748957115935073,
+        0.0074385255298000715
+      ],
+      "knee-PDFS": [
+        0.0077697415836155415,
+        0.007582851906772703,
+        0.007496116333641112,
+        0.00744011378264986
+      ],
+      "all": [
+        0.007713478908408433,
+        0.007559900172054768,
+        0.0074884654585427295,
+        0.007444027134139711
+      ]
+    }
+  },
+  "donors": {
+    "matched": 113,
+    "unmatched": {
+      "brain": 7,
+      "knee-PD": 0,
+      "knee-PDFS": 0
+    }
+  },
+  "guards": {
+    "ssim_pooled": 0.19315603664872333,
+    "ssim_at_least_0.80": false,
+    "realised_fraction_target": 0.125,
+    "realised_fraction_within_0.002": true,
+    "failed_reconstructions_below_20dB": [
+      {
+        "volume": "file_brain_AXFLAIR_200_6002499.h5",
+        "slice_id": 0,
+        "condition": "brain",
+        "psnr": 15.298768043518066
+      },
+      {
+        "volume": "file_brain_AXFLAIR_200_6002536.h5",
+        "slice_id": 2,
+        "condition": "brain",
+        "psnr": 14.550889015197754
+      },
+      {
+        "volume": "file_brain_AXFLAIR_200_6002581.h5",
+        "slice_id": 2,
+        "condition": "brain",
+        "psnr": 18.30811595916748
+      },
+      {
+        "volume": "file_brain_AXFLAIR_200_6002584.h5",
+        "slice_id": 5,
+        "condition": "brain",
+        "psnr": 13.792208194732666
+      },
+      {
+        "volume": "file_brain_AXFLAIR_200_6002656.h5",
+        "slice_id": 6,
+        "condition": "brain",
+        "psnr": 13.478414535522461
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6002868.h5",
+        "slice_id": 8,
+        "condition": "brain",
+        "psnr": 13.335947513580322
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6002872.h5",
+        "slice_id": 10,
+        "condition": "brain",
+        "psnr": 13.076088905334473
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6002873.h5",
+        "slice_id": 11,
+        "condition": "brain",
+        "psnr": 13.074671745300293
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6002899.h5",
+        "slice_id": 11,
+        "condition": "brain",
+        "psnr": 14.171909809112549
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6002910.h5",
+        "slice_id": 13,
+        "condition": "brain",
+        "psnr": 16.147296905517578
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6002946.h5",
+        "slice_id": 0,
+        "condition": "brain",
+        "psnr": 14.52030897140503
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6002979.h5",
+        "slice_id": 3,
+        "condition": "brain",
+        "psnr": 19.113770484924316
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6003000.h5",
+        "slice_id": 7,
+        "condition": "brain",
+        "psnr": 14.248623371124268
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6003001.h5",
+        "slice_id": 7,
+        "condition": "brain",
+        "psnr": 13.698821067810059
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6003015.h5",
+        "slice_id": 8,
+        "condition": "brain",
+        "psnr": 13.424747467041016
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6003021.h5",
+        "slice_id": 8,
+        "condition": "brain",
+        "psnr": 15.71339750289917
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6003025.h5",
+        "slice_id": 9,
+        "condition": "brain",
+        "psnr": 15.660257816314697
+      },
+      {
+        "volume": "file_brain_AXFLAIR_202_6000418.h5",
+        "slice_id": 9,
+        "condition": "brain",
+        "psnr": 15.725546836853027
+      },
+      {
+        "volume": "file_brain_AXFLAIR_202_6000450.h5",
+        "slice_id": 10,
+        "condition": "brain",
+        "psnr": 17.947397232055664
+      },
+      {
+        "volume": "file_brain_AXFLAIR_202_6000468.h5",
+        "slice_id": 11,
+        "condition": "brain",
+        "psnr": 19.145233154296875
+      },
+      {
+        "volume": "file_brain_AXFLAIR_202_6000476.h5",
+        "slice_id": 11,
+        "condition": "brain",
+        "psnr": 16.900734901428223
+      },
+      {
+        "volume": "file_brain_AXFLAIR_202_6000521.h5",
+        "slice_id": 13,
+        "condition": "brain",
+        "psnr": 15.967837810516357
+      },
+      {
+        "volume": "file_brain_AXFLAIR_202_6000559.h5",
+        "slice_id": 13,
+        "condition": "brain",
+        "psnr": 16.1182279586792
+      },
+      {
+        "volume": "file_brain_AXFLAIR_202_6000571.h5",
+        "slice_id": 14,
+        "condition": "brain",
+        "psnr": 16.126806259155273
+      },
+      {
+        "volume": "file_brain_AXFLAIR_203_6000881.h5",
+        "slice_id": 14,
+        "condition": "brain",
+        "psnr": 16.879737854003906
+      },
+      {
+        "volume": "file_brain_AXFLAIR_203_6000923.h5",
+        "slice_id": 0,
+        "condition": "brain",
+        "psnr": 19.169523239135742
+      },
+      {
+        "volume": "file_brain_AXFLAIR_203_6000925.h5",
+        "slice_id": 5,
+        "condition": "brain",
+        "psnr": 18.819880485534668
+      },
+      {
+        "volume": "file_brain_AXFLAIR_205_6000163.h5",
+        "slice_id": 5,
+        "condition": "brain",
+        "psnr": 17.73279857635498
+      },
+      {
+        "volume": "file_brain_AXFLAIR_206_6000230.h5",
+        "slice_id": 5,
+        "condition": "brain",
+        "psnr": 19.649165153503418
+      },
+      {
+        "volume": "file_brain_AXFLAIR_206_6000243.h5",
+        "slice_id": 6,
+        "condition": "brain",
+        "psnr": 14.357653617858887
+      },
+      {
+        "volume": "file_brain_AXFLAIR_209_6001370.h5",
+        "slice_id": 9,
+        "condition": "brain",
+        "psnr": 17.19250202178955
+      },
+      {
+        "volume": "file_brain_AXFLAIR_209_6001399.h5",
+        "slice_id": 10,
+        "condition": "brain",
+        "psnr": 14.123525142669678
+      },
+      {
+        "volume": "file_brain_AXFLAIR_210_6001919.h5",
+        "slice_id": 11,
+        "condition": "brain",
+        "psnr": 13.608921527862549
+      },
+      {
+        "volume": "file_brain_AXFLAIR_210_6001927.h5",
+        "slice_id": 11,
+        "condition": "brain",
+        "psnr": 14.604272365570068
+      },
+      {
+        "volume": "file_brain_AXFLAIR_210_6001932.h5",
+        "slice_id": 12,
+        "condition": "brain",
+        "psnr": 15.126155376434326
+      },
+      {
+        "volume": "file1000000.h5",
+        "slice_id": 15,
+        "condition": "knee-PDFS",
+        "psnr": 19.27798080444336
+      },
+      {
+        "volume": "file1000000.h5",
+        "slice_id": 31,
+        "condition": "knee-PDFS",
+        "psnr": 17.72206401824951
+      },
+      {
+        "volume": "file1000007.h5",
+        "slice_id": 19,
+        "condition": "knee-PDFS",
+        "psnr": 16.314220428466797
+      },
+      {
+        "volume": "file1000007.h5",
+        "slice_id": 35,
+        "condition": "knee-PDFS",
+        "psnr": 16.80324363708496
+      },
+      {
+        "volume": "file1000071.h5",
+        "slice_id": 14,
+        "condition": "knee-PD",
+        "psnr": 16.40787124633789
+      },
+      {
+        "volume": "file1000071.h5",
+        "slice_id": 30,
+        "condition": "knee-PD",
+        "psnr": 18.78430938720703
+      },
+      {
+        "volume": "file1000107.h5",
+        "slice_id": 12,
+        "condition": "knee-PD",
+        "psnr": 16.096436500549316
+      },
+      {
+        "volume": "file1000107.h5",
+        "slice_id": 28,
+        "condition": "knee-PD",
+        "psnr": 18.750530242919922
+      },
+      {
+        "volume": "file1000114.h5",
+        "slice_id": 16,
+        "condition": "knee-PDFS",
+        "psnr": 16.735017776489258
+      },
+      {
+        "volume": "file1000114.h5",
+        "slice_id": 33,
+        "condition": "knee-PDFS",
+        "psnr": 18.665492057800293
+      },
+      {
+        "volume": "file1000178.h5",
+        "slice_id": 11,
+        "condition": "knee-PDFS",
+        "psnr": 18.345542907714844
+      },
+      {
+        "volume": "file1000178.h5",
+        "slice_id": 27,
+        "condition": "knee-PDFS",
+        "psnr": 18.745147705078125
+      },
+      {
+        "volume": "file1000432.h5",
+        "slice_id": 1,
+        "condition": "knee-PD",
+        "psnr": 13.716785430908203
+      },
+      {
+        "volume": "file1000432.h5",
+        "slice_id": 17,
+        "condition": "knee-PD",
+        "psnr": 16.19617462158203
+      },
+      {
+        "volume": "file1000432.h5",
+        "slice_id": 33,
+        "condition": "knee-PD",
+        "psnr": 18.23468589782715
+      },
+      {
+        "volume": "file1000464.h5",
+        "slice_id": 15,
+        "condition": "knee-PD",
+        "psnr": 18.48983669281006
+      },
+      {
+        "volume": "file1000464.h5",
+        "slice_id": 32,
+        "condition": "knee-PD",
+        "psnr": 15.86446475982666
+      },
+      {
+        "volume": "file1000552.h5",
+        "slice_id": 12,
+        "condition": "knee-PD",
+        "psnr": 15.221800327301025
+      },
+      {
+        "volume": "file1000552.h5",
+        "slice_id": 28,
+        "condition": "knee-PD",
+        "psnr": 16.7960844039917
+      },
+      {
+        "volume": "file1000625.h5",
+        "slice_id": 11,
+        "condition": "knee-PD",
+        "psnr": 16.258078575134277
+      },
+      {
+        "volume": "file1000625.h5",
+        "slice_id": 27,
+        "condition": "knee-PD",
+        "psnr": 15.0111083984375
+      },
+      {
+        "volume": "file1000647.h5",
+        "slice_id": 8,
+        "condition": "knee-PDFS",
+        "psnr": 15.110463619232178
+      },
+      {
+        "volume": "file1000758.h5",
+        "slice_id": 6,
+        "condition": "knee-PD",
+        "psnr": 13.44858169555664
+      },
+      {
+        "volume": "file1000758.h5",
+        "slice_id": 23,
+        "condition": "knee-PD",
+        "psnr": 16.518485069274902
+      },
+      {
+        "volume": "file1000831.h5",
+        "slice_id": 11,
+        "condition": "knee-PD",
+        "psnr": 15.031722068786621
+      },
+      {
+        "volume": "file1000831.h5",
+        "slice_id": 27,
+        "condition": "knee-PD",
+        "psnr": 16.947185516357422
+      },
+      {
+        "volume": "file1000842.h5",
+        "slice_id": 7,
+        "condition": "knee-PD",
+        "psnr": 13.984395027160645
+      },
+      {
+        "volume": "file1000842.h5",
+        "slice_id": 24,
+        "condition": "knee-PD",
+        "psnr": 16.990933418273926
+      },
+      {
+        "volume": "file1000871.h5",
+        "slice_id": 4,
+        "condition": "knee-PD",
+        "psnr": 12.495458602905273
+      },
+      {
+        "volume": "file1000871.h5",
+        "slice_id": 20,
+        "condition": "knee-PD",
+        "psnr": 16.797541618347168
+      },
+      {
+        "volume": "file1000885.h5",
+        "slice_id": 5,
+        "condition": "knee-PD",
+        "psnr": 14.229338645935059
+      },
+      {
+        "volume": "file1000885.h5",
+        "slice_id": 22,
+        "condition": "knee-PD",
+        "psnr": 16.316826820373535
+      },
+      {
+        "volume": "file1000899.h5",
+        "slice_id": 8,
+        "condition": "knee-PDFS",
+        "psnr": 18.7545166015625
+      },
+      {
+        "volume": "file1000932.h5",
+        "slice_id": 8,
+        "condition": "knee-PDFS",
+        "psnr": 16.265472412109375
+      },
+      {
+        "volume": "file1000932.h5",
+        "slice_id": 24,
+        "condition": "knee-PDFS",
+        "psnr": 16.197908401489258
+      },
+      {
+        "volume": "file1001057.h5",
+        "slice_id": 13,
+        "condition": "knee-PD",
+        "psnr": 16.887588500976562
+      },
+      {
+        "volume": "file1001057.h5",
+        "slice_id": 29,
+        "condition": "knee-PD",
+        "psnr": 16.479158401489258
+      },
+      {
+        "volume": "file1001077.h5",
+        "slice_id": 10,
+        "condition": "knee-PD",
+        "psnr": 15.491438865661621
+      },
+      {
+        "volume": "file1001077.h5",
+        "slice_id": 26,
+        "condition": "knee-PD",
+        "psnr": 15.489383220672607
+      },
+      {
+        "volume": "file1001126.h5",
+        "slice_id": 11,
+        "condition": "knee-PD",
+        "psnr": 16.68223285675049
+      },
+      {
+        "volume": "file1001126.h5",
+        "slice_id": 28,
+        "condition": "knee-PD",
+        "psnr": 14.799034595489502
+      },
+      {
+        "volume": "file1001159.h5",
+        "slice_id": 7,
+        "condition": "knee-PDFS",
+        "psnr": 17.04964256286621
+      },
+      {
+        "volume": "file1001159.h5",
+        "slice_id": 23,
+        "condition": "knee-PDFS",
+        "psnr": 19.086827278137207
+      },
+      {
+        "volume": "file1001219.h5",
+        "slice_id": 11,
+        "condition": "knee-PD",
+        "psnr": 18.78654384613037
+      },
+      {
+        "volume": "file1001219.h5",
+        "slice_id": 28,
+        "condition": "knee-PD",
+        "psnr": 15.820810317993164
+      },
+      {
+        "volume": "file1001289.h5",
+        "slice_id": 11,
+        "condition": "knee-PDFS",
+        "psnr": 17.01163101196289
+      },
+      {
+        "volume": "file1001289.h5",
+        "slice_id": 28,
+        "condition": "knee-PDFS",
+        "psnr": 18.967247009277344
+      },
+      {
+        "volume": "file1001298.h5",
+        "slice_id": 7,
+        "condition": "knee-PD",
+        "psnr": 13.787073612213135
+      },
+      {
+        "volume": "file1001298.h5",
+        "slice_id": 23,
+        "condition": "knee-PD",
+        "psnr": 15.939724922180176
+      },
+      {
+        "volume": "file1001338.h5",
+        "slice_id": 3,
+        "condition": "knee-PDFS",
+        "psnr": 16.103618621826172
+      },
+      {
+        "volume": "file1001338.h5",
+        "slice_id": 35,
+        "condition": "knee-PDFS",
+        "psnr": 16.527175903320312
+      },
+      {
+        "volume": "file1001499.h5",
+        "slice_id": 18,
+        "condition": "knee-PDFS",
+        "psnr": 19.92064666748047
+      },
+      {
+        "volume": "file1001643.h5",
+        "slice_id": 4,
+        "condition": "knee-PDFS",
+        "psnr": 16.29425048828125
+      },
+      {
+        "volume": "file1001643.h5",
+        "slice_id": 20,
+        "condition": "knee-PDFS",
+        "psnr": 19.389105796813965
+      },
+      {
+        "volume": "file1001715.h5",
+        "slice_id": 13,
+        "condition": "knee-PD",
+        "psnr": 19.28248119354248
+      },
+      {
+        "volume": "file1001715.h5",
+        "slice_id": 29,
+        "condition": "knee-PD",
+        "psnr": 17.17880344390869
+      },
+      {
+        "volume": "file1001818.h5",
+        "slice_id": 16,
+        "condition": "knee-PDFS",
+        "psnr": 18.587539672851562
+      },
+      {
+        "volume": "file1001818.h5",
+        "slice_id": 32,
+        "condition": "knee-PDFS",
+        "psnr": 15.773377895355225
+      },
+      {
+        "volume": "file1001843.h5",
+        "slice_id": 33,
+        "condition": "knee-PD",
+        "psnr": 17.14198112487793
+      },
+      {
+        "volume": "file1002145.h5",
+        "slice_id": 13,
+        "condition": "knee-PDFS",
+        "psnr": 17.494863510131836
+      },
+      {
+        "volume": "file1002145.h5",
+        "slice_id": 29,
+        "condition": "knee-PDFS",
+        "psnr": 18.413294792175293
+      },
+      {
+        "volume": "file1002159.h5",
+        "slice_id": 11,
+        "condition": "knee-PDFS",
+        "psnr": 16.929627418518066
+      },
+      {
+        "volume": "file1002159.h5",
+        "slice_id": 27,
+        "condition": "knee-PDFS",
+        "psnr": 17.870283126831055
+      },
+      {
+        "volume": "file1002340.h5",
+        "slice_id": 33,
+        "condition": "knee-PDFS",
+        "psnr": 17.110759735107422
+      },
+      {
+        "volume": "file1002377.h5",
+        "slice_id": 29,
+        "condition": "knee-PDFS",
+        "psnr": 16.771974563598633
+      },
+      {
+        "volume": "file1002382.h5",
+        "slice_id": 9,
+        "condition": "knee-PD",
+        "psnr": 13.6201491355896
+      },
+      {
+        "volume": "file1002382.h5",
+        "slice_id": 26,
+        "condition": "knee-PD",
+        "psnr": 18.37947654724121
+      },
+      {
+        "volume": "file1002417.h5",
+        "slice_id": 2,
+        "condition": "knee-PD",
+        "psnr": 13.204418659210205
+      },
+      {
+        "volume": "file1002417.h5",
+        "slice_id": 18,
+        "condition": "knee-PD",
+        "psnr": 19.0863676071167
+      },
+      {
+        "volume": "file1002417.h5",
+        "slice_id": 35,
+        "condition": "knee-PD",
+        "psnr": 14.828330516815186
+      }
+    ]
+  },
+  "swap_cost": {
+    "psnr": {
+      "brain": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 31,
+        "n_volumes": 31,
+        "n_left_out": 7
+      },
+      "knee-PD": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 42,
+        "n_volumes": 20,
+        "n_left_out": 0
+      },
+      "knee-PDFS": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 40,
+        "n_volumes": 20,
+        "n_left_out": 0
+      },
+      "all": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 113,
+        "n_volumes": 71,
+        "n_left_out": 7
+      }
+    },
+    "ssim": {
+      "brain": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 31,
+        "n_volumes": 31,
+        "n_left_out": 7
+      },
+      "knee-PD": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 42,
+        "n_volumes": 20,
+        "n_left_out": 0
+      },
+      "knee-PDFS": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 40,
+        "n_volumes": 20,
+        "n_left_out": 0
+      },
+      "all": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 113,
+        "n_volumes": 71,
+        "n_left_out": 7
+      }
+    },
+    "nmse": {
+      "brain": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 31,
+        "n_volumes": 31,
+        "n_left_out": 7
+      },
+      "knee-PD": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 42,
+        "n_volumes": 20,
+        "n_left_out": 0
+      },
+      "knee-PDFS": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 40,
+        "n_volumes": 20,
+        "n_left_out": 0
+      },
+      "all": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 113,
+        "n_volumes": 71,
+        "n_left_out": 7
+      }
+    }
+  },
+  "swap_null": {
+    "donor_final_mask_equals_own": 1.0,
+    "must_be_1_for_a_data_blind_twin": true
+  },
+  "counterfactual_with_own_data_reproduces_every_step": true,
+  "data_swap": {
+    "moved_by_step": {
+      "brain": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "knee-PD": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "knee-PDFS": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "all": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "residual_change_rms_by_step": {
+      "brain": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "knee-PD": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "knee-PDFS": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "all": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  }
+}
