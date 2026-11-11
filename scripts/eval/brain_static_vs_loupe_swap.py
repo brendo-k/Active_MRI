@@ -7,6 +7,7 @@ the valid region of every slice (asserted), so swapping changes only the probabi
 
   --split val     full brain val (limit_volumes=1), as in eval.json
   --split train   the quarter of the brain train set the runs trained on (the run config's limit_volumes)
+  --arms          the donor arms; the follow-up (followup_proposal.md) adds frozen_learned and static_repeat
 
 Writes one file per recipient, <out>/swap_<split>_<recipient>.pt, holding per-slice PSNR/SSIM/NMSE for each
 donor and the slice volumes. brain_static_vs_loupe_swap_summary.py turns them into tables.
@@ -41,8 +42,10 @@ def parse_args():
     parser.add_argument('--queue', type=Path, required=True, help='folder holding <arm>_s<seed>/ run folders')
     parser.add_argument('--seeds', type=int, nargs='+', default=[42, 43, 44])
     parser.add_argument('--recipients', nargs='+', required=True, help='run names, e.g. static_s42')
+    parser.add_argument('--arms', nargs='+', default=list(ARMS),
+                        help='arms whose runs are donors; a seed without a run of an arm is skipped')
     parser.add_argument('--donors', choices=('all', 'same_seed', 'same_seed_and_uniform'), default='all',
-                        help='every run; the recipient seed\'s three arms; or those plus every loupe_uniform run')
+                        help='every run; the recipient seed\'s arms; or those plus every loupe_uniform run')
     parser.add_argument('--split', choices=('val', 'train'), default='val')
     parser.add_argument('--checkpoint', default='last_model.pt')
     parser.add_argument('--out', type=Path, default=OUT)
@@ -114,7 +117,7 @@ def score_swaps(models, classes, recipients, donors_of, loader, device):
 
 def main():
     args = parse_args()
-    names = [f'{arm}_s{seed}' for seed in args.seeds for arm in ARMS]
+    names = [f'{arm}_s{seed}' for seed in args.seeds for arm in args.arms if (args.queue / f'{arm}_s{seed}').is_dir()]
     donors_of = {r: [d for d in names if args.donors == 'all' or seed_of(d) == seed_of(r)
                      or (args.donors == 'same_seed_and_uniform' and d.startswith('loupe_uniform'))]
                  for r in args.recipients}
