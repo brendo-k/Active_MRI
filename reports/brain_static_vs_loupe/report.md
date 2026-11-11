@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Code | results produced at `64cd4ac` (brain_static_vs_loupe: criteria summary and mean-map figure); branch `exp/brain_static_vs_loupe` |
+| Code | results produced at `373530d` (brain_static_vs_loupe: paired t over seeds and S support check in the summary); branch `exp/brain_static_vs_loupe` |
 | Metric mask | **apodized**: k-space-apodized per-anatomy mask (activemri/utils/metric_mask.py), the trainer metric since 2026-10-20 |
 | Runs | 9 checkpoint directories under `checkpoints/` (untracked; names, overrides, wandb ids in `manifest.json`) |
 | Results | 6 files next to this report, hashed in `manifest.json` |
@@ -10,7 +10,7 @@
 
 - **Status**: awaiting the user's verdict.
 - **Branch**: `exp/brain_static_vs_loupe`. Runs trained at `f218677` (detached snapshot `../SeqMRI-worktrees/run-bsl-f218677`). Eval
-  script unchanged since `fa42786`; summary at `64cd4ac`. Frozen proposal: `proposal.md` (commit `8d6b778`).
+  script unchanged since `fa42786`; summary at `373530d`. Frozen proposal: `proposal.md` (commit `8d6b778`).
 - **Proposal vs outcome** (primary contrast loupe_shared − static, PSNR on the full brain val set):
 
 | Frozen criterion | Number | Met? |
@@ -101,6 +101,9 @@ Paired PSNR difference (dB) per seed, with 95% CI over volumes:
   - Seed spread is 0.44 dB (static), 0.68 (loupe_shared) and 0.59 (loupe_uniform), several times every mean effect.
   - Each paired CI covers only its own seed's ~600 slices, so a CI that excludes zero does not make the effect
     reproducible: s43 and s44 disagree on the sign of the start effect.
+  - Over seeds, paired t = mean / (SD/√3) is −1.74 (loupe_shared − static), −1.34 (loupe_uniform − static) and +0.33
+    (start effect), on 2 df. None is significant, so "leaning static" and the secondary "static wins" verdict are
+    weak.
 
 SSIM and NMSE follow PSNR. Paired SSIM differences are within ±0.002 everywhere (loupe_shared − static: +0.0005,
 −0.0006, −0.0011).
@@ -112,11 +115,17 @@ Budget relocated from S:
 | loupe_shared | 13.3% | 15.9% | 13.0% |
 | loupe_uniform | 44.3% | 47.6% | 44.1% |
 
-The LOUPE masks did move. loupe_shared moved 13–16% of the budget, about a third of what full-data runs moved
-(42–57%). The figure shows that loupe_shared's move is a re-weighting inside S's support:
+The LOUPE masks did move. loupe_shared moved 13–16% of the budget. Full-data runs moved 42–57%, but from a VD start,
+not from an already-learned mask, so the two are not directly comparable. The figure shows that loupe_shared's move is
+a re-weighting inside S's support:
 - more weight near the centre and along the horizontal band;
 - less on the outer lobes;
 - no sampling outside S's sharp-edged support.
+
+That support is measured, not just seen:
+- Within the acquired extent (where any loupe_uniform map is above 0), S has p = sigmoid(10·w) < 1e-3 on 66.7% of
+  the area.
+- After 65 epochs, loupe_shared's largest p there is 0.003, 0.009 and 0.001 (s42, s43, s44).
 
 loupe_uniform ends as a diffuse, roughly radial blob. After 1,235 steps it still carries visible noise.
 
@@ -125,8 +134,9 @@ loupe_uniform ends as a diffuse, roughly radial blob. After 1,235 steps it still
   −0.16 dB (loupe_uniform), against 0.44 dB seed spread. Removing joint training did not reveal a brain-specific mask
   gain. So the explanation "the shared VarNet holds back per-condition masks" is not supported for brain at this
   budget.
-- The frozen shared mask was at least as good as any learned mask in 8 of 9 runs. Within the measured range, mask
-  shape matters little for brain, consistent with the earlier small per-condition gains.
+- The frozen shared mask was at least as good as the learned mask in 5 of 6 paired comparisons (the exception is
+  loupe_shared s42, +0.009 dB). Within the measured range, mask shape matters little for brain, consistent with the
+  earlier small per-condition gains.
 - **Hypothesis, untested:** LOUPE's mask moves on 301 slices partly fit the training set or co-adapt with a VarNet
   that is still training. That would explain why learning slightly hurts rather than ties. A full-data brain-only
   rerun would test it.
@@ -138,8 +148,10 @@ loupe_uniform ends as a diffuse, roughly radial blob. After 1,235 steps it still
   - The mask moved, but 1,235 steps is about 1/13 of a full-data run.
   - A brain-only run on full data might let LOUPE find a better brain mask. This experiment cannot rule that out.
 - **S's support.**
-  - S has a sharp-edged support. Outside it the logits are saturated, so loupe_shared cannot reach that k-space in
-    practice.
+  - S has a sharp-edged support: p < 1e-3 on two thirds of the acquired extent, and no loupe_shared run exceeded
+    p = 0.009 there (measured).
+  - That loupe_shared *cannot* leave it, because the sigmoid gradient vanishes there, is a hypothesis, untested. The
+    measurement only shows that it did not leave in 1,235 steps.
   - A "brain-specific mask" here therefore means a re-weighting of S, not a free search.
   - loupe_uniform has no such limit, but its mask is under-converged.
 - **The shared mask came from a VD p=4 start and full data,** while the brain-only VarNets trained on a quarter of the

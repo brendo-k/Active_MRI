@@ -1,10 +1,10 @@
 {
   "schema": 1,
-  "generated_at": "2026-11-11T01:23:52+00:00",
+  "generated_at": "2026-11-11T01:28:58+00:00",
   "code": {
-    "produced_at": "64cd4acea5d6cf0ca34975ed6aa195abaa932b69",
-    "produced_at_subject": "brain_static_vs_loupe: criteria summary and mean-map figure",
-    "head": "64cd4acea5d6cf0ca34975ed6aa195abaa932b69",
+    "produced_at": "373530dbb221583d68b1093b9123ec908e2004f6",
+    "produced_at_subject": "brain_static_vs_loupe: paired t over seeds and S support check in the summary",
+    "head": "373530dbb221583d68b1093b9123ec908e2004f6",
     "branch": "exp/brain_static_vs_loupe",
     "dirty_tracked_files": [],
     "scripts": [
@@ -410,7 +410,7 @@
   ],
   "commands": [
     "CUDA_VISIBLE_DEVICES=0 python scripts/eval/brain_static_vs_loupe_eval.py --queue $QUEUE --seeds 42 43 44 --out $OUT",
-    "python scripts/eval/brain_static_vs_loupe_summary.py --report $OUT"
+    "python scripts/eval/brain_static_vs_loupe_summary.py --report $OUT --queue $QUEUE --shared ~/data/seqmri_checkpoints/loss_domain/runs_v2/loss_domain_rss_r8_flair_knee_100ep_seed42/best_model.pt"
   ],
   "results": [
     {
@@ -440,8 +440,8 @@
     },
     {
       "path": "summary.json",
-      "bytes": 5606,
-      "sha256": "e14837a3aefd9370"
+      "bytes": 5980,
+      "sha256": "edbd74bb7c4bf2c9"
     }
   ]
 }

@@ -111,6 +111,7 @@
         "44": 0.00015898689161986113
       },
       "mean_paired_psnr": -0.12006948981434107,
+      "paired_t_over_seeds": -1.7391721286651833,
       "seed_swap_psnr_range": [
         -0.6692237854003906,
         0.4513664245605469
@@ -148,6 +149,7 @@
         "44": 0.0005246578366495669
       },
       "mean_paired_psnr": -0.16369126612941423,
+      "paired_t_over_seeds": -1.335086530619328,
       "seed_swap_psnr_range": [
         -0.6418609619140625,
         0.3948516845703125
@@ -185,6 +187,7 @@
         "44": -0.0003656709159258753
       },
       "mean_paired_psnr": 0.04362177476286888,
+      "paired_t_over_seeds": 0.32914708090877914,
       "seed_swap_psnr_range": [
         -0.6217918395996094,
         0.6509437561035156
@@ -216,5 +219,13 @@
     "primary_loupe_shared-static": "inconclusive",
     "secondary_loupe_uniform-static": "second arm wins",
     "start_effect_loupe_shared-loupe_uniform": "no effect"
+  },
+  "shared_support": {
+    "shared_dead_share_of_extent": 0.6672207117080688,
+    "loupe_shared_max_p_in_dead": {
+      "42": 0.0030224965885281563,
+      "43": 0.0092611163854599,
+      "44": 0.0014273558044806123
+    }
   }
 }
