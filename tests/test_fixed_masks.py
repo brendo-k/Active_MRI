@@ -39,6 +39,28 @@ def test_each_anatomy_gets_its_own_mask_and_the_sampler_is_frozen(tmp_path):
     assert not mask.requires_grad
 
 
+def test_conditioned_source_gives_its_row_for_the_same_anatomy(tmp_path):
+    rows = ProbMask(SHAPE, slope=10, num_conditioning_classes=3).mask.detach()
+    source = SimpleNamespace(slope=10, label_classes=['knee', 'spine', 'brain'])
+    torch.save({'options': source, 'model': {'sampler.mask_net.mask': rows}}, tmp_path / 'conditioned.pt')
+    shared = save_single_mask(tmp_path / 'shared.pt')
+    trainer = fake_trainer()
+    Sequential_Trainer._load_fixed_masks(
+        trainer, {'brain': str(tmp_path / 'conditioned.pt'), 'knee': str(tmp_path / 'shared.pt')})
+    mask = trainer.model.sampler.mask_net.mask
+    assert torch.equal(mask[0], rows[2]) and torch.equal(mask[1], shared[0])
+
+
+def test_conditioned_source_without_the_anatomy_is_rejected(tmp_path):
+    rows = ProbMask(SHAPE, slope=10, num_conditioning_classes=2).mask.detach()
+    source = SimpleNamespace(slope=10, label_classes=['knee', 'spine'])
+    torch.save({'options': source, 'model': {'sampler.mask_net.mask': rows}}, tmp_path / 'conditioned.pt')
+    save_single_mask(tmp_path / 'shared.pt')
+    with pytest.raises(ValueError, match='none is brain'):
+        Sequential_Trainer._load_fixed_masks(
+            fake_trainer(), {'brain': str(tmp_path / 'conditioned.pt'), 'knee': str(tmp_path / 'shared.pt')})
+
+
 def test_requires_conditioned_loupe_sampler(tmp_path):
     save_single_mask(tmp_path / 'a.pt')
     with pytest.raises(ValueError, match='anatomy_conditioning'):

@@ -116,7 +116,7 @@ class TrainConfig:
     mnet_init_margin: float = 0.1  # mnet_2d: label logits start at +margin on the mnet mask's locations, -margin elsewhere
     mnet_label_lr: Optional[float] = 0.02  # mnet_2d: lr of the label logits in mask-backward; None = same as `lr`
     freeze_recon: bool = False
-    fixed_mask_checkpoints: Optional[Dict[str, str]] = None  # anatomy -> loupe_2d checkpoint whose learned mask is copied into that anatomy's slot and frozen; needs anatomy_conditioning
+    fixed_mask_checkpoints: Optional[Dict[str, str]] = None  # anatomy -> loupe_2d checkpoint whose learned mask (its row for that anatomy, if it has one per anatomy) is copied into that anatomy's slot and frozen; needs anatomy_conditioning
     budget_over: str = 'grid'  # 'acquired': 1/R of each slice's acquired k-space; 'grid' (older runs): 1/R of the grid, spent inside the acquired region
     sampler_coil_combine: str = 'sense'  # sampler input image: 'sense' (maps' free common phase makes it phase-random) or 'rss' of the coil images
     sense_mask_method: Optional[str] = 'pre_network'

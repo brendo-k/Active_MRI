@@ -100,7 +100,7 @@ sampler:
   mnet_init_margin: 0.1  # mnet_2d: label logits start at +margin on the mnet mask's locations, -margin elsewhere
   mnet_label_lr: 0.02  # mnet_2d: lr of the label logits in mask-backward; null = training.lr. Adam moves a logit about lr per step, so lr * mnet_label_steps must reach 2 * mnet_init_margin for any location to swap
   freeze_recon: false  # freeze reconstructor+sensetivity_net, train only the sampler
-  fixed_mask_checkpoints: null  # {brain: ckpt, knee: ckpt}: copy each loupe_2d checkpoint's mask into that anatomy's slot and freeze it (with anatomy_conditioning: true)
+  fixed_mask_checkpoints: null  # {brain: ckpt, knee: ckpt}: copy each loupe_2d checkpoint's mask (its row for that anatomy, if it has one per anatomy) into that anatomy's slot and freeze it (with anatomy_conditioning: true)
   with_recon: false
   with_gfactor: false
   gfactor_replicas: 16

@@ -132,7 +132,10 @@ class Sequential_Trainer:
 
     def _load_fixed_masks(self, checkpoints: Dict[str, str]):
         """Copy each anatomy's learned LOUPE mask from its own checkpoint into the
-        conditioned sampler and freeze the sampler, so only the reconstructor trains."""
+        conditioned sampler and freeze the sampler, so only the reconstructor trains.
+
+        A checkpoint with one mask (a shared run) gives that mask; one with a mask per
+        anatomy (a conditioned run) gives its row for the same anatomy."""
         options = self.options
         if options.sampler_type != 'loupe_2d' or not options.anatomy_conditioning:
             raise ValueError("fixed_mask_checkpoints needs sampler_type=loupe_2d with anatomy_conditioning=true")
@@ -144,11 +147,16 @@ class Sequential_Trainer:
             if checkpoint['options'].slope != options.slope:
                 raise ValueError(f"{path} was trained with slope {checkpoint['options'].slope}, not {options.slope}")
             logits = checkpoint['model']['sampler.mask_net.mask']
-            if logits.shape[0] != 1:
-                raise ValueError(f"{path} holds {logits.shape[0]} masks; expected one learned mask")
+            source_classes = list(getattr(checkpoint['options'], 'label_classes', None) or [])
+            if logits.shape[0] == 1:
+                row = 0
+            elif len(source_classes) == logits.shape[0] and anatomy in source_classes:
+                row = source_classes.index(anatomy)
+            else:
+                raise ValueError(f"{path} holds {logits.shape[0]} masks for classes {source_classes}; none is {anatomy}")
             with torch.no_grad():
-                mask[self.anatomy_to_idx[anatomy]] = logits[0].to(mask)
-            self.logger.info(f"Fixed the {anatomy} mask to the one learned in {path}")
+                mask[self.anatomy_to_idx[anatomy]] = logits[row].to(mask)
+            self.logger.info(f"Fixed the {anatomy} mask to the one learned in {path} (row {row})")
         mask.requires_grad_(False)
 
     def _init_mask_from(self, path: str):
