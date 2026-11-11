@@ -4,8 +4,12 @@ Paired contrasts come from brain_static_vs_loupe_eval.py (per slice, full brain 
   seed spread      max - min of an arm's mean PSNR over seeds
   seed swap        arm_a(seed i) - arm_b(seed j), i != j: the gap an unpaired comparison would see
   criteria         thresholds 3-6 of the proposal, applied to each contrast; 1 (SSIM >= 0.80) and 2 (budget >= 10%)
+  paired t         mean / (SD / sqrt(n)) of the per-seed paired PSNR differences (n = seeds, n - 1 df)
+  S support        within the acquired extent (where any loupe_uniform map is > 0), the share where S has
+                   p = sigmoid(slope * w) < 1e-3, and each loupe_shared run's largest p there
 
-    python scripts/eval/brain_static_vs_loupe_summary.py --report reports/brain_static_vs_loupe
+    python scripts/eval/brain_static_vs_loupe_summary.py --report reports/brain_static_vs_loupe \
+        --queue ~/data/seqmri_checkpoints/brain_static_vs_loupe --shared <S best_model.pt>
 """
 import argparse
 import itertools
@@ -15,10 +19,26 @@ from pathlib import Path
 import numpy as np
 import torch
 
+import _path  # noqa: F401  (checkpoint options unpickle from activemri)
+
 ARMS = ('static', 'loupe_shared', 'loupe_uniform')
 CONTRASTS = (('loupe_shared', 'static'), ('loupe_uniform', 'static'), ('loupe_shared', 'loupe_uniform'))
 WIN, TIE = 0.10, 0.05
 MIN_SSIM, MIN_RELOCATED = 0.80, 0.10
+DEAD_P = 1e-3
+
+
+def mask_probability(checkpoint_path):
+    checkpoint = torch.load(checkpoint_path, map_location='cpu', weights_only=False)
+    return torch.sigmoid(checkpoint['options'].slope * checkpoint['model']['sampler.mask_net.mask'][0, ..., 0].float())
+
+
+def support_check(shared, queue, maps, seeds):
+    extent = torch.stack([maps[f'loupe_uniform_s{s}'].float() > 0 for s in seeds]).any(0)
+    dead = (mask_probability(shared) < DEAD_P) & extent
+    return {'shared_dead_share_of_extent': float(dead.sum() / extent.sum()),
+            'loupe_shared_max_p_in_dead': {str(s): float(mask_probability(queue / f'loupe_shared_s{s}' / 'last_model.pt')[dead].max())
+                                           for s in seeds}}
 
 
 def verdict(deltas, spread):
@@ -60,6 +80,8 @@ def plot_maps(maps, seeds, path):
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('--report', type=Path, required=True)
+    parser.add_argument('--queue', type=Path, required=True, help='folder holding <arm>_s<seed>/ run folders')
+    parser.add_argument('--shared', type=Path, required=True, help='checkpoint of the shared mask S')
     args = parser.parse_args()
     evaluated = json.loads((args.report / 'eval.json').read_text())
     runs, contrasts, relocated = evaluated['runs'], evaluated['contrasts'], evaluated['budget_relocated_vs_static']
@@ -83,6 +105,7 @@ def main():
             'paired_ssim_by_seed': {str(s): contrasts[f'{a}-{b}_s{s}']['ssim']['mean'] for s in seeds},
             'paired_nmse_by_seed': {str(s): contrasts[f'{a}-{b}_s{s}']['nmse']['mean'] for s in seeds},
             'mean_paired_psnr': float(np.mean(paired)),
+            'paired_t_over_seeds': float(np.mean(paired) / (np.std(paired, ddof=1) / np.sqrt(len(paired)))),
             'seed_swap_psnr_range': [float(min(swapped)), float(max(swapped))],
             'verdict': verdict(paired, static_spread),
         }
@@ -96,6 +119,8 @@ def main():
         'secondary_loupe_uniform-static': summary['contrasts']['loupe_uniform-static']['verdict'],
         'start_effect_loupe_shared-loupe_uniform': summary['contrasts']['loupe_shared-loupe_uniform']['verdict'],
     }
+    per_slice = torch.load(args.report / 'eval_per_slice.pt', weights_only=False)
+    summary['shared_support'] = support_check(args.shared, args.queue, per_slice['maps'], seeds)
     (args.report / 'summary.json').write_text(json.dumps(summary, indent=2) + '\n')
 
     lines = ['| contrast | ' + ' | '.join(f's{s}' for s in seeds) + ' | mean | seed-swap range | verdict |',
@@ -108,9 +133,10 @@ def main():
                      f"{swap[0]:+.2f} to {swap[1]:+.2f} | {c['verdict']} |")
     print('\n'.join(lines))
     print('seed spread (PSNR max - min):', {k: round(v, 3) for k, v in summary['seed_spread_psnr'].items()})
+    print('paired t over seeds:', {k: round(c['paired_t_over_seeds'], 2) for k, c in summary['contrasts'].items()})
+    print('S support:', summary['shared_support'])
     print('criteria:', json.dumps(summary['criteria'], indent=1))
 
-    per_slice = torch.load(args.report / 'eval_per_slice.pt', weights_only=False)
     plot_maps(per_slice['maps'], seeds, args.report / 'figures' / 'mean_brain_maps.png')
 
 
