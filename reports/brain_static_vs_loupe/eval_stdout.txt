@@ -1,0 +1,48 @@
+Manifest train set (volumes, slices): {'brain': (80, 1211)}
+Manifest val set (volumes, slices): {'brain': (40, 605), 'knee-PD': (20, 673), 'knee-PDFS': (20, 660)}
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+('static', 42) {'psnr': 36.4337, 'ssim': 0.9516, 'nmse': 0.006, 'fraction': 0.081}
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+('loupe_shared', 42) {'psnr': 36.4428, 'ssim': 0.9521, 'nmse': 0.006, 'fraction': 0.081}
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+('loupe_uniform', 42) {'psnr': 36.3863, 'ssim': 0.9523, 'nmse': 0.006, 'fraction': 0.081}
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+('static', 43) {'psnr': 35.9915, 'ssim': 0.9499, 'nmse': 0.0067, 'fraction': 0.081}
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+('loupe_shared', 43) {'psnr': 35.7645, 'ssim': 0.9493, 'nmse': 0.007, 'fraction': 0.081}
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+('loupe_uniform', 43) {'psnr': 35.9566, 'ssim': 0.95, 'nmse': 0.0066, 'fraction': 0.081}
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+('static', 44) {'psnr': 36.2007, 'ssim': 0.9507, 'nmse': 0.0064, 'fraction': 0.081}
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+('loupe_shared', 44) {'psnr': 36.0583, 'ssim': 0.9496, 'nmse': 0.0066, 'fraction': 0.081}
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+('loupe_uniform', 44) {'psnr': 35.7919, 'ssim': 0.9489, 'nmse': 0.0069, 'fraction': 0.081}
+loupe_shared-static_s42              PSNR +0.009 [-0.016, +0.036]
+loupe_uniform-static_s42             PSNR -0.047 [-0.099, +0.003]
+loupe_shared-loupe_uniform_s42       PSNR +0.057 [+0.001, +0.111]
+loupe_shared-static_s43              PSNR -0.227 [-0.314, -0.135]
+loupe_uniform-static_s43             PSNR -0.035 [-0.130, +0.073]
+loupe_shared-loupe_uniform_s43       PSNR -0.192 [-0.288, -0.097]
+loupe_shared-static_s44              PSNR -0.142 [-0.183, -0.100]
+loupe_uniform-static_s44             PSNR -0.409 [-0.490, -0.339]
+loupe_shared-loupe_uniform_s44       PSNR +0.266 [+0.197, +0.343]
+budget relocated vs static map: {'loupe_shared_s42': 0.13309605419635773, 'loupe_uniform_s42': 0.44269031286239624, 'loupe_shared_s43': 0.159209743142128, 'loupe_uniform_s43': 0.4755159020423889, 'loupe_shared_s44': 0.12988056242465973, 'loupe_uniform_s44': 0.4410102665424347}
