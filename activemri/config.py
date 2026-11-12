@@ -17,8 +17,9 @@ class TrainConfig:
     lr: float = 0.001
     lr_step_size: int = 40
     lr_gamma: float = 0.1
-    lr_scheduler: str = 'step'  # step | constant | cosine | warmup_cosine
-    lr_warmup_epochs: int = 2  # warmup_cosine only: linear ramp from 10% of lr
+    lr_scheduler: str = 'step'  # step | constant | cosine | warmup_cosine | wsd
+    lr_warmup_epochs: int = 2  # warmup_cosine and wsd: linear ramp from 10% of lr
+    lr_decay_fraction: float = 0.2  # wsd: linear decay to 0 over this last fraction of the epochs
     weight_decay: float = 0.0
     optimizer: str = 'adam'  # adam | muon (Muon on the U-Nets' hidden convolutions, Adam on the rest)
     muon_lr: Optional[float] = None  # lr of the Muon group; None = lr (Muon updates are RMS-matched to Adam's)

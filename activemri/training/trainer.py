@@ -1019,14 +1019,26 @@ def build_lr_scheduler(options: TrainConfig, optimizer):
         progress = min(epoch / total, 1.0)
         return COSINE_FLOOR + (1 - COSINE_FLOOR) * 0.5 * (1 + math.cos(math.pi * progress))
 
+    def warmup_ramp(epoch):
+        return WARMUP_START + (1 - WARMUP_START) * epoch / warmup
+
+    decay_epochs = max(round(total * options.lr_decay_fraction), 1)
+
+    def warmup_stable_decay(epoch):
+        if epoch < warmup:
+            return warmup_ramp(epoch)
+        return min(1.0, max(total - epoch, 0) / decay_epochs)
+
     if kind == 'constant':
         factor = lambda epoch: 1.0
     elif kind == 'cosine':
         factor = cosine
     elif kind == 'warmup_cosine':
-        factor = lambda epoch: WARMUP_START + (1 - WARMUP_START) * epoch / warmup if epoch < warmup else cosine(epoch)
+        factor = lambda epoch: warmup_ramp(epoch) if epoch < warmup else cosine(epoch)
+    elif kind == 'wsd':
+        factor = warmup_stable_decay
     else:
-        raise ValueError(f"Unknown lr_scheduler {kind!r}; expected step, constant, cosine or warmup_cosine")
+        raise ValueError(f"Unknown lr_scheduler {kind!r}; expected step, constant, cosine, warmup_cosine or wsd")
     return torch.optim.lr_scheduler.LambdaLR(optimizer, factor)
 
 

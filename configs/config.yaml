@@ -10,8 +10,9 @@ training:
   lr: 0.001
   lr_step_size: 40
   lr_gamma: 0.1
-  lr_scheduler: step  # step | constant | cosine | warmup_cosine
-  lr_warmup_epochs: 2  # warmup_cosine only
+  lr_scheduler: step  # step | constant | cosine | warmup_cosine | wsd (warmup, constant, linear decay to 0)
+  lr_warmup_epochs: 2  # warmup_cosine and wsd
+  lr_decay_fraction: 0.2  # wsd: the last fraction of the epochs decays linearly to 0
   weight_decay: 0.0
   optimizer: muon  # adam | muon: Muon (orthogonalised momentum) on the U-Nets' hidden convolutions, Adam on everything else. Muon + LayerNorm is the default since 2026-11-04, measured on VarNet + LOUPE at R=8 only (reports/muon_layer_speed/report.md); the earlier default is training.optimizer=adam recon.norm=instance sampler.sens_norm=instance training.channels_last_unets=false
   muon_lr: null  # lr of the Muon group; null = training.lr (Muon's update RMS is matched to Adam's)

@@ -40,6 +40,7 @@ def build_train_config(cfg: DictConfig) -> TrainConfig:
         lr_gamma=cfg.training.lr_gamma,
         lr_scheduler=cfg.training.get('lr_scheduler', 'step'),
         lr_warmup_epochs=cfg.training.get('lr_warmup_epochs', 2),
+        lr_decay_fraction=cfg.training.get('lr_decay_fraction', 0.2),
         weight_decay=cfg.training.weight_decay,
         optimizer=cfg.training.get('optimizer', 'adam'),
         muon_lr=cfg.training.get('muon_lr', None),
