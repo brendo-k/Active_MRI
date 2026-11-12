@@ -1,0 +1,377 @@
+{
+  "name": "A_4_s42_rec",
+  "run": "/home/remote/bkadota/scratch/multistep_adaptivity/runs/A_4_s42_rec",
+  "checkpoint": "last_model.pt",
+  "epoch": 29,
+  "training_code": {
+    "commit": "44c3fbad37d34017b8f1145667c64b78519bf4c9",
+    "branch": "exp/multistep_adaptivity",
+    "dirty_tracked_files": [],
+    "started_at": "2026-11-11T09:17:08+00:00",
+    "argv": [
+      "train.py",
+      "hydra.job.name=train_sequential",
+      "recon=varnet",
+      "datasets=fastmri_local_v1_flair_knee",
+      "training.batch_size=16",
+      "training.seed=42",
+      "sampler.accelerations=[8.0]",
+      "sampler.sampler_type=seq_adapt_2d",
+      "sampler.anatomy_conditioning=true",
+      "training.num_step=4",
+      "sampler.data_blind=false",
+      "sampler.input=recon",
+      "sampler.input_recon_checkpoint=/home/remote/bkadota/scratch/multistep_adaptivity/runs/B_42/last_model.pt",
+      "training.num_epochs=30",
+      "training.lr=1e-4",
+      "training.lr_scheduler=constant",
+      "sampler.residual_lr=1e-4",
+      "output.pretrained_recon=/home/remote/bkadota/scratch/multistep_adaptivity/runs/B_42/last_model.pt",
+      "sampler.init_mask_checkpoint=/home/remote/bkadota/scratch/multistep_adaptivity/runs/B_42/last_model.pt",
+      "training.save_epochs=[10]",
+      "misc.resolution=[320,320]",
+      "sampler.budget_over=acquired",
+      "datasets.limit_volumes=1",
+      "datasets.roots.hpc=\"~/scratch/data/fastmri/{anatomy}/data\"",
+      "datasets.roots.local_batch2=\"~/scratch/data/fastmri/knee/data\"",
+      "output.out_dir=/home/remote/bkadota/scratch/multistep_adaptivity/runs/A_4_s42_rec"
+    ]
+  },
+  "eval_code": {
+    "commit": "44c3fbad37d34017b8f1145667c64b78519bf4c9",
+    "branch": "exp/multistep_adaptivity",
+    "dirty_tracked_files": []
+  },
+  "options": {
+    "sampler_type": "seq_adapt_2d",
+    "num_step": 4,
+    "data_blind": false,
+    "accelerations": [
+      8.0
+    ],
+    "budget_over": "acquired",
+    "seed": 42,
+    "residual_chans": 16,
+    "residual_depth": 4,
+    "residual_limit": 6.0,
+    "residual_lr": 0.0001,
+    "anatomy_conditioning": true,
+    "loss_type": "l1"
+  },
+  "draw_seeds": [
+    1234,
+    4321
+  ],
+  "slices": {
+    "count": 1938,
+    "hash": "78f07c157c6da5d9179222389da803cdbfee71ee"
+  },
+  "means": {
+    "psnr": {
+      "brain": 32.97496263330633,
+      "knee-PD": 36.09397748179103,
+      "knee-PDFS": 32.39258437156677,
+      "all": 33.859754862554055
+    },
+    "ssim": {
+      "brain": 0.8860806638233729,
+      "knee-PD": 0.9228987762569374,
+      "knee-PDFS": 0.784939961260097,
+      "all": 0.8644221116954197
+    },
+    "nmse": {
+      "brain": 0.004891409435067018,
+      "knee-PD": 0.0025442492240480455,
+      "knee-PDFS": 0.00872434743020373,
+      "all": 0.0053816572445481645
+    },
+    "realised_fraction": {
+      "brain": 0.1249747872167875,
+      "knee-PD": 0.1250175360595755,
+      "knee-PDFS": 0.12496388206879298,
+      "all": 0.12498591857567291
+    }
+  },
+  "by_step": {
+    "step_new": {
+      "brain": [
+        2050.4454545454546,
+        2047.6512396694216,
+        2048.469421487603,
+        2051.5388429752065
+      ],
+      "knee-PD": [
+        3174.934621099554,
+        3174.5007429420507,
+        3175.450222882615,
+        3176.910104011887
+      ],
+      "knee-PDFS": [
+        3171.159090909091,
+        3175.815909090909,
+        3175.1045454545456,
+        3174.2219696969696
+      ],
+      "all": [
+        2822.608617131063,
+        2823.171568627451,
+        2823.5144478844168,
+        2824.6790505675954
+      ]
+    },
+    "step_budget": {
+      "brain": [
+        2049.5719008264464,
+        2049.5719008264464,
+        2049.5719008264464,
+        2049.5719008264464
+      ],
+      "knee-PD": [
+        3175.0,
+        3175.0,
+        3175.0,
+        3175.0
+      ],
+      "knee-PDFS": [
+        3175.0,
+        3175.0,
+        3175.0,
+        3175.0
+      ],
+      "all": [
+        2823.6666666666665,
+        2823.6666666666665,
+        2823.6666666666665,
+        2823.6666666666665
+      ]
+    },
+    "residual_rms": {
+      "brain": [
+        1.9558180407059094,
+        2.1310238736720124,
+        1.897917572230347,
+        2.0641394729456626
+      ],
+      "knee-PD": [
+        1.9310260538183386,
+        2.1844000221184423,
+        1.9113768904205595,
+        2.022308190722699
+      ],
+      "knee-PDFS": [
+        1.932705614422307,
+        2.139990597963333,
+        1.9922785460948944,
+        2.1471867646231795
+      ],
+      "all": [
+        1.9393375409522908,
+        2.1526132369004536,
+        1.9347268415247816,
+        2.0778952828378747
+      ]
+    }
+  },
+  "donors": {
+    "matched": 1848,
+    "unmatched": {
+      "brain": 90,
+      "knee-PD": 0,
+      "knee-PDFS": 0
+    }
+  },
+  "guards": {
+    "ssim_pooled": 0.8644221116954197,
+    "ssim_at_least_0.80": true,
+    "realised_fraction_target": 0.125,
+    "realised_fraction_within_0.002": true,
+    "failed_reconstructions_below_20dB": []
+  },
+  "swap_cost": {
+    "psnr": {
+      "brain": {
+        "mean": 0.013537299517288949,
+        "ci95": [
+          0.005174217583129765,
+          0.021204893601899134
+        ],
+        "n_slices": 515,
+        "n_volumes": 34,
+        "n_left_out": 90
+      },
+      "knee-PD": {
+        "mean": 0.05930523921972221,
+        "ci95": [
+          0.04138053032826047,
+          0.0819626466421571
+        ],
+        "n_slices": 673,
+        "n_volumes": 20,
+        "n_left_out": 0
+      },
+      "knee-PDFS": {
+        "mean": 0.030923157027273468,
+        "ci95": [
+          0.02086882268607841,
+          0.03859546985062157
+        ],
+        "n_slices": 660,
+        "n_volumes": 20,
+        "n_left_out": 0
+      },
+      "all": {
+        "mean": 0.03641418770794229,
+        "ci95": [
+          0.028342776556236737,
+          0.04581434694720475
+        ],
+        "n_slices": 1848,
+        "n_volumes": 74,
+        "n_left_out": 90
+      }
+    },
+    "ssim": {
+      "brain": {
+        "mean": 0.0003222387040262879,
+        "ci95": [
+          0.00010765209732251915,
+          0.0004945724061411439
+        ],
+        "n_slices": 515,
+        "n_volumes": 34,
+        "n_left_out": 90
+      },
+      "knee-PD": {
+        "mean": 0.0006451245494071077,
+        "ci95": [
+          0.000570752416666696,
+          0.0007244387927711628
+        ],
+        "n_slices": 673,
+        "n_volumes": 20,
+        "n_left_out": 0
+      },
+      "knee-PDFS": {
+        "mean": 0.000717111035163214,
+        "ci95": [
+          0.000586951628414762,
+          0.0008329655879769663
+        ],
+        "n_slices": 660,
+        "n_volumes": 20,
+        "n_left_out": 0
+      },
+      "all": {
+        "mean": 0.0005808522930369279,
+        "ci95": [
+          0.0004992910968987382,
+          0.0006537347864514567
+        ],
+        "n_slices": 1848,
+        "n_volumes": 74,
+        "n_left_out": 90
+      }
+    },
+    "nmse": {
+      "brain": {
+        "mean": -1.3807212630992086e-05,
+        "ci95": [
+          -2.2611389148646647e-05,
+          -4.05688958925775e-06
+        ],
+        "n_slices": 515,
+        "n_volumes": 34,
+        "n_left_out": 90
+      },
+      "knee-PD": {
+        "mean": -2.34125303767032e-05,
+        "ci95": [
+          -2.825442934771174e-05,
+          -1.861132241548234e-05
+        ],
+        "n_slices": 673,
+        "n_volumes": 20,
+        "n_left_out": 0
+      },
+      "knee-PDFS": {
+        "mean": -4.14315508819665e-05,
+        "ci95": [
+          -6.257587301153236e-05,
+          -1.0497605720971339e-05
+        ],
+        "n_slices": 660,
+        "n_volumes": 20,
+        "n_left_out": 0
+      },
+      "all": {
+        "mean": -2.7171088220010857e-05,
+        "ci95": [
+          -3.575060295688292e-05,
+          -1.5177670785412652e-05
+        ],
+        "n_slices": 1848,
+        "n_volumes": 74,
+        "n_left_out": 90
+      }
+    }
+  },
+  "swap_null": {
+    "donor_final_mask_equals_own": 0.0,
+    "must_be_1_for_a_data_blind_twin": false
+  },
+  "counterfactual_with_own_data_reproduces_every_step": true,
+  "data_swap": {
+    "moved_by_step": {
+      "brain": [
+        0.04665621515864307,
+        0.038528250765041856,
+        0.05557504335669203,
+        0.07623296421164298
+      ],
+      "knee-PD": [
+        0.025622509187810675,
+        0.05253855478191881,
+        0.06732018193993897,
+        0.12968460697609868
+      ],
+      "knee-PDFS": [
+        0.023859744140453044,
+        0.057163850110866374,
+        0.1232432633732167,
+        0.11468975509710079
+      ],
+      "all": [
+        0.030854616137877038,
+        0.050286059299458744,
+        0.08401957987045375,
+        0.10943341743939229
+      ]
+    },
+    "residual_change_rms_by_step": {
+      "brain": [
+        0.42271211795436525,
+        0.27400554771562224,
+        0.40950988519538956,
+        0.3588228775459586
+      ],
+      "knee-PD": [
+        0.4844612583717301,
+        0.3481386164521569,
+        0.7136918358604408,
+        0.5888100917635134
+      ],
+      "knee-PDFS": [
+        0.4667417588559064,
+        0.3862601886644508,
+        0.8515714789881851,
+        0.7120408250301173
+      ],
+      "all": [
+        0.4609246366209798,
+        0.34109408574912586,
+        0.6781652448819829,
+        0.5687283107212612
+      ]
+    }
+  }
+}

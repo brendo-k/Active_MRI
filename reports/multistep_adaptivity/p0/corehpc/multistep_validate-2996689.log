@@ -1,0 +1,41 @@
+host=ggpu1-19 gpu=NVIDIA RTX PRO 6000 Blackwell Server Edition commit=44c3fbad37d34017b8f1145667c64b78519bf4c9 python=3.14.0 torch=2.12.0+cu130
+15:08:28 commit: pass
+15:09:01 tests: pass
+15:09:03 data: pass
+15:13:19 smoke_A4: pass
+15:16:17 smoke_T4: pass
+15:17:04 score_A4: pass
+15:17:47 score_T4: pass
+15:17:47 nulls: pass
+15:21:27 smoke_A16: pass
+15:24:05 smoke_base: pass
+15:24:44 score_base: pass
+15:29:17 smoke_rec: pass
+15:31:19 score_rec: pass
+15:34:14 smoke_img: pass
+15:34:14 run_info: pass
+
+Epoch lines (10% of a train epoch, compile included, then the full val set):
+  smoke_base: TrainTime = 36.5700s ValTime = 49.0581s PeakMemory = 35.66GiB
+  smoke_A4: TrainTime = 99.3579s ValTime = 86.0325s PeakMemory = 36.23GiB
+  smoke_T4: TrainTime = 49.4301s ValTime = 53.0004s PeakMemory = 36.23GiB
+  smoke_A16: TrainTime = 64.9104s ValTime = 85.1044s PeakMemory = 38.07GiB
+  smoke_rec: TrainTime = 65.5083s ValTime = 137.4618s PeakMemory = 36.37GiB
+  smoke_img: TrainTime = 46.6128s ValTime = 57.1793s PeakMemory = 36.23GiB
+
+  commit      pass
+  tests       pass
+  data        pass
+  smoke_A4    pass
+  smoke_T4    pass
+  score_A4    pass
+  score_T4    pass
+  nulls       pass
+  smoke_A16   pass
+  smoke_base  pass
+  score_base  pass
+  smoke_rec   pass
+  score_rec   pass
+  smoke_img   pass
+  run_info    pass
+logs: /home/remote/bkadota/scratch/multistep_adaptivity/validate/2996689

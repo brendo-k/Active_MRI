@@ -165,8 +165,10 @@ the GPU pin).
   and 3,929 slices (brain 80 / 1,211, knee-PD 40 / 1,369, knee-PDFS 40 / 1,349), val 80 and 1,938 (40 / 605, 20 / 673,
   20 / 660). The loader skips a file it cannot open with only a warning, so the job compares the exact lists, not
   counts. The manifest loader crops the readout, so it never reads the `sense` datasets only the local copies carry.
-- **GPU pin.** Every job checks `torch.cuda.get_device_name()` against `GPU_NAME` and exits on any other card. The type
-  is chosen from `sinfo` and written here before P1: not chosen yet.
+- **GPU pin: RTX Pro 6000** (the user's choice, 2026-11-10). Every job is submitted with
+  `--gres=gpu:nvidia_rtx_pro_6000:1` and `GPU_NAME='RTX PRO 6000'`. It checks `torch.cuda.get_device_name()` against
+  `GPU_NAME` and exits on any other card. `sinfo` showed 7 such nodes with 2 cards each (`ggpu1-13` to `ggpu1-19`), and
+  NVIDIA's spec gives 96 GB per card. The validation job's first log line gives the full device name.
 - **Memory.** The trainer now logs each epoch's `torch.cuda.max_memory_allocated` (`system/peak_memory_gib`, and
   `PeakMemory` in the epoch line), not the allocator reserve `nvidia-smi` shows.
 - **Lab-server dry run** of the whole validation job (`LAB_SERVER_TEST=1`, GPU 0, from a shallow clone as `run.md` ships
@@ -187,4 +189,43 @@ the GPU pin).
 
     The 48 GB that `nvidia-smi` showed at K=16 was the allocator's reserve; the true peak is 38 GiB, so an 80 GB card
     has room to spare.
+- **Second lab-server dry run**, on the launch commit `de7af04` (2026-11-10): inconclusive.
+  - Another training queue had started on GPU 0 four minutes earlier. The A_4, T_4 and A_16 smokes ran out of memory
+    beside it, and they pushed that queue's run out of memory twice.
+  - Every check that got memory passed: the commit, the tests, the data, and the base smoke and its score.
+  - The dry run was stopped, and the CoreHPC job is the gate instead.
+- **CoreHPC validation job 2996412** (run state 1, `de7af04`, 2026-11-10) failed. It was submitted at 14:37 and
+  started at 14:42 on `ggpu1-14`, not at the scheduler's 23:18 estimate, and it ended at 14:43.
+  - The card was an `NVIDIA RTX PRO 6000 Blackwell Server Edition`, on python 3.14.0 and torch 2.12.0+cu130.
+  - The commit check and the tests passed. Every check after them failed on a Hydra parse error:
+    `common.sh` passed `datasets.roots.local_batch2=~/...` with the `~` unquoted. The lab-server dry runs never reached
+    it, because `LAB_SERVER_TEST=1` leaves the data roots out.
+  - Its logs are in `corehpc/`.
+- **Run state 2** (`44c3fba`) quotes that root.
+  - It adds `tests/test_multistep_launch.py`, which builds all 20 arms' CoreHPC arguments as `train.sbatch` does and
+    composes them through `train.py` and Hydra, checking the data roots and each arm's recipe. Against the old
+    `common.sh` it fails with the same `OverrideParseException`.
+  - All 240 files the job loads exist on CoreHPC under the two roots (train 80 `hpc` + 80 `local_batch2`, val 80 `hpc`).
+  - The CPU suite gives 259 passed, 4 skipped (GPU only).
+- **CoreHPC validation job 2996689** (run state 2, 2026-11-10, `ggpu1-19`): all 15 checks passed, so P0 is done. Its
+  logs are in `corehpc/`.
+  - The commit was `44c3fba`, clean, and the tests gave 263 passed (the 4 GPU tests included).
+  - The data matched the lab-server reference, with the same slices in the same loader order for train and val.
+  - The K=4 twin's nulls were exact: the donor's final mask equals its own in every slice, 0 new samples moved at every
+    step, and the swap cost is 0.0 [0.0, 0.0] dB (113 slices from 71 volumes, 7 without a donor). The adaptive arm
+    moved 0.15–0.26% of each step's new samples.
+  - All 6 smoke runs recorded the shipped commit.
+  - Epoch lines on the RTX PRO 6000 (10% of a train epoch, compile included, then the full val set):
+
+    | run | peak memory | train | val |
+    |---|---|---|---|
+    | base (K=1 LOUPE) | 35.7 GiB | 37 s | 49 s |
+    | A_4 | 36.2 GiB | 99 s | 86 s |
+    | T_4 | 36.2 GiB | 49 s | 53 s |
+    | A_16 | 38.1 GiB | 65 s | 85 s |
+    | A_4^rec | 36.4 GiB | 66 s | 137 s |
+    | A_4^img | 36.2 GiB | 47 s | 57 s |
+
+- **P1 submitted** 2026-11-10 from run state 2: B_42 is job 2997083 and B_43 is job 2997084, each with a 1-day limit.
+  The AGENTS.md roadmap line now reads "order-free go/no-go running" on this branch, as agreed for the start of P1.
 

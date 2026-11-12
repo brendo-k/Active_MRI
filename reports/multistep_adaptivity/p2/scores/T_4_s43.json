@@ -1,0 +1,375 @@
+{
+  "name": "T_4_s43",
+  "run": "/home/remote/bkadota/scratch/multistep_adaptivity/runs/T_4_s43",
+  "checkpoint": "last_model.pt",
+  "epoch": 29,
+  "training_code": {
+    "commit": "44c3fbad37d34017b8f1145667c64b78519bf4c9",
+    "branch": "exp/multistep_adaptivity",
+    "dirty_tracked_files": [],
+    "started_at": "2026-11-11T08:12:21+00:00",
+    "argv": [
+      "train.py",
+      "hydra.job.name=train_sequential",
+      "recon=varnet",
+      "datasets=fastmri_local_v1_flair_knee",
+      "training.batch_size=16",
+      "training.seed=43",
+      "sampler.accelerations=[8.0]",
+      "sampler.sampler_type=seq_adapt_2d",
+      "sampler.anatomy_conditioning=true",
+      "training.num_step=4",
+      "sampler.data_blind=true",
+      "training.num_epochs=30",
+      "training.lr=1e-4",
+      "training.lr_scheduler=constant",
+      "sampler.residual_lr=1e-4",
+      "output.pretrained_recon=/home/remote/bkadota/scratch/multistep_adaptivity/runs/B_43/last_model.pt",
+      "sampler.init_mask_checkpoint=/home/remote/bkadota/scratch/multistep_adaptivity/runs/B_43/last_model.pt",
+      "training.save_epochs=[10]",
+      "misc.resolution=[320,320]",
+      "sampler.budget_over=acquired",
+      "datasets.limit_volumes=1",
+      "datasets.roots.hpc=\"~/scratch/data/fastmri/{anatomy}/data\"",
+      "datasets.roots.local_batch2=\"~/scratch/data/fastmri/knee/data\"",
+      "output.out_dir=/home/remote/bkadota/scratch/multistep_adaptivity/runs/T_4_s43"
+    ]
+  },
+  "eval_code": {
+    "commit": "44c3fbad37d34017b8f1145667c64b78519bf4c9",
+    "branch": "exp/multistep_adaptivity",
+    "dirty_tracked_files": []
+  },
+  "options": {
+    "sampler_type": "seq_adapt_2d",
+    "num_step": 4,
+    "data_blind": true,
+    "accelerations": [
+      8.0
+    ],
+    "budget_over": "acquired",
+    "seed": 43,
+    "residual_chans": 16,
+    "residual_depth": 4,
+    "residual_limit": 6.0,
+    "residual_lr": 0.0001,
+    "anatomy_conditioning": true,
+    "loss_type": "l1"
+  },
+  "draw_seeds": [
+    1234,
+    4321
+  ],
+  "slices": {
+    "count": 1938,
+    "hash": "78f07c157c6da5d9179222389da803cdbfee71ee"
+  },
+  "means": {
+    "psnr": {
+      "brain": 33.114004199761006,
+      "knee-PD": 36.03422458246239,
+      "knee-PDFS": 32.41182056195808,
+      "all": 33.88896143227293
+    },
+    "ssim": {
+      "brain": 0.8883443435668529,
+      "knee-PD": 0.9221460100514078,
+      "knee-PDFS": 0.7857318913414932,
+      "all": 0.8651370696119346
+    },
+    "nmse": {
+      "brain": 0.004670609798848106,
+      "knee-PD": 0.002576581097448751,
+      "knee-PDFS": 0.008690670283800555,
+      "all": 0.005312487303505924
+    },
+    "realised_fraction": {
+      "brain": 0.12503373128446665,
+      "knee-PD": 0.12503687875209732,
+      "knee-PDFS": 0.12495276975360783,
+      "all": 0.1250072522521388
+    }
+  },
+  "by_step": {
+    "step_new": {
+      "brain": [
+        2050.528925619835,
+        2049.7570247933886,
+        2051.112396694215,
+        2049.628099173554
+      ],
+      "knee-PD": [
+        3175.4673105497773,
+        3176.3803863298663,
+        3175.751114413076,
+        3176.177563150074
+      ],
+      "knee-PDFS": [
+        3171.875,
+        3174.6848484848483,
+        3175.327272727273,
+        3173.276515151515
+      ],
+      "all": [
+        2823.06346749226,
+        2824.09649122807,
+        2824.519865841073,
+        2823.506191950464
+      ]
+    },
+    "step_budget": {
+      "brain": [
+        2049.5719008264464,
+        2049.5719008264464,
+        2049.5719008264464,
+        2049.5719008264464
+      ],
+      "knee-PD": [
+        3175.0,
+        3175.0,
+        3175.0,
+        3175.0
+      ],
+      "knee-PDFS": [
+        3175.0,
+        3175.0,
+        3175.0,
+        3175.0
+      ],
+      "all": [
+        2823.6666666666665,
+        2823.6666666666665,
+        2823.6666666666665,
+        2823.6666666666665
+      ]
+    },
+    "residual_rms": {
+      "brain": [
+        1.7002055607551385,
+        1.7159419877470032,
+        1.7896894272693917,
+        2.101681693132259
+      ],
+      "knee-PD": [
+        1.574121954182459,
+        1.8448955349369531,
+        1.9355781344035405,
+        2.0591265111940222
+      ],
+      "knee-PDFS": [
+        1.5861971378326416,
+        1.8654745913816222,
+        2.012355186722495,
+        2.2052193831313742
+      ],
+      "all": [
+        1.6175947112441678,
+        1.8116474860223823,
+        1.916181945917653,
+        2.1221642720563985
+      ]
+    }
+  },
+  "donors": {
+    "matched": 1848,
+    "unmatched": {
+      "brain": 90,
+      "knee-PD": 0,
+      "knee-PDFS": 0
+    }
+  },
+  "guards": {
+    "ssim_pooled": 0.8651370696119346,
+    "ssim_at_least_0.80": true,
+    "realised_fraction_target": 0.125,
+    "realised_fraction_within_0.002": true,
+    "failed_reconstructions_below_20dB": []
+  },
+  "swap_cost": {
+    "psnr": {
+      "brain": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 515,
+        "n_volumes": 34,
+        "n_left_out": 90
+      },
+      "knee-PD": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 673,
+        "n_volumes": 20,
+        "n_left_out": 0
+      },
+      "knee-PDFS": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 660,
+        "n_volumes": 20,
+        "n_left_out": 0
+      },
+      "all": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 1848,
+        "n_volumes": 74,
+        "n_left_out": 90
+      }
+    },
+    "ssim": {
+      "brain": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 515,
+        "n_volumes": 34,
+        "n_left_out": 90
+      },
+      "knee-PD": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 673,
+        "n_volumes": 20,
+        "n_left_out": 0
+      },
+      "knee-PDFS": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 660,
+        "n_volumes": 20,
+        "n_left_out": 0
+      },
+      "all": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 1848,
+        "n_volumes": 74,
+        "n_left_out": 90
+      }
+    },
+    "nmse": {
+      "brain": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 515,
+        "n_volumes": 34,
+        "n_left_out": 90
+      },
+      "knee-PD": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 673,
+        "n_volumes": 20,
+        "n_left_out": 0
+      },
+      "knee-PDFS": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 660,
+        "n_volumes": 20,
+        "n_left_out": 0
+      },
+      "all": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 1848,
+        "n_volumes": 74,
+        "n_left_out": 90
+      }
+    }
+  },
+  "swap_null": {
+    "donor_final_mask_equals_own": 1.0,
+    "must_be_1_for_a_data_blind_twin": true
+  },
+  "counterfactual_with_own_data_reproduces_every_step": true,
+  "data_swap": {
+    "moved_by_step": {
+      "brain": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "knee-PD": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "knee-PDFS": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "all": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "residual_change_rms_by_step": {
+      "brain": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "knee-PD": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "knee-PDFS": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "all": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  }
+}

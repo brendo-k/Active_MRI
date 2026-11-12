@@ -1,0 +1,28 @@
+{
+  "commit": "44c3fbad37d34017b8f1145667c64b78519bf4c9",
+  "branch": "exp/multistep_adaptivity",
+  "dirty_tracked_files": [],
+  "started_at": "2026-11-10T23:21:33+00:00",
+  "argv": [
+    "train.py",
+    "sampler.sampler_type=loupe_2d",
+    "hydra.job.name=train_sequential",
+    "recon=varnet",
+    "datasets=fastmri_local_v1_flair_knee",
+    "training.batch_size=16",
+    "training.seed=42",
+    "sampler.accelerations=[8.0]",
+    "misc.resolution=[320,320]",
+    "sampler.budget_over=acquired",
+    "datasets.limit_volumes=1",
+    "datasets.roots.hpc=\"~/scratch/data/fastmri/{anatomy}/data\"",
+    "datasets.roots.local_batch2=\"~/scratch/data/fastmri/knee/data\"",
+    "output.out_dir=/home/remote/bkadota/scratch/multistep_adaptivity/validate/2996689/smoke_base",
+    "training.num_step=1",
+    "training.num_epochs=1",
+    "training.limit_batches=0.1",
+    "training.lr_step_size=90",
+    "sampler.loupe_vd_init_power=4",
+    "sampler.anatomy_conditioning=false"
+  ]
+}

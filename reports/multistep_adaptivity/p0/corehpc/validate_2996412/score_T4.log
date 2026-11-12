@@ -1,0 +1,18 @@
+Traceback (most recent call last):
+  File "/mnt/scratch/user/bkadota/multistep_adaptivity/code/scripts/eval/eval_multistep_adaptivity.py", line 419, in <module>
+    score(parsed) if parsed.command == 'score' else contrast(parsed)
+    ~~~~~^^^^^^^^
+  File "/mnt/scratch/user/bkadota/multistep_adaptivity/code/scripts/eval/eval_multistep_adaptivity.py", line 325, in score
+    model, checkpoint = load_run(args.run, args.checkpoint, args.device)
+                        ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/scratch/user/bkadota/multistep_adaptivity/code/scripts/eval/eval_multistep_adaptivity.py", line 94, in load_run
+    checkpoint = torch.load(run / checkpoint_name, map_location='cpu', weights_only=False)
+  File "/scratch/user/bkadota/conda/envs/dl/lib/python3.14/site-packages/torch/serialization.py", line 1530, in load
+    with _open_file_like(f, "rb") as opened_file:
+         ~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/scratch/user/bkadota/conda/envs/dl/lib/python3.14/site-packages/torch/serialization.py", line 795, in _open_file_like
+    return _open_file(name_or_buffer, mode)
+  File "/scratch/user/bkadota/conda/envs/dl/lib/python3.14/site-packages/torch/serialization.py", line 776, in __init__
+    super().__init__(open(name, mode))  # noqa: SIM115
+                     ~~~~^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/home/remote/bkadota/scratch/multistep_adaptivity/validate/2996412/smoke_T4/last_model.pt'
