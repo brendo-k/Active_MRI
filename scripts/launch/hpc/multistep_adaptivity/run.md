@@ -67,7 +67,20 @@ for arm in T_1_s42_f142 T_16_s42_f142 A_4_s42_rec A_16_s42_img; do
 done
 ```
 
-## 5. P2b, only if PASS does not hold on the P2 results
+## 5b. Knee-only from-scratch subproblem (replaces P2b, `reports/multistep_adaptivity/addendum_2026-11-11.md`)
+
+Iteration n is defined in `common.sh` as `_kscr<n>`; an undefined n refuses to start. Each iteration is an A/T pair and a
+floor twin, validated and scored on the dev half of the knee val volumes:
+
+```bash
+for arm in A_16_s42_kscr1 T_16_s42_kscr1 T_16_s142_kscr1; do
+    sbatch $J --time=1-00:00:00 --export=ALL,ARM=$arm,GPU_NAME='<name>' $C/train.sbatch
+done
+```
+
+The holdout half is scored only for the confirmation, with `eval_multistep_adaptivity.py score ... --val-half holdout`.
+
+## 5. P2b as frozen (VD p=4 start): replaced by 5b on 11-11, not run
 
 ```bash
 for arm in A_16_s42_scr T_16_s42_scr; do sbatch $J --time=2-00:00:00 --export=ALL,ARM=$arm,GPU_NAME='<name>' $C/train.sbatch; done

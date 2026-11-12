@@ -1,0 +1,10 @@
+# Knee PD + PDFS of the fastMRI local subset v1 (fastmri_local_v1_base.yaml), one condition class per protocol.
+# Use with misc.resolution=[320,320].
+defaults:
+  - fastmri_local_v1_base
+  - _self_
+classes: [knee]
+anatomy: [knee]
+condition_classes: [knee-PD, knee-PDFS]
+num_coils: 20
+num_workers: 8

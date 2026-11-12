@@ -64,6 +64,8 @@ def parse_args():
     scoring.add_argument('--out', type=Path, required=True, help='scores folder')
     scoring.add_argument('--checkpoint', default='last_model.pt')
     scoring.add_argument('--draw-seeds', type=int, nargs='+', default=list(DRAW_SEEDS))
+    scoring.add_argument('--val-half', choices=('all', 'dev', 'holdout'), default=None,
+                         help="score this half of the val volumes instead of the run's own datasets.val_half")
     scoring.add_argument('--chunk', type=int, default=8)
     scoring.add_argument('--workers', type=int, default=4)
     scoring.add_argument('--limit', type=int, default=None, help='N evenly spaced val slices only (smoke tests)')
@@ -326,6 +328,8 @@ def score(args):
     options = checkpoint['options']
     cfg = OmegaConf.load(args.run / '.hydra' / 'config.yaml')
     cfg.datasets.num_workers = args.workers
+    if args.val_half is not None:
+        cfg.datasets.val_half = args.val_half
     _, val_loader = build_dataloaders(cfg)
     dataset, collate = val_loader.dataset, val_loader.collate_fn
     indices = np.arange(len(dataset)) if args.limit is None else \

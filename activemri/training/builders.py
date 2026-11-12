@@ -199,6 +199,7 @@ def build_manifest_loaders(cfg: DictConfig, image_shape: list, shuffle_seed=None
         shuffle_seed=shuffle_seed,
         train_anatomies=list(cfg.datasets.get('train_anatomies', [])),
         limit_volumes=cfg.datasets.get('limit_volumes', None),
+        val_half=cfg.datasets.get('val_half', 'all'),
     )
 
 

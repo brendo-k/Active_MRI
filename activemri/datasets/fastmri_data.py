@@ -748,6 +748,32 @@ def _limit_volume_rows(rows: List[Dict], fraction: Optional[float], seed: int = 
     return kept
 
 
+VAL_HALVES = ('all', 'dev', 'holdout')
+VAL_HALF_SEED = 20261111
+
+
+def _val_half_rows(rows: List[Dict], half: str, seed: int = VAL_HALF_SEED) -> List[Dict]:
+    """Split the val volumes of each condition into two fixed halves: `dev` to iterate on, `holdout` to confirm on.
+
+    Volumes of a condition are sorted by filename and shuffled once with a seed of their own; `dev` takes the first
+    ceil(n / 2), `holdout` the rest. The split never depends on the training seed or on the other conditions.
+    """
+    if half not in VAL_HALVES:
+        raise ValueError(f"val_half must be one of {VAL_HALVES}, got {half!r}")
+    if half == 'all':
+        return rows
+    groups: Dict[str, List[Dict]] = {}
+    for row in rows:
+        groups.setdefault(condition_name(row['anatomy'], row), []).append(row)
+    kept: List[Dict] = []
+    for condition in sorted(groups):
+        group = sorted(groups[condition], key=lambda row: row['file'])
+        order = np.random.RandomState(zlib.crc32(f"{seed}:{condition}".encode())).permutation(len(group))
+        cut = (len(group) + 1) // 2
+        kept.extend(group[i] for i in (order[:cut] if half == 'dev' else order[cut:]))
+    return kept
+
+
 def _manifest_datasets(rows: List[Dict], roots: Dict[str, str], split: str, **dataset_kwargs) -> List[FastMRIDataset]:
     """One FastMRIDataset per (anatomy, directory) of the manifest rows; prints the volumes and slices per condition."""
     groups: Dict[Tuple[str, pathlib.Path], List[str]] = {}
@@ -782,6 +808,7 @@ def build_manifest_dataloaders(
     transform: Optional[Callable] = None,
     train_anatomies: Sequence[str] = (),
     limit_volumes: Optional[float] = None,
+    val_half: str = 'all',
 ) -> Tuple[torch.utils.data.DataLoader, torch.utils.data.DataLoader]:
     """Train and val loaders over the raw h5 volumes a subset manifest lists (scripts/data/select_fastmri_subset.py).
 
@@ -791,7 +818,8 @@ def build_manifest_dataloaders(
     and has its readout oversampling cropped away. A relative `manifest` is relative to the repository root.
     `train_anatomies`, when given, trains on those anatomies' rows alone while val keeps every class.
     `limit_volumes` is the fraction of each condition kept in train and again in val (`_limit_volume_rows`). 1 and
-    `None` keep the whole tier. The choice does not depend on `shuffle_seed`.
+    `None` keep the whole tier. The choice does not depend on `shuffle_seed`. `val_half` keeps one fixed half of each
+    condition's val volumes (`_val_half_rows`), after `limit_volumes`.
     """
     import csv
     with open(REPO_ROOT / pathlib.Path(manifest).expanduser()) as f:
@@ -812,6 +840,9 @@ def build_manifest_dataloaders(
         train_rows = _limit_volume_rows(train_rows, limit_volumes)
         val_rows = _limit_volume_rows(val_rows, limit_volumes)
         print(f"limit_volumes={float(limit_volumes):g} of each condition (seed {LIMIT_VOLUMES_SEED})")
+    if val_half != 'all':
+        val_rows = _val_half_rows(val_rows, val_half)
+        print(f"val_half={val_half} (seed {VAL_HALF_SEED})")
     dataset_kwargs = dict(image_shape=image_shape, transform=transform, num_coils=num_coils,
                           min_energy_fraction=min_energy_fraction, readout_crop=True)
     return _dataloaders(_manifest_datasets(train_rows, roots, 'train', **dataset_kwargs),
