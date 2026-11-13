@@ -748,6 +748,28 @@ def _limit_volume_rows(rows: List[Dict], fraction: Optional[float], seed: int = 
     return kept
 
 
+def _manifest_split_rows(rows: List[Dict], train_tier: str = 'S', train_anatomies: Sequence[str] = (),
+                         limit_volumes: Optional[float] = None, val_anatomies: Sequence[str] = (),
+                         val_limit_volumes: Optional[float] = None) -> Tuple[List[Dict], List[Dict]]:
+    """Train and val rows of a manifest.
+
+    Train keeps `train_tier` rows of `train_anatomies` (empty = all) and `limit_volumes` of each condition. Val keeps
+    the val rows of `val_anatomies` (empty = all) and `val_limit_volumes` of each condition, or `limit_volumes` when
+    that is `None`. Pinning `val_limit_volumes` keeps one val set across runs whose training data differs.
+    """
+    train_rows = [row for row in rows if row['split'] == 'train' and row['tier'] in MANIFEST_TRAIN_TIERS[train_tier]
+                  and (not train_anatomies or row['anatomy'] in train_anatomies)]
+    val_rows = [row for row in rows if row['split'] == 'val' and (not val_anatomies or row['anatomy'] in val_anatomies)]
+    val_fraction = limit_volumes if val_limit_volumes is None else val_limit_volumes
+    train_rows = _limit_volume_rows(train_rows, limit_volumes)
+    val_rows = _limit_volume_rows(val_rows, val_fraction)
+    if limit_volumes is not None and float(limit_volumes) != 1:
+        print(f"limit_volumes={float(limit_volumes):g} of each train condition (seed {LIMIT_VOLUMES_SEED})")
+    if val_fraction is not None and float(val_fraction) != 1:
+        print(f"val keeps {float(val_fraction):g} of each condition (seed {LIMIT_VOLUMES_SEED})")
+    return train_rows, val_rows
+
+
 def _manifest_datasets(rows: List[Dict], roots: Dict[str, str], split: str, **dataset_kwargs) -> List[FastMRIDataset]:
     """One FastMRIDataset per (anatomy, directory) of the manifest rows; prints the volumes and slices per condition."""
     groups: Dict[Tuple[str, pathlib.Path], List[str]] = {}
@@ -782,6 +804,8 @@ def build_manifest_dataloaders(
     transform: Optional[Callable] = None,
     train_anatomies: Sequence[str] = (),
     limit_volumes: Optional[float] = None,
+    val_anatomies: Sequence[str] = (),
+    val_limit_volumes: Optional[float] = None,
 ) -> Tuple[torch.utils.data.DataLoader, torch.utils.data.DataLoader]:
     """Train and val loaders over the raw h5 volumes a subset manifest lists (scripts/data/select_fastmri_subset.py).
 
@@ -791,7 +815,8 @@ def build_manifest_dataloaders(
     and has its readout oversampling cropped away. A relative `manifest` is relative to the repository root.
     `train_anatomies`, when given, trains on those anatomies' rows alone while val keeps every class.
     `limit_volumes` is the fraction of each condition kept in train and again in val (`_limit_volume_rows`). 1 and
-    `None` keep the whole tier. The choice does not depend on `shuffle_seed`.
+    `None` keep the whole tier. The choice does not depend on `shuffle_seed`. `val_anatomies` and `val_limit_volumes`
+    override the val side alone (`_manifest_split_rows`).
     """
     import csv
     with open(REPO_ROOT / pathlib.Path(manifest).expanduser()) as f:
@@ -802,16 +827,12 @@ def build_manifest_dataloaders(
     most_coils = max(int(row['coils']) for row in rows)
     if most_coils > num_coils:
         raise ValueError(f"{manifest} has volumes with {most_coils} coils; num_coils={num_coils} would drop some")
-    unknown = set(train_anatomies) - {row['anatomy'] for row in rows}
-    if unknown:
-        raise ValueError(f"train_anatomies {sorted(unknown)} are not among the anatomies of classes {list(classes)}")
-    train_rows = [row for row in rows if row['split'] == 'train' and row['tier'] in MANIFEST_TRAIN_TIERS[train_tier]
-                  and (not train_anatomies or row['anatomy'] in train_anatomies)]
-    val_rows = [row for row in rows if row['split'] == 'val']
-    if limit_volumes is not None and float(limit_volumes) != 1:
-        train_rows = _limit_volume_rows(train_rows, limit_volumes)
-        val_rows = _limit_volume_rows(val_rows, limit_volumes)
-        print(f"limit_volumes={float(limit_volumes):g} of each condition (seed {LIMIT_VOLUMES_SEED})")
+    for name, subset in (('train_anatomies', train_anatomies), ('val_anatomies', val_anatomies)):
+        unknown = set(subset) - {row['anatomy'] for row in rows}
+        if unknown:
+            raise ValueError(f"{name} {sorted(unknown)} are not among the anatomies of classes {list(classes)}")
+    train_rows, val_rows = _manifest_split_rows(rows, train_tier, train_anatomies, limit_volumes, val_anatomies,
+                                                val_limit_volumes)
     dataset_kwargs = dict(image_shape=image_shape, transform=transform, num_coils=num_coils,
                           min_energy_fraction=min_energy_fraction, readout_crop=True)
     return _dataloaders(_manifest_datasets(train_rows, roots, 'train', **dataset_kwargs),
