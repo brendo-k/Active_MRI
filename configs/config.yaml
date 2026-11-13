@@ -26,6 +26,7 @@ training:
   train_masked_metrics_every: 1  # train/PSNR_Masked and train/SSIM_Masked from every Nth train batch (validation scores every batch)
   train_metrics_every: 10  # every train-batch metric (PSNR/SSIM/NMSE, masked and per anatomy) from every Nth batch only (1 = every batch); they cost ~0.2 s of a ~1.45 s R=8 step and the training is bitwise the same (reports/varnet_train_speed)
   val_every: 1  # validate every Nth epoch and at the last; the best_model.pt choice only sees validated epochs
+  early_stop_patience: 0  # >0: stop after this many validations in a row without a new best val loss (best_model.pt keeps the peak); logs "Early stop after epoch N"
   ema_decay: 0.0  # >0: EMA of the reconstructor and sensitivity-net weights, saved as ema_model.pt at the end of training; it does not change the trajectory, and the mask stays at its online value
   visualize_every: 10  # images (PNG panels, wandb images, fixed val examples) every Nth epoch and at the last (1 = every epoch); off-epochs skip the per-forward host copies too
   seed: 42

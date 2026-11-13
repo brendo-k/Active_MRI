@@ -19,6 +19,9 @@ shift 2
 Q=/home/bkadota/data/seqmri_checkpoints/brain_varnet_scaling
 S=/home/bkadota/data/seqmri_checkpoints/loss_domain/runs_v2/loss_domain_rss_r8_flair_knee_100ep_seed42/best_model.pt
 DEADLINE="${DEADLINE:-none}"
+# Validations (380 steps apart) without a new best brain val loss before a run stops; best_model.pt keeps the peak.
+# Added 2026-11-13 at the user's request; the first two seed-42 runs (c12_v80, c12_v40) ran without it.
+PATIENCE="${PATIENCE:-5}"
 declare -A LIMIT=([20]=0.25 [40]=0.5 [80]=1.0) EPOCHS=([20]=400 [40]=200 [80]=100) STEP=([20]=360 [40]=180 [80]=90) VAL=([20]=20 [40]=10 [80]=5)
 # Minutes per run (7,600 steps + 20 brain vals) from the 2026-11-13 smoke test: 1.32 / 1.00 / 0.74 s/step at 12 / 6 / 2
 # cascades on an A6000 (data loading sets a floor); 4 and 8 interpolated. Used only for ordering and DEADLINE.
@@ -26,7 +29,7 @@ declare -A MINUTES=([2]=97 [4]=113 [6]=130 [8]=145 [12]=170)
 BASE="recon=varnet datasets=fastmri_local_v1_flair_knee misc.resolution=[320,320] sampler.accelerations=[8.0]
 sampler.budget_over=acquired training.num_step=1 training.batch_size=16 sampler.sampler_type=loupe_2d
 sampler.mask_train_mode=straight_through sampler.anatomy_conditioning=true datasets.train_anatomies=[brain]
-datasets.val_anatomies=[brain] datasets.val_limit_volumes=0.25
+datasets.val_anatomies=[brain] datasets.val_limit_volumes=0.25 training.early_stop_patience=$PATIENCE
 sampler.fixed_mask_checkpoints={brain:$S,knee-PD:$S,knee-PDFS:$S}"
 BASE=$(echo $BASE)
 

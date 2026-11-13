@@ -45,6 +45,7 @@ class TrainConfig:
     train_masked_metrics_every: int = 1
     train_metrics_every: int = 1  # train-batch metrics (PSNR/SSIM/NMSE, masked and per anatomy) from every Nth batch only
     val_every: int = 1  # validate every Nth epoch and at the last
+    early_stop_patience: int = 0  # >0: stop after this many validations in a row without a new best val loss
     fused_adam: bool = False  # torch.optim.Adam(fused=True)
     ema_decay: float = 0.0  # >0: keep an EMA of the reconstructor and sensitivity net, saved as ema_model.pt at the end of training
     visualize_every: int = 1  # images (PNG panels, wandb images, fixed val examples) every Nth epoch and at the last

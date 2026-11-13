@@ -9,7 +9,7 @@
 # estimate would end past $DEADLINE is left unclaimed: HH:MM (the next one, within 12 h), a date such as
 # '2026-11-05 06:00', or none. A run that stops before its last epoch is rerun from scratch (no resume) up to
 # MAX_ATTEMPTS times; its log is kept as <name>.attemptN.log. Every job line must spell out training.num_epochs=N:
-# the done check looks for its last epoch. Runs log to the wandb group $RUN_GROUP as $RUN_PREFIX<name>.
+# the done check looks for its last epoch, or for the trainer's "Early stop after epoch" line. Runs log to the wandb group $RUN_GROUP as $RUN_PREFIX<name>.
 #
 #   QUEUE_DIR=~/data/seqmri_checkpoints/varnet_train_speed GPU=0 nohup setsid <copy of this script> > worker0.log 2>&1 &
 # Run a copy of this script that nothing edits (bash reads a script as it goes).
@@ -56,7 +56,7 @@ run_job() {
             exec "$PY" train.py --model sequential $overrides output.out_dir="$out" output.run_name="$RUN_PREFIX$name"
         ) > "$log" 2>&1
         rc=$?
-        if $GREP -qE "Epoch = \[ *$epochs/ *$epochs\]" "$log"; then
+        if $GREP -qE "Epoch = \[ *$epochs/ *$epochs\]|Early stop after epoch" "$log"; then
             echo "$(stamp) done $name (exit $rc)"
             echo "$rc" > "$CLAIMS/$name/done"
             return 0
