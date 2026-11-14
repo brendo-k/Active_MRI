@@ -13,6 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from activemri.datasets.fastmri_data import (  # noqa: E402
     LIMIT_VOLUMES_SEED,
     _limit_volume_rows,
+    _manifest_split_rows,
     condition_name,
 )
 
@@ -87,3 +88,34 @@ def test_manifest_tier_s_tenth_is_stable_per_condition():
     again = _limit_volume_rows(rows, 0.1, seed=LIMIT_VOLUMES_SEED)
     assert _names(limited) == _names(again)
     assert _counts(limited) == {'brain': 8, 'knee-PD': 4, 'knee-PDFS': 4}
+
+
+def _manifest_rows():
+    with MANIFEST.open() as handle:
+        return [row for row in csv.DictReader(handle) if row['cls'] in ('FLAIR', 'knee')]
+
+
+def test_val_anatomies_keep_only_brain_val_and_leave_train_alone():
+    rows = _manifest_rows()
+    train_all, val_all = _manifest_split_rows(rows, train_anatomies=['brain'])
+    train, val = _manifest_split_rows(rows, train_anatomies=['brain'], val_anatomies=['brain'])
+    assert _names(train) == _names(train_all)
+    assert {row['anatomy'] for row in val} == {'brain'}
+    assert _names(val) == [row['file'] for row in val_all if row['anatomy'] == 'brain']
+
+
+@pytest.mark.parametrize('limit', [0.25, 0.5, 1])
+def test_pinned_val_fraction_gives_one_val_set_for_every_train_fraction(limit):
+    rows = _manifest_rows()
+    _, pinned = _manifest_split_rows(rows, train_anatomies=['brain'], limit_volumes=0.25, val_anatomies=['brain'])
+    train, val = _manifest_split_rows(rows, train_anatomies=['brain'], limit_volumes=limit, val_anatomies=['brain'],
+                                      val_limit_volumes=0.25)
+    assert _names(val) == _names(pinned)
+    assert len(train) == round(80 * limit)
+
+
+def test_unpinned_val_fraction_follows_limit_volumes_as_before():
+    rows = _manifest_rows()
+    train, val = _manifest_split_rows(rows, limit_volumes=0.5)
+    assert _names(train) == _names(_limit_volume_rows([r for r in rows if r['split'] == 'train' and r['tier'] == 'S'], 0.5))
+    assert _names(val) == _names(_limit_volume_rows([r for r in rows if r['split'] == 'val'], 0.5))

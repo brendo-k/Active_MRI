@@ -93,6 +93,7 @@ class Sequential_Trainer:
         self.ema = None if ema_decay <= 0 else ParameterEMA(
             [p for module in self._recon_modules() for p in module.parameters() if p.requires_grad], ema_decay)
         self.best_val_loss = np.inf
+        self.validations_since_best = 0
         self.previous_mask_logits = None
         self.epoch = 0
         self.start_epoch = 0
@@ -316,6 +317,8 @@ class Sequential_Trainer:
 
             is_new_best = val_loss < self.best_val_loss
             self.best_val_loss = min(self.best_val_loss, val_loss)
+            if not np.isnan(val_loss):
+                self.validations_since_best = 0 if is_new_best else self.validations_since_best + 1
             self.save_model(is_new_best)
             if epoch == self.start_epoch:
                 # Compiled graphs and hydra's config stay alive all run; left in the collector, every full collection walks them.
@@ -327,6 +330,11 @@ class Sequential_Trainer:
                 f'ValLoss = {val_loss:.4g} MeanSparsity = {mean_sparsity:.4g} '
                 f'TrainTime = {train_time:.4f}s ValTime = {val_time:.4f}s',
             )
+            patience = getattr(self.options, 'early_stop_patience', 0)
+            if patience > 0 and self.validations_since_best >= patience:
+                self.logger.info(f'Early stop after epoch {1 + self.epoch}: no new best val loss in {patience} '
+                                 f'validations (best {self.best_val_loss:.4g})')
+                break
 
         self.save_ema_model()
         wandb.finish()

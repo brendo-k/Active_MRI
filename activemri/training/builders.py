@@ -53,6 +53,7 @@ def build_train_config(cfg: DictConfig) -> TrainConfig:
         train_masked_metrics_every=cfg.training.get('train_masked_metrics_every', 1),
         train_metrics_every=cfg.training.get('train_metrics_every', 1),
         val_every=cfg.training.get('val_every', 1),
+        early_stop_patience=cfg.training.get('early_stop_patience', 0),
         ema_decay=cfg.training.get('ema_decay', 0.0),
         fused_adam=cfg.training.get('fused_adam', False),
         visualize_every=cfg.training.get('visualize_every', 1),
@@ -189,6 +190,8 @@ def build_manifest_loaders(cfg: DictConfig, image_shape: list, shuffle_seed=None
         shuffle_seed=shuffle_seed,
         train_anatomies=list(cfg.datasets.get('train_anatomies', [])),
         limit_volumes=cfg.datasets.get('limit_volumes', None),
+        val_anatomies=list(cfg.datasets.get('val_anatomies', None) or []),
+        val_limit_volumes=cfg.datasets.get('val_limit_volumes', None),
     )
 
 

@@ -21,4 +21,6 @@ roots:
 train_tier: S
 limit_volumes: 1  # fraction of each condition, train and val. 1 = the whole tier. See the note above.
 train_anatomies: []  # train on these anatomies only, still validating on every class; empty = all
+val_anatomies: []  # validate on these anatomies only (val loss, best_model.pt); empty = all
+val_limit_volumes: null  # fraction of each val condition; null = limit_volumes. Pin it to keep one val set across data sizes
 condition_classes: []  # per-sample conditioning labels, e.g. [brain, knee-PD, knee-PDFS]; empty = use anatomy
