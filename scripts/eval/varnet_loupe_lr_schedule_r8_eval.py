@@ -32,9 +32,11 @@ def is_finished(run_dir):
     return ckpt['epoch'] + 1 == ckpt['options'].num_epochs
 
 
-def full_val_loader(run_dir):
+def full_val_loader(run_dir, data_root=None):
     cfg = OmegaConf.load(run_dir / '.hydra' / 'config.yaml')
     cfg.datasets.limit_volumes = 1
+    if data_root:
+        cfg.datasets.roots = {name: data_root for name in cfg.datasets.roots}
     return build_dataloaders(cfg)[1]
 
 
@@ -52,6 +54,7 @@ def main():
     parser.add_argument('--seeds', type=int, nargs='+', default=[1234, 4321])
     parser.add_argument('--checkpoint', default='last_model.pt', help='last_model.pt or best_model.pt (peak on the training val)')
     parser.add_argument('--device', default='cuda')
+    parser.add_argument('--data-root', help='replace every datasets.roots entry, e.g. /export/scratch/bkadota/fastmri_raw/{anatomy} to score CoreHPC runs here')
     args = parser.parse_args()
     runs_dir = args.runs_dir.expanduser()
     names = sorted(p.name for p in runs_dir.iterdir()
@@ -61,7 +64,7 @@ def main():
 
     cache = args.out.with_suffix('.per_slice.npz')
     stored = dict(np.load(cache, allow_pickle=True)) if cache.exists() else {}
-    val_loader = full_val_loader(runs_dir / names[0])
+    val_loader = full_val_loader(runs_dir / names[0], args.data_root)
     scores = {}
     for name in names:
         if f'{name}/psnr' in stored:
