@@ -4,6 +4,7 @@ Per run: full-val PSNR / SSIM / NMSE at best_model.pt (the brain-val peak) and l
 gap at the peak. Per data size: the ranking, the seed-43 picks (the two highest seed-42 peaks, plus 12 cascades at
 20 volumes when it is not among them) and, per seed, Q1: the best smaller size minus 12 cascades at 20 volumes, paired
 per slice, with a 95% bootstrap CI over volumes. Q2 compares the best cascade count at 80 and 20 volumes per seed.
+Also 6 minus 12 cascades at every data size (both seeds ran those two), and parameters and seconds per step per size.
 
 Writes <eval>/summary.json and <figures>/full_val_vs_cascades.png, full_val_vs_volumes.png.
 
@@ -21,8 +22,11 @@ import matplotlib.ticker
 import numpy as np
 import torch
 
+import _path  # noqa: F401  (unpickling checkpoint options needs activemri)
+
 EVAL = Path('reports/brain_varnet_scaling/eval')
 FIGURES = Path('reports/brain_varnet_scaling/figures')
+QUEUE = Path('/home/bkadota/data/seqmri_checkpoints/brain_varnet_scaling')
 CASCADES = (2, 4, 6, 8, 12)
 VOLUMES = (20, 40, 80)
 CASCADE_COLOURS = dict(zip(CASCADES, ('#7fb6dc', '#4f97cc', '#2b78b8', '#145a9a', '#08306b')))
@@ -65,6 +69,41 @@ def q1_verdict(per_seed):
     return 'inconclusive'
 
 
+def six_vs_twelve(scores, seeds):
+    """6 minus 12 cascades per data size, checkpoint and seed (paired per slice), and the two-seed mean at the peak."""
+    out = {}
+    for v in VOLUMES:
+        peaks = []
+        for s in seeds:
+            for ckpt in ('best_model', 'last_model'):
+                if ('val', ckpt, 6, v, s) not in scores or ('val', ckpt, 12, v, s) not in scores:
+                    continue
+                (six, volumes), (twelve, _) = scores['val', ckpt, 6, v, s], scores['val', ckpt, 12, v, s]
+                diff = six['psnr'] - twelve['psnr']
+                out[f'v{v}_s{s}_{ckpt}'] = {'diff': float(diff.mean()), 'ci': volume_ci(diff, volumes),
+                                            'ssim_diff': float((six['ssim'] - twelve['ssim']).mean())}
+                if ckpt == 'best_model':
+                    peaks.append(diff)
+        if len(peaks) == 2:
+            mean = (peaks[0] + peaks[1]) / 2
+            out[f'v{v}_two_seed_best_model'] = {'diff': float(mean.mean()), 'ci': volume_ci(mean, volumes)}
+    return out
+
+
+def cost(queue):
+    """Parameters and median seconds per optimiser step (80-volume seed-42 runs, 76 steps per epoch, epoch 1 skipped)."""
+    out = {}
+    for c in CASCADES:
+        run = queue / f'c{c}_v80_s42'
+        if not (run / 'best_model.pt').exists():
+            continue
+        state = torch.load(run / 'best_model.pt', map_location='cpu', weights_only=False)['model']
+        times = [float(t) for t in re.findall(r'TrainTime = ([\d.]+)s', (run / 'train_sequential.log').read_text())]
+        out[f'c{c}'] = {'parameters': int(sum(t.numel() for t in state.values() if torch.is_tensor(t))),
+                        'seconds_per_step': float(np.median(times[1:]) / 76)}
+    return out
+
+
 def plot(table, seed, x_key, line_key, lines, colours, xlabel, label, path, logx=False):
     fig, ax = plt.subplots(figsize=(6, 4))
     for value in lines:
@@ -94,6 +133,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('--eval', type=Path, default=EVAL)
     parser.add_argument('--figures', type=Path, default=FIGURES)
+    parser.add_argument('--queue', type=Path, default=QUEUE)
     args = parser.parse_args()
     scores = load_scores(args.eval)
     runs = sorted({(c, v, s) for (split, ckpt, c, v, s) in scores if split == 'val' and ckpt == 'best_model'})
@@ -139,11 +179,14 @@ def main():
         if len(best) == 2:
             summary['q2'][f's{s}'] = {'best_c_v20': best[20], 'best_c_v80': best[80], 'shift': best[80] > best[20]}
 
+    summary['c6_minus_c12'] = six_vs_twelve(scores, seeds)
+    summary['cost'] = cost(args.queue)
+
     for r in sorted(table, key=lambda r: (r['seed'], r['volumes'], r['cascades'])):
         gap = f"  gap {r['gap_best']:.2f} / {r['gap_last']:.2f}" if 'gap_best' in r else ''
         print(f"s{r['seed']} v{r['volumes']:<2d} c{r['cascades']:<2d}  best {r['best_psnr']:.3f} "
               f"(SSIM {r['best_ssim']:.4f})  last {r['last_psnr']:.3f}{gap}")
-    print(json.dumps({k: summary[k] for k in ('ranking', 'seed43_picks', 'q1', 'q2')}, indent=1))
+    print(json.dumps({k: summary[k] for k in ('ranking', 'seed43_picks', 'q1', 'q2', 'c6_minus_c12', 'cost')}, indent=1))
     (args.eval / 'summary.json').write_text(json.dumps(summary, indent=1))
 
     args.figures.mkdir(parents=True, exist_ok=True)
