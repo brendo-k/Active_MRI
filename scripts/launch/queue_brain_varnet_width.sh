@@ -35,7 +35,7 @@ if [[ "${cells[*]}" == all ]]; then
     cells=(3:12 3:18 3:26 3:36 6:12 6:26 6:36 12:12 12:26 12:36)
 fi
 mkdir -p "$Q/bin" "$Q/claims"
-cp -n scripts/launch/brain_varnet_width_worker.sh "$Q/bin/worker.sh"
+cp -n scripts/launch/brain_varnet_width_worker.sh "$Q/bin/worker_v2.sh"
 touch "$Q/jobs.txt"
 lines=()
 for cell in "${cells[@]}"; do
@@ -55,7 +55,7 @@ done
 rm -f "$Q/STOP"
 for gpu in $GPUS; do
     QUEUE_DIR="$Q" GPU="$gpu" DEADLINE="$DEADLINE" RUN_GROUP=brain_varnet_width RUN_PREFIX=bvw_ \
-        nohup setsid bash "$Q/bin/worker.sh" > "$Q/worker$gpu.s$SEED.log" 2>&1 &
+        nohup setsid bash "$Q/bin/worker_v2.sh" > "$Q/worker$gpu.s$SEED.log" 2>&1 &
     sleep 90
 done
 echo "queued ${#lines[@]} jobs; workers started"

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Copy of brain_varnet_scaling_worker.sh that also exits once no job line is left unclaimed (EXIT_WHEN_EMPTY=1, the
-# default), so an idle worker cannot claim a later round's jobs. It waits for MIN_FREE_MIB free on its GPU.
+# default), so an idle worker cannot claim a later round's jobs. It claims a job only once its GPU has MIN_FREE_MIB free.
 # One GPU's worker for a training queue (written for reports/varnet_train_speed, reused by later studies).
 #
 # Jobs are lines of $QUEUE_DIR/jobs.txt:   <name>|<code snapshot dir>|<estimated minutes>|<hydra overrides...>
@@ -75,6 +75,8 @@ run_job() {
 echo "$(stamp) worker GPU $GPU start, deadline $(date -d "@$DEADLINE_EPOCH" '+%F %T')"
 while [[ ! -e "$QUEUE_DIR/STOP" ]]; do
     claimed=""
+    # Claim only once the GPU has room, so a job never waits on a busy card while another card could take it.
+    if gpu_lacks_room; then echo "$(stamp) GPU $GPU has < $MIN_FREE_MIB MiB free, waiting before claiming"; sleep 60; continue; fi
     while IFS='|' read -r name code minutes overrides; do
         [[ -z "$name" || "$name" == \#* ]] && continue
         [[ -d "$CLAIMS/$name" ]] && continue
