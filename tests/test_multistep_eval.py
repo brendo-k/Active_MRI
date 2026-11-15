@@ -18,7 +18,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from activemri.utils.metrics import NMSE, MaskedMetricAccumulator  # noqa: E402
 from activemri.utils.multistep import (StepRecorder, cluster_bootstrap, header_signature, masked_slice_metrics,  # noqa: E402
                                        match_donors, step_grid_figure, step_panels, step_thresholds)
-from tests.test_multistep_sampling import LABELS, SIZE, data, model, randomise_residual_output  # noqa: E402
+from tests.test_multistep_sampling import LABELS, SEQMRI, SIZE, data, model, randomise_residual_output  # noqa: E402
 
 
 def thresholds_for(num_step, slice_ids=(0, 1), seed=11):
@@ -124,6 +124,37 @@ def test_counterfactual_step_reads_the_donors_data_through_the_recon_input_too()
             swapped = sampling_model.counterfactual_step(kspace, previous[step], step, donor, thresholds[step], LABELS)
             moved.append(not torch.equal(swapped['new'], itself['new']))
     assert any(moved)
+
+
+@pytest.mark.parametrize('arm', [{'sampler_input': 'full'}, SEQMRI], ids=['clairvoyant', 'seqmri'])
+def test_counterfactual_step_reproduces_the_kscr2_arms_and_reads_the_donors_data(arm):
+    """The eval's self-check and data swap for C and S: with its own data (and, for S, the mask of the latest in-loop
+    reconstruction) the swap function reproduces every step bitwise; a donor's data moves samples."""
+    sampling_model = model(num_step=4, **arm)
+    randomise_residual_output(sampling_model)
+    sampling_model.eval()
+    kspace, maps, _ = data()
+    thresholds = thresholds_for(4)
+    donor = header_matched_donor(kspace)
+    with torch.no_grad():
+        masks, details = sampling_model.sample_trajectory(kspace, LABELS, thresholds, sense_maps=maps)
+        calibration, _ = sampling_model._initial_masks(kspace)
+        previous = [calibration] + masks[:-1]
+        moved = []
+        for step in range(4):
+            latest = sampling_model.latest_recon_step(step)
+            recon_mask = None if latest is None else previous[latest]
+            itself = sampling_model.counterfactual_step(kspace, previous[step], step, kspace, thresholds[step], LABELS,
+                                                        recon_mask=recon_mask, data_sense_maps=maps)
+            assert torch.equal(itself['new'], masks[step] - previous[step])
+            assert torch.equal(itself['residual'], details[step]['residual'])
+            swapped = sampling_model.counterfactual_step(kspace, previous[step], step, donor, thresholds[step], LABELS,
+                                                         recon_mask=recon_mask, data_sense_maps=maps)
+            moved.append(not torch.equal(swapped['new'], itself['new']))
+    assert any(moved)
+    if arm is SEQMRI:
+        with pytest.raises(ValueError, match='recon_mask'):
+            sampling_model.counterfactual_step(kspace, previous[1], 1, kspace, thresholds[1], LABELS)
 
 
 def test_cluster_bootstrap_weights_slices_and_resamples_volumes_within_conditions():

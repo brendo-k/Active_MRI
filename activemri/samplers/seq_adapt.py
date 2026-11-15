@@ -18,6 +18,12 @@ Two ablations keep that start. `data_channels` names the data channels an adapti
 other channel gets the twin's fixed values. `reads_reconstruction` adds a data channel, a frozen reconstructor's
 magnitude image of y * M_i over the ACS image peak (SeqMRI-style); the residual's first convolution gains that input,
 and every other weight is as without it.
+
+`complex_coils` = V > 0 is the kscr2 SeqMRI-style arm's input (addendum_2026-11-15.md): V virtual coils of the measured
+k-space y * M_i and of the coil k-space predicted from the latest in-loop reconstruction, each as its log magnitude and
+the cos and sin of its phase. The virtual coils are the ACS's top-V coil eigenvectors, phase-referenced at the ACS k-space
+peak, so they are a fixed unitary mix of the physical coils and carry none of the sensitivity maps' free phase. These 6V
+channels come last in z_i, so every first-conv weight the twin has still reads the channel it reads in the twin.
 """
 import math
 from dataclasses import dataclass
@@ -39,7 +45,10 @@ MASK_AND_HEADER_CHANNELS = 4  # M_i, acquired extent, i / K, active coil fractio
 LOG_MAGNITUDE_FLOOR = 1e-6
 FIXED_DATA_SEED = 0
 RECONSTRUCTION_CHANNEL_SEED = 1
+COMPLEX_CHANNEL_SEED = 2
 PEAK_FLOOR = 1e-12
+CHANNELS_PER_VIRTUAL_COIL = 3  # log magnitude, cos and sin of the phase
+COMPLEX_SOURCES = 2  # the measured k-space y * M_i, and the k-space predicted from the latest in-loop reconstruction
 
 
 @dataclass
@@ -48,7 +57,9 @@ class StepContext:
 
     `measured` is the complex coil k-space y * M_i [B, C, H, W] and `calibration_peaks` the (image, k-space) ACS peaks
     [B] that scale it; both are None for a data-blind sampler. `reconstruction` [B, H, W] is the frozen reconstructor's
-    image of y * M_i over the ACS image peak, for a sampler that reads one.
+    image of y * M_i over the ACS image peak, for a sampler that reads one. For a `complex_coils` sampler, `compression`
+    [B, C, V] holds the virtual-coil weights (`acs_compression`) and `predicted` [B, C, H, W] the coil k-space predicted from
+    the latest in-loop reconstruction, None before the first.
     """
     step: int
     num_steps: int
@@ -57,6 +68,8 @@ class StepContext:
     measured: Optional[torch.Tensor] = None
     calibration_peaks: Optional[Tuple[torch.Tensor, torch.Tensor]] = None
     reconstruction: Optional[torch.Tensor] = None
+    predicted: Optional[torch.Tensor] = None
+    compression: Optional[torch.Tensor] = None
 
 
 def _coil_rss(coil_values):
@@ -81,16 +94,44 @@ def measured_channels(measured, peaks):
     return torch.stack([image, log_magnitude], dim=1).float()
 
 
-def _widen_first_conv(unet, extra_channels):
+def acs_compression(calibration_kspace, virtual_coils):
+    """[B, C, V] weights of the V virtual coils z_v = sum_c conj(w_cv) y_c of coil k-space [B, C, H, W] that holds only
+    the ACS: the top-V eigenvectors of the ACS's coil covariance, each rotated so that z_v is real and positive where the
+    ACS's coil-RSS magnitude peaks. Per-coil phase conventions of the data cancel in z_v."""
+    flat = calibration_kspace.flatten(2)
+    covariance = (flat @ flat.conj().transpose(1, 2)).to(torch.complex128)
+    _, vectors = torch.linalg.eigh(covariance)
+    top = vectors.flip(-1)[..., :virtual_coils].to(calibration_kspace.dtype)
+    peak = _coil_rss(calibration_kspace).flatten(1).argmax(dim=1)
+    at_peak = flat[torch.arange(len(flat), device=flat.device), :, peak]
+    value = torch.einsum('bcv,bc->bv', top.conj(), at_peak)
+    rotation = torch.where(value.abs() > 0, value / value.abs().clamp(min=PEAK_FLOOR), torch.ones_like(value))
+    return top * rotation.unsqueeze(1)
+
+
+def virtual_coil_channels(coil_kspace, compression, kspace_peak):
+    """[B, 3V, H, W] of coil k-space [B, C, H, W]: for each virtual coil, log |z_v| over the ACS k-space peak [B] scaled to
+    [0, 1] as the k-space data channel is, then cos and sin of z_v's phase; all three are 0 where z_v is 0."""
+    virtual = torch.einsum('bchw,bcv->bvhw', coil_kspace, compression.conj())
+    magnitude = virtual.abs()
+    log_floor = math.log(LOG_MAGNITUDE_FLOOR)
+    log_magnitude = (torch.log(magnitude / kspace_peak.view(-1, 1, 1, 1) + LOG_MAGNITUDE_FLOOR) - log_floor) / -log_floor
+    unit = torch.where(magnitude > 0, virtual / magnitude.clamp(min=PEAK_FLOOR), torch.zeros_like(virtual))
+    return torch.stack([log_magnitude, unit.real, unit.imag], dim=2).flatten(1, 2).float()
+
+
+def _widen_first_conv(unet, extra_channels, seed=RECONSTRUCTION_CHANNEL_SEED, widened_fan_in=False):
     """Give the U-Net's first convolution `extra_channels` more inputs, keeping its weights for the existing ones. The new
-    weights come from their own generator, at the bound PyTorch's default init uses for the existing inputs."""
+    weights come from their own generator `seed`, at the bound PyTorch's default init uses for the existing inputs, or
+    with `widened_fan_in` for the widened convolution, so that many new inputs do not swamp the existing ones."""
     name, conv = next((name, m) for name, m in unet.down_sample_layers[0].named_modules() if isinstance(m, nn.Conv2d))
     parent_name, _, attribute = name.rpartition('.')
     parent = unet.down_sample_layers[0].get_submodule(parent_name)
     wider = nn.Conv2d(conv.in_channels + extra_channels, conv.out_channels, conv.kernel_size, conv.stride, conv.padding,
                       bias=conv.bias is not None)
-    bound = 1 / math.sqrt(conv.in_channels * conv.kernel_size[0] * conv.kernel_size[1])
-    generator = torch.Generator().manual_seed(RECONSTRUCTION_CHANNEL_SEED)
+    fan_in = (conv.in_channels + extra_channels) if widened_fan_in else conv.in_channels
+    bound = 1 / math.sqrt(fan_in * conv.kernel_size[0] * conv.kernel_size[1])
+    generator = torch.Generator().manual_seed(seed)
     extra = (2 * torch.rand(conv.out_channels, extra_channels, *conv.kernel_size, generator=generator) - 1) * bound
     with torch.no_grad():
         wider.weight.copy_(torch.cat([conv.weight, extra], dim=1))
@@ -116,7 +157,8 @@ class SequentialAdaptiveMask(nn.Module):
     """Per-location sampling probabilities sigmoid(slope * L_c + r(z_i)) for one step of a K-step acquisition."""
 
     def __init__(self, shape, slope, num_conditioning_classes=0, chans=16, depth=4, limit=6.0, data_blind=False,
-                 grad_floor=0.0, eps=1e-2, checkpoint_residual=True, data_channels=None, reads_reconstruction=False):
+                 grad_floor=0.0, eps=1e-2, checkpoint_residual=True, data_channels=None, reads_reconstruction=False,
+                 complex_coils=0):
         """`checkpoint_residual` recomputes the U-Net in the backward pass instead of keeping every step's activations:
         at K=16 and batch 16 those alone fill a 48 GB GPU."""
         super().__init__()
@@ -127,9 +169,14 @@ class SequentialAdaptiveMask(nn.Module):
         self.grad_floor = grad_floor
         self.data_blind = data_blind
         self.data_channels = _data_channels(data_channels, data_blind)
-        if data_blind and reads_reconstruction:
+        if data_blind and (reads_reconstruction or complex_coils):
             raise ValueError("a data-blind twin cannot read a reconstruction of the data")
+        if reads_reconstruction and complex_coils:
+            raise ValueError("the frozen recon-input ablation and the in-loop complex input are separate arms")
+        if complex_coils < 0:
+            raise ValueError(f"complex_coils counts virtual coils, got {complex_coils}")
         self.reads_reconstruction = reads_reconstruction
+        self.complex_coils = complex_coils
         self.num_conditioning_classes = num_conditioning_classes
         uniform = [torch.zeros(*self.shape).uniform_(eps, 1 - eps) for _ in range(max(num_conditioning_classes, 1))]
         self.mask = nn.Parameter(torch.stack([-torch.log(1. / u - 1.) / slope for u in uniform]).unsqueeze(-1))
@@ -138,6 +185,9 @@ class SequentialAdaptiveMask(nn.Module):
                                       depth, drop_prob=0, upsample_mode='bilinear', input_skip=False)
             if reads_reconstruction:
                 _widen_first_conv(self.residual, 1)
+            if complex_coils:
+                _widen_first_conv(self.residual, COMPLEX_SOURCES * CHANNELS_PER_VIRTUAL_COIL * complex_coils,
+                                  seed=COMPLEX_CHANNEL_SEED, widened_fan_in=True)
         nn.init.zeros_(self.residual.final_conv.weight)
         nn.init.zeros_(self.residual.final_conv.bias)
         generator = torch.Generator().manual_seed(FIXED_DATA_SEED)
@@ -183,7 +233,20 @@ class SequentialAdaptiveMask(nn.Module):
         channels = [data.to(old_mask.dtype), old_mask, context.extent.to(old_mask.dtype), step_fraction, coil_fraction]
         if self.num_conditioning_classes > 0:
             channels.append(self._condition_channels(anatomy_labels, old_mask))
+        if self.complex_coils:
+            channels.append(self._complex_channels(context).to(old_mask.dtype))
         return torch.cat(channels, dim=1)
+
+    def _complex_channels(self, context: StepContext):
+        """[B, 6V, H, W]: the virtual-coil channels of the measured k-space, then of the predicted k-space (0 before the
+        first in-loop reconstruction)."""
+        if context.compression is None:
+            raise ValueError("this sampler reads virtual coils, and the context carries no compression")
+        peak = context.calibration_peaks[1]
+        measured = virtual_coil_channels(context.measured, context.compression, peak)
+        if context.predicted is None:
+            return torch.cat([measured, torch.zeros_like(measured)], dim=1)
+        return torch.cat([measured, virtual_coil_channels(context.predicted, context.compression, peak)], dim=1)
 
     def _condition_channels(self, anatomy_labels, like):
         batch = like.shape[0]

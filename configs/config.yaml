@@ -47,8 +47,10 @@ sampler:
   residual_depth: 4  # seq_adapt_2d: down/up-sampling stages of the residual U-Net
   residual_limit: 6.0  # seq_adapt_2d: the residual is bounded to +/- this many logits, limit * tanh(r / limit)
   residual_lr: 1.0e-4  # seq_adapt_2d: lr of the residual U-Net in its own Adam group; the static per-condition maps keep sampler.lr (or training.lr)
-  input: measured  # seq_adapt_2d: measured = the residual reads the measured data alone; recon = also a frozen reconstructor's magnitude image of y * M_i at each step, loaded from input_recon_checkpoint (the multistep_adaptivity A_4^rec ablation)
+  input: measured  # seq_adapt_2d: measured = the residual reads the measured data alone; recon = also a frozen reconstructor's magnitude image of y * M_i at each step, loaded from input_recon_checkpoint (the multistep_adaptivity A_4^rec ablation); full = the data channels come from the fully sampled k-space (kscr2 clairvoyant ceiling); seqmri = also virtual coils of y * M_i and of the trained reconstructor's in-loop prediction (kscr2 SeqMRI-style arm)
   input_recon_checkpoint: null  # input=recon: the run whose reconstructor and sensitivity net make that image; they never train
+  recon_steps: [6, 9, 12, 14]  # input=seqmri: the 0-indexed steps before which the trained reconstructor reconstructs y * M_i (with gradient into its weights, M_i detached) for the sampler
+  virtual_coils: 4  # input=seqmri: ACS-compressed virtual coils of the measured and predicted coil k-space, each as log magnitude, cos and sin of the phase
   data_channels: [image, kspace]  # seq_adapt_2d: the measured-data channels the residual reads, image = RSS of the zero-filled coil images, kspace = log coil-RSS magnitude of the measured k-space; the others get the twin's fixed values ([image] is the multistep_adaptivity channel ablation)
   residual_checkpoint: true  # seq_adapt_2d: recompute the residual U-Net in backward instead of storing each step's activations (K=16 at batch 16 OOMs on 48 GB without it); the gradients are the same
   sense_mask_method: null  # body multiply on the sensitivity maps: null = none | pre_network = hard zero outside the RSS of the 10x10 centre | post_network = outside the RSS of the U-Net output. null beat pre_network by 1.26 dB PSNR_Masked (1 seed, 12-cascade VarNet, R=8): reports/sense_mask_varnet/report.md

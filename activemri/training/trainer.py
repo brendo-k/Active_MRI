@@ -1411,6 +1411,8 @@ def build_model(options: TrainConfig):
         residual_checkpoint=getattr(options, 'residual_checkpoint', True),
         data_channels=getattr(options, 'data_channels', None),
         sampler_input=getattr(options, 'sampler_input', 'measured'),
+        recon_steps=getattr(options, 'recon_steps', None) or [6, 9, 12, 14],
+        virtual_coils=getattr(options, 'virtual_coils', 4),
     )
     replace_instance_norms(model.reconstructor, getattr(recon_cfg, 'norm', 'instance'))
     replace_instance_norms(model.sensetivity_net, getattr(options, 'sens_norm', 'instance'))

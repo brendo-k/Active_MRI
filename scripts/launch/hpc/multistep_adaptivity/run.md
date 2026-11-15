@@ -80,6 +80,23 @@ done
 
 The holdout half is scored only for the confirmation, with `eval_multistep_adaptivity.py score ... --val-half holdout`.
 
+## 5c. kscr2: in-loop reconstruction and clairvoyant ceiling (`reports/multistep_adaptivity/addendum_2026-11-15.md`)
+
+The validation job runs each arm's real launch arguments for 10% of an epoch and scores it; the training jobs start only
+if it passes. If it fails, `scancel` the five pending dependents:
+
+```bash
+V=$(sbatch --parsable $J --export=ALL,GPU_NAME='RTX PRO 6000',EXPECTED_COMMIT=<hash> $C/validate_kscr2.sbatch)
+for arm in T_16_s42_kscr2 A_16_s42_kscr2 C_16_s42_kscr2 T_1_s42_kscr2; do
+    sbatch $J --dependency=afterok:$V --time=1-00:00:00 --export=ALL,ARM=$arm,GPU_NAME='RTX PRO 6000' $C/train.sbatch
+done
+sbatch $J --dependency=afterok:$V --time=2-00:00:00 --export=ALL,ARM=S_16_s42_kscr2,GPU_NAME='RTX PRO 6000' $C/train.sbatch
+```
+
+Contrasts, once the scores are back: `--pair G_16_A_kscr2=A_16_s42_kscr2-T_16_s42_kscr2`, the same for C and S,
+`--pair S_minus_A_kscr2=S_16_s42_kscr2-A_16_s42_kscr2`, `--pair C_minus_A_kscr2=C_16_s42_kscr2-A_16_s42_kscr2` and
+`--pair U_16_kscr2=A_16_s42_kscr2-T_1_s42_kscr2`.
+
 ## 5. P2b as frozen (VD p=4 start): replaced by 5b on 11-11, not run
 
 ```bash

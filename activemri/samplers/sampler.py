@@ -154,6 +154,7 @@ class Sampler(nn.Module):
         residual_checkpoint=True,
         data_channels=None,
         reads_reconstruction=False,
+        complex_coils=0,
         ):
         super().__init__()
 
@@ -172,7 +173,7 @@ class Sampler(nn.Module):
             raise ValueError(f"data_blind is the seq_adapt_2d twin, got sampler_type={sampler_type!r}")
         if data_channels is not None and set(data_channels) != set(DATA_CHANNEL_NAMES) and sampler_type != "seq_adapt_2d":
             raise ValueError(f"data_channels selects seq_adapt_2d's data inputs, got sampler_type={sampler_type!r}")
-        if reads_reconstruction and sampler_type != "seq_adapt_2d":
+        if (reads_reconstruction or complex_coils) and sampler_type != "seq_adapt_2d":
             raise ValueError(f"a reconstruction input is seq_adapt_2d's, got sampler_type={sampler_type!r}")
 
         self.sampler_type = sampler_type
@@ -252,7 +253,8 @@ class Sampler(nn.Module):
             self.mask_net = SequentialAdaptiveMask(shape, slope, num_conditioning_classes, chans=residual_chans,
                                                    depth=residual_depth, limit=residual_limit, data_blind=data_blind,
                                                    grad_floor=mask_grad_floor, checkpoint_residual=residual_checkpoint,
-                                                   data_channels=data_channels, reads_reconstruction=reads_reconstruction)
+                                                   data_channels=data_channels, reads_reconstruction=reads_reconstruction,
+                                                   complex_coils=complex_coils)
         elif sampler_type == "loupe_2d":
             self.mask_net = ProbMask(shape, slope, num_conditioning_classes=num_conditioning_classes,
                                      grad_floor=mask_grad_floor)
@@ -486,6 +488,11 @@ class Sampler(nn.Module):
     @property
     def reads_reconstruction(self) -> bool:
         return self.reads_context and self.mask_net.reads_reconstruction
+
+    @property
+    def complex_coils(self) -> int:
+        """Virtual coils of the kscr2 SeqMRI-style input, 0 for every other sampler."""
+        return self.mask_net.complex_coils if self.reads_context else 0
 
     def unscaled_probabilities(self, observed_kspace, old_mask, recon_complex=None, gfactor=None, anatomy_labels=None,
                                context=None, details=None):

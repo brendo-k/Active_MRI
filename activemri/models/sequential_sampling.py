@@ -19,7 +19,7 @@ from activemri.reconstructors.SensetivityModel_mc import SensetivityModel_mc
 from activemri.samplers.fixed_mask import FileMaskPolicy
 from activemri.samplers.ppo import PPOMaskPolicy
 from activemri.samplers.sampler import Sampler, is_line_constrained
-from activemri.samplers.seq_adapt import StepContext, calibration_peaks
+from activemri.samplers.seq_adapt import StepContext, acs_compression, calibration_peaks
 from activemri.utils.image_processing import fft_2d_img as torch_fft2
 from activemri.utils.image_processing import ifft_2d_img as torch_ifft2
 from activemri.utils.util import compute_gaussian_nll_loss, compute_psnr_torch, compute_ssim_torch
@@ -28,7 +28,8 @@ from activemri.utils.util import compute_gaussian_nll_loss, compute_psnr_torch, 
 RSS_EPSILON = 1e-12
 BUDGET_REGIONS = ('grid', 'acquired')
 SAMPLER_COIL_COMBINES = ('sense', 'rss')
-SAMPLER_INPUTS = ('measured', 'recon')
+SAMPLER_INPUTS = ('measured', 'recon', 'full', 'seqmri')
+IN_LOOP_RECON_STEPS = (6, 9, 12, 14)
 
 
 def reinforce_group_size(batch_size, configured):
@@ -119,6 +120,8 @@ class SequentialSampling(nn.Module):
             residual_checkpoint=True,
             data_channels=None,
             sampler_input='measured',
+            recon_steps=IN_LOOP_RECON_STEPS,
+            virtual_coils=4,
             ):
         """`budget_over='acquired'` makes `sparsity` a fraction of each slice's acquired k-space (`mask_budget`);
         'grid' (the default, as older runs trained) a fraction of the whole grid, all of it spent inside the acquired
@@ -129,8 +132,16 @@ class SequentialSampling(nn.Module):
         also feeds that residual a frozen copy of the reconstructor's image of y * M_i at every step; the copy's weights
         are loaded by the trainer (`input_recon_checkpoint`) and never train.
 
+        Two kscr2 inputs of the adaptive residual (addendum_2026-11-15.md):
+        - 'full', the clairvoyant ceiling: the data channels are made from the fully sampled k-space at every step.
+        - 'seqmri': before each step in `recon_steps` the trained reconstructor reconstructs y * M_i, and the residual
+          also reads `virtual_coils` virtual coils of y * M_i and of the coil k-space FFT(S x) predicted from the latest of
+          those reconstructions. The reconstruction sees M_i detached, so the final loss trains its weights through the
+          sampler's input but adds no gradient path to earlier draws.
+
         At num_step > 1 the steps share the budget equally, each reads the k-space measured so far, and only the final
-        mask is reconstructed, so the sampler inputs that need an intermediate reconstruction are refused."""
+        mask is reconstructed (plus the 'seqmri' in-loop reconstructions), so the sampler inputs that need an
+        intermediate reconstruction of the old kind are refused."""
         super().__init__()
         if budget_over not in BUDGET_REGIONS:
             raise ValueError(f"budget_over must be one of {BUDGET_REGIONS}, got {budget_over!r}")
@@ -138,6 +149,17 @@ class SequentialSampling(nn.Module):
             raise ValueError(f"sampler_coil_combine must be one of {SAMPLER_COIL_COMBINES}, got {sampler_coil_combine!r}")
         if sampler_input not in SAMPLER_INPUTS:
             raise ValueError(f"sampler_input must be one of {SAMPLER_INPUTS}, got {sampler_input!r}")
+        if sampler_input in ('full', 'seqmri') and (sampler_type != 'seq_adapt_2d' or data_blind):
+            raise ValueError(f"sampler_input={sampler_input!r} is an input of seq_adapt_2d's adaptive residual; "
+                             "a data-blind twin cannot read a reconstruction of the data")
+        self.recon_steps = ()
+        if sampler_input == 'seqmri':
+            self.recon_steps = tuple(sorted({int(step) for step in recon_steps}))
+            if num_step < 2 or not self.recon_steps or self.recon_steps[0] < 0 or self.recon_steps[-1] >= num_step:
+                raise ValueError(f"in-loop reconstructions need steps in [0, {num_step}), got {list(recon_steps)}")
+            if virtual_coils < 1:
+                raise ValueError(f"sampler_input='seqmri' reads at least one virtual coil, got {virtual_coils}")
+        self.sampler_input = sampler_input
         self.sampler_coil_combine = sampler_coil_combine
         self.sparsity = sparsity
         self.budget_over = budget_over
@@ -238,6 +260,7 @@ class SequentialSampling(nn.Module):
             residual_checkpoint=residual_checkpoint,
             data_channels=data_channels,
             reads_reconstruction=sampler_input == 'recon',
+            complex_coils=virtual_coils if sampler_input == 'seqmri' else 0,
         )
 
         if loupe_same_start:
@@ -548,7 +571,7 @@ class SequentialSampling(nn.Module):
     def sample_trajectory(self, full_kspace, anatomy_labels=None, thresholds=None, sense_maps=None):
         """The steps' draws for `full_kspace`, with no reconstruction: (masks after each step [M_1, ..., M_K], each
         [B, 1, H, W] with the centre included, and each step's details). `thresholds` as in forward."""
-        if sense_maps is None and self.sampler.reads_input:
+        if sense_maps is None and (self.sampler.reads_input or self.recon_steps):
             sense_maps, _ = self.sense_maps_for(full_kspace)
         old_mask, valid_mask = self._initial_masks(full_kspace)
         step_budget = self.mask_budget(old_mask, valid_mask) / self.num_step
@@ -557,11 +580,29 @@ class SequentialSampling(nn.Module):
                                        thresholds=thresholds, uncertainty_map=torch.zeros_like(old_mask))
         return steps['masks'], steps['details']
 
+    def latest_recon_step(self, step):
+        """The last in-loop reconstruction step at or before `step`, or None (always None unless sampler_input='seqmri')."""
+        return max((s for s in self.recon_steps if s <= step), default=None)
+
+    def _in_loop_prediction(self, full_kspace, mask, sense_maps, extent, anatomy_labels=None):
+        """Coil k-space [B, C, H, W] predicted by the trained reconstructor from the k-space `mask` acquires: FFT(S x),
+        zero outside the acquired `extent`. `mask` arrives detached, so only the reconstructor's weights (and the maps')
+        get gradient through it."""
+        recon, _, _ = self._run_reconstructor(full_kspace, mask, sense_maps, anatomy_labels,
+                                              self._recon_support(None, extent))
+        return torch_fft2(recon * sense_maps) * extent
+
     @torch.no_grad()
-    def counterfactual_step(self, full_kspace, mask, step, data_kspace, threshold=None, anatomy_labels=None):
+    def counterfactual_step(self, full_kspace, mask, step, data_kspace, threshold=None, anatomy_labels=None,
+                            recon_mask=None, data_sense_maps=None):
         """Step `step`'s draw from the mask `mask` [B, 1, H, W] when the sampler reads `data_kspace` (another slice's coil
         k-space, [B, C, H, W, 2], scaled by its own ACS) in place of the slice's own data. The mask, header, acquired
         region, budget and `threshold` stay the slice's own, so data_kspace = full_kspace gives the step itself.
+
+        A 'full' sampler reads all of `data_kspace`. A 'seqmri' sampler past its first in-loop reconstruction also needs
+        `recon_mask`, the slice's own mask at `latest_recon_step(step)`: the reconstruction is redone from `data_kspace`
+        on that mask, with `data_kspace`'s own virtual coils and sensitivity maps (`data_sense_maps`, else estimated as
+        `sample_trajectory` estimates them).
 
         Returns the step's details plus `new`, the locations it adds [B, 1, H, W]. seq_adapt_2d only.
         """
@@ -569,15 +610,24 @@ class SequentialSampling(nn.Module):
             raise ValueError(f"a counterfactual data swap needs a sampler that reads a StepContext, not {self.sampler_type}")
         old_mask, valid_mask = self._initial_masks(full_kspace)
         budget = self.mask_budget(old_mask, valid_mask) / self.num_step
-        extent, coil_fraction, _ = self._step_header(full_kspace, old_mask)
+        extent, coil_fraction, _, _ = self._step_header(full_kspace, old_mask)
         context = StepContext(step, self.num_step, extent, coil_fraction)
         if not self.sampler.data_blind:
             data = torch.view_as_complex(data_kspace.contiguous())
-            context.measured = torch.view_as_complex((data_kspace * mask.unsqueeze(-1)).contiguous())
+            measured = data_kspace if self.sampler_input == 'full' else data_kspace * mask.unsqueeze(-1)
+            context.measured = torch.view_as_complex(measured.contiguous())
             context.calibration_peaks = calibration_peaks(data * old_mask)
             if self.sampler.reads_reconstruction:
                 context.reconstruction = self._input_reconstruction(data_kspace, mask, context.calibration_peaks[0],
                                                                     anatomy_labels)
+            if self.sampler.complex_coils:
+                context.compression = acs_compression(data * old_mask, self.sampler.complex_coils)
+                if self.latest_recon_step(step) is not None:
+                    if recon_mask is None:
+                        raise ValueError(f"step {step} reads the in-loop reconstruction of step "
+                                         f"{self.latest_recon_step(step)}; pass that step's own mask as recon_mask")
+                    maps = self.sense_maps_for(data_kspace)[0] if data_sense_maps is None else data_sense_maps
+                    context.predicted = self._in_loop_prediction(data_kspace, recon_mask, maps, extent, anatomy_labels)
         with self._quietly():
             sampled = self._sample(full_kspace, full_kspace * mask.unsqueeze(-1), mask, step, None,
                                    valid_mask=valid_mask, anatomy_labels=anatomy_labels, budget=budget,
@@ -761,12 +811,15 @@ class SequentialSampling(nn.Module):
         masks, details, anatomy_logits = [], [], []
         reinforce_logp = None  # [B], sum of every step's Plackett-Luce log-prob
         reinforce_entropy = None  # [B], sum of every step's draw entropy
+        predicted = None  # 'seqmri': the coil k-space predicted by the latest in-loop reconstruction
         for i in range(self.num_step):
             observed = full_kspace * mask.detach().unsqueeze(-1)
+            if i in self.recon_steps:
+                predicted = self._in_loop_prediction(full_kspace, mask.detach(), sense_maps, header[0], anatomy_labels)
             sampled = self._sample(
                 full_kspace, observed, mask.detach(), i, sense_maps, uncertainty_map, valid_mask,
                 anatomy_labels=anatomy_labels, fixed_mask=fixed_mask, budget=step_budget,
-                context=self._step_context(header, observed, i, full_kspace, mask.detach(), anatomy_labels),
+                context=self._step_context(header, observed, i, full_kspace, mask.detach(), anatomy_labels, predicted),
                 threshold=None if thresholds is None else thresholds[i])
             mask = sampled['mask'] if i == 0 else mask + (sampled['mask'] - mask.detach())
             masks.append(mask.detach())
@@ -788,26 +841,39 @@ class SequentialSampling(nn.Module):
 
     def _step_header(self, full_kspace, calibration_mask):
         """What every step of a `reads_context` sampler reads besides its mask and data: (acquired extent [B, 1, H, W],
-        active coil fraction [B], ACS peaks scaling the data, None for a data-blind sampler)."""
+        active coil fraction [B], ACS peaks scaling the data, None for a data-blind sampler, and the 'seqmri' virtual-coil
+        weights [B, C, V] from the ACS, else None)."""
         coil_kspace = torch.view_as_complex(full_kspace.contiguous())
         active_coils = (coil_kspace.abs().flatten(2).sum(dim=-1) > 0).sum(dim=1)
         coil_fraction = active_coils.to(full_kspace.dtype) / coil_kspace.shape[1]
         peaks = None if self.sampler.data_blind else calibration_peaks(coil_kspace * calibration_mask)
-        return self._kspace_extent(full_kspace), coil_fraction, peaks
+        compression = (acs_compression(coil_kspace * calibration_mask, self.sampler.complex_coils)
+                       if self.sampler.complex_coils else None)
+        return self._kspace_extent(full_kspace), coil_fraction, peaks, compression
 
-    def _step_context(self, header, observed_kspace, step, full_kspace=None, mask=None, anatomy_labels=None):
+    def _step_context(self, header, observed_kspace, step, full_kspace=None, mask=None, anatomy_labels=None,
+                      predicted=None):
         """The StepContext of step `step` (None for a sampler that reads none); a data-blind one gets no data. A sampler
-        with a recon input also gets the frozen reconstruction of the k-space `mask` [B, 1, H, W] acquires."""
+        with a recon input also gets the frozen reconstruction of the k-space `mask` [B, 1, H, W] acquires; a 'full'
+        sampler reads all of `full_kspace`; a 'seqmri' one also gets the latest in-loop prediction `predicted`."""
         if header is None:
             return None
-        extent, coil_fraction, peaks = header
-        measured = None if self.sampler.data_blind else torch.view_as_complex(observed_kspace.contiguous())
+        extent, coil_fraction, peaks, compression = header
+        if self.sampler.data_blind:
+            measured = None
+        elif self.sampler_input == 'full':
+            if full_kspace is None:
+                raise ValueError("a clairvoyant sampler's context needs the slice's fully sampled k-space")
+            measured = torch.view_as_complex(full_kspace.contiguous())
+        else:
+            measured = torch.view_as_complex(observed_kspace.contiguous())
         reconstruction = None
         if self.sampler.reads_reconstruction:
             if full_kspace is None or mask is None:
                 raise ValueError("a recon-input sampler's context needs the slice's k-space and the mask so far")
             reconstruction = self._input_reconstruction(full_kspace, mask, peaks[0], anatomy_labels)
-        return StepContext(step, self.num_step, extent, coil_fraction, measured, peaks, reconstruction)
+        return StepContext(step, self.num_step, extent, coil_fraction, measured, peaks, reconstruction, predicted,
+                           compression)
 
     def loss(self, pred_dict, target_dict, meta, loss_type):
         """Compute training loss.

@@ -49,6 +49,9 @@ start_job() {
 #   A_16_s42_scr, T_    from-scratch pair, 100 epochs on the base recipe
 #   <A|T>_<K>_s<s>_kscr<n>  knee-only from-scratch subproblem, iteration n (addendum_2026-11-11.md): uniform-noise
 #                       LOUPE start, knee PD + PDFS only, validated on the dev half of the knee val volumes
+#   <C|S>_<K>_s<s>_kscr<n>  from iteration 2 (addendum_2026-11-15.md): adaptive arms whose sampler reads the fully
+#                       sampled k-space (C, the clairvoyant ceiling) or also the trained VarNet's in-loop reconstructions
+#                       (S, SeqMRI-style); their control is T_<K>_s<s>_kscr<n>
 #   A_4_s42_rec         recon-input ablation: the sampler also reads frozen B_42's reconstruction of y * M_i
 #   A_16_s42_img        channel ablation: the sampler reads the image channel, not the k-space one
 arm_args() {
@@ -58,12 +61,16 @@ arm_args() {
                   training.lr_step_size=90 sampler.loupe_vd_init_power=4 sampler.anatomy_conditioning=false)
         return
     fi
-    if [[ ! "$arm" =~ ^([AT])_([0-9]+)_s([0-9]+)(_f([0-9]+)|_scr|_kscr([0-9]+)|_rec|_img)?$ ]]; then
+    if [[ ! "$arm" =~ ^([ATCS])_([0-9]+)_s([0-9]+)(_f([0-9]+)|_scr|_kscr([0-9]+)|_rec|_img)?$ ]]; then
         echo "unknown arm '$arm'" >&2
         exit 1
     fi
     local kind="${BASH_REMATCH[1]}" steps="${BASH_REMATCH[2]}" base_seed="${BASH_REMATCH[3]}"
     local variant="${BASH_REMATCH[4]}" floor_seed="${BASH_REMATCH[5]}" iteration="${BASH_REMATCH[6]}"
+    if [[ "$kind" == [CS] && ( "$variant" != _kscr* || "$iteration" -lt 2 ) ]]; then
+        echo "$arm: C and S arms exist only in knee subproblem iterations 2 and later" >&2
+        exit 1
+    fi
     local blind=false
     [[ "$kind" == T ]] && blind=true
     ARM_ARGS=(--model sequential sampler.sampler_type=seq_adapt_2d sampler.anatomy_conditioning=true
@@ -71,7 +78,12 @@ arm_args() {
     if [[ "$variant" == _kscr* ]]; then
         case "$iteration" in
             1) ARM_ARGS+=(--seed "$base_seed" training.num_epochs=100 training.lr_step_size=90) ;;
+            2) ARM_ARGS+=(--seed "$base_seed" training.num_epochs=100 training.lr_step_size=90 recon.num_cascades=6) ;;
             *) echo "knee subproblem iteration $iteration is not defined" >&2; exit 1 ;;
+        esac
+        case "$kind" in
+            C) ARM_ARGS+=(sampler.input=full) ;;
+            S) ARM_ARGS+=(sampler.input=seqmri) ;;
         esac
         RECIPE=("${RECIPE[@]/#fastmri_local_v1_flair_knee/fastmri_local_v1_knee}" datasets.val_half=dev)
         return

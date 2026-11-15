@@ -23,7 +23,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from activemri.config import TrainConfig  # noqa: E402
 from activemri.models.sequential_sampling import SequentialSampling  # noqa: E402
-from activemri.samplers.seq_adapt import StepContext  # noqa: E402
+from activemri.samplers.seq_adapt import StepContext, acs_compression, calibration_peaks, virtual_coil_channels  # noqa: E402
 from activemri.training.run_naming import run_name  # noqa: E402
 from activemri.training.trainer import Sequential_Trainer, build_optimizer  # noqa: E402
 from activemri.utils.image_processing import ifft_2d_img  # noqa: E402
@@ -33,6 +33,7 @@ COILS = 4
 PRESELECT = 4
 SPARSITY = 0.25
 LABELS = torch.tensor([0, 2])
+SEQMRI = {'sampler_input': 'seqmri', 'recon_steps': (1, 3), 'virtual_coils': 2}  # the kscr2 S arm, scaled to K=4
 
 
 class CountingReconstructor(nn.Module):
@@ -383,6 +384,132 @@ def test_recon_input_refuses_the_twin_and_other_samplers():
         model(sampler_type='loupe_2d', num_step=4, sampler_input='recon')
     with pytest.raises(ValueError, match='sampler_input must be one of'):
         model(num_step=4, sampler_input='prediction')
+
+
+@pytest.mark.parametrize('arm', [{'sampler_input': 'measured'}, {'sampler_input': 'full'}, SEQMRI],
+                         ids=['measured', 'clairvoyant', 'seqmri'])
+def test_kscr2_arms_start_from_the_twins_weights_masks_and_random_stream(arm):
+    """A, C and S share every weight the twin has (S's first conv only gains inputs, appended last) and draw the twin's
+    masks at the start; S's in-loop reconstructions draw nothing from the random stream."""
+    twin = model(num_step=4, data_blind=True, seed=3)
+    after_twin = torch.rand(3)
+    adaptive = model(num_step=4, seed=3, **arm)
+    after_adaptive = torch.rand(3)
+    assert torch.equal(after_twin, after_adaptive)
+    twin_state, adaptive_state = twin.state_dict(), adaptive.state_dict()
+    assert twin_state.keys() == adaptive_state.keys()
+    for key, value in twin_state.items():
+        shared = adaptive_state[key] if adaptive_state[key].shape == value.shape else adaptive_state[key][:, :value.shape[1]]
+        assert torch.equal(shared, value), key
+
+    twin.train()
+    adaptive.train()
+    kspace, maps, target = data()
+    twin_output = run(twin, kspace, maps, target)
+    twin_stream = torch.get_rng_state()
+    adaptive_output = run(adaptive, kspace, maps, target)
+    assert torch.equal(torch.get_rng_state(), twin_stream)
+    assert all(torch.equal(a, t) for a, t in zip(adaptive_output['masks'], twin_output['masks']))
+    assert torch.equal(adaptive_output['output'], twin_output['output'])
+
+
+def test_clairvoyant_arm_reads_unacquired_kspace():
+    clairvoyant = model(num_step=4, sampler_input='full')
+    randomise_residual_output(clairvoyant)
+    clairvoyant.eval()
+    kspace, maps, target = data()
+    steps = record_steps(clairvoyant)
+    with torch.no_grad():
+        final_mask = run(clairvoyant, kspace, maps, target)['mask']
+        unacquired = (final_mask == 0).unsqueeze(-1).expand_as(kspace)
+        run(clairvoyant, rescale_values_keeping_zeros(kspace, unacquired), maps, target)
+    assert not torch.equal(steps[0].unscaled, steps[4].unscaled), "the clairvoyant arm ignores unacquired k-space"
+
+
+def test_seqmri_arm_reconstructs_before_its_steps_and_trains_the_reconstructor_through_the_sampler():
+    """Before steps 1 and 3 the trained reconstructor reconstructs y * M_i with M_i detached; its prediction carries the
+    gradient into the reconstructor's weights, and the final reconstruction is still the forward's one more call."""
+    seqmri = model(num_step=4, **SEQMRI)
+    randomise_residual_output(seqmri)
+    seqmri.train()
+    seen = []
+    predict = seqmri._in_loop_prediction
+
+    def recording(full_kspace, mask, sense_maps, extent, anatomy_labels=None):
+        predicted = predict(full_kspace, mask, sense_maps, extent, anatomy_labels)
+        seen.append(SimpleNamespace(mask=mask, predicted=predicted))
+        return predicted
+
+    seqmri._in_loop_prediction = recording
+    kspace, maps, target = data()
+    output = run(seqmri, kspace, maps, target)
+    assert seqmri.reconstructor.calls == 1 + len(SEQMRI['recon_steps'])
+    assert len(seen) == 2
+    assert torch.equal(seen[0].mask, output['masks'][0]) and torch.equal(seen[1].mask, output['masks'][2])
+    assert not any(s.mask.requires_grad for s in seen) and all(s.predicted.requires_grad for s in seen)
+    (output['output'] - target).abs().mean().backward()
+    with_in_loop_path = seqmri.reconstructor.scale.grad.clone()
+
+    seqmri.zero_grad(set_to_none=True)
+    seqmri._in_loop_prediction = lambda *args, **kwargs: predict(*args, **kwargs).detach()
+    (run(seqmri, kspace, maps, target)['output'] - target).abs().mean().backward()
+    assert not torch.equal(seqmri.reconstructor.scale.grad, with_in_loop_path), "the in-loop path sends no gradient"
+
+
+def test_seqmri_steps_read_the_prediction_from_the_first_in_loop_reconstruction_on():
+    seqmri = model(num_step=4, **SEQMRI)
+    randomise_residual_output(seqmri)
+    seqmri.eval()
+    kspace, maps, target = data()
+    steps = record_steps(seqmri)
+    with torch.no_grad():
+        run(seqmri, kspace, maps, target)
+        seqmri.reconstructor.scale.fill_(3.0)
+        run(seqmri, kspace, maps, target)
+    before, after = steps[:4], steps[4:]
+    assert torch.equal(before[0].unscaled, after[0].unscaled), "step 0 comes before any in-loop reconstruction"
+    assert not torch.equal(before[1].unscaled, after[1].unscaled), "step 1 ignores its in-loop reconstruction"
+
+
+def test_virtual_coils_are_orthonormal_phase_referenced_and_blind_to_per_coil_phase():
+    kspace, _, _ = data()
+    coils = torch.view_as_complex(kspace.contiguous())
+    calibration = model(num_step=4, **SEQMRI)._initial_masks(kspace)[0]
+    weights = acs_compression(coils * calibration, 2)
+    identity = torch.eye(2, dtype=weights.dtype).expand(2, -1, -1)
+    torch.testing.assert_close(weights.conj().transpose(1, 2) @ weights, identity, atol=1e-5, rtol=0)
+    flat = (coils * calibration).flatten(2)
+    peak = flat.abs().pow(2).sum(dim=1).argmax(dim=1)
+    at_peak = torch.einsum('bcv,bc->bv', weights.conj(), flat[torch.arange(2), :, peak])
+    torch.testing.assert_close(at_peak.imag, torch.zeros_like(at_peak.imag), atol=1e-4, rtol=0)
+    assert (at_peak.real > 0).all()
+
+    phases = torch.exp(2j * torch.pi * torch.rand(2, COILS, 1, 1, generator=torch.Generator().manual_seed(4)))
+    rotated = coils * phases
+    kspace_peak = calibration_peaks(coils * calibration)[1]
+    channels = virtual_coil_channels(coils, weights, kspace_peak)
+    rotated_channels = virtual_coil_channels(rotated, acs_compression(rotated * calibration, 2), kspace_peak)
+    assert channels.shape == (2, 3 * 2, SIZE, SIZE)
+    torch.testing.assert_close(channels, rotated_channels, atol=1e-3, rtol=0)
+
+
+def test_run_names_tell_the_kscr2_arms_apart():
+    names = {sampler_input: run_name(TrainConfig(sampler_type='seq_adapt_2d', num_step=16, sampler_input=sampler_input))
+             for sampler_input in ('measured', 'full', 'seqmri')}
+    assert len(set(names.values())) == 3
+    assert 'clairvoyant' in names['full'] and 'seqmri-input' in names['seqmri']
+
+
+def test_kscr2_inputs_refuse_the_twin_bad_steps_and_other_samplers():
+    for arm in ({'sampler_input': 'full'}, SEQMRI):
+        with pytest.raises(ValueError, match='cannot read a reconstruction'):
+            model(num_step=4, data_blind=True, **arm)
+        with pytest.raises(ValueError, match="seq_adapt_2d's"):
+            model(sampler_type='loupe_2d', num_step=4, **arm)
+    with pytest.raises(ValueError, match='in-loop reconstructions need steps'):
+        model(num_step=4, sampler_input='seqmri', recon_steps=(1, 4))
+    with pytest.raises(ValueError, match='in-loop reconstructions need steps'):
+        model(num_step=1, sampler_input='seqmri', recon_steps=(0,))
 
 
 def test_channel_ablation_refuses_unknown_or_blind_channel_sets():

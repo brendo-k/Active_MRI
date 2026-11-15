@@ -195,9 +195,13 @@ def score_slices(model, options, dataset, collate, indices, donors, args):
                     arrays[f'swap_{metric}'][rows, s] = np.where(matched, swapped[metric].cpu().numpy(), np.nan)
                 arrays['swap_mask_equal'][rows, s] = (donor_final == masks[-1]).flatten(1).all(1).cpu().numpy() & matched
             if sensitivity:
+                def recon_mask(step):
+                    latest = model.latest_recon_step(step)
+                    return None if latest is None else previous[latest]
+
                 for step in range(steps):
                     swap = model.counterfactual_step(part['kspace'], previous[step], step, donor['kspace'],
-                                                     thresholds[step], part['labels'])
+                                                     thresholds[step], part['labels'], recon_mask=recon_mask(step))
                     own_new = (masks[step] - previous[step]) > 0
                     kept = (own_new & (swap['new'] > 0)).flatten(1).sum(1).double()
                     total = own_new.flatten(1).sum(1).double()
@@ -208,7 +212,7 @@ def score_slices(model, options, dataset, collate, indices, donors, args):
                 if self_check is None:
                     self_check = all(torch.equal(
                         model.counterfactual_step(part['kspace'], previous[step], step, part['kspace'],
-                                                  thresholds[step], part['labels'])['new'],
+                                                  thresholds[step], part['labels'], recon_mask=recon_mask(step))['new'],
                         masks[step] - previous[step]) for step in range(steps))
         print(f'  scored {start}/{count} slices', flush=True)
     return arrays, self_check

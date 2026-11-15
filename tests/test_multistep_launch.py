@@ -26,7 +26,9 @@ COREHPC_ROOTS = {'hpc': '~/scratch/data/fastmri/{anatomy}/data', 'local_batch2':
 ARMS = (['B_42', 'B_43']
         + [f'{kind}_{steps}_s{seed}' for seed in (42, 43) for steps in (1, 4, 16) for kind in 'AT']
         + ['T_1_s42_f142', 'T_16_s42_f142', 'A_4_s42_rec', 'A_16_s42_img', 'A_16_s42_scr', 'T_16_s42_scr',
-           'A_16_s42_kscr1', 'T_16_s42_kscr1', 'T_16_s142_kscr1'])
+           'A_16_s42_kscr1', 'T_16_s42_kscr1', 'T_16_s142_kscr1',
+           'A_16_s42_kscr2', 'T_16_s42_kscr2', 'C_16_s42_kscr2', 'S_16_s42_kscr2', 'T_1_s42_kscr2'])
+SAMPLER_INPUTS = {'C': 'full', 'S': 'seqmri'}
 
 
 def corehpc_arguments(arm, exp_dir):
@@ -69,7 +71,8 @@ def test_every_arm_composes_with_the_corehpc_data_roots_and_its_recipe(arm, exp_
     assert cfg.sampler.sampler_type == 'seq_adapt_2d'
     assert cfg.training.num_step == int(arm.split('_')[1])
     assert cfg.sampler.data_blind == arm.startswith('T_')
-    assert cfg.sampler.input == ('recon' if arm.endswith('_rec') else 'measured')
+    assert cfg.sampler.input == SAMPLER_INPUTS.get(arm[0], 'recon' if arm.endswith('_rec') else 'measured')
+    assert cfg.recon.num_cascades == (6 if arm.endswith('_kscr2') else 12)
     assert list(cfg.sampler.data_channels) == (['image'] if arm.endswith('_img') else ['image', 'kspace'])
     knee_subproblem = '_kscr' in arm
     from_scratch = arm.endswith('_scr') or knee_subproblem
@@ -84,3 +87,9 @@ def test_every_arm_composes_with_the_corehpc_data_roots_and_its_recipe(arm, exp_
 def test_an_undefined_knee_subproblem_iteration_is_refused(exp_dir):
     with pytest.raises(AssertionError, match='iteration 9 is not defined'):
         corehpc_arguments('A_16_s42_kscr9', exp_dir)
+
+
+@pytest.mark.parametrize('arm', ['C_16_s42_kscr1', 'S_16_s42_kscr1', 'S_16_s42', 'C_4_s42_rec', 'S_16_s42_scr'])
+def test_clairvoyant_and_seqmri_arms_are_refused_outside_kscr2_on(arm, exp_dir):
+    with pytest.raises(AssertionError, match='C and S arms exist only'):
+        corehpc_arguments(arm, exp_dir)
