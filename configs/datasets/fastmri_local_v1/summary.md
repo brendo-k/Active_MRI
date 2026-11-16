@@ -92,3 +92,15 @@ Cache total (L + val + test): 252 GB k-space + 126 GB maps.
 | 640 | 224 | 203 |
 | 640 | 234 | 2 |
 | 640 | 256 | 25 |
+
+## Tier F (FLAIR only, added 2026-11-16 by scripts/data/add_flair_tier_f.py)
+
+Tier F = S + L-only + F-only: all 339 usable FLAIR volumes of official train (39 F-only, 614 slices, 14 GB raw on CoreHPC; stage 3). Tier F FLAIR has 5376 slices. For knee and T2, tier F is tier L.
+
+| field | model | F-only volumes |
+|---|---|---|
+| 1.5T | Aera | 9 |
+| 3T | Biograph_mMR | 3 |
+| 3T | Prisma_fit | 5 |
+| 3T | Skyra | 15 |
+| 3T | TrioTim | 7 |
