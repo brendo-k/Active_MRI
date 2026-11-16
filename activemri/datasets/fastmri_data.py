@@ -710,7 +710,7 @@ def _dataloaders(train_datasets, val_datasets, batch_size, num_workers, shuffle_
     return train_loader, val_loader
 
 
-MANIFEST_TRAIN_TIERS = {'S': ('S',), 'L': ('S', 'L-only')}
+MANIFEST_TRAIN_TIERS = {'S': ('S',), 'L': ('S', 'L-only'), 'F': ('S', 'L-only', 'F-only')}  # F-only rows: FLAIR only
 LIMIT_VOLUMES_SEED = 1234  # fixed; a training seed must not change which volumes a cap keeps
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 
@@ -809,7 +809,7 @@ def build_manifest_dataloaders(
 ) -> Tuple[torch.utils.data.DataLoader, torch.utils.data.DataLoader]:
     """Train and val loaders over the raw h5 volumes a subset manifest lists (scripts/data/select_fastmri_subset.py).
 
-    Train is `train_tier` (S, or L = S plus the L-only rows) of each class in `classes` (the manifest's `cls`: knee, T2,
+    Train is `train_tier` (S; L = S plus the L-only rows; F = L plus the F-only rows, which exist for FLAIR only) of each class in `classes` (the manifest's `cls`: knee, T2,
     FLAIR); val is its val rows. Test rows are never loaded. `roots` maps the manifest's `source` to the directory its
     `hpc_relpath` is relative to, with `{anatomy}` filled in. Every slice keeps all its coils (zero-padded to `num_coils`)
     and has its readout oversampling cropped away. A relative `manifest` is relative to the repository root.

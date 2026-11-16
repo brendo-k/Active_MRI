@@ -13,12 +13,14 @@
 #     datasets.train_tier=L 'datasets.roots.hpc="~/scratch/data/fastmri/{anatomy}/data"' datasets.roots.local_batch2=~/scratch/data/fastmri/knee/data
 #   (Hydra needs the inner double quotes because of the braces.)
 #   The 114 local knee files outside tier S match CoreHPC's by name and size, checked 2026-10-27.
+# - Tier F (CoreHPC only, same overrides with datasets.train_tier=F) is every usable FLAIR volume of official train:
+#   339 = L's 300 + 39 F-only rows (scripts/data/add_flair_tier_f.py). Knee and T2 have no F-only rows, so F = L there.
 loader: fastmri_manifest
 manifest: configs/datasets/fastmri_local_v1/manifest.csv
 roots:
   local_batch2: /export/scratch/bkadota/fastmri_knee/batch2
   hpc: /export/scratch/bkadota/fastmri_raw/{anatomy}
-train_tier: S
+train_tier: S  # S (80 per class), L (300 per class) or F (L + every remaining usable FLAIR); see above
 limit_volumes: 1  # fraction of each condition, train and val. 1 = the whole tier. See the note above.
 train_anatomies: []  # train on these anatomies only, still validating on every class; empty = all
 val_anatomies: []  # validate on these anatomies only (val loss, best_model.pt); empty = all
