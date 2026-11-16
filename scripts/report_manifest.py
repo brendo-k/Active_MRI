@@ -105,8 +105,9 @@ def write(args):
     if args.no_runs and args.runs:
         raise SystemExit('--no-runs and --runs are mutually exclusive')
     produced_at = git('rev-parse', args.produced_at)
-    run_dirs = sorted(path for path in CHECKPOINT_ROOT.iterdir()
-                      if path.is_dir() and any(fnmatch.fnmatch(path.name, pattern) for pattern in args.runs))
+    run_dirs = [] if args.no_runs else sorted(
+        path for path in CHECKPOINT_ROOT.iterdir()
+        if path.is_dir() and any(fnmatch.fnmatch(path.name, pattern) for pattern in args.runs))
     changed_since = set(git('diff', '--name-only', produced_at, 'HEAD').split())
     manifest = {
         'schema': 1,
