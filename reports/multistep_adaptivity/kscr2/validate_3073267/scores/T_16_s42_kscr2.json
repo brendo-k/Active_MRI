@@ -1,0 +1,705 @@
+{
+  "name": "T_16_s42_kscr2",
+  "run": "/home/remote/bkadota/scratch/multistep_adaptivity/validate/3073267/T_16_s42_kscr2",
+  "checkpoint": "last_model.pt",
+  "epoch": 0,
+  "training_code": {
+    "commit": "b21c6b23617248fd7b066b11ae99fcbef22592b5",
+    "branch": "exp/multistep_adaptivity",
+    "dirty_tracked_files": [],
+    "started_at": "2026-11-15T22:23:39+00:00",
+    "argv": [
+      "train.py",
+      "hydra.job.name=train_sequential",
+      "recon=varnet",
+      "datasets=fastmri_local_v1_knee",
+      "training.batch_size=16",
+      "training.seed=42",
+      "sampler.accelerations=[8.0]",
+      "sampler.sampler_type=seq_adapt_2d",
+      "sampler.anatomy_conditioning=true",
+      "training.num_step=16",
+      "sampler.data_blind=true",
+      "training.num_epochs=1",
+      "training.lr_step_size=90",
+      "recon.num_cascades=6",
+      "misc.resolution=[320,320]",
+      "sampler.budget_over=acquired",
+      "datasets.limit_volumes=1",
+      "datasets.roots.hpc=\"~/scratch/data/fastmri/{anatomy}/data\"",
+      "datasets.roots.local_batch2=\"~/scratch/data/fastmri/knee/data\"",
+      "datasets.val_half=dev",
+      "output.out_dir=/home/remote/bkadota/scratch/multistep_adaptivity/validate/3073267/T_16_s42_kscr2",
+      "training.limit_batches=0.1"
+    ]
+  },
+  "eval_code": {
+    "commit": "b21c6b23617248fd7b066b11ae99fcbef22592b5",
+    "branch": "exp/multistep_adaptivity",
+    "dirty_tracked_files": []
+  },
+  "options": {
+    "sampler_type": "seq_adapt_2d",
+    "num_step": 16,
+    "data_blind": true,
+    "accelerations": [
+      8.0
+    ],
+    "budget_over": "acquired",
+    "seed": 42,
+    "residual_chans": 16,
+    "residual_depth": 4,
+    "residual_limit": 6.0,
+    "residual_lr": 0.0001,
+    "anatomy_conditioning": true,
+    "loss_type": "l1"
+  },
+  "draw_seeds": [
+    1234,
+    4321
+  ],
+  "slices": {
+    "count": 120,
+    "hash": "685c16a01ee77b584da9e1154f074bf076e9cabe"
+  },
+  "means": {
+    "psnr": {
+      "knee-PD": 20.157639463742573,
+      "knee-PDFS": 23.03476889928182,
+      "all": 21.596204181512196
+    },
+    "ssim": {
+      "knee-PD": 0.4626830978248641,
+      "knee-PDFS": 0.5006910261766209,
+      "all": 0.48168706200074246
+    },
+    "nmse": {
+      "knee-PD": 0.08200385204205911,
+      "knee-PDFS": 0.07476953351870179,
+      "all": 0.07838669278038045
+    },
+    "realised_fraction": {
+      "knee-PD": 0.12486791977037986,
+      "knee-PDFS": 0.12488273090372483,
+      "all": 0.12487532533705234
+    }
+  },
+  "by_step": {
+    "step_new": {
+      "knee-PD": [
+        795.4,
+        791.4083333333333,
+        793.6833333333333,
+        793.6583333333333,
+        793.6416666666667,
+        791.4,
+        793.7,
+        791.8583333333333,
+        790.1166666666667,
+        792.275,
+        787.2416666666667,
+        791.4,
+        794.525,
+        794.8,
+        795.025,
+        796.3416666666667
+      ],
+      "knee-PDFS": [
+        789.8583333333333,
+        793.8833333333333,
+        792.2,
+        795.8416666666667,
+        794.7083333333334,
+        795.225,
+        788.825,
+        794.7,
+        791.3916666666667,
+        792.475,
+        794.6083333333333,
+        791.9666666666667,
+        791.5833333333334,
+        794.875,
+        794.6416666666667,
+        791.2083333333334
+      ],
+      "all": [
+        792.6291666666667,
+        792.6458333333334,
+        792.9416666666667,
+        794.75,
+        794.175,
+        793.3125,
+        791.2625,
+        793.2791666666667,
+        790.7541666666667,
+        792.375,
+        790.925,
+        791.6833333333333,
+        793.0541666666667,
+        794.8375,
+        794.8333333333334,
+        793.775
+      ]
+    },
+    "step_budget": {
+      "knee-PD": [
+        793.75,
+        793.75,
+        793.75,
+        793.75,
+        793.75,
+        793.75,
+        793.75,
+        793.75,
+        793.75,
+        793.75,
+        793.75,
+        793.75,
+        793.75,
+        793.75,
+        793.75,
+        793.75
+      ],
+      "knee-PDFS": [
+        793.75,
+        793.75,
+        793.75,
+        793.75,
+        793.75,
+        793.75,
+        793.75,
+        793.75,
+        793.75,
+        793.75,
+        793.75,
+        793.75,
+        793.75,
+        793.75,
+        793.75,
+        793.75
+      ],
+      "all": [
+        793.75,
+        793.75,
+        793.75,
+        793.75,
+        793.75,
+        793.75,
+        793.75,
+        793.75,
+        793.75,
+        793.75,
+        793.75,
+        793.75,
+        793.75,
+        793.75,
+        793.75,
+        793.75
+      ]
+    },
+    "residual_rms": {
+      "knee-PD": [
+        0.008274245075881481,
+        0.008269848837517201,
+        0.008265427011065186,
+        0.008261514082551002,
+        0.008257968778101107,
+        0.008254115198117992,
+        0.008249841576131681,
+        0.00824578561199208,
+        0.008241631338993709,
+        0.008237369948377211,
+        0.008233266572157541,
+        0.008229170739650727,
+        0.008224844583310187,
+        0.008220957165273527,
+        0.008216357285467287,
+        0.008212600299157203
+      ],
+      "knee-PDFS": [
+        0.008273277431726456,
+        0.008268817001953721,
+        0.008264597683834533,
+        0.008260631615606447,
+        0.008256681053899229,
+        0.008252342169483503,
+        0.008248521535036465,
+        0.00824469820751498,
+        0.008240283528963725,
+        0.008235513302497565,
+        0.008231416313598553,
+        0.008227273270798226,
+        0.00822319476865232,
+        0.00821924617048353,
+        0.008215137105435134,
+        0.008210884251942238
+      ],
+      "all": [
+        0.008273761253803968,
+        0.008269332919735462,
+        0.00826501234744986,
+        0.008261072849078725,
+        0.008257324916000168,
+        0.008253228683800747,
+        0.008249181555584073,
+        0.008245241909753532,
+        0.008240957433978716,
+        0.008236441625437388,
+        0.008232341442878047,
+        0.008228222005224476,
+        0.008224019675981253,
+        0.008220101667878529,
+        0.00821574719545121,
+        0.00821174227554972
+      ]
+    }
+  },
+  "donors": {
+    "matched": 120,
+    "unmatched": {
+      "knee-PD": 0,
+      "knee-PDFS": 0
+    }
+  },
+  "guards": {
+    "ssim_pooled": 0.48168706200074246,
+    "ssim_at_least_0.80": false,
+    "realised_fraction_target": 0.125,
+    "realised_fraction_within_0.002": true,
+    "failed_reconstructions_below_20dB": [
+      {
+        "volume": "file1000107.h5",
+        "slice_id": 6,
+        "condition": "knee-PD",
+        "psnr": 18.840539932250977
+      },
+      {
+        "volume": "file1000107.h5",
+        "slice_id": 11,
+        "condition": "knee-PD",
+        "psnr": 19.510608673095703
+      },
+      {
+        "volume": "file1000114.h5",
+        "slice_id": 6,
+        "condition": "knee-PDFS",
+        "psnr": 18.463010787963867
+      },
+      {
+        "volume": "file1000464.h5",
+        "slice_id": 3,
+        "condition": "knee-PD",
+        "psnr": 19.32941246032715
+      },
+      {
+        "volume": "file1000464.h5",
+        "slice_id": 31,
+        "condition": "knee-PD",
+        "psnr": 19.94482707977295
+      },
+      {
+        "volume": "file1000758.h5",
+        "slice_id": 6,
+        "condition": "knee-PD",
+        "psnr": 17.75933265686035
+      },
+      {
+        "volume": "file1000758.h5",
+        "slice_id": 12,
+        "condition": "knee-PD",
+        "psnr": 18.160980224609375
+      },
+      {
+        "volume": "file1000758.h5",
+        "slice_id": 17,
+        "condition": "knee-PD",
+        "psnr": 19.977662086486816
+      },
+      {
+        "volume": "file1000758.h5",
+        "slice_id": 23,
+        "condition": "knee-PD",
+        "psnr": 19.608460426330566
+      },
+      {
+        "volume": "file1000758.h5",
+        "slice_id": 29,
+        "condition": "knee-PD",
+        "psnr": 19.7827091217041
+      },
+      {
+        "volume": "file1000871.h5",
+        "slice_id": 6,
+        "condition": "knee-PD",
+        "psnr": 19.21535301208496
+      },
+      {
+        "volume": "file1000871.h5",
+        "slice_id": 12,
+        "condition": "knee-PD",
+        "psnr": 19.379962921142578
+      },
+      {
+        "volume": "file1000871.h5",
+        "slice_id": 17,
+        "condition": "knee-PD",
+        "psnr": 19.71479892730713
+      },
+      {
+        "volume": "file1000871.h5",
+        "slice_id": 29,
+        "condition": "knee-PD",
+        "psnr": 19.15431022644043
+      },
+      {
+        "volume": "file1001057.h5",
+        "slice_id": 3,
+        "condition": "knee-PD",
+        "psnr": 19.67950439453125
+      },
+      {
+        "volume": "file1001057.h5",
+        "slice_id": 9,
+        "condition": "knee-PD",
+        "psnr": 17.52266502380371
+      },
+      {
+        "volume": "file1001057.h5",
+        "slice_id": 26,
+        "condition": "knee-PD",
+        "psnr": 19.75214958190918
+      },
+      {
+        "volume": "file1001077.h5",
+        "slice_id": 1,
+        "condition": "knee-PD",
+        "psnr": 14.186187267303467
+      },
+      {
+        "volume": "file1001077.h5",
+        "slice_id": 7,
+        "condition": "knee-PD",
+        "psnr": 18.835627555847168
+      },
+      {
+        "volume": "file1001077.h5",
+        "slice_id": 12,
+        "condition": "knee-PD",
+        "psnr": 19.52311611175537
+      },
+      {
+        "volume": "file1001077.h5",
+        "slice_id": 18,
+        "condition": "knee-PD",
+        "psnr": 19.45784568786621
+      },
+      {
+        "volume": "file1001077.h5",
+        "slice_id": 23,
+        "condition": "knee-PD",
+        "psnr": 18.707754135131836
+      },
+      {
+        "volume": "file1001077.h5",
+        "slice_id": 29,
+        "condition": "knee-PD",
+        "psnr": 19.65154266357422
+      },
+      {
+        "volume": "file1001126.h5",
+        "slice_id": 4,
+        "condition": "knee-PD",
+        "psnr": 18.427169799804688
+      },
+      {
+        "volume": "file1001126.h5",
+        "slice_id": 9,
+        "condition": "knee-PD",
+        "psnr": 18.124229431152344
+      },
+      {
+        "volume": "file1001126.h5",
+        "slice_id": 15,
+        "condition": "knee-PD",
+        "psnr": 18.67129898071289
+      },
+      {
+        "volume": "file1001126.h5",
+        "slice_id": 21,
+        "condition": "knee-PD",
+        "psnr": 18.533634185791016
+      },
+      {
+        "volume": "file1001126.h5",
+        "slice_id": 26,
+        "condition": "knee-PD",
+        "psnr": 18.577383995056152
+      },
+      {
+        "volume": "file1001126.h5",
+        "slice_id": 32,
+        "condition": "knee-PD",
+        "psnr": 19.909247398376465
+      },
+      {
+        "volume": "file1001159.h5",
+        "slice_id": 6,
+        "condition": "knee-PDFS",
+        "psnr": 17.59092426300049
+      },
+      {
+        "volume": "file1001275.h5",
+        "slice_id": 16,
+        "condition": "knee-PDFS",
+        "psnr": 19.930925369262695
+      },
+      {
+        "volume": "file1001715.h5",
+        "slice_id": 3,
+        "condition": "knee-PD",
+        "psnr": 17.549034118652344
+      },
+      {
+        "volume": "file1001843.h5",
+        "slice_id": 6,
+        "condition": "knee-PD",
+        "psnr": 18.287121772766113
+      },
+      {
+        "volume": "file1002382.h5",
+        "slice_id": 5,
+        "condition": "knee-PD",
+        "psnr": 19.269243240356445
+      },
+      {
+        "volume": "file1002382.h5",
+        "slice_id": 10,
+        "condition": "knee-PD",
+        "psnr": 19.133663177490234
+      },
+      {
+        "volume": "file1002382.h5",
+        "slice_id": 16,
+        "condition": "knee-PD",
+        "psnr": 19.273094177246094
+      }
+    ]
+  },
+  "swap_cost": {
+    "psnr": {
+      "knee-PD": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 60,
+        "n_volumes": 10,
+        "n_left_out": 0
+      },
+      "knee-PDFS": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 60,
+        "n_volumes": 10,
+        "n_left_out": 0
+      },
+      "all": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 120,
+        "n_volumes": 20,
+        "n_left_out": 0
+      }
+    },
+    "ssim": {
+      "knee-PD": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 60,
+        "n_volumes": 10,
+        "n_left_out": 0
+      },
+      "knee-PDFS": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 60,
+        "n_volumes": 10,
+        "n_left_out": 0
+      },
+      "all": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 120,
+        "n_volumes": 20,
+        "n_left_out": 0
+      }
+    },
+    "nmse": {
+      "knee-PD": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 60,
+        "n_volumes": 10,
+        "n_left_out": 0
+      },
+      "knee-PDFS": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 60,
+        "n_volumes": 10,
+        "n_left_out": 0
+      },
+      "all": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 120,
+        "n_volumes": 20,
+        "n_left_out": 0
+      }
+    }
+  },
+  "swap_null": {
+    "donor_final_mask_equals_own": 1.0,
+    "must_be_1_for_a_data_blind_twin": true
+  },
+  "counterfactual_with_own_data_reproduces_every_step": true,
+  "data_swap": {
+    "moved_by_step": {
+      "knee-PD": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "knee-PDFS": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "all": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "residual_change_rms_by_step": {
+      "knee-PD": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "knee-PDFS": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "all": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  }
+}

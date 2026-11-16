@@ -1,0 +1,32 @@
+Sampler: seq_adapt_2d
+Number of sequential steps: 16
+Sparsity: 0.125
+val_half=dev (seed 20261111)
+Manifest train set (volumes, slices): {'knee-PD': (40, 1369), 'knee-PDFS': (40, 1349)}
+Manifest val set (volumes, slices): {'knee-PD': (10, 337), 'knee-PDFS': (10, 332)}
+T_16_s42_kscr2: /home/remote/bkadota/scratch/multistep_adaptivity/validate/3073267/T_16_s42_kscr2/last_model.pt epoch 0, seq_adapt_2d, K=16, data_blind=True, 120 slices
+  scored 8/120 slices
+  scored 16/120 slices
+  scored 24/120 slices
+  scored 32/120 slices
+  scored 40/120 slices
+  scored 48/120 slices
+  scored 56/120 slices
+  scored 64/120 slices
+  scored 72/120 slices
+  scored 80/120 slices
+  scored 88/120 slices
+  scored 96/120 slices
+  scored 104/120 slices
+  scored 112/120 slices
+  scored 120/120 slices
+  PSNR_Masked knee-PD 20.158  knee-PDFS 23.035  all 21.596
+  donors: {"matched": 120, "unmatched": {"knee-PD": 0, "knee-PDFS": 0}}
+  swap_null: {"donor_final_mask_equals_own": 1.0, "must_be_1_for_a_data_blind_twin": true}
+  counterfactual_with_own_data_reproduces_every_step: true
+  guards: {"ssim_pooled": 0.48168706200074246, "ssim_at_least_0.80": false, "realised_fraction_target": 0.125, "realised_fraction_within_0.002": true}
+  data-swap moved by step (all): 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000
+/scratch/user/bkadota/conda/envs/dl/lib/python3.14/site-packages/torch/nn/functional.py:3855: UserWarning: size_average and reduce args will be deprecated, please use reduction='mean' instead.
+  reduction = _Reduction.legacy_get_string(size_average, reduce)
+/scratch/user/bkadota/conda/envs/dl/lib/python3.14/site-packages/torch/nn/functional.py:3855: UserWarning: size_average and reduce args will be deprecated, please use reduction='mean' instead.
+  reduction = _Reduction.legacy_get_string(size_average, reduce)
