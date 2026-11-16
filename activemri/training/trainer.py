@@ -4,7 +4,9 @@ import gc
 import logging
 import math
 import os
+import pathlib
 import random
+import sys
 import warnings
 
 import torch
@@ -28,6 +30,12 @@ from activemri.utils.util import compute_ssim_torch, compute_psnr_torch
 from activemri.config import TrainConfig
 from activemri.training.run_naming import run_group, run_name, run_tags
 from activemri.training.ema import ParameterEMA
+
+# Checkpoints pickled under Python 3.13 name `pathlib._local`, which Python 3.14 no longer has.
+try:
+    import pathlib._local  # noqa: F401
+except ModuleNotFoundError:
+    sys.modules['pathlib._local'] = pathlib
 from activemri.training.muon import MuonAdam, muon_parameters
 from activemri.reconstructors.norms import replace_instance_norms
 from activemri.reconstructors.config import UNetReconConfig, CGSenseReconConfig, SDUMReconConfig, VarNetReconConfig
