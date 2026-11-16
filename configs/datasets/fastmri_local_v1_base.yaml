@@ -22,4 +22,5 @@ train_tier: S
 limit_volumes: 1  # fraction of each condition, train and val. 1 = the whole tier. See the note above.
 train_anatomies: []  # train on these anatomies only, still validating on every class; empty = all
 val_half: all  # all, or one fixed half of each condition's val volumes: dev (iterate) or holdout (confirm)
+train_slice_stride: 1  # keep every n-th of each train volume's slices after the energy filter (5 = 20%); val keeps all
 condition_classes: []  # per-sample conditioning labels, e.g. [brain, knee-PD, knee-PDFS]; empty = use anatomy

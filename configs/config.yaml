@@ -54,7 +54,7 @@ sampler:
   data_channels: [image, kspace]  # seq_adapt_2d: the measured-data channels the residual reads, image = RSS of the zero-filled coil images, kspace = log coil-RSS magnitude of the measured k-space; the others get the twin's fixed values ([image] is the multistep_adaptivity channel ablation)
   residual_checkpoint: true  # seq_adapt_2d: recompute the residual U-Net in backward instead of storing each step's activations (K=16 at batch 16 OOMs on 48 GB without it); the gradients are the same
   sense_mask_method: null  # body multiply on the sensitivity maps: null = none | pre_network = hard zero outside the RSS of the 10x10 centre | post_network = outside the RSS of the U-Net output. null beat pre_network by 1.26 dB PSNR_Masked (1 seed, 12-cascade VarNet, R=8): reports/sense_mask_varnet/report.md
-  sampler_type: conv_2d  # conv_2d | conv_1d | loupe_2d | loupe_1d | caipi_2d | poisson_2d | autosamp_2d | mnet_2d | seq_adapt_2d
+  sampler_type: conv_2d  # conv_2d | conv_1d | loupe_2d | loupe_1d | caipi_2d | poisson_2d | autosamp_2d | mnet_2d | seq_adapt_2d | seqmri_2d (SeqMRI's sampler and loop; width and depth from chans and depth)
   slope: 10
   mask_grad_floor: 0.0  # straight_through only: floor on the mask sigmoid's backward derivative (LOUPE and conv samplers), as a fraction of its peak (0 = exact)
   ste_grad_floor: 0.0   # straight_through only: same, for the straight-through surrogate sigmoid(5 * (p - u))

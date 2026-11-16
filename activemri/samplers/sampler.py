@@ -15,6 +15,7 @@ from activemri.samplers.loupe import LineConstrainedProbMask, ProbMask
 from activemri.samplers.oracle import plackett_luce_sample_and_logprob
 from activemri.samplers.mask_bank import MaskBank
 from activemri.samplers.seq_adapt import DATA_CHANNEL_NAMES, SequentialAdaptiveMask
+from activemri.samplers.seqmri import SeqMRISampler2D
 from activemri.samplers.cnn_router import CNNRoutedMaskBank
 from activemri.samplers.smooth_adapt import SmoothAdaptiveMask
 from activemri.utils.image_processing import ifft_2d_img
@@ -22,7 +23,8 @@ from activemri.utils.mask_binarization import (
     RescaleProbMap, stratified_thresholds, threshold_random_mask, topk_straight_through)
 
 
-SAMPLER_TYPES = ("conv_2d", "conv_1d", "loupe_2d", "loupe_1d", "caipi_2d", "poisson_2d", "autosamp_2d", "mnet_2d", "smooth_adapt_2d", "bank_adapt_2d", "cnn_router_2d", "seq_adapt_2d")
+SAMPLER_TYPES = ("conv_2d", "conv_1d", "loupe_2d", "loupe_1d", "caipi_2d", "poisson_2d", "autosamp_2d", "mnet_2d", "smooth_adapt_2d", "bank_adapt_2d", "cnn_router_2d", "seq_adapt_2d", "seqmri_2d")
+CONTEXT_SAMPLERS = ("seq_adapt_2d", "seqmri_2d")  # samplers that read a StepContext
 MASK_TRAIN_MODES = ("straight_through", "reinforce", "random")
 SELECTIONS = ("bernoulli", "dcm")
 
@@ -255,6 +257,8 @@ class Sampler(nn.Module):
                                                    grad_floor=mask_grad_floor, checkpoint_residual=residual_checkpoint,
                                                    data_channels=data_channels, reads_reconstruction=reads_reconstruction,
                                                    complex_coils=complex_coils)
+        elif sampler_type == "seqmri_2d":
+            self.mask_net = SeqMRISampler2D(chans=sampler_chans, num_pool_layers=sampler_depth)
         elif sampler_type == "loupe_2d":
             self.mask_net = ProbMask(shape, slope, num_conditioning_classes=num_conditioning_classes,
                                      grad_floor=mask_grad_floor)
@@ -479,7 +483,7 @@ class Sampler(nn.Module):
     @property
     def reads_context(self) -> bool:
         """Whether `forward` needs a StepContext: the coil k-space measured so far, the step and the header."""
-        return self.sampler_type == "seq_adapt_2d"
+        return self.sampler_type in CONTEXT_SAMPLERS
 
     @property
     def data_blind(self) -> bool:

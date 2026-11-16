@@ -139,6 +139,9 @@ class SequentialSampling(nn.Module):
           those reconstructions. The reconstruction sees M_i detached, so the final loss trains its weights through the
           sampler's input but adds no gradient path to earlier draws.
 
+        `sampler_type='seqmri_2d'` is SeqMRI's loop (activemri.samplers.seqmri, kscr3): the trained reconstructor
+        reconstructs before every step, the centre included, and the gradient takes SeqMRI's routes (`_sample_steps`).
+
         At num_step > 1 the steps share the budget equally, each reads the k-space measured so far, and only the final
         mask is reconstructed (plus the 'seqmri' in-loop reconstructions), so the sampler inputs that need an
         intermediate reconstruction of the old kind are refused."""
@@ -159,6 +162,12 @@ class SequentialSampling(nn.Module):
                 raise ValueError(f"in-loop reconstructions need steps in [0, {num_step}), got {list(recon_steps)}")
             if virtual_coils < 1:
                 raise ValueError(f"sampler_input='seqmri' reads at least one virtual coil, got {virtual_coils}")
+        self.seqmri_routes = sampler_type == 'seqmri_2d'
+        if self.seqmri_routes:
+            if sampler_input != 'measured':
+                raise ValueError("seqmri_2d reads SeqMRI's own input (the predicted and measured k-space and the mask); "
+                                 f"leave sampler_input at 'measured', got {sampler_input!r}")
+            self.recon_steps = tuple(range(num_step))
         self.sampler_input = sampler_input
         self.sampler_coil_combine = sampler_coil_combine
         self.sparsity = sparsity
@@ -586,8 +595,8 @@ class SequentialSampling(nn.Module):
 
     def _in_loop_prediction(self, full_kspace, mask, sense_maps, extent, anatomy_labels=None):
         """Coil k-space [B, C, H, W] predicted by the trained reconstructor from the k-space `mask` acquires: FFT(S x),
-        zero outside the acquired `extent`. `mask` arrives detached, so only the reconstructor's weights (and the maps')
-        get gradient through it."""
+        zero outside the acquired `extent`. For the 'seqmri' input `mask` arrives detached, so only the reconstructor's
+        weights (and the maps') get gradient through it; seqmri_2d passes its draws' straight-through gradient too."""
         recon, _, _ = self._run_reconstructor(full_kspace, mask, sense_maps, anatomy_labels,
                                               self._recon_support(None, extent))
         return torch_fft2(recon * sense_maps) * extent
@@ -801,7 +810,10 @@ class SequentialSampling(nn.Module):
 
         Each step reads only the measured k-space y * M_i and sees M_i detached, as its input and to find the locations
         still available. The union keeps every step's straight-through increment, so a loss on the final mask reaches
-        each step's choices. `visuals` (target, body mask) stores the panels of the steps that are not reconstructed.
+        each step's choices. seqmri_2d takes SeqMRI's routes instead: the union is detached between steps and each in-loop
+        reconstruction is not, so an earlier step's draws reach the loss only through the reconstructions later steps
+        read, and only the last step's reach it through the final mask. `visuals` (target, body mask) stores the panels
+        of the steps that are not reconstructed.
 
         Returns a dict: `mask` (the final mask, differentiable), `masks` (detached, after each step), `details` (each
         step's), the sampler's mean anatomy logits and its REINFORCE terms summed over the steps.
@@ -815,13 +827,14 @@ class SequentialSampling(nn.Module):
         for i in range(self.num_step):
             observed = full_kspace * mask.detach().unsqueeze(-1)
             if i in self.recon_steps:
-                predicted = self._in_loop_prediction(full_kspace, mask.detach(), sense_maps, header[0], anatomy_labels)
+                predicted = self._in_loop_prediction(full_kspace, mask if self.seqmri_routes else mask.detach(),
+                                                     sense_maps, header[0], anatomy_labels)
             sampled = self._sample(
                 full_kspace, observed, mask.detach(), i, sense_maps, uncertainty_map, valid_mask,
                 anatomy_labels=anatomy_labels, fixed_mask=fixed_mask, budget=step_budget,
                 context=self._step_context(header, observed, i, full_kspace, mask.detach(), anatomy_labels, predicted),
                 threshold=None if thresholds is None else thresholds[i])
-            mask = sampled['mask'] if i == 0 else mask + (sampled['mask'] - mask.detach())
+            mask = sampled['mask'] if i == 0 or self.seqmri_routes else mask + (sampled['mask'] - mask.detach())
             masks.append(mask.detach())
             details.append(sampled['details'])
             if sampled['anatomy_logits'] is not None:

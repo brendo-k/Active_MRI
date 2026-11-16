@@ -275,8 +275,9 @@ def score_slices(model, options, dataset, collate, indices, donors, args):
                     total = own_new.flatten(1).sum(1).double()
                     moved = torch.where(total > 0, 1 - kept / total.clamp(min=1), torch.nan)
                     arrays['moved'][rows, step, s] = np.where(matched, moved.cpu().numpy(), np.nan)
-                    change = (swap['residual'] - details[step]['residual']).pow(2).flatten(1).mean(1).sqrt()
-                    arrays['residual_swap_rms'][rows, step, s] = np.where(matched, change.cpu().numpy(), np.nan)
+                    if 'residual' in details[step]:
+                        change = (swap['residual'] - details[step]['residual']).pow(2).flatten(1).mean(1).sqrt()
+                        arrays['residual_swap_rms'][rows, step, s] = np.where(matched, change.cpu().numpy(), np.nan)
                 if self_check is None:
                     self_check = all(torch.equal(
                         model.counterfactual_step(part['kspace'], previous[step], step, part['kspace'],
@@ -320,10 +321,10 @@ def summarise(arrays, meta, options, has_donor, self_check, args):
         summary['counterfactual_with_own_data_reproduces_every_step'] = self_check
     if np.isfinite(slice_means['moved']).any():
         summary['data_swap'] = {
-            'moved_by_step': {g: np.nanmean(slice_means['moved'][k], axis=0).tolist() for g, k in groups.items()},
-            'residual_change_rms_by_step': {g: np.nanmean(slice_means['residual_swap_rms'][k], axis=0).tolist()
-                                            for g, k in groups.items()},
-        }
+            'moved_by_step': {g: np.nanmean(slice_means['moved'][k], axis=0).tolist() for g, k in groups.items()}}
+        if np.isfinite(slice_means['residual_swap_rms']).any():
+            summary['data_swap']['residual_change_rms_by_step'] = {
+                g: np.nanmean(slice_means['residual_swap_rms'][k], axis=0).tolist() for g, k in groups.items()}
     return summary
 
 

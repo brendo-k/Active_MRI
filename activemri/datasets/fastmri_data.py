@@ -774,14 +774,33 @@ def _val_half_rows(rows: List[Dict], half: str, seed: int = VAL_HALF_SEED) -> Li
     return kept
 
 
-def _manifest_datasets(rows: List[Dict], roots: Dict[str, str], split: str, **dataset_kwargs) -> List[FastMRIDataset]:
-    """One FastMRIDataset per (anatomy, directory) of the manifest rows; prints the volumes and slices per condition."""
+def _every_nth_slice(dataset: FastMRIDataset, stride: int) -> None:
+    """Keep every `stride`-th of each volume's slices in `dataset`, the middle one of each run of `stride`."""
+    kept, seen = [], {}
+    for fname, slice_id in dataset.examples:
+        position = seen.get(fname, 0)
+        seen[fname] = position + 1
+        if position % stride == stride // 2:
+            kept.append((fname, slice_id))
+    dataset.examples = kept
+
+
+def _manifest_datasets(rows: List[Dict], roots: Dict[str, str], split: str, slice_stride: int = 1,
+                       **dataset_kwargs) -> List[FastMRIDataset]:
+    """One FastMRIDataset per (anatomy, directory) of the manifest rows, keeping every `slice_stride`-th slice of each
+    volume (`_every_nth_slice`); prints the volumes and slices per condition."""
+    if int(slice_stride) != slice_stride or slice_stride < 1:
+        raise ValueError(f"slice_stride must be a positive integer, got {slice_stride}")
     groups: Dict[Tuple[str, pathlib.Path], List[str]] = {}
     for row in rows:
         path = pathlib.Path(roots[row['source']].format(anatomy=row['anatomy'])).expanduser() / row['hpc_relpath']
         groups.setdefault((row['anatomy'], path.parent), []).append(path.name)
     datasets = [FastMRIDataset(root=root, anatomy=anatomy, file_names=names, **dataset_kwargs)
                 for (anatomy, root), names in groups.items()]
+    if slice_stride > 1:
+        for ds in datasets:
+            _every_nth_slice(ds, int(slice_stride))
+        print(f"{split}: every {int(slice_stride)}th slice of each volume")
     condition_of = {row['file']: condition_name(row['anatomy'], row) for row in rows}
     volumes: Dict[str, set] = {}
     slices: Dict[str, int] = {}
@@ -809,6 +828,7 @@ def build_manifest_dataloaders(
     train_anatomies: Sequence[str] = (),
     limit_volumes: Optional[float] = None,
     val_half: str = 'all',
+    train_slice_stride: int = 1,
 ) -> Tuple[torch.utils.data.DataLoader, torch.utils.data.DataLoader]:
     """Train and val loaders over the raw h5 volumes a subset manifest lists (scripts/data/select_fastmri_subset.py).
 
@@ -819,7 +839,8 @@ def build_manifest_dataloaders(
     `train_anatomies`, when given, trains on those anatomies' rows alone while val keeps every class.
     `limit_volumes` is the fraction of each condition kept in train and again in val (`_limit_volume_rows`). 1 and
     `None` keep the whole tier. The choice does not depend on `shuffle_seed`. `val_half` keeps one fixed half of each
-    condition's val volumes (`_val_half_rows`), after `limit_volumes`.
+    condition's val volumes (`_val_half_rows`), after `limit_volumes`. `train_slice_stride` keeps every n-th of each
+    train volume's slices that pass the energy filter (`_every_nth_slice`); val keeps all of them.
     """
     import csv
     with open(REPO_ROOT / pathlib.Path(manifest).expanduser()) as f:
@@ -845,6 +866,6 @@ def build_manifest_dataloaders(
         print(f"val_half={val_half} (seed {VAL_HALF_SEED})")
     dataset_kwargs = dict(image_shape=image_shape, transform=transform, num_coils=num_coils,
                           min_energy_fraction=min_energy_fraction, readout_crop=True)
-    return _dataloaders(_manifest_datasets(train_rows, roots, 'train', **dataset_kwargs),
+    return _dataloaders(_manifest_datasets(train_rows, roots, 'train', slice_stride=train_slice_stride, **dataset_kwargs),
                         _manifest_datasets(val_rows, roots, 'val', **dataset_kwargs),
                         batch_size, num_workers, shuffle_seed)
