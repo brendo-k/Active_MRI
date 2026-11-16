@@ -102,6 +102,8 @@ def result_files(report_dir):
 def write(args):
     report_dir = (ROOT / args.report_dir).resolve() if not Path(args.report_dir).is_absolute() else Path(args.report_dir)
     report_dir.mkdir(parents=True, exist_ok=True)
+    if args.no_runs and args.runs:
+        raise SystemExit('--no-runs and --runs are mutually exclusive')
     produced_at = git('rev-parse', args.produced_at)
     run_dirs = sorted(path for path in CHECKPOINT_ROOT.iterdir()
                       if path.is_dir() and any(fnmatch.fnmatch(path.name, pattern) for pattern in args.runs))
@@ -121,6 +123,7 @@ def write(args):
         'metric_mask': metric_mask_description(args.metric_mask),
         'data': {'config': dataset_description(run_dirs), 'note': args.data_note},
         'runs': [describe_run(run_dir, args.hash_checkpoints) for run_dir in run_dirs],
+        'no_runs': args.no_runs,
         'commands': args.command,
         'results': [{'path': str(path.relative_to(report_dir)), 'bytes': path.stat().st_size, 'sha256': sha256(path)[:16]}
                     for path in result_files(report_dir)],
@@ -138,7 +141,8 @@ def provenance_block(manifest):
         '| | |', '|---|---|',
         f"| Code | results produced at `{code['produced_at'][:7]}` ({code['produced_at_subject']}); branch `{code['branch']}` |",
         f"| Metric mask | **{manifest['metric_mask']['version']}**: {manifest['metric_mask']['definition']} |",
-        f"| Runs | {len(manifest['runs'])} checkpoint directories under `checkpoints/` (untracked; names, overrides, wandb ids in `manifest.json`) |",
+        ('| Runs | none: this report loads no checkpoint |' if manifest.get('no_runs') else
+         f"| Runs | {len(manifest['runs'])} checkpoint directories under `checkpoints/` (untracked; names, overrides, wandb ids in `manifest.json`) |"),
         f"| Results | {len(manifest['results'])} files next to this report, hashed in `manifest.json` |",
         '| Reproduce | `bash run.sh` from the repo root |',
     ]
@@ -183,7 +187,7 @@ def check(args):
         need(script['path'] in text, f"report.md does not cite {script['path']}")
     for command in manifest['commands']:
         need(command in run_path.read_text(), f'run.sh is missing the manifest command: {command[:60]}')
-    need(manifest['runs'], 'manifest lists no runs')
+    need(manifest['runs'] or manifest.get('no_runs'), 'manifest lists no runs (pass --no-runs to `write` if the report loads no checkpoint)')
     for result in manifest['results']:
         path = report_dir / result['path']
         need(path.exists(), f"result {result['path']} is missing")
@@ -213,6 +217,7 @@ def main():
     writer.add_argument('report_dir')
     writer.add_argument('--metric-mask', choices=sorted(METRIC_MASKS), required=True)
     writer.add_argument('--runs', nargs='+', default=[], help='checkpoint directory names or globs the report uses')
+    writer.add_argument('--no-runs', action='store_true', help='the report loads no checkpoint (training-free analysis or synthesis)')
     writer.add_argument('--script', nargs='+', default=[], help='scripts that produced the results')
     writer.add_argument('--command', action='append', default=[], help='a command run.sh executes (repeatable)')
     writer.add_argument('--produced-at', default='HEAD', help='commit whose code produced the results')
