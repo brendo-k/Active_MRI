@@ -16,8 +16,8 @@ import torch
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from activemri.utils.metrics import NMSE, MaskedMetricAccumulator  # noqa: E402
-from activemri.utils.multistep import (StepRecorder, cluster_bootstrap, header_signature, masked_slice_metrics,  # noqa: E402
-                                       match_donors, step_grid_figure, step_panels, step_thresholds)
+from activemri.utils.multistep import (StepRecorder, cluster_bootstrap, cross_decode, header_signature,  # noqa: E402
+                                       masked_slice_metrics, match_donors, step_grid_figure, step_panels, step_thresholds)
 from tests.test_multistep_sampling import LABELS, SEQMRI, SIZE, data, model, randomise_residual_output  # noqa: E402
 
 
@@ -53,6 +53,21 @@ def test_reconstruct_from_mask_is_the_forward_output_and_trajectory_its_masks(nu
     assert all(torch.equal(a, b) for a, b in zip(masks, forward['masks']))
     assert len(details) == num_step and all('residual' in d for d in details)
     assert torch.equal(rebuilt, forward['output'])
+
+
+def test_cross_decode_by_the_drawing_run_is_its_output_and_another_decoder_changes_it():
+    drawing, other = model(num_step=4), model(num_step=4, seed=1)
+    randomise_residual_output(drawing)
+    with torch.no_grad():
+        other.reconstructor.scale.fill_(2.0)
+    drawing.eval()
+    other.eval()
+    kspace, _, target = data()
+    with torch.no_grad():
+        forward = drawing(target, kspace, anatomy_labels=LABELS, thresholds=thresholds_for(4))
+        decoded = cross_decode({'own': drawing, 'other': other}, kspace, {'drawn': forward['mask']}, LABELS)
+    assert torch.equal(decoded['drawn', 'own'], forward['output'])
+    assert not torch.allclose(decoded['drawn', 'other'], forward['output'])
 
 
 def test_shared_thresholds_repeat_the_draws_and_differ_from_fresh_noise():

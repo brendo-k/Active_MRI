@@ -2,6 +2,7 @@
 
     step_thresholds       one U(0, 1) map per (draw seed, slice, step), so runs scored on the same slices share draws
     masked_slice_metrics  PSNR_Masked, SSIM_Masked and NMSE per slice, as the trainer scores them
+    cross_decode          one run's masks reconstructed by other runs' sensitivity nets and VarNets (kscr2's leak check)
     cluster_bootstrap     slice-weighted mean with a CI from resampling volumes within each condition
     header_signature,     donors for the swap tests: another volume's slice with the same condition, acquired-location
     match_donors          mask and coil count, on which a data-blind sampler draws exactly the slice's own trajectory
@@ -51,6 +52,19 @@ def masked_slice_metrics(output, target, mask):
     error, reference = ((target - output) * mask).flatten(1), (target * mask).flatten(1)
     nmse = error.norm(dim=1) ** 2 / reference.norm(dim=1) ** 2
     return {'psnr': psnr.double(), 'ssim': masked_ssim(output, target, mask), 'nmse': nmse.double()}
+
+
+@torch.no_grad()
+def cross_decode(decoders, kspace, masks, anatomy_labels=None, sense_maps=None):
+    """{(mask name, decoder name): output image [B, 1, H, W]} for every complete mask in `masks` ({name: [B, 1, H, W]})
+    and every model in `decoders` ({name: SequentialSampling}), each decoder with its own sensitivity maps (or
+    `sense_maps[name]`) and its own final reconstruction. A mask decoded by the run that drew it is that run's output."""
+    outputs = {}
+    for decoder_name, decoder in decoders.items():
+        maps = decoder.sense_maps_for(kspace)[0] if sense_maps is None else sense_maps[decoder_name]
+        for mask_name, mask in masks.items():
+            outputs[mask_name, decoder_name] = decoder.reconstruct_from_mask(kspace, mask, maps, anatomy_labels)
+    return outputs
 
 
 def cluster_bootstrap(values, volumes, strata, draws=BOOTSTRAP_DRAWS, seed=0):

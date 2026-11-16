@@ -13,9 +13,15 @@ writes <out>/<name>.npz (per slice) and <name>.json (summary), and logs both to 
   - Guards: pooled SSIM_Masked, the realised fraction against 1/R, slices below 20 dB.
   - Step-grid figures, one row per step (activemri.utils.multistep.step_grid_figure), for fixed mid-volume slices
     of each condition. `--gradients` adds the training loss's gradient on each step's probabilities.
+`cross` decodes runs' masks with other runs' VarNets (kscr2's leak check, reports/multistep_adaptivity/kscr2/leak/).
+Each mask run draws its trajectories as `score` does, on the slice and on its donor; every decoder reconstructs both
+final masks with its own sensitivity net and VarNet. It writes <mask>__via__<decoder>.{npz,json} per pair, in `score`'s
+format, so `contrast` pairs them; with --reference it first checks the slices, draw seeds and donors against the runs'
+own scores, and each run decoded by itself must then reproduce its own score.
 `contrast` gives paired per-slice differences between scored runs, e.g. G_K = A_K - T_K, the twin floor T_K - T_K',
-T_K - T_1 and U_K = A_K - T_1. CIs are 95% volume-cluster bootstraps of the slice-weighted mean, volumes resampled
-within each condition. It refuses runs scored on different slices or draw seeds.
+T_K - T_1 and U_K = A_K - T_1, or with --quantity swap_cost the difference of their swap costs. CIs are 95%
+volume-cluster bootstraps of the slice-weighted mean, volumes resampled within each condition. It refuses runs scored
+on different slices or draw seeds.
 
     CUDA_VISIBLE_DEVICES=0 python scripts/eval/eval_multistep_adaptivity.py score --run <run dir> --name A_4_s42 \
         --out reports/multistep_adaptivity/scores
@@ -42,10 +48,11 @@ import _path  # noqa: F401,E402
 from activemri.training.builders import build_dataloaders  # noqa: E402
 from activemri.training.trainer import build_model  # noqa: E402
 from activemri.utils.metric_mask import metric_mask_from_real_kspace  # noqa: E402
-from activemri.utils.multistep import (StepRecorder, cluster_bootstrap, header_signature, masked_slice_metrics,  # noqa: E402
-                                       match_donors, step_grid_figure, step_panels, step_thresholds)
+from activemri.utils.multistep import (StepRecorder, cluster_bootstrap, cross_decode, header_signature,  # noqa: E402
+                                       masked_slice_metrics, match_donors, step_grid_figure, step_panels, step_thresholds)
 
 DRAW_SEEDS = (1234, 4321)
+DIAGONAL_TOLERANCE_DB = 0.01
 METRICS = ('psnr', 'ssim', 'nmse')
 FAILED_RECON_DB = 20.0
 SSIM_GUARD = 0.80
@@ -76,10 +83,34 @@ def parse_args():
     scoring.add_argument('--gradients', action='store_true', help="figures: add the loss gradient on each step's draw")
     scoring.add_argument('--no-wandb', action='store_true', help='write files only (smoke tests)')
     scoring.add_argument('--device', default='cuda')
+    crossing = commands.add_parser('cross', help="decode runs' masks with other runs' VarNets (the leak check)")
+    crossing.add_argument('--masks', action='append', required=True, metavar='NAME=RUN',
+                          help="a run whose sampler draws the masks, named as in its own scores (repeatable)")
+    crossing.add_argument('--decoders', action='append', required=True, metavar='NAME=RUN',
+                          help='a run whose sensitivity net and VarNet reconstruct every mask (repeatable)')
+    crossing.add_argument('--name', required=True, help='name of this check in its summary and on wandb')
+    crossing.add_argument('--out', type=Path, required=True, help='folder for <mask>__via__<decoder>.{npz,json}')
+    crossing.add_argument('--reference', type=Path, default=None,
+                          help="the runs' own scores folder: slices, draw seeds and donors must match, and each run "
+                               f"decoded by itself must reproduce its pooled PSNR to {DIAGONAL_TOLERANCE_DB} dB")
+    crossing.add_argument('--data-root', action='append', default=[], metavar='SOURCE=DIR',
+                          help="replace a manifest source's data root, e.g. to read CoreHPC runs' data elsewhere")
+    crossing.add_argument('--checkpoint', default='last_model.pt')
+    crossing.add_argument('--draw-seeds', type=int, nargs='+', default=list(DRAW_SEEDS))
+    crossing.add_argument('--val-half', choices=('all', 'dev', 'holdout'), default=None,
+                          help="decode this half of the val volumes instead of the runs' own datasets.val_half")
+    crossing.add_argument('--chunk', type=int, default=8)
+    crossing.add_argument('--workers', type=int, default=4)
+    crossing.add_argument('--limit', type=int, default=None, help='N evenly spaced val slices only (smoke tests)')
+    crossing.add_argument('--no-swap', action='store_true', help="skip decoding the donors' masks")
+    crossing.add_argument('--no-wandb', action='store_true', help='write files only (smoke tests)')
+    crossing.add_argument('--device', default='cuda')
     contrasting = commands.add_parser('contrast', help='paired differences between scored runs')
     contrasting.add_argument('--scores', type=Path, required=True, help='scores folder')
     contrasting.add_argument('--pair', action='append', required=True, metavar='LABEL=A-B',
                              help='per-slice A minus B, e.g. G_4_s42=A_4_s42-T_4_s42 (repeatable)')
+    contrasting.add_argument('--quantity', choices=('metric', 'swap_cost'), default='metric',
+                             help="pair the metrics, or each run's swap cost (its own mask's metric minus its donor's)")
     contrasting.add_argument('--out', type=Path, required=True, help='contrasts .json')
     return parser.parse_args()
 
@@ -106,6 +137,37 @@ def load_run(run, checkpoint_name, device):
     return model, checkpoint
 
 
+def named_runs(specs, flag):
+    """{name: run directory} from NAME=RUN arguments."""
+    runs = {}
+    for spec in specs:
+        name, _, run = spec.partition('=')
+        if not (name and run):
+            raise SystemExit(f'{flag} {spec!r}: expected NAME=RUN')
+        runs[name] = Path(run)
+    return runs
+
+
+def datasets_config(run, args):
+    """The run's config, its datasets set by this eval's --workers, --val-half and any --data-root."""
+    cfg = OmegaConf.load(run / '.hydra' / 'config.yaml')
+    cfg.datasets.num_workers = args.workers
+    if args.val_half is not None:
+        cfg.datasets.val_half = args.val_half
+    for spec in getattr(args, 'data_root', []):
+        source, _, root = spec.partition('=')
+        if not (source and root):
+            raise SystemExit(f'--data-root {spec!r}: expected SOURCE=DIR')
+        cfg.datasets.roots[source] = root
+    return cfg
+
+
+def val_data(run, args):
+    """(val dataset, its collate function) of the run's datasets config, as `datasets_config` sets it."""
+    _, val_loader = build_dataloaders(datasets_config(run, args))
+    return val_loader.dataset, val_loader.collate_fn
+
+
 def labelled(batch, options, device):
     kspace = batch['kspace'].to(device)
     target = batch['target'].to(device)
@@ -119,6 +181,12 @@ def loader(dataset, indices, collate, args):
     return torch.utils.data.DataLoader(torch.utils.data.Subset(dataset, [int(i) for i in indices]),
                                        batch_size=args.chunk, shuffle=False, num_workers=args.workers,
                                        collate_fn=collate)
+
+
+def scored_indices(dataset, args):
+    """Every val slice, or --limit evenly spaced ones."""
+    return np.arange(len(dataset)) if args.limit is None else \
+        np.unique(np.linspace(0, len(dataset) - 1, args.limit).astype(int))
 
 
 def header_pass(dataset, indices, collate, args):
@@ -330,14 +398,8 @@ def score(args):
     torch.backends.cudnn.deterministic = True
     model, checkpoint = load_run(args.run, args.checkpoint, args.device)
     options = checkpoint['options']
-    cfg = OmegaConf.load(args.run / '.hydra' / 'config.yaml')
-    cfg.datasets.num_workers = args.workers
-    if args.val_half is not None:
-        cfg.datasets.val_half = args.val_half
-    _, val_loader = build_dataloaders(cfg)
-    dataset, collate = val_loader.dataset, val_loader.collate_fn
-    indices = np.arange(len(dataset)) if args.limit is None else \
-        np.unique(np.linspace(0, len(dataset) - 1, args.limit).astype(int))
+    dataset, collate = val_data(args.run, args)
+    indices = scored_indices(dataset, args)
     print(f"{args.name}: {args.run / args.checkpoint} epoch {checkpoint['epoch']}, {options.sampler_type}, "
           f"K={model.num_step}, data_blind={getattr(options, 'data_blind', False)}, {len(indices)} slices", flush=True)
     meta = header_pass(dataset, indices, collate, args)
@@ -386,6 +448,174 @@ def score(args):
         plt.close(figure)
 
 
+def pair_name(mask_name, decoder_name):
+    return f'{mask_name}__via__{decoder_name}'
+
+
+@torch.no_grad()
+def cross_slices(mask_runs, decoders, options, dataset, collate, indices, donors, args):
+    """Per (mask run, decoder): the metric arrays [slices, draw seeds] of the mask run's final masks, and of the masks it
+    draws on each slice's donor with the slice's thresholds (the swap), each decoded by the decoder; and the mask run's
+    realised fraction. The draws are `score_slices`' own."""
+    count, seeds = len(indices), len(args.draw_seeds)
+    has_donor = donors >= 0
+    keys = (*METRICS, 'realised_fraction', *(f'swap_{m}' for m in METRICS))
+    arrays = {(m, d): {key: np.full((count, seeds), np.nan) for key in keys} for m in mask_runs for d in decoders}
+    donor_indices = indices[np.where(has_donor, donors, np.arange(count))]
+    start = 0
+    for batch, donor_batch in zip(loader(dataset, indices, collate, args), loader(dataset, donor_indices, collate, args)):
+        part, donor = labelled(batch, options, args.device), labelled(donor_batch, options, args.device)
+        rows = np.arange(start, start + len(part['kspace']))
+        start += len(rows)
+        matched = has_donor[rows]
+        _, valid = next(iter(mask_runs.values()))._initial_masks(part['kspace'])
+        maps = {name: decoder.sense_maps_for(part['kspace'])[0] for name, decoder in decoders.items()}
+        for s, seed in enumerate(args.draw_seeds):
+            own, swapped = {}, {}
+            for name, run in mask_runs.items():
+                thresholds = step_thresholds(seed, indices[rows], run.num_step, run.shape, args.device)
+                own[name] = run.sample_trajectory(part['kspace'], part['labels'], thresholds)[0][-1]
+                fraction = ((own[name] * valid).flatten(1).sum(1) / valid.flatten(1).sum(1)).cpu().numpy()
+                for decoder_name in decoders:
+                    arrays[name, decoder_name]['realised_fraction'][rows, s] = fraction
+                if not args.no_swap:
+                    swapped[name] = run.sample_trajectory(donor['kspace'], donor['labels'], thresholds)[0][-1] * valid
+            for prefix, masks in (('', own), ('swap_', swapped)):
+                for pair, image in cross_decode(decoders, part['kspace'], masks, part['labels'], maps).items():
+                    scores = masked_slice_metrics(image, part['target'], part['metric_mask'])
+                    for metric in METRICS:
+                        values = scores[metric].cpu().numpy()
+                        arrays[pair][prefix + metric][rows, s] = np.where(matched, values, np.nan) if prefix else values
+        print(f'  decoded {start}/{count} slices', flush=True)
+    return arrays
+
+
+def pair_summary(arrays, meta, args):
+    conditions, volumes = meta['condition'], meta['volume']
+    groups = {**{c: conditions == c for c in np.unique(conditions)}, 'all': np.ones(len(conditions), dtype=bool)}
+    slice_means = {key: per_slice_mean(value) for key, value in arrays.items()}
+    summary = {'means': {key: {g: float(np.nanmean(slice_means[key][k])) for g, k in groups.items()}
+                         for key in (*METRICS, 'realised_fraction')}}
+    if not args.no_swap:
+        summary['swap_cost'] = {
+            metric: {g: cluster_bootstrap((slice_means[metric] - slice_means[f'swap_{metric}'])[k], volumes[k],
+                                          conditions[k]) for g, k in groups.items()} for metric in METRICS}
+    return summary
+
+
+def check_reference(reference, names, slices, donors, args):
+    """Stop unless every mask run's own score was made on these slices, draw seeds and donors."""
+    for name in names:
+        summary = json.loads((reference / f'{name}.json').read_text())
+        if summary['slices'] != slices or summary['draw_seeds'] != list(args.draw_seeds):
+            raise SystemExit(f"{name}'s own score used slices {summary['slices']} and draw seeds {summary['draw_seeds']}, "
+                             f"this check {slices} and {list(args.draw_seeds)}: the draws would not be the same")
+        if not np.array_equal(np.load(reference / f'{name}.npz')['donor'], donors):
+            raise SystemExit(f"{name}'s own score matched other donors than this check")
+
+
+def diagonal_check(arrays, reference, names, args):
+    """Each run decoded by itself against its own score: the pooled PSNR (and swap cost) difference and the largest
+    per-slice PSNR difference. Within DIAGONAL_TOLERANCE_DB pooled, the cross scores reproduce the platform's."""
+    checks = {}
+    for name in names:
+        stored, mine = np.load(reference / f'{name}.npz'), arrays[name, name]
+        own, theirs = per_slice_mean(mine['psnr']), per_slice_mean(stored['psnr'])
+        check = {'pooled_psnr_difference': float(np.nanmean(own) - np.nanmean(theirs)),
+                 'largest_slice_psnr_difference': float(np.nanmax(np.abs(own - theirs)))}
+        if not args.no_swap and 'swap_psnr' in stored.files:
+            check['pooled_swap_cost_difference'] = float(np.nanmean(own - per_slice_mean(mine['swap_psnr']))
+                                                         - np.nanmean(theirs - per_slice_mean(stored['swap_psnr'])))
+        check['within_tolerance'] = abs(check['pooled_psnr_difference']) <= DIAGONAL_TOLERANCE_DB
+        checks[name] = check
+    return checks
+
+
+def cross(args):
+    torch.backends.cudnn.benchmark = False
+    torch.backends.cudnn.deterministic = True
+    mask_paths, decoder_paths = named_runs(args.masks, '--masks'), named_runs(args.decoders, '--decoders')
+    for name in mask_paths.keys() & decoder_paths.keys():
+        if mask_paths[name] != decoder_paths[name]:
+            raise SystemExit(f'{name} names two runs: {mask_paths[name]} and {decoder_paths[name]}')
+    paths = {**mask_paths, **decoder_paths}
+    loaded = {name: load_run(path, args.checkpoint, args.device) for name, path in paths.items()}
+    first = next(iter(mask_paths))
+    datasets = {name: OmegaConf.to_container(datasets_config(path, args).datasets) for name, path in paths.items()}
+    for name, config in datasets.items():
+        if {k: v for k, v in config.items() if k != 'roots'} != {k: v for k, v in datasets[first].items() if k != 'roots'}:
+            raise SystemExit(f'{name} was trained on another dataset config than {first}; their val slices may differ')
+    options = {name: checkpoint['options'] for name, (_, checkpoint) in loaded.items()}
+    if len({(tuple(o.label_classes), o.label_key) for o in options.values()}) != 1:
+        raise SystemExit('the runs label their slices differently')
+    mask_runs = {name: loaded[name][0] for name in mask_paths}
+    decoders = {name: loaded[name][0] for name in decoder_paths}
+    dataset, collate = val_data(mask_paths[first], args)
+    indices = scored_indices(dataset, args)
+    print(f"{args.name}: masks of {', '.join(mask_runs)} decoded by {', '.join(decoders)}, {len(indices)} slices, "
+          f"{torch.cuda.get_device_name() if torch.cuda.is_available() else 'cpu'}", flush=True)
+    meta = header_pass(dataset, indices, collate, args)
+    donors = match_donors(meta['condition'], meta['volume'], meta['signature'])
+    slices = {'count': len(indices), 'hash': slices_hash(meta, indices)}
+    checked = args.reference is not None and args.limit is None
+    if checked:
+        check_reference(args.reference, mask_runs, slices, donors, args)
+    elif args.reference is not None:
+        print('  --limit: the reference gate and the diagonal check are skipped', flush=True)
+    arrays = cross_slices(mask_runs, decoders, options[first], dataset, collate, indices, donors, args)
+    args.out.mkdir(parents=True, exist_ok=True)
+    platform = {'device': torch.cuda.get_device_name() if torch.cuda.is_available() else 'cpu',
+                'torch': torch.__version__}
+    pairs = {}
+    for (mask_name, decoder_name), pair_arrays in arrays.items():
+        name = pair_name(mask_name, decoder_name)
+        mask_options = options[mask_name]
+        summary = {
+            'name': name, 'check': args.name, 'checkpoint': args.checkpoint, 'platform': platform,
+            'masks': {'name': mask_name, 'run': str(paths[mask_name]), 'epoch': int(loaded[mask_name][1]['epoch'])},
+            'decoder': {'name': decoder_name, 'run': str(paths[decoder_name]),
+                        'epoch': int(loaded[decoder_name][1]['epoch'])},
+            'eval_code': git_state(REPO),
+            'options': {key: getattr(mask_options, key, None) for key in (
+                'sampler_type', 'num_step', 'data_blind', 'accelerations', 'budget_over', 'seed', 'sampler_input')},
+            'draw_seeds': list(args.draw_seeds), 'slices': slices,
+            **pair_summary(pair_arrays, meta, args),
+        }
+        (args.out / f'{name}.json').write_text(json.dumps(summary, indent=2) + '\n')
+        np.savez_compressed(args.out / f'{name}.npz', dataset_index=indices, donor=donors,
+                            draw_seeds=np.array(args.draw_seeds),
+                            **{k: v for k, v in meta.items() if k != 'signature'}, **pair_arrays)
+        pairs[name] = {key: summary[key] for key in ('means', 'swap_cost') if key in summary}
+        swap = summary.get('swap_cost', {}).get('psnr', {}).get('all', {}).get('mean', float('nan'))
+        print(f"  {name}: PSNR {summary['means']['psnr']['all']:.3f}, swap cost {swap:+.3f}", flush=True)
+    diagonal = diagonal_check(arrays, args.reference, [n for n in mask_runs if n in decoders], args) if checked else {}
+    for name, check in diagonal.items():
+        print(f'  diagonal {name}: ' + json.dumps(check), flush=True)
+    (args.out / f'{args.name}_summary.json').write_text(json.dumps({
+        'name': args.name, 'platform': platform, 'eval_code': git_state(REPO), 'slices': slices,
+        'draw_seeds': list(args.draw_seeds), 'masks': {n: str(p) for n, p in mask_paths.items()},
+        'decoders': {n: str(p) for n, p in decoder_paths.items()}, 'reference': str(args.reference),
+        'diagonal_tolerance_db': DIAGONAL_TOLERANCE_DB, 'diagonal': diagonal, 'pairs': pairs}, indent=2) + '\n')
+    if not args.no_wandb:
+        import wandb
+        wandb.init(project='SeqMRI', name=f'eval_{args.name}', job_type='eval', group='multistep_adaptivity',
+                   config={'masks': {n: str(p) for n, p in mask_paths.items()},
+                           'decoders': {n: str(p) for n, p in decoder_paths.items()}, **platform},
+                   dir=str(args.out))
+        wandb.log({**flat_scalars(pairs, 'cross'), **flat_scalars(diagonal, 'cross/diagonal')})
+        wandb.finish()
+
+
+def per_slice_quantity(scores, name, metric, quantity):
+    """[slices]: the metric, or with quantity 'swap_cost' the metric minus its donor-mask counterpart."""
+    value = per_slice_mean(scores[name][metric])
+    if quantity == 'metric':
+        return value
+    if f'swap_{metric}' not in scores[name].files:
+        raise SystemExit(f'{name} was scored without the swap, so it has no swap cost')
+    return value - per_slice_mean(scores[name][f'swap_{metric}'])
+
+
 def contrast(args):
     pairs = []
     for spec in args.pair:
@@ -405,12 +635,13 @@ def contrast(args):
     groups = {**{c: conditions == c for c in np.unique(conditions)}, 'all': np.ones(len(conditions), dtype=bool)}
     results = {}
     for label, minuend, subtrahend in pairs:
-        result = {'difference': f'{minuend} - {subtrahend}',
+        result = {'difference': f'{minuend} - {subtrahend}', 'quantity': args.quantity,
                   'num_step': [summaries[minuend]['options']['num_step'], summaries[subtrahend]['options']['num_step']],
                   'data_blind': [summaries[minuend]['options']['data_blind'],
                                  summaries[subtrahend]['options']['data_blind']]}
         for metric in METRICS:
-            delta = per_slice_mean(scores[minuend][metric]) - per_slice_mean(scores[subtrahend][metric])
+            delta = (per_slice_quantity(scores, minuend, metric, args.quantity)
+                     - per_slice_quantity(scores, subtrahend, metric, args.quantity))
             result[metric] = {g: cluster_bootstrap(delta[k], volumes[k], conditions[k]) for g, k in groups.items()}
         results[label] = result
         print(f'{label:16s} PSNR ' + '  '.join(
@@ -424,4 +655,4 @@ def contrast(args):
 
 if __name__ == '__main__':
     parsed = parse_args()
-    score(parsed) if parsed.command == 'score' else contrast(parsed)
+    {'score': score, 'cross': cross, 'contrast': contrast}[parsed.command](parsed)
