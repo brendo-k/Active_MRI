@@ -1,0 +1,7 @@
+gap_C_minus_A_via_T16 PSNR knee-PD -0.058 [-0.175, +0.015]  knee-PDFS -0.108 [-0.165, -0.055]  all -0.083 [-0.150, -0.033]
+gap_C_minus_A_via_T1 PSNR knee-PD -0.113 [-0.282, -0.017]  knee-PDFS -0.366 [-0.464, -0.268]  all -0.238 [-0.343, -0.161]
+gap_C_minus_A_own PSNR knee-PD +0.319 [+0.257, +0.382]  knee-PDFS +0.174 [+0.129, +0.217]  all +0.247 [+0.209, +0.286]
+gap_S_minus_A_via_T16 PSNR knee-PD -0.095 [-0.136, -0.052]  knee-PDFS +0.013 [-0.012, +0.042]  all -0.041 [-0.067, -0.015]
+gap_S_minus_A_own PSNR knee-PD -0.053 [-0.080, -0.025]  knee-PDFS +0.054 [+0.025, +0.087]  all +0.000 [-0.022, +0.021]
+G_C_via_T16      PSNR knee-PD -0.040 [-0.153, +0.037]  knee-PDFS -0.104 [-0.175, -0.038]  all -0.072 [-0.142, -0.018]
+G_A_via_T16      PSNR knee-PD +0.018 [+0.004, +0.031]  knee-PDFS +0.004 [-0.019, +0.026]  all +0.011 [-0.002, +0.024]

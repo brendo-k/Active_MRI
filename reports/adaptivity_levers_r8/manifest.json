@@ -1,0 +1,98 @@
+{
+  "schema": 1,
+  "generated_at": "2026-11-16T19:57:11+00:00",
+  "code": {
+    "produced_at": "7b92c6bb64e95a67b03e3635ab551164932026a3",
+    "produced_at_subject": "adaptivity_levers_r8: encoding census script; report manifests may declare no checkpoint runs",
+    "head": "2c26203272cb2045a8744afdbd44e2acce6070ab",
+    "branch": "report/adaptivity_levers_r8",
+    "dirty_tracked_files": [],
+    "scripts": [
+      {
+        "path": "scripts/diagnostics/encoding_census_r8.py",
+        "changed_since_produced_at": false
+      }
+    ]
+  },
+  "metric_mask": {
+    "version": "apodized",
+    "definition": "k-space-apodized per-anatomy mask (activemri/utils/metric_mask.py), the trainer metric since 2026-10-20",
+    "apodization_sigma": 16,
+    "params": {
+      "brain": {
+        "fraction": 0.15,
+        "radius": 6
+      },
+      "knee": {
+        "fraction": 0.06,
+        "radius": 12
+      }
+    }
+  },
+  "data": {
+    "config": null,
+    "note": "local v1 val split: 120 volumes (40 T2, 40 FLAIR, 20 knee PD, 20 knee PDFS); support every 2nd slice, g-factor every 3rd, region check every 4th. Multi-step snapshots: exp/multistep_adaptivity @ c718a3d, dev half of knee val, 669 slices / 20 volumes"
+  },
+  "runs": [],
+  "no_runs": true,
+  "commands": [
+    ".venv/bin/python scripts/diagnostics/encoding_census_r8.py support --workers 40 --out reports/adaptivity_levers_r8/support_census.json",
+    ".venv/bin/python scripts/diagnostics/encoding_census_r8.py gfactor --acceleration 8 --workers 40 --out reports/adaptivity_levers_r8/gfactor_census_r8.json",
+    ".venv/bin/python scripts/diagnostics/encoding_census_r8.py gfactor --acceleration 4 --workers 40 --out reports/adaptivity_levers_r8/gfactor_census_r4.json",
+    ".venv/bin/python scripts/diagnostics/encoding_census_r8.py roi --workers 40 --out reports/adaptivity_levers_r8/roi_gfactor_r8.json",
+    ".venv/bin/python scripts/diagnostics/encoding_census_r8.py summarize --dir reports/adaptivity_levers_r8",
+    "git show c718a3d:reports/multistep_adaptivity/kscr2/contrasts.txt > reports/adaptivity_levers_r8/multistep_kscr2_contrasts.txt"
+  ],
+  "results": [
+    {
+      "path": "gfactor_census_r4.json",
+      "bytes": 199322,
+      "sha256": "64f5544881eb6804"
+    },
+    {
+      "path": "gfactor_census_r8.json",
+      "bytes": 423830,
+      "sha256": "6bb39a546d545928"
+    },
+    {
+      "path": "multistep_kscr1_contrasts.txt",
+      "bytes": 236,
+      "sha256": "975e29e8a42e679e"
+    },
+    {
+      "path": "multistep_kscr2_contrasts.txt",
+      "bytes": 1064,
+      "sha256": "ac7f121beca0b08c"
+    },
+    {
+      "path": "multistep_kscr2_leak_gap.txt",
+      "bytes": 842,
+      "sha256": "b6db8024c0bb17e9"
+    },
+    {
+      "path": "multistep_kscr2_leak_swap.txt",
+      "bytes": 611,
+      "sha256": "9e724ac0c75e0271"
+    },
+    {
+      "path": "roi_gfactor_r8.json",
+      "bytes": 232805,
+      "sha256": "242fa35b421b3ebf"
+    },
+    {
+      "path": "summary.json",
+      "bytes": 9489,
+      "sha256": "6e491596b5df46a0"
+    },
+    {
+      "path": "summary.md",
+      "bytes": 2579,
+      "sha256": "019bb96609efc3c9"
+    },
+    {
+      "path": "support_census.json",
+      "bytes": 737161,
+      "sha256": "c824224ac4cb222e"
+    }
+  ]
+}

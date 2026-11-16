@@ -1,0 +1,302 @@
+{
+  "volumes": 120,
+  "support": {
+    "FLAIR": {
+      "volumes": 40,
+      "f_mean": 0.3868053879510789,
+      "f_sd": 0.06278443374921937,
+      "f_min": 0.250703125,
+      "f_max": 0.5833813476562499,
+      "slice_f_sd_within_volume": 0.13053450937644356,
+      "slice_f_min": 0.038662109375,
+      "slice_f_max": 0.798564453125,
+      "coils": {
+        "4": 4,
+        "12": 2,
+        "14": 1,
+        "16": 17,
+        "18": 1,
+        "20": 15
+      },
+      "acquired_cols": {
+        "160": 1,
+        "170": 2,
+        "176": 2,
+        "184": 1,
+        "198": 6,
+        "221": 2,
+        "224": 24,
+        "256": 2
+      },
+      "best_lattice": "2x4s2",
+      "best_lattice_overlap": 3.586799631735738,
+      "overlap_over_bound": 1.1591098984993256,
+      "own_minus_group_best_overlap_mean": 0.001166450642368555,
+      "own_minus_group_best_overlap_max": 0.015220566387532664
+    },
+    "PD": {
+      "volumes": 20,
+      "f_mean": 0.5734282460289145,
+      "f_sd": 0.060725605112973924,
+      "f_min": 0.5041928998161764,
+      "f_max": 0.7237337239583334,
+      "slice_f_sd_within_volume": 0.2397456346918267,
+      "slice_f_min": 0.0151171875,
+      "slice_f_max": 1.0,
+      "coils": {
+        "15": 20
+      },
+      "acquired_cols": {
+        "320": 20
+      },
+      "best_lattice": "1x8s3",
+      "best_lattice_overlap": 5.4693680358027255,
+      "overlap_over_bound": 1.1922520545680746,
+      "own_minus_group_best_overlap_mean": 0.004258469929682906,
+      "own_minus_group_best_overlap_max": 0.012717125940059582
+    },
+    "PDFS": {
+      "volumes": 20,
+      "f_mean": 0.5953349777015471,
+      "f_sd": 0.05606179214891598,
+      "f_min": 0.5147408854166666,
+      "f_max": 0.7428107766544116,
+      "slice_f_sd_within_volume": 0.24082727511103172,
+      "slice_f_min": 0.013232421875,
+      "slice_f_max": 1.0,
+      "coils": {
+        "15": 20
+      },
+      "acquired_cols": {
+        "320": 20
+      },
+      "best_lattice": "1x8s5",
+      "best_lattice_overlap": 5.620564104358566,
+      "overlap_over_bound": 1.1801263815495702,
+      "own_minus_group_best_overlap_mean": 0.003956999248946325,
+      "own_minus_group_best_overlap_max": 0.01714195122517026
+    },
+    "T2": {
+      "volumes": 40,
+      "f_mean": 0.3506171569824219,
+      "f_sd": 0.03500841008932553,
+      "f_min": 0.294012451171875,
+      "f_max": 0.42883056640625,
+      "slice_f_sd_within_volume": 0.1286667576450317,
+      "slice_f_min": 0.041748046875,
+      "slice_f_max": 0.57560546875,
+      "coils": {
+        "4": 4,
+        "12": 1,
+        "14": 1,
+        "16": 19,
+        "20": 15
+      },
+      "acquired_cols": {
+        "320": 40
+      },
+      "best_lattice": "2x4s2",
+      "best_lattice_overlap": 3.3159574010691477,
+      "overlap_over_bound": 1.182185945208677,
+      "own_minus_group_best_overlap_mean": 0.001395733037672764,
+      "own_minus_group_best_overlap_max": 0.014068669188680882
+    }
+  },
+  "gfactor": {
+    "FLAIR few coils": {
+      "volumes": 4,
+      "coils": {
+        "4": 4
+      },
+      "f_mean": 0.3996422322591146,
+      "f_min": 0.34464599609375,
+      "f_max": 0.4657958984375,
+      "g2_db_r4_own_best": 1.607021351226923,
+      "best_lattice": "1x8s3",
+      "g2_db_r8": 14.09269082734992,
+      "g2_db_r8_min": 10.143233063883276,
+      "g2_db_r8_max": 17.463685941315422,
+      "g2_db_r8_volume_sd": 3.189919490578224,
+      "own_minus_group_best_db_mean": 0.17985794469289385,
+      "own_minus_group_best_db_max": 0.5687343802581992,
+      "frac_folded_gt_coils": 0.21641657261643424,
+      "frac_g_gt_2": 0.6775093653068552
+    },
+    "FLAIR many coils": {
+      "volumes": 36,
+      "coils": {
+        "12": 2,
+        "14": 1,
+        "16": 17,
+        "18": 1,
+        "20": 15
+      },
+      "f_mean": 0.3853790719168526,
+      "f_min": 0.250703125,
+      "f_max": 0.5833813476562499,
+      "g2_db_r4_own_best": 0.5812269646028352,
+      "best_lattice": "1x8s3",
+      "g2_db_r8": 4.182229233002637,
+      "g2_db_r8_min": 2.311185590767541,
+      "g2_db_r8_max": 6.263171141766234,
+      "g2_db_r8_volume_sd": 0.8355638172180978,
+      "own_minus_group_best_db_mean": 0.02126403115332245,
+      "own_minus_group_best_db_max": 0.1491069518806749,
+      "frac_folded_gt_coils": 0.0,
+      "frac_g_gt_2": 0.10102729483565935
+    },
+    "T2 few coils": {
+      "volumes": 4,
+      "coils": {
+        "4": 4
+      },
+      "f_mean": 0.33452667236328126,
+      "f_min": 0.319610595703125,
+      "f_max": 0.35670166015625004,
+      "g2_db_r4_own_best": 1.08546331478163,
+      "best_lattice": "1x8s5",
+      "g2_db_r8": 11.619383668464675,
+      "g2_db_r8_min": 10.186310893676445,
+      "g2_db_r8_max": 13.050598068723517,
+      "g2_db_r8_volume_sd": 1.0440512469483014,
+      "own_minus_group_best_db_mean": 0.05195317419153378,
+      "own_minus_group_best_db_max": 0.20268904925406694,
+      "frac_folded_gt_coils": 0.05693779660332278,
+      "frac_g_gt_2": 0.6704309916671356
+    },
+    "T2 many coils": {
+      "volumes": 36,
+      "coils": {
+        "12": 1,
+        "14": 1,
+        "16": 19,
+        "20": 15
+      },
+      "f_mean": 0.35240498860677083,
+      "f_min": 0.294012451171875,
+      "f_max": 0.42883056640625,
+      "g2_db_r4_own_best": 0.41852420828505615,
+      "best_lattice": "1x8s3",
+      "g2_db_r8": 3.506764356099729,
+      "g2_db_r8_min": 2.4083574654130837,
+      "g2_db_r8_max": 5.830807417059233,
+      "g2_db_r8_volume_sd": 0.5650917248845664,
+      "own_minus_group_best_db_mean": 0.006291106329609781,
+      "own_minus_group_best_db_max": 0.08864790981893655,
+      "frac_folded_gt_coils": 0.0,
+      "frac_g_gt_2": 0.04361896240315202
+    },
+    "knee PD": {
+      "volumes": 20,
+      "coils": {
+        "15": 20
+      },
+      "f_mean": 0.5734282460289145,
+      "f_min": 0.5041928998161764,
+      "f_max": 0.7237337239583334,
+      "g2_db_r4_own_best": 1.0088216207648961,
+      "best_lattice": "1x8s5",
+      "g2_db_r8": 5.895774137849517,
+      "g2_db_r8_min": 4.5555356061476,
+      "g2_db_r8_max": 7.748949747211396,
+      "g2_db_r8_volume_sd": 0.9993782376240975,
+      "own_minus_group_best_db_mean": 0.05123707869120255,
+      "own_minus_group_best_db_max": 0.2944219907252643,
+      "frac_folded_gt_coils": 0.0,
+      "frac_g_gt_2": 0.2896041527166566
+    },
+    "knee PDFS": {
+      "volumes": 20,
+      "coils": {
+        "15": 20
+      },
+      "f_mean": 0.5953349777015471,
+      "f_min": 0.5147408854166666,
+      "f_max": 0.7428107766544116,
+      "g2_db_r4_own_best": 1.2772197781273722,
+      "best_lattice": "1x8s3",
+      "g2_db_r8": 6.2988441403511795,
+      "g2_db_r8_min": 4.852013574541324,
+      "g2_db_r8_max": 8.35284362625078,
+      "g2_db_r8_volume_sd": 0.7778179263386941,
+      "own_minus_group_best_db_mean": 0.074499934274571,
+      "own_minus_group_best_db_max": 0.35601313527449907,
+      "frac_folded_gt_coils": 0.0,
+      "frac_g_gt_2": 0.3013732241722261
+    }
+  },
+  "budget": {
+    "slope_mean": 7.398872075013771,
+    "slope_sd": 2.178437454260746,
+    "slope_cv": 0.2944283172049155,
+    "slope_by_group": {
+      "FLAIR few coils": 15.316111488069915,
+      "FLAIR many coils": 6.590038193886291,
+      "T2 few coils": 13.492267136131321,
+      "T2 many coils": 6.092248998124874,
+      "knee PD": 7.84601539503323,
+      "knee PDFS": 7.957424384589049
+    },
+    "level_fit_log2f_log2coils": [
+      2.3479802541310413,
+      -3.9970368860869163
+    ],
+    "level_fit_r2": 0.8609872523824944,
+    "slope_fit_log2f_log2coils": [
+      1.6157210600237009,
+      -3.6082692514796517
+    ],
+    "slope_fit_r2": 0.8692484146242065,
+    "level_min_db": 2.26673655366004,
+    "level_max_db": 17.380742475431177,
+    "waterfilling_mean_gain_db": 0.38590545636115337,
+    "waterfilling_acceleration_min": 3.327450384039389,
+    "waterfilling_acceleration_max": 11.809788220605268,
+    "second_order_estimate_db": 0.462667736220188,
+    "samples_at_p90_penalty_relative_to_r8": 0.7974143297940454
+  },
+  "roi": {
+    "brain few coils": {
+      "volumes": 8,
+      "whole_object_patient_gain_db": 0.08960360784920995,
+      "region_patient_gain_db": 0.3976930314299655,
+      "region_static_gain_db": 2.5571134849289185,
+      "region_patient_gain_db_by_region": {
+        "centre": 0.17949726547362355,
+        "up": 0.7326456310305083,
+        "down": 1.0200758749034367,
+        "left": 0.0020315467242094654,
+        "right": 0.054214839018049577
+      },
+      "share_of_volumes_with_zero_patient_gain": 0.775
+    },
+    "brain many coils": {
+      "volumes": 72,
+      "whole_object_patient_gain_db": 0.01612176367206167,
+      "region_patient_gain_db": 0.0953695038083924,
+      "region_static_gain_db": 0.09275355482010847,
+      "region_patient_gain_db_by_region": {
+        "centre": 0.1916146085569224,
+        "up": 0.0561269913107115,
+        "down": 0.058712377548892164,
+        "left": 0.0844003657852991,
+        "right": 0.08599317584013691
+      },
+      "share_of_volumes_with_zero_patient_gain": 0.48888888888888893
+    },
+    "knee": {
+      "volumes": 40,
+      "whole_object_patient_gain_db": 0.08415120466240492,
+      "region_patient_gain_db": 0.16472506687938443,
+      "region_static_gain_db": 0.09092473888455896,
+      "region_patient_gain_db_by_region": {
+        "centre": 0.1795459963792806,
+        "up": 0.061228610687765264,
+        "down": 0.23402158596467632,
+        "left": 0.16576875218113232,
+        "right": 0.18306038918406764
+      },
+      "share_of_volumes_with_zero_patient_gain": 0.6300000000000001
+    }
+  }
+}
