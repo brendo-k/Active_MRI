@@ -37,6 +37,7 @@ from mask_gradient_anatomy_r8 import load, to_device
 QUEUE = Path('/home/bkadota/data/seqmri_checkpoints/brain_varnet_width')
 OUT = Path('reports/brain_varnet_width/eval')
 METRICS = ('psnr', 'ssim', 'nmse')
+LOCAL_DATASET = Path('configs/datasets/fastmri_local_v1_base.yaml')
 NAME = re.compile(r'^c(\d+)_ch(\d+)_s(\d+)$')
 
 
@@ -51,11 +52,17 @@ def parse_args():
     parser.add_argument('--chunk', type=int, default=8)
     parser.add_argument('--limit', type=int, default=None, help='N evenly spaced slices only (smoke tests)')
     parser.add_argument('--device', default='cuda')
+    parser.add_argument('--local-data', action='store_true',
+                        help='runs trained elsewhere (CoreHPC): read the local data copies, and score --split train on '
+                             'the tier-S volumes, which every tier-L run also trained on')
     return parser.parse_args()
 
 
-def brain_loader(run, split, chunk, limit):
+def brain_loader(run, split, chunk, limit, local_data=False):
     cfg = OmegaConf.load(run / '.hydra' / 'config.yaml')
+    if local_data:
+        cfg.datasets.roots = OmegaConf.load(LOCAL_DATASET).roots
+        cfg.datasets.train_tier = 'S'
     if split == 'val':
         cfg.datasets.limit_volumes = 1
         cfg.datasets.val_limit_volumes = None
@@ -121,7 +128,7 @@ def main():
         for name, ckpt in todo:
             model, checkpoint = load(args.queue / name, ckpt, args.device)
             models[name, ckpt] = (model, list(checkpoint['options'].label_classes))
-        loader = brain_loader(args.queue / todo[0][0], args.split, args.chunk, args.limit)
+        loader = brain_loader(args.queue / todo[0][0], args.split, args.chunk, args.limit, args.local_data)
         scores, volumes = score(models, loader, args.device)
         for (name, ckpt), s in scores.items():
             print(f'{args.split} {name:12s} {ckpt:14s} PSNR {s["psnr"].mean():.3f} SSIM {s["ssim"].mean():.4f} '
