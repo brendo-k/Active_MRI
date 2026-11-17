@@ -127,6 +127,10 @@ def _family_tokens(options, sampler):
         channels = _get(options, 'data_channels')
         if channels and set(channels) != {'image', 'kspace'}:
             tokens.append('data-' + '+'.join(channels))
+    elif sampler == 'seqmri_2d':
+        fields = []
+        tokens = ['data-blind'] if _get(options, 'data_blind') else []
+        tokens += ['signed-log'] if _get(options, 'seqmri_input_scale') == 'signed_log' else []
     elif sampler == 'mnet_2d':
         fields = [('mnet_accept', 'accept-'), ('mnet_label_steps', 'T'), ('mnet_sampler_steps', 'c'),
                   ('mnet_init_margin', 'margin'), ('mnet_sparsity_weight', 'sp'), ('mnet_consistency_weight', 'cons'),

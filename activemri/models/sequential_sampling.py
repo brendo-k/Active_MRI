@@ -122,6 +122,7 @@ class SequentialSampling(nn.Module):
             sampler_input='measured',
             recon_steps=IN_LOOP_RECON_STEPS,
             virtual_coils=4,
+            seqmri_input_scale='raw',
             ):
         """`budget_over='acquired'` makes `sparsity` a fraction of each slice's acquired k-space (`mask_budget`);
         'grid' (the default, as older runs trained) a fraction of the whole grid, all of it spent inside the acquired
@@ -141,6 +142,9 @@ class SequentialSampling(nn.Module):
 
         `sampler_type='seqmri_2d'` is SeqMRI's loop (activemri.samplers.seqmri, kscr3): the trained reconstructor
         reconstructs before every step, the centre included, and the gradient takes SeqMRI's routes (`_sample_steps`).
+        `seqmri_input_scale` scales its input (fscr1: 'signed_log'). Its `data_blind` twin reads no reconstruction, so
+        none runs before its steps; it keeps SeqMRI's routes, so its earlier draws are credited only through the weights
+        every step shares.
 
         At num_step > 1 the steps share the budget equally, each reads the k-space measured so far, and only the final
         mask is reconstructed (plus the 'seqmri' in-loop reconstructions), so the sampler inputs that need an
@@ -167,7 +171,7 @@ class SequentialSampling(nn.Module):
             if sampler_input != 'measured':
                 raise ValueError("seqmri_2d reads SeqMRI's own input (the predicted and measured k-space and the mask); "
                                  f"leave sampler_input at 'measured', got {sampler_input!r}")
-            self.recon_steps = tuple(range(num_step))
+            self.recon_steps = () if data_blind else tuple(range(num_step))
         self.sampler_input = sampler_input
         self.sampler_coil_combine = sampler_coil_combine
         self.sparsity = sparsity
@@ -270,6 +274,7 @@ class SequentialSampling(nn.Module):
             data_channels=data_channels,
             reads_reconstruction=sampler_input == 'recon',
             complex_coils=virtual_coils if sampler_input == 'seqmri' else 0,
+            seqmri_input_scale=seqmri_input_scale,
         )
 
         if loupe_same_start:

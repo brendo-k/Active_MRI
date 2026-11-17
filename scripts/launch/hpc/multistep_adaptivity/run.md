@@ -97,6 +97,27 @@ Contrasts, once the scores are back: `--pair G_16_A_kscr2=A_16_s42_kscr2-T_16_s4
 `--pair S_minus_A_kscr2=S_16_s42_kscr2-A_16_s42_kscr2`, `--pair C_minus_A_kscr2=C_16_s42_kscr2-A_16_s42_kscr2` and
 `--pair U_16_kscr2=A_16_s42_kscr2-T_1_s42_kscr2`.
 
+## 5d. fscr1: SeqMRI's design on all the FLAIR data (`reports/multistep_adaptivity/addendum_2026-11-16_fscr1.md`)
+
+As in 5c, the training jobs start only if the validation job passes; if it fails, `scancel` the six dependents:
+
+```bash
+V=$(sbatch --parsable $J --export=ALL,GPU_NAME='RTX PRO 6000',EXPECTED_COMMIT=<hash> $C/validate_fscr1.sbatch)
+for arm in F_4_s42_fscr1_tF Fb_4_s42_fscr1_tF; do
+    sbatch $J --dependency=afterok:$V --time=2-00:00:00 --export=ALL,ARM=$arm,GPU_NAME='RTX PRO 6000' $C/train.sbatch
+done
+for arm in L_1_s42_fscr1_tF F_4_s42_fscr1_tS5 Fb_4_s42_fscr1_tS5 L_1_s42_fscr1_tS5; do
+    sbatch $J --dependency=afterok:$V --time=1-00:00:00 --export=ALL,ARM=$arm,GPU_NAME='RTX PRO 6000' $C/train.sbatch
+done
+# the early warning, once runs/F_4_s42_fscr1_tF/epoch_010.pt exists
+sbatch $J --export=ALL,ARM=F_4_s42_fscr1_tF,CHECKPOINT=epoch_010.pt,GPU_NAME='RTX PRO 6000' $C/eval.sbatch
+```
+
+Contrasts, once the scores are back: `--pair U_tF=F_4_s42_fscr1_tF-L_1_s42_fscr1_tF`,
+`--pair G_tF=F_4_s42_fscr1_tF-Fb_4_s42_fscr1_tF`, the same two at tS5, and the data question as
+`--pair U_data='(F_4_s42_fscr1_tF-L_1_s42_fscr1_tF)-(F_4_s42_fscr1_tS5-L_1_s42_fscr1_tS5)'` and
+`--pair G_data='(F_4_s42_fscr1_tF-Fb_4_s42_fscr1_tF)-(F_4_s42_fscr1_tS5-Fb_4_s42_fscr1_tS5)'`.
+
 ## 5. P2b as frozen (VD p=4 start): replaced by 5b on 11-11, not run
 
 ```bash

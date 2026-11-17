@@ -10,16 +10,32 @@ SeqMRI's data is single-coil. Here the coil k-space enters as one coil: the firs
 the ACS's top coil eigenvector phase-referenced at the ACS k-space peak. Measured locations keep their values and the
 rest stay 0, as in SeqMRI's input. Both k-spaces are divided by the ACS k-space peak; SeqMRI divided its data by one
 training-set constant.
+
+Two fscr1 options (reports/multistep_adaptivity/addendum_2026-11-16_fscr1.md):
+- `input_scale='signed_log'` passes each real and imaginary part v through sign(v) log1p(|v| / f) / log1p(1 / f), with
+  the log-magnitude channels' floor f = 1e-6. Over the ACS peak, k-space beyond the centre is ~1e-5, so with the raw
+  values ('raw', kscr3) the U-Net read only the mask channel. 0 stays 0 and the peak maps to +/-1.
+- `data_blind` is the twin: a fixed tensor replaces the four data channels and the mask channel is kept, so spacing
+  between steps stays open to it. It reads no reconstruction, so the loop runs none before its steps.
 """
+import math
+
 import torch
 import torch.nn.functional as F
 from torch import nn
 from torch.utils.checkpoint import checkpoint
 
-from activemri.samplers.seq_adapt import StepContext
+from activemri.samplers.seq_adapt import FIXED_DATA_SEED, LOG_MAGNITUDE_FLOOR, StepContext
 
-INPUT_CHANNELS = 5  # predicted k-space (real, imaginary), measured k-space (real, imaginary), mask
+DATA_CHANNELS = 4  # predicted k-space (real, imaginary), measured k-space (real, imaginary)
+INPUT_CHANNELS = DATA_CHANNELS + 1  # and the mask
 VIRTUAL_COILS = 1
+INPUT_SCALES = ('raw', 'signed_log')
+
+
+def signed_log(values, floor=LOG_MAGNITUDE_FLOOR):
+    """sign(v) log1p(|v| / floor) / log1p(1 / floor): 0 at 0, +/-1 at +/-1, odd and increasing."""
+    return torch.sign(values) * torch.log1p(values.abs() / floor) / math.log1p(1 / floor)
 
 
 class _ConvBlock(nn.Sequential):
@@ -39,14 +55,22 @@ def virtual_coil(coil_kspace, compression):
 class SeqMRISampler2D(nn.Module):
     """SeqMRI's Sampler2D: one step's per-location scores in [0, 1], 0 where the mask has sampled."""
 
-    data_blind = False
     reads_reconstruction = False
-    complex_coils = VIRTUAL_COILS
 
-    def __init__(self, chans=64, num_pool_layers=4, checkpoint_network=True):
-        """`checkpoint_network` recomputes the U-Net in the backward pass instead of keeping every step's activations."""
+    def __init__(self, shape, chans=64, num_pool_layers=4, checkpoint_network=True, input_scale='raw', data_blind=False):
+        """`checkpoint_network` recomputes the U-Net in the backward pass instead of keeping every step's activations.
+        `input_scale` and `data_blind` are the fscr1 options in the module docstring. The twin's fixed tensor comes from
+        its own generator, so an arm and its twin draw the same U-Net from the global random stream."""
         super().__init__()
+        if input_scale not in INPUT_SCALES:
+            raise ValueError(f"input_scale must be one of {INPUT_SCALES}, got {input_scale!r}")
         self.checkpoint_network = checkpoint_network
+        self.input_scale = input_scale
+        self.data_blind = data_blind
+        self.complex_coils = 0 if data_blind else VIRTUAL_COILS
+        if data_blind:
+            generator = torch.Generator().manual_seed(FIXED_DATA_SEED)
+            self.register_buffer('fixed_data', torch.randn(1, DATA_CHANNELS, *shape, generator=generator))
         self.down_sample_layers = nn.ModuleList([_ConvBlock(INPUT_CHANNELS, chans)])
         ch = chans
         for _ in range(num_pool_layers - 1):
@@ -86,7 +110,10 @@ class SeqMRISampler2D(nn.Module):
         return self.conv2(output)
 
     def inputs(self, old_mask, context: StepContext):
-        """[B, 5, H, W]: the predicted, then the measured virtual-coil k-space over the ACS k-space peak, then M_i."""
+        """[B, 5, H, W]: the predicted, then the measured virtual-coil k-space over the ACS k-space peak (the twin's fixed
+        tensor instead), then M_i."""
+        if self.data_blind:
+            return torch.cat([self.fixed_data.expand(len(old_mask), -1, -1, -1).to(old_mask.dtype), old_mask], dim=1)
         if context.measured is None or context.compression is None:
             raise ValueError("seqmri_2d reads the measured coil k-space and its virtual-coil weights; the context has neither")
         if context.predicted is None:
@@ -95,4 +122,6 @@ class SeqMRISampler2D(nn.Module):
         measured = virtual_coil(context.measured, context.compression) / peak
         predicted = virtual_coil(context.predicted, context.compression) / peak
         channels = torch.stack([predicted.real, predicted.imag, measured.real, measured.imag], dim=1)
+        if self.input_scale == 'signed_log':
+            channels = signed_log(channels)
         return torch.cat([channels.to(old_mask.dtype), old_mask], dim=1)

@@ -157,6 +157,7 @@ class Sampler(nn.Module):
         data_channels=None,
         reads_reconstruction=False,
         complex_coils=0,
+        seqmri_input_scale='raw',
         ):
         super().__init__()
 
@@ -171,8 +172,10 @@ class Sampler(nn.Module):
                              f"got {sampler_type!r}, {mask_train_mode!r}, mask_draws={mask_draws}")
         if reinforce_eval not in REINFORCE_EVAL_MODES:
             raise ValueError(f"Unknown reinforce_eval {reinforce_eval!r}; expected one of {REINFORCE_EVAL_MODES}")
-        if data_blind and sampler_type != "seq_adapt_2d":
-            raise ValueError(f"data_blind is the seq_adapt_2d twin, got sampler_type={sampler_type!r}")
+        if data_blind and sampler_type not in CONTEXT_SAMPLERS:
+            raise ValueError(f"data_blind is the twin of {CONTEXT_SAMPLERS}, got sampler_type={sampler_type!r}")
+        if seqmri_input_scale != 'raw' and sampler_type != "seqmri_2d":
+            raise ValueError(f"seqmri_input_scale scales seqmri_2d's input, got sampler_type={sampler_type!r}")
         if data_channels is not None and set(data_channels) != set(DATA_CHANNEL_NAMES) and sampler_type != "seq_adapt_2d":
             raise ValueError(f"data_channels selects seq_adapt_2d's data inputs, got sampler_type={sampler_type!r}")
         if (reads_reconstruction or complex_coils) and sampler_type != "seq_adapt_2d":
@@ -258,7 +261,8 @@ class Sampler(nn.Module):
                                                    data_channels=data_channels, reads_reconstruction=reads_reconstruction,
                                                    complex_coils=complex_coils)
         elif sampler_type == "seqmri_2d":
-            self.mask_net = SeqMRISampler2D(chans=sampler_chans, num_pool_layers=sampler_depth)
+            self.mask_net = SeqMRISampler2D(shape, chans=sampler_chans, num_pool_layers=sampler_depth,
+                                            input_scale=seqmri_input_scale, data_blind=data_blind)
         elif sampler_type == "loupe_2d":
             self.mask_net = ProbMask(shape, slope, num_conditioning_classes=num_conditioning_classes,
                                      grad_floor=mask_grad_floor)

@@ -1413,6 +1413,7 @@ def build_model(options: TrainConfig):
         sampler_input=getattr(options, 'sampler_input', 'measured'),
         recon_steps=getattr(options, 'recon_steps', None) or [6, 9, 12, 14],
         virtual_coils=getattr(options, 'virtual_coils', 4),
+        seqmri_input_scale=getattr(options, 'seqmri_input_scale', 'raw'),
     )
     replace_instance_norms(model.reconstructor, getattr(recon_cfg, 'norm', 'instance'))
     replace_instance_norms(model.sensetivity_net, getattr(options, 'sens_norm', 'instance'))

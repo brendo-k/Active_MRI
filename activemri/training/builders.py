@@ -141,6 +141,7 @@ def build_train_config(cfg: DictConfig) -> TrainConfig:
         input_recon_checkpoint=cfg.sampler.get('input_recon_checkpoint', None),
         recon_steps=list(cfg.sampler.get('recon_steps', None) or [6, 9, 12, 14]),
         virtual_coils=cfg.sampler.get('virtual_coils', 4),
+        seqmri_input_scale=cfg.sampler.get('seqmri_input_scale', 'raw'),
         save_epochs=list(cfg.training.get('save_epochs', None) or []),
         sense_mask_method=cfg.sampler.get('sense_mask_method', 'pre_network'),
         with_recon=cfg.sampler.get('with_recon', False),

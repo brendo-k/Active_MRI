@@ -93,3 +93,31 @@ def test_an_undefined_knee_subproblem_iteration_is_refused(exp_dir):
 def test_clairvoyant_and_seqmri_arms_are_refused_outside_kscr2_on(arm, exp_dir):
     with pytest.raises(AssertionError, match='C and S arms exist only'):
         corehpc_arguments(arm, exp_dir)
+
+
+FSCR1_ARMS = [f'{kind}_{steps}_s42_fscr1_t{tier}' for tier in ('F', 'S5') for kind, steps in (('F', 4), ('Fb', 4), ('L', 1))]
+
+
+@pytest.mark.parametrize('arm', FSCR1_ARMS)
+def test_every_fscr1_arm_composes_with_its_flair_recipe(arm, exp_dir):
+    """addendum_2026-11-16_fscr1.md: FLAIR only, dev half, 6 x 18 VarNet with cascade checkpointing, 10 x 10 centre."""
+    cfg = composed(corehpc_arguments(arm, exp_dir))
+    kind, steps, tier = arm.split('_')[0], int(arm.split('_')[1]), arm.rsplit('_t', 1)[1]
+    assert dict(cfg.datasets.roots) == COREHPC_ROOTS
+    assert list(cfg.datasets.classes) == ['FLAIR'] and cfg.datasets.val_half == 'dev'
+    assert (cfg.datasets.train_tier, cfg.datasets.train_slice_stride) == {'F': ('F', 1), 'S5': ('S', 5)}[tier]
+    assert (cfg.recon.num_cascades, cfg.recon.chans, cfg.recon.checkpoint_cascades) == (6, 18, True)
+    assert (cfg.sampler.preselect_num, cfg.sampler.accelerations[0], cfg.sampler.budget_over) == (10, 8.0, 'acquired')
+    assert (cfg.training.seed, cfg.training.num_step, cfg.training.num_epochs, cfg.training.lr_step_size) == (42, steps, 100, 90)
+    assert (cfg.training.batch_size, cfg.sampler.anatomy_conditioning, cfg.output.run_name) == (16, False, arm)
+    assert cfg.sampler.sampler_type == ('loupe_2d' if kind == 'L' else 'seqmri_2d')
+    assert cfg.sampler.data_blind == (kind == 'Fb')
+    assert cfg.sampler.seqmri_input_scale == ('raw' if kind == 'L' else 'signed_log')
+    assert list(cfg.training.save_epochs) == ([] if kind == 'L' else [10])
+    assert cfg.output.pretrained_recon is None and cfg.sampler.init_mask_checkpoint is None
+
+
+@pytest.mark.parametrize('arm', ['L_4_s42_fscr1_tF', 'F_1_s42_fscr1_tF', 'F_4_s42_fscr2_tF'])
+def test_malformed_fscr_arms_are_refused(arm, exp_dir):
+    with pytest.raises(AssertionError, match='one-step LOUPE|iteration 2 is not defined'):
+        corehpc_arguments(arm, exp_dir)

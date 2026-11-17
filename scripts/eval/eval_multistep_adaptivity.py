@@ -9,8 +9,10 @@ writes <out>/<name>.npz (per slice) and <name>.json (summary), and logs both to 
     mask is reconstructed on the target. Own minus donor is the cost. A data-blind twin reads nothing that differs
     between the two, so its donor mask must equal its own bit for bit (the null that tests this code).
   - Per-step data-swap sensitivity (seq_adapt_2d): the share of step i's new samples that move when only the data
-    channels are the donor's, M_i, header, budget and thresholds held. Exactly 0 for the twin.
-  - Guards: pooled SSIM_Masked, the realised fraction against 1/R, slices below 20 dB.
+    channels are the donor's, M_i, header, budget and thresholds held. Exactly 0 for the twin. For seqmri_2d also the
+    share that moves when its four data channels are zeros (fscr1's zero-data probe).
+  - Guards: pooled SSIM_Masked, the realised fraction against 1/R, slices below 20 dB, final-mask locations outside
+    the acquired region.
   - Step-grid figures, one row per step (activemri.utils.multistep.step_grid_figure), for fixed mid-volume slices
     of each condition. `--gradients` adds the training loss's gradient on each step's probabilities.
 `cross` decodes runs' masks with other runs' VarNets (kscr2's leak check, reports/multistep_adaptivity/kscr2/leak/).
@@ -19,7 +21,8 @@ final masks with its own sensitivity net and VarNet. It writes <mask>__via__<dec
 format, so `contrast` pairs them; with --reference it first checks the slices, draw seeds and donors against the runs'
 own scores, and each run decoded by itself must then reproduce its own score.
 `contrast` gives paired per-slice differences between scored runs, e.g. G_K = A_K - T_K, the twin floor T_K - T_K',
-T_K - T_1 and U_K = A_K - T_1, or with --quantity swap_cost the difference of their swap costs. CIs are 95%
+T_K - T_1 and U_K = A_K - T_1, or with --quantity swap_cost the difference of their swap costs. `(A-B)-(C-D)` is a
+difference of two paired differences, e.g. fscr1's tier-F gap minus its tier-S gap. CIs are 95%
 volume-cluster bootstraps of the slice-weighted mean, volumes resampled within each condition. It refuses runs scored
 on different slices or draw seeds.
 
@@ -29,6 +32,7 @@ on different slices or draw seeds.
         --pair G_4_s42=A_4_s42-T_4_s42 --pair F_16=T_16_s42-T_16b_s42 --out reports/multistep_adaptivity/contrasts.json
 """
 import argparse
+import contextlib
 import hashlib
 import json
 import os
@@ -45,6 +49,7 @@ import torch  # noqa: E402
 from omegaconf import OmegaConf  # noqa: E402
 
 import _path  # noqa: F401,E402
+from activemri.samplers.seqmri import DATA_CHANNELS as SEQMRI_DATA_CHANNELS  # noqa: E402
 from activemri.training.builders import build_dataloaders  # noqa: E402
 from activemri.training.trainer import build_model  # noqa: E402
 from activemri.utils.metric_mask import metric_mask_from_real_kspace  # noqa: E402
@@ -108,7 +113,7 @@ def parse_args():
     contrasting = commands.add_parser('contrast', help='paired differences between scored runs')
     contrasting.add_argument('--scores', type=Path, required=True, help='scores folder')
     contrasting.add_argument('--pair', action='append', required=True, metavar='LABEL=A-B',
-                             help='per-slice A minus B, e.g. G_4_s42=A_4_s42-T_4_s42 (repeatable)')
+                             help='per-slice A minus B, e.g. G_4_s42=A_4_s42-T_4_s42, or LABEL=(A-B)-(C-D) (repeatable)')
     contrasting.add_argument('--quantity', choices=('metric', 'swap_cost'), default='metric',
                              help="pair the metrics, or each run's swap cost (its own mask's metric minus its donor's)")
     contrasting.add_argument('--out', type=Path, required=True, help='contrasts .json')
@@ -214,17 +219,41 @@ def per_slice_mean(values):
     return np.where(count > 0, total / np.maximum(count, 1), np.nan)
 
 
+@contextlib.contextmanager
+def zeroed_data_channels(sampler):
+    """seqmri_2d's network reads zeros in place of its four data channels; the mask channel is kept."""
+    real_inputs = sampler.inputs
+
+    def inputs(old_mask, context):
+        values = real_inputs(old_mask, context)
+        return torch.cat([torch.zeros_like(values[:, :SEQMRI_DATA_CHANNELS]), values[:, SEQMRI_DATA_CHANNELS:]], dim=1)
+
+    sampler.inputs = inputs
+    try:
+        yield
+    finally:
+        del sampler.inputs
+
+
+def moved_fraction(own_new, other_new):
+    """[B]: the share of a step's own new locations that `other_new` does not draw, NaN where the step drew none."""
+    kept = (own_new & (other_new > 0)).flatten(1).sum(1).double()
+    total = own_new.flatten(1).sum(1).double()
+    return torch.where(total > 0, 1 - kept / total.clamp(min=1), torch.nan)
+
+
 @torch.no_grad()
 def score_slices(model, options, dataset, collate, indices, donors, args):
     """The per-slice arrays, [slices, draw seeds] or [slices, steps, draw seeds]."""
     count, steps, seeds = len(indices), model.num_step, len(args.draw_seeds)
     has_donor = donors >= 0
-    arrays = {key: np.full((count, seeds), np.nan) for key in (*METRICS, 'realised_fraction',
+    arrays = {key: np.full((count, seeds), np.nan) for key in (*METRICS, 'realised_fraction', 'outside_acquired',
                                                               *(f'swap_{m}' for m in METRICS))}
     arrays['swap_mask_equal'] = np.zeros((count, seeds), dtype=bool)
     arrays.update({key: np.full((count, steps, seeds), np.nan)
-                   for key in ('step_new', 'step_budget', 'residual_rms', 'moved', 'residual_swap_rms')})
+                   for key in ('step_new', 'step_budget', 'residual_rms', 'moved', 'residual_swap_rms', 'zero_moved')})
     sensitivity = model.sampler.reads_context and not args.no_sensitivity
+    zero_probe = sensitivity and model.sampler_type == 'seqmri_2d' and not model.sampler.data_blind
     self_check = None
     donor_indices = indices[np.where(has_donor, donors, np.arange(count))]
     start = 0
@@ -247,6 +276,7 @@ def score_slices(model, options, dataset, collate, indices, donors, args):
                 arrays[metric][rows, s] = scores[metric].cpu().numpy()
             arrays['realised_fraction'][rows, s] = (
                 (masks[-1] * valid).flatten(1).sum(1) / valid.flatten(1).sum(1)).cpu().numpy()
+            arrays['outside_acquired'][rows, s] = (masks[-1] * (1 - valid)).flatten(1).sum(1).cpu().numpy()
             arrays['step_new'][rows, :, s] = torch.stack(
                 [(after - before).flatten(1).sum(1) for before, after in zip(previous, masks)], dim=1).cpu().numpy()
             arrays['step_budget'][rows, :, s] = budget.cpu().numpy()[:, None]
@@ -271,10 +301,14 @@ def score_slices(model, options, dataset, collate, indices, donors, args):
                     swap = model.counterfactual_step(part['kspace'], previous[step], step, donor['kspace'],
                                                      thresholds[step], part['labels'], recon_mask=recon_mask(step))
                     own_new = (masks[step] - previous[step]) > 0
-                    kept = (own_new & (swap['new'] > 0)).flatten(1).sum(1).double()
-                    total = own_new.flatten(1).sum(1).double()
-                    moved = torch.where(total > 0, 1 - kept / total.clamp(min=1), torch.nan)
+                    moved = moved_fraction(own_new, swap['new'])
                     arrays['moved'][rows, step, s] = np.where(matched, moved.cpu().numpy(), np.nan)
+                    if zero_probe:
+                        with zeroed_data_channels(model.sampler.mask_net):
+                            zeroed = model.counterfactual_step(part['kspace'], previous[step], step, part['kspace'],
+                                                               thresholds[step], part['labels'],
+                                                               recon_mask=recon_mask(step))
+                        arrays['zero_moved'][rows, step, s] = moved_fraction(own_new, zeroed['new']).cpu().numpy()
                     if 'residual' in details[step]:
                         change = (swap['residual'] - details[step]['residual']).pow(2).flatten(1).mean(1).sqrt()
                         arrays['residual_swap_rms'][rows, step, s] = np.where(matched, change.cpu().numpy(), np.nan)
@@ -302,10 +336,12 @@ def summarise(arrays, meta, options, has_donor, self_check, args):
     }
     pooled_ssim, realised = summary['means']['ssim']['all'], summary['means']['realised_fraction']['all']
     failed = np.flatnonzero(slice_means['psnr'] < FAILED_RECON_DB)
+    outside = int(np.nanmax(arrays['outside_acquired']))
     summary['guards'] = {
         'ssim_pooled': pooled_ssim, 'ssim_at_least_0.80': bool(pooled_ssim >= SSIM_GUARD),
         'realised_fraction_target': target_fraction,
         'realised_fraction_within_0.002': bool(abs(realised - target_fraction) <= REALISED_TOLERANCE),
+        'most_draws_outside_the_acquired_region': outside, 'no_draws_outside_the_acquired_region': outside == 0,
         'failed_reconstructions_below_20dB': [
             {'volume': str(volumes[i]), 'slice_id': int(meta['slice_id'][i]), 'condition': str(conditions[i]),
              'psnr': float(slice_means['psnr'][i])} for i in failed],
@@ -322,6 +358,9 @@ def summarise(arrays, meta, options, has_donor, self_check, args):
     if np.isfinite(slice_means['moved']).any():
         summary['data_swap'] = {
             'moved_by_step': {g: np.nanmean(slice_means['moved'][k], axis=0).tolist() for g, k in groups.items()}}
+        if np.isfinite(slice_means['zero_moved']).any():
+            summary['data_swap']['zero_data_moved_by_step'] = {
+                g: np.nanmean(slice_means['zero_moved'][k], axis=0).tolist() for g, k in groups.items()}
         if np.isfinite(slice_means['residual_swap_rms']).any():
             summary['data_swap']['residual_change_rms_by_step'] = {
                 g: np.nanmean(slice_means['residual_swap_rms'][k], axis=0).tolist() for g, k in groups.items()}
@@ -617,15 +656,26 @@ def per_slice_quantity(scores, name, metric, quantity):
     return value - per_slice_mean(scores[name][f'swap_{metric}'])
 
 
+def contrast_terms(spec):
+    """(label, [(sign, run), ...]) of `--pair LABEL=A-B`, or of a difference of two paired differences
+    `LABEL=(A-B)-(C-D)`, which is A - B - C + D per slice."""
+    label, _, difference = spec.partition('=')
+    if difference.startswith('('):
+        first, _, second = difference.partition(')-(')
+        halves = [half.strip('()').partition('-') for half in (first, second)]
+        if label and second and all(a and b and '-' not in b for a, _, b in halves):
+            (a, _, b), (c, _, d) = halves
+            return label, [(1, a), (-1, b), (-1, c), (1, d)]
+        raise SystemExit(f'--pair {spec!r}: expected LABEL=(A-B)-(C-D)')
+    minuend, _, subtrahend = difference.partition('-')
+    if not (label and minuend and subtrahend) or '-' in subtrahend:
+        raise SystemExit(f'--pair {spec!r}: expected LABEL=A-B or LABEL=(A-B)-(C-D)')
+    return label, [(1, minuend), (-1, subtrahend)]
+
+
 def contrast(args):
-    pairs = []
-    for spec in args.pair:
-        label, _, difference = spec.partition('=')
-        minuend, _, subtrahend = difference.partition('-')
-        if not (label and minuend and subtrahend):
-            raise SystemExit(f'--pair {spec!r}: expected LABEL=A-B')
-        pairs.append((label, minuend, subtrahend))
-    names = sorted({name for _, a, b in pairs for name in (a, b)})
+    pairs = [contrast_terms(spec) for spec in args.pair]
+    names = sorted({name for _, terms in pairs for _, name in terms})
     scores = {name: np.load(args.scores / f'{name}.npz', allow_pickle=False) for name in names}
     summaries = {name: json.loads((args.scores / f'{name}.json').read_text()) for name in names}
     reference = summaries[names[0]]
@@ -635,14 +685,13 @@ def contrast(args):
     conditions, volumes = scores[names[0]]['condition'], scores[names[0]]['volume']
     groups = {**{c: conditions == c for c in np.unique(conditions)}, 'all': np.ones(len(conditions), dtype=bool)}
     results = {}
-    for label, minuend, subtrahend in pairs:
-        result = {'difference': f'{minuend} - {subtrahend}', 'quantity': args.quantity,
-                  'num_step': [summaries[minuend]['options']['num_step'], summaries[subtrahend]['options']['num_step']],
-                  'data_blind': [summaries[minuend]['options']['data_blind'],
-                                 summaries[subtrahend]['options']['data_blind']]}
+    for label, terms in pairs:
+        result = {'difference': ' '.join(f"{'+' if sign > 0 else '-'} {name}" for sign, name in terms).lstrip('+ '),
+                  'quantity': args.quantity,
+                  'num_step': [summaries[name]['options']['num_step'] for _, name in terms],
+                  'data_blind': [summaries[name]['options']['data_blind'] for _, name in terms]}
         for metric in METRICS:
-            delta = (per_slice_quantity(scores, minuend, metric, args.quantity)
-                     - per_slice_quantity(scores, subtrahend, metric, args.quantity))
+            delta = sum(sign * per_slice_quantity(scores, name, metric, args.quantity) for sign, name in terms)
             result[metric] = {g: cluster_bootstrap(delta[k], volumes[k], conditions[k]) for g, k in groups.items()}
         results[label] = result
         print(f'{label:16s} PSNR ' + '  '.join(

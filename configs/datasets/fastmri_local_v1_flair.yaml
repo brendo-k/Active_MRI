@@ -1,0 +1,10 @@
+# Brain AXFLAIR of the fastMRI local subset v1 (fastmri_local_v1_base.yaml), one condition. Use with
+# misc.resolution=[320,320]. datasets.train_tier=F trains on every usable FLAIR volume of official train (CoreHPC only).
+defaults:
+  - fastmri_local_v1_base
+  - _self_
+classes: [FLAIR]
+anatomy: [brain]
+condition_classes: [brain]
+num_coils: 20
+num_workers: 8

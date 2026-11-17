@@ -710,7 +710,7 @@ def _dataloaders(train_datasets, val_datasets, batch_size, num_workers, shuffle_
     return train_loader, val_loader
 
 
-MANIFEST_TRAIN_TIERS = {'S': ('S',), 'L': ('S', 'L-only')}
+MANIFEST_TRAIN_TIERS = {'S': ('S',), 'L': ('S', 'L-only'), 'F': ('S', 'L-only', 'F-only')}  # F-only rows: FLAIR only
 LIMIT_VOLUMES_SEED = 1234  # fixed; a training seed must not change which volumes a cap keeps
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 
@@ -813,6 +813,23 @@ def _manifest_datasets(rows: List[Dict], roots: Dict[str, str], split: str, slic
     return datasets
 
 
+def _manifest_split_rows(rows: List[Dict], train_tier: str = 'S', train_anatomies: Sequence[str] = (),
+                         limit_volumes: Optional[float] = None, val_half: str = 'all') -> Tuple[List[Dict], List[Dict]]:
+    """Train and val rows of a manifest: the `train_tier` rows of `train_anatomies` (empty = all) and every val row,
+    then `limit_volumes` of each condition in both, then one fixed `val_half` of each condition's val volumes."""
+    train_rows = [row for row in rows if row['split'] == 'train' and row['tier'] in MANIFEST_TRAIN_TIERS[train_tier]
+                  and (not train_anatomies or row['anatomy'] in train_anatomies)]
+    val_rows = [row for row in rows if row['split'] == 'val']
+    if limit_volumes is not None and float(limit_volumes) != 1:
+        train_rows = _limit_volume_rows(train_rows, limit_volumes)
+        val_rows = _limit_volume_rows(val_rows, limit_volumes)
+        print(f"limit_volumes={float(limit_volumes):g} of each condition (seed {LIMIT_VOLUMES_SEED})")
+    if val_half != 'all':
+        val_rows = _val_half_rows(val_rows, val_half)
+        print(f"val_half={val_half} (seed {VAL_HALF_SEED})")
+    return train_rows, val_rows
+
+
 def build_manifest_dataloaders(
     manifest: str,
     roots: Dict[str, str],
@@ -832,7 +849,7 @@ def build_manifest_dataloaders(
 ) -> Tuple[torch.utils.data.DataLoader, torch.utils.data.DataLoader]:
     """Train and val loaders over the raw h5 volumes a subset manifest lists (scripts/data/select_fastmri_subset.py).
 
-    Train is `train_tier` (S, or L = S plus the L-only rows) of each class in `classes` (the manifest's `cls`: knee, T2,
+    Train is `train_tier` (S; L = S plus the L-only rows; F = L plus the F-only rows, which exist for FLAIR only) of each class in `classes` (the manifest's `cls`: knee, T2,
     FLAIR); val is its val rows. Test rows are never loaded. `roots` maps the manifest's `source` to the directory its
     `hpc_relpath` is relative to, with `{anatomy}` filled in. Every slice keeps all its coils (zero-padded to `num_coils`)
     and has its readout oversampling cropped away. A relative `manifest` is relative to the repository root.
@@ -854,16 +871,7 @@ def build_manifest_dataloaders(
     unknown = set(train_anatomies) - {row['anatomy'] for row in rows}
     if unknown:
         raise ValueError(f"train_anatomies {sorted(unknown)} are not among the anatomies of classes {list(classes)}")
-    train_rows = [row for row in rows if row['split'] == 'train' and row['tier'] in MANIFEST_TRAIN_TIERS[train_tier]
-                  and (not train_anatomies or row['anatomy'] in train_anatomies)]
-    val_rows = [row for row in rows if row['split'] == 'val']
-    if limit_volumes is not None and float(limit_volumes) != 1:
-        train_rows = _limit_volume_rows(train_rows, limit_volumes)
-        val_rows = _limit_volume_rows(val_rows, limit_volumes)
-        print(f"limit_volumes={float(limit_volumes):g} of each condition (seed {LIMIT_VOLUMES_SEED})")
-    if val_half != 'all':
-        val_rows = _val_half_rows(val_rows, val_half)
-        print(f"val_half={val_half} (seed {VAL_HALF_SEED})")
+    train_rows, val_rows = _manifest_split_rows(rows, train_tier, train_anatomies, limit_volumes, val_half)
     dataset_kwargs = dict(image_shape=image_shape, transform=transform, num_coils=num_coils,
                           min_energy_fraction=min_energy_fraction, readout_crop=True)
     return _dataloaders(_manifest_datasets(train_rows, roots, 'train', slice_stride=train_slice_stride, **dataset_kwargs),
