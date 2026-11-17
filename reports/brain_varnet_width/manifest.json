@@ -1,0 +1,1852 @@
+{
+  "schema": 1,
+  "generated_at": "2026-11-17T03:45:54+00:00",
+  "code": {
+    "produced_at": "c7d6ed25dae0e9dd1a531aeecd15582a514acc59",
+    "produced_at_subject": "brain_varnet_width tier L: summary script, Slurm mail on END/FAIL",
+    "head": "c7d6ed25dae0e9dd1a531aeecd15582a514acc59",
+    "branch": "exp/brain_varnet_width",
+    "dirty_tracked_files": [],
+    "scripts": [
+      {
+        "path": "scripts/eval/brain_varnet_width_eval.py",
+        "changed_since_produced_at": false
+      },
+      {
+        "path": "scripts/eval/brain_varnet_width_summary.py",
+        "changed_since_produced_at": false
+      },
+      {
+        "path": "scripts/eval/brain_varnet_width_tier_l_summary.py",
+        "changed_since_produced_at": false
+      }
+    ]
+  },
+  "metric_mask": {
+    "version": "apodized",
+    "definition": "k-space-apodized per-anatomy mask (activemri/utils/metric_mask.py), the trainer metric since 2026-10-20",
+    "apodization_sigma": 16,
+    "params": {
+      "brain": {
+        "fraction": 0.15,
+        "radius": 6
+      },
+      "knee": {
+        "fraction": 0.06,
+        "radius": 12
+      }
+    }
+  },
+  "data": {
+    "config": {
+      "loader": "fastmri_manifest",
+      "manifest": "configs/datasets/fastmri_local_v1/manifest.csv",
+      "roots": {
+        "local_batch2": "/export/scratch/bkadota/fastmri_knee/batch2",
+        "hpc": "/export/scratch/bkadota/fastmri_raw/{anatomy}"
+      },
+      "train_tier": "S",
+      "limit_volumes": 1.0,
+      "train_anatomies": [
+        "brain"
+      ],
+      "val_anatomies": [
+        "brain"
+      ],
+      "val_limit_volumes": 0.25,
+      "condition_classes": [
+        "brain",
+        "knee-PD",
+        "knee-PDFS"
+      ],
+      "classes": [
+        "FLAIR",
+        "knee"
+      ],
+      "anatomy": [
+        "brain",
+        "knee"
+      ],
+      "num_coils": 20,
+      "num_workers": 8
+    },
+    "note": "brain FLAIR: tier S train 80 volumes / 1,211 slices; tier L train 300 volumes / 4,545 slices (CoreHPC); full brain val 40 volumes / 605 slices; train-gap split = the 80 tier-S volumes; frozen mask S, R=8 of acquired"
+  },
+  "runs": [
+    {
+      "name": "bvs_c12_v80_s42",
+      "path": "checkpoints/bvs_c12_v80_s42",
+      "config_sha256": "f107cfa6ec7cc799",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair_knee",
+        "misc.resolution=[320,320]",
+        "sampler.accelerations=[8.0]",
+        "sampler.budget_over=acquired",
+        "training.num_step=1",
+        "training.batch_size=16",
+        "sampler.sampler_type=loupe_2d",
+        "sampler.mask_train_mode=straight_through",
+        "sampler.anatomy_conditioning=true",
+        "datasets.train_anatomies=[brain]",
+        "datasets.val_anatomies=[brain]",
+        "datasets.val_limit_volumes=0.25",
+        "sampler.fixed_mask_checkpoints={brain:/home/bkadota/data/seqmri_checkpoints/loss_domain/runs_v2/loss_domain_rss_r8_flair_knee_100ep_seed42/best_model.pt,knee-PD:/home/bkadota/data/seqmri_checkpoints/loss_domain/runs_v2/loss_domain_rss_r8_flair_knee_100ep_seed42/best_model.pt,knee-PDFS:/home/bkadota/data/seqmri_checkpoints/loss_domain/runs_v2/loss_domain_rss_r8_flair_knee_100ep_seed42/best_model.pt}",
+        "recon.num_cascades=12",
+        "datasets.limit_volumes=1.0",
+        "training.num_epochs=100",
+        "training.lr_step_size=90",
+        "training.val_every=5",
+        "training.seed=42",
+        "output.out_dir=/home/bkadota/data/seqmri_checkpoints/brain_varnet_scaling/c12_v80_s42",
+        "output.run_name=bvs_c12_v80_s42"
+      ],
+      "wandb_run_id": "16cq245s",
+      "trained_at_commit": "35f8f2f48b28c50f152a090aaa968939bca6b829",
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 242375337,
+          "modified": "2026-11-13T22:02:00+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 242375337,
+          "modified": "2026-11-13T22:49:16+00:00"
+        }
+      }
+    },
+    {
+      "name": "bvs_c12_v80_s43",
+      "path": "checkpoints/bvs_c12_v80_s43",
+      "config_sha256": "2fa21d6ea6feae4e",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair_knee",
+        "misc.resolution=[320,320]",
+        "sampler.accelerations=[8.0]",
+        "sampler.budget_over=acquired",
+        "training.num_step=1",
+        "training.batch_size=16",
+        "sampler.sampler_type=loupe_2d",
+        "sampler.mask_train_mode=straight_through",
+        "sampler.anatomy_conditioning=true",
+        "datasets.train_anatomies=[brain]",
+        "datasets.val_anatomies=[brain]",
+        "datasets.val_limit_volumes=0.25",
+        "training.early_stop_patience=5",
+        "sampler.fixed_mask_checkpoints={brain:/home/bkadota/data/seqmri_checkpoints/loss_domain/runs_v2/loss_domain_rss_r8_flair_knee_100ep_seed42/best_model.pt,knee-PD:/home/bkadota/data/seqmri_checkpoints/loss_domain/runs_v2/loss_domain_rss_r8_flair_knee_100ep_seed42/best_model.pt,knee-PDFS:/home/bkadota/data/seqmri_checkpoints/loss_domain/runs_v2/loss_domain_rss_r8_flair_knee_100ep_seed42/best_model.pt}",
+        "recon.num_cascades=12",
+        "datasets.limit_volumes=1.0",
+        "training.num_epochs=100",
+        "training.lr_step_size=90",
+        "training.val_every=5",
+        "training.seed=43",
+        "output.out_dir=/home/bkadota/data/seqmri_checkpoints/brain_varnet_scaling/c12_v80_s43",
+        "output.run_name=bvs_c12_v80_s43"
+      ],
+      "wandb_run_id": "c7xzm619",
+      "trained_at_commit": "8485567add68ad574c3235e98692a6976600eb17",
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 242375337,
+          "modified": "2026-11-14T11:04:03+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 242375337,
+          "modified": "2026-11-14T11:27:47+00:00"
+        }
+      }
+    },
+    {
+      "name": "bvs_c6_v80_s42",
+      "path": "checkpoints/bvs_c6_v80_s42",
+      "config_sha256": "acd4fd0a7189f961",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair_knee",
+        "misc.resolution=[320,320]",
+        "sampler.accelerations=[8.0]",
+        "sampler.budget_over=acquired",
+        "training.num_step=1",
+        "training.batch_size=16",
+        "sampler.sampler_type=loupe_2d",
+        "sampler.mask_train_mode=straight_through",
+        "sampler.anatomy_conditioning=true",
+        "datasets.train_anatomies=[brain]",
+        "datasets.val_anatomies=[brain]",
+        "datasets.val_limit_volumes=0.25",
+        "sampler.fixed_mask_checkpoints={brain:/home/bkadota/data/seqmri_checkpoints/loss_domain/runs_v2/loss_domain_rss_r8_flair_knee_100ep_seed42/best_model.pt,knee-PD:/home/bkadota/data/seqmri_checkpoints/loss_domain/runs_v2/loss_domain_rss_r8_flair_knee_100ep_seed42/best_model.pt,knee-PDFS:/home/bkadota/data/seqmri_checkpoints/loss_domain/runs_v2/loss_domain_rss_r8_flair_knee_100ep_seed42/best_model.pt}",
+        "recon.num_cascades=6",
+        "datasets.limit_volumes=1.0",
+        "training.num_epochs=100",
+        "training.lr_step_size=90",
+        "training.val_every=5",
+        "training.seed=42",
+        "training.early_stop_patience=5",
+        "output.out_dir=/home/bkadota/data/seqmri_checkpoints/brain_varnet_scaling/c6_v80_s42",
+        "output.run_name=bvs_c6_v80_s42"
+      ],
+      "wandb_run_id": "scczagyh",
+      "trained_at_commit": "8485567add68ad574c3235e98692a6976600eb17",
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 123793981,
+          "modified": "2026-11-14T02:30:04+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 123793981,
+          "modified": "2026-11-14T02:56:47+00:00"
+        }
+      }
+    },
+    {
+      "name": "bvs_c6_v80_s43",
+      "path": "checkpoints/bvs_c6_v80_s43",
+      "config_sha256": "76a660cfa0e5d846",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair_knee",
+        "misc.resolution=[320,320]",
+        "sampler.accelerations=[8.0]",
+        "sampler.budget_over=acquired",
+        "training.num_step=1",
+        "training.batch_size=16",
+        "sampler.sampler_type=loupe_2d",
+        "sampler.mask_train_mode=straight_through",
+        "sampler.anatomy_conditioning=true",
+        "datasets.train_anatomies=[brain]",
+        "datasets.val_anatomies=[brain]",
+        "datasets.val_limit_volumes=0.25",
+        "training.early_stop_patience=5",
+        "sampler.fixed_mask_checkpoints={brain:/home/bkadota/data/seqmri_checkpoints/loss_domain/runs_v2/loss_domain_rss_r8_flair_knee_100ep_seed42/best_model.pt,knee-PD:/home/bkadota/data/seqmri_checkpoints/loss_domain/runs_v2/loss_domain_rss_r8_flair_knee_100ep_seed42/best_model.pt,knee-PDFS:/home/bkadota/data/seqmri_checkpoints/loss_domain/runs_v2/loss_domain_rss_r8_flair_knee_100ep_seed42/best_model.pt}",
+        "recon.num_cascades=6",
+        "datasets.limit_volumes=1.0",
+        "training.num_epochs=100",
+        "training.lr_step_size=90",
+        "training.val_every=5",
+        "training.seed=43",
+        "output.out_dir=/home/bkadota/data/seqmri_checkpoints/brain_varnet_scaling/c6_v80_s43",
+        "output.run_name=bvs_c6_v80_s43"
+      ],
+      "wandb_run_id": "owakzhhh",
+      "trained_at_commit": "8485567add68ad574c3235e98692a6976600eb17",
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 123793981,
+          "modified": "2026-11-14T08:31:12+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 123793981,
+          "modified": "2026-11-14T08:58:02+00:00"
+        }
+      }
+    },
+    {
+      "name": "bvw_c12_ch12_s42",
+      "path": "checkpoints/bvw_c12_ch12_s42",
+      "config_sha256": "f4720368179da7bd",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair_knee",
+        "misc.resolution=[320,320]",
+        "sampler.accelerations=[8.0]",
+        "sampler.budget_over=acquired",
+        "training.num_step=1",
+        "training.batch_size=16",
+        "sampler.sampler_type=loupe_2d",
+        "sampler.mask_train_mode=straight_through",
+        "sampler.anatomy_conditioning=true",
+        "datasets.train_anatomies=[brain]",
+        "datasets.val_anatomies=[brain]",
+        "datasets.val_limit_volumes=0.25",
+        "training.early_stop_patience=5",
+        "datasets.limit_volumes=1.0",
+        "training.num_epochs=100",
+        "training.lr_step_size=90",
+        "training.val_every=5",
+        "sampler.fixed_mask_checkpoints={brain:/home/bkadota/data/seqmri_checkpoints/loss_domain/runs_v2/loss_domain_rss_r8_flair_knee_100ep_seed42/best_model.pt,knee-PD:/home/bkadota/data/seqmri_checkpoints/loss_domain/runs_v2/loss_domain_rss_r8_flair_knee_100ep_seed42/best_model.pt,knee-PDFS:/home/bkadota/data/seqmri_checkpoints/loss_domain/runs_v2/loss_domain_rss_r8_flair_knee_100ep_seed42/best_model.pt}",
+        "recon.num_cascades=12",
+        "recon.chans=12",
+        "training.seed=42",
+        "output.out_dir=/home/bkadota/data/seqmri_checkpoints/brain_varnet_width/c12_ch12_s42",
+        "output.run_name=bvw_c12_ch12_s42"
+      ],
+      "wandb_run_id": "j9n5clnw",
+      "trained_at_commit": "c19ef3b9ac37ee328eb8228f1f2ce678c226b944",
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 111286313,
+          "modified": "2026-11-15T01:08:49+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 111286313,
+          "modified": "2026-11-15T01:41:53+00:00"
+        }
+      }
+    },
+    {
+      "name": "bvw_c12_ch12_s43",
+      "path": "checkpoints/bvw_c12_ch12_s43",
+      "config_sha256": "001ce7d224204aea",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair_knee",
+        "misc.resolution=[320,320]",
+        "sampler.accelerations=[8.0]",
+        "sampler.budget_over=acquired",
+        "training.num_step=1",
+        "training.batch_size=16",
+        "sampler.sampler_type=loupe_2d",
+        "sampler.mask_train_mode=straight_through",
+        "sampler.anatomy_conditioning=true",
+        "datasets.train_anatomies=[brain]",
+        "datasets.val_anatomies=[brain]",
+        "datasets.val_limit_volumes=0.25",
+        "training.early_stop_patience=5",
+        "datasets.limit_volumes=1.0",
+        "training.num_epochs=100",
+        "training.lr_step_size=90",
+        "training.val_every=5",
+        "sampler.fixed_mask_checkpoints={brain:/home/bkadota/data/seqmri_checkpoints/loss_domain/runs_v2/loss_domain_rss_r8_flair_knee_100ep_seed42/best_model.pt,knee-PD:/home/bkadota/data/seqmri_checkpoints/loss_domain/runs_v2/loss_domain_rss_r8_flair_knee_100ep_seed42/best_model.pt,knee-PDFS:/home/bkadota/data/seqmri_checkpoints/loss_domain/runs_v2/loss_domain_rss_r8_flair_knee_100ep_seed42/best_model.pt}",
+        "recon.num_cascades=12",
+        "recon.chans=12",
+        "training.seed=43",
+        "output.out_dir=/home/bkadota/data/seqmri_checkpoints/brain_varnet_width/c12_ch12_s43",
+        "output.run_name=bvw_c12_ch12_s43"
+      ],
+      "wandb_run_id": "sfad519h",
+      "trained_at_commit": "5c2fb4e29ee54232caa274f34eabed8e2b057b6b",
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 111286313,
+          "modified": "2026-11-15T23:13:24+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 111286313,
+          "modified": "2026-11-15T23:19:50+00:00"
+        }
+      }
+    },
+    {
+      "name": "bvw_c12_ch26_s42",
+      "path": "checkpoints/bvw_c12_ch26_s42",
+      "config_sha256": "2205fb0b541d700f",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair_knee",
+        "misc.resolution=[320,320]",
+        "sampler.accelerations=[8.0]",
+        "sampler.budget_over=acquired",
+        "training.num_step=1",
+        "training.batch_size=16",
+        "sampler.sampler_type=loupe_2d",
+        "sampler.mask_train_mode=straight_through",
+        "sampler.anatomy_conditioning=true",
+        "datasets.train_anatomies=[brain]",
+        "datasets.val_anatomies=[brain]",
+        "datasets.val_limit_volumes=0.25",
+        "training.early_stop_patience=5",
+        "datasets.limit_volumes=1.0",
+        "training.num_epochs=100",
+        "training.lr_step_size=90",
+        "training.val_every=5",
+        "sampler.fixed_mask_checkpoints={brain:/home/bkadota/data/seqmri_checkpoints/loss_domain/runs_v2/loss_domain_rss_r8_flair_knee_100ep_seed42/best_model.pt,knee-PD:/home/bkadota/data/seqmri_checkpoints/loss_domain/runs_v2/loss_domain_rss_r8_flair_knee_100ep_seed42/best_model.pt,knee-PDFS:/home/bkadota/data/seqmri_checkpoints/loss_domain/runs_v2/loss_domain_rss_r8_flair_knee_100ep_seed42/best_model.pt}",
+        "recon.num_cascades=12",
+        "recon.chans=26",
+        "training.seed=42",
+        "recon.checkpoint_cascades=true",
+        "output.out_dir=/home/bkadota/data/seqmri_checkpoints/brain_varnet_width/c12_ch26_s42",
+        "output.run_name=bvw_c12_ch26_s42"
+      ],
+      "wandb_run_id": "hvi5ly8i",
+      "trained_at_commit": "c19ef3b9ac37ee328eb8228f1f2ce678c226b944",
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 498574121,
+          "modified": "2026-11-15T02:03:07+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 498574121,
+          "modified": "2026-11-15T03:06:15+00:00"
+        }
+      }
+    },
+    {
+      "name": "bvw_c12_ch36_s42",
+      "path": "checkpoints/bvw_c12_ch36_s42",
+      "config_sha256": "9eee5255b4c0dbc2",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair_knee",
+        "misc.resolution=[320,320]",
+        "sampler.accelerations=[8.0]",
+        "sampler.budget_over=acquired",
+        "training.num_step=1",
+        "training.batch_size=16",
+        "sampler.sampler_type=loupe_2d",
+        "sampler.mask_train_mode=straight_through",
+        "sampler.anatomy_conditioning=true",
+        "datasets.train_anatomies=[brain]",
+        "datasets.val_anatomies=[brain]",
+        "datasets.val_limit_volumes=0.25",
+        "training.early_stop_patience=5",
+        "datasets.limit_volumes=1.0",
+        "training.num_epochs=100",
+        "training.lr_step_size=90",
+        "training.val_every=5",
+        "sampler.fixed_mask_checkpoints={brain:/home/bkadota/data/seqmri_checkpoints/loss_domain/runs_v2/loss_domain_rss_r8_flair_knee_100ep_seed42/best_model.pt,knee-PD:/home/bkadota/data/seqmri_checkpoints/loss_domain/runs_v2/loss_domain_rss_r8_flair_knee_100ep_seed42/best_model.pt,knee-PDFS:/home/bkadota/data/seqmri_checkpoints/loss_domain/runs_v2/loss_domain_rss_r8_flair_knee_100ep_seed42/best_model.pt}",
+        "recon.num_cascades=12",
+        "recon.chans=36",
+        "training.seed=42",
+        "recon.checkpoint_cascades=true",
+        "output.out_dir=/home/bkadota/data/seqmri_checkpoints/brain_varnet_width/c12_ch36_s42",
+        "output.run_name=bvw_c12_ch36_s42"
+      ],
+      "wandb_run_id": "d3okq8no",
+      "trained_at_commit": "c19ef3b9ac37ee328eb8228f1f2ce678c226b944",
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 949732265,
+          "modified": "2026-11-15T02:42:08+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 949732265,
+          "modified": "2026-11-15T04:02:50+00:00"
+        }
+      }
+    },
+    {
+      "name": "bvw_c3_ch12_s42",
+      "path": "checkpoints/bvw_c3_ch12_s42",
+      "config_sha256": "a7d2c1480d6226c3",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair_knee",
+        "misc.resolution=[320,320]",
+        "sampler.accelerations=[8.0]",
+        "sampler.budget_over=acquired",
+        "training.num_step=1",
+        "training.batch_size=16",
+        "sampler.sampler_type=loupe_2d",
+        "sampler.mask_train_mode=straight_through",
+        "sampler.anatomy_conditioning=true",
+        "datasets.train_anatomies=[brain]",
+        "datasets.val_anatomies=[brain]",
+        "datasets.val_limit_volumes=0.25",
+        "training.early_stop_patience=5",
+        "datasets.limit_volumes=1.0",
+        "training.num_epochs=100",
+        "training.lr_step_size=90",
+        "training.val_every=5",
+        "sampler.fixed_mask_checkpoints={brain:/home/bkadota/data/seqmri_checkpoints/loss_domain/runs_v2/loss_domain_rss_r8_flair_knee_100ep_seed42/best_model.pt,knee-PD:/home/bkadota/data/seqmri_checkpoints/loss_domain/runs_v2/loss_domain_rss_r8_flair_knee_100ep_seed42/best_model.pt,knee-PDFS:/home/bkadota/data/seqmri_checkpoints/loss_domain/runs_v2/loss_domain_rss_r8_flair_knee_100ep_seed42/best_model.pt}",
+        "recon.num_cascades=3",
+        "recon.chans=12",
+        "training.seed=42",
+        "output.out_dir=/home/bkadota/data/seqmri_checkpoints/brain_varnet_width/c3_ch12_s42",
+        "output.run_name=bvw_c3_ch12_s42"
+      ],
+      "wandb_run_id": "k9cp0m16",
+      "trained_at_commit": "c19ef3b9ac37ee328eb8228f1f2ce678c226b944",
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 31731342,
+          "modified": "2026-11-15T05:16:00+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 31731342,
+          "modified": "2026-11-15T05:23:35+00:00"
+        }
+      }
+    },
+    {
+      "name": "bvw_c3_ch18_s42",
+      "path": "checkpoints/bvw_c3_ch18_s42",
+      "config_sha256": "28a9e43547aa74c1",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair_knee",
+        "misc.resolution=[320,320]",
+        "sampler.accelerations=[8.0]",
+        "sampler.budget_over=acquired",
+        "training.num_step=1",
+        "training.batch_size=16",
+        "sampler.sampler_type=loupe_2d",
+        "sampler.mask_train_mode=straight_through",
+        "sampler.anatomy_conditioning=true",
+        "datasets.train_anatomies=[brain]",
+        "datasets.val_anatomies=[brain]",
+        "datasets.val_limit_volumes=0.25",
+        "training.early_stop_patience=5",
+        "datasets.limit_volumes=1.0",
+        "training.num_epochs=100",
+        "training.lr_step_size=90",
+        "training.val_every=5",
+        "sampler.fixed_mask_checkpoints={brain:/home/bkadota/data/seqmri_checkpoints/loss_domain/runs_v2/loss_domain_rss_r8_flair_knee_100ep_seed42/best_model.pt,knee-PD:/home/bkadota/data/seqmri_checkpoints/loss_domain/runs_v2/loss_domain_rss_r8_flair_knee_100ep_seed42/best_model.pt,knee-PDFS:/home/bkadota/data/seqmri_checkpoints/loss_domain/runs_v2/loss_domain_rss_r8_flair_knee_100ep_seed42/best_model.pt}",
+        "recon.num_cascades=3",
+        "recon.chans=18",
+        "training.seed=42",
+        "output.out_dir=/home/bkadota/data/seqmri_checkpoints/brain_varnet_width/c3_ch18_s42",
+        "output.run_name=bvw_c3_ch18_s42"
+      ],
+      "wandb_run_id": "daz6lbjm",
+      "trained_at_commit": "c19ef3b9ac37ee328eb8228f1f2ce678c226b944",
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 64503630,
+          "modified": "2026-11-15T04:38:11+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 64503630,
+          "modified": "2026-11-15T04:46:30+00:00"
+        }
+      }
+    },
+    {
+      "name": "bvw_c3_ch26_s42",
+      "path": "checkpoints/bvw_c3_ch26_s42",
+      "config_sha256": "444f79189d9e5a18",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair_knee",
+        "misc.resolution=[320,320]",
+        "sampler.accelerations=[8.0]",
+        "sampler.budget_over=acquired",
+        "training.num_step=1",
+        "training.batch_size=16",
+        "sampler.sampler_type=loupe_2d",
+        "sampler.mask_train_mode=straight_through",
+        "sampler.anatomy_conditioning=true",
+        "datasets.train_anatomies=[brain]",
+        "datasets.val_anatomies=[brain]",
+        "datasets.val_limit_volumes=0.25",
+        "training.early_stop_patience=5",
+        "datasets.limit_volumes=1.0",
+        "training.num_epochs=100",
+        "training.lr_step_size=90",
+        "training.val_every=5",
+        "sampler.fixed_mask_checkpoints={brain:/home/bkadota/data/seqmri_checkpoints/loss_domain/runs_v2/loss_domain_rss_r8_flair_knee_100ep_seed42/best_model.pt,knee-PD:/home/bkadota/data/seqmri_checkpoints/loss_domain/runs_v2/loss_domain_rss_r8_flair_knee_100ep_seed42/best_model.pt,knee-PDFS:/home/bkadota/data/seqmri_checkpoints/loss_domain/runs_v2/loss_domain_rss_r8_flair_knee_100ep_seed42/best_model.pt}",
+        "recon.num_cascades=3",
+        "recon.chans=26",
+        "training.seed=42",
+        "output.out_dir=/home/bkadota/data/seqmri_checkpoints/brain_varnet_width/c3_ch26_s42",
+        "output.run_name=bvw_c3_ch26_s42"
+      ],
+      "wandb_run_id": "vzrhd4w3",
+      "trained_at_commit": "c19ef3b9ac37ee328eb8228f1f2ce678c226b944",
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 128553294,
+          "modified": "2026-11-15T04:20:37+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 128553294,
+          "modified": "2026-11-15T04:38:14+00:00"
+        }
+      }
+    },
+    {
+      "name": "bvw_c3_ch36_s42",
+      "path": "checkpoints/bvw_c3_ch36_s42",
+      "config_sha256": "bb2174c437c481a4",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair_knee",
+        "misc.resolution=[320,320]",
+        "sampler.accelerations=[8.0]",
+        "sampler.budget_over=acquired",
+        "training.num_step=1",
+        "training.batch_size=16",
+        "sampler.sampler_type=loupe_2d",
+        "sampler.mask_train_mode=straight_through",
+        "sampler.anatomy_conditioning=true",
+        "datasets.train_anatomies=[brain]",
+        "datasets.val_anatomies=[brain]",
+        "datasets.val_limit_volumes=0.25",
+        "training.early_stop_patience=5",
+        "datasets.limit_volumes=1.0",
+        "training.num_epochs=100",
+        "training.lr_step_size=90",
+        "training.val_every=5",
+        "sampler.fixed_mask_checkpoints={brain:/home/bkadota/data/seqmri_checkpoints/loss_domain/runs_v2/loss_domain_rss_r8_flair_knee_100ep_seed42/best_model.pt,knee-PD:/home/bkadota/data/seqmri_checkpoints/loss_domain/runs_v2/loss_domain_rss_r8_flair_knee_100ep_seed42/best_model.pt,knee-PDFS:/home/bkadota/data/seqmri_checkpoints/loss_domain/runs_v2/loss_domain_rss_r8_flair_knee_100ep_seed42/best_model.pt}",
+        "recon.num_cascades=3",
+        "recon.chans=36",
+        "training.seed=42",
+        "output.out_dir=/home/bkadota/data/seqmri_checkpoints/brain_varnet_width/c3_ch36_s42",
+        "output.run_name=bvw_c3_ch36_s42"
+      ],
+      "wandb_run_id": "5vfwmmnk",
+      "trained_at_commit": "c19ef3b9ac37ee328eb8228f1f2ce678c226b944",
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 241342862,
+          "modified": "2026-11-15T03:59:33+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 241342862,
+          "modified": "2026-11-15T04:25:08+00:00"
+        }
+      }
+    },
+    {
+      "name": "bvw_c3_ch36_s43",
+      "path": "checkpoints/bvw_c3_ch36_s43",
+      "config_sha256": "0b7f5f5e519043b4",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair_knee",
+        "misc.resolution=[320,320]",
+        "sampler.accelerations=[8.0]",
+        "sampler.budget_over=acquired",
+        "training.num_step=1",
+        "training.batch_size=16",
+        "sampler.sampler_type=loupe_2d",
+        "sampler.mask_train_mode=straight_through",
+        "sampler.anatomy_conditioning=true",
+        "datasets.train_anatomies=[brain]",
+        "datasets.val_anatomies=[brain]",
+        "datasets.val_limit_volumes=0.25",
+        "training.early_stop_patience=5",
+        "datasets.limit_volumes=1.0",
+        "training.num_epochs=100",
+        "training.lr_step_size=90",
+        "training.val_every=5",
+        "sampler.fixed_mask_checkpoints={brain:/home/bkadota/data/seqmri_checkpoints/loss_domain/runs_v2/loss_domain_rss_r8_flair_knee_100ep_seed42/best_model.pt,knee-PD:/home/bkadota/data/seqmri_checkpoints/loss_domain/runs_v2/loss_domain_rss_r8_flair_knee_100ep_seed42/best_model.pt,knee-PDFS:/home/bkadota/data/seqmri_checkpoints/loss_domain/runs_v2/loss_domain_rss_r8_flair_knee_100ep_seed42/best_model.pt}",
+        "recon.num_cascades=3",
+        "recon.chans=36",
+        "training.seed=43",
+        "output.out_dir=/home/bkadota/data/seqmri_checkpoints/brain_varnet_width/c3_ch36_s43",
+        "output.run_name=bvw_c3_ch36_s43"
+      ],
+      "wandb_run_id": "zzwktxzl",
+      "trained_at_commit": "5c2fb4e29ee54232caa274f34eabed8e2b057b6b",
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 241342862,
+          "modified": "2026-11-15T22:08:06+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 241342862,
+          "modified": "2026-11-15T22:33:28+00:00"
+        }
+      }
+    },
+    {
+      "name": "bvw_c6_ch12_s42",
+      "path": "checkpoints/bvw_c6_ch12_s42",
+      "config_sha256": "411214ad2cebdf62",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair_knee",
+        "misc.resolution=[320,320]",
+        "sampler.accelerations=[8.0]",
+        "sampler.budget_over=acquired",
+        "training.num_step=1",
+        "training.batch_size=16",
+        "sampler.sampler_type=loupe_2d",
+        "sampler.mask_train_mode=straight_through",
+        "sampler.anatomy_conditioning=true",
+        "datasets.train_anatomies=[brain]",
+        "datasets.val_anatomies=[brain]",
+        "datasets.val_limit_volumes=0.25",
+        "training.early_stop_patience=5",
+        "datasets.limit_volumes=1.0",
+        "training.num_epochs=100",
+        "training.lr_step_size=90",
+        "training.val_every=5",
+        "sampler.fixed_mask_checkpoints={brain:/home/bkadota/data/seqmri_checkpoints/loss_domain/runs_v2/loss_domain_rss_r8_flair_knee_100ep_seed42/best_model.pt,knee-PD:/home/bkadota/data/seqmri_checkpoints/loss_domain/runs_v2/loss_domain_rss_r8_flair_knee_100ep_seed42/best_model.pt,knee-PDFS:/home/bkadota/data/seqmri_checkpoints/loss_domain/runs_v2/loss_domain_rss_r8_flair_knee_100ep_seed42/best_model.pt}",
+        "recon.num_cascades=6",
+        "recon.chans=12",
+        "training.seed=42",
+        "output.out_dir=/home/bkadota/data/seqmri_checkpoints/brain_varnet_width/c6_ch12_s42",
+        "output.run_name=bvw_c6_ch12_s42"
+      ],
+      "wandb_run_id": "1qcfr09j",
+      "trained_at_commit": "c19ef3b9ac37ee328eb8228f1f2ce678c226b944",
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 58249405,
+          "modified": "2026-11-15T03:19:48+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 58249405,
+          "modified": "2026-11-15T03:19:48+00:00"
+        }
+      }
+    },
+    {
+      "name": "bvw_c6_ch26_s42",
+      "path": "checkpoints/bvw_c6_ch26_s42",
+      "config_sha256": "76fd55321ccbedb9",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair_knee",
+        "misc.resolution=[320,320]",
+        "sampler.accelerations=[8.0]",
+        "sampler.budget_over=acquired",
+        "training.num_step=1",
+        "training.batch_size=16",
+        "sampler.sampler_type=loupe_2d",
+        "sampler.mask_train_mode=straight_through",
+        "sampler.anatomy_conditioning=true",
+        "datasets.train_anatomies=[brain]",
+        "datasets.val_anatomies=[brain]",
+        "datasets.val_limit_volumes=0.25",
+        "training.early_stop_patience=5",
+        "datasets.limit_volumes=1.0",
+        "training.num_epochs=100",
+        "training.lr_step_size=90",
+        "training.val_every=5",
+        "sampler.fixed_mask_checkpoints={brain:/home/bkadota/data/seqmri_checkpoints/loss_domain/runs_v2/loss_domain_rss_r8_flair_knee_100ep_seed42/best_model.pt,knee-PD:/home/bkadota/data/seqmri_checkpoints/loss_domain/runs_v2/loss_domain_rss_r8_flair_knee_100ep_seed42/best_model.pt,knee-PDFS:/home/bkadota/data/seqmri_checkpoints/loss_domain/runs_v2/loss_domain_rss_r8_flair_knee_100ep_seed42/best_model.pt}",
+        "recon.num_cascades=6",
+        "recon.chans=26",
+        "training.seed=42",
+        "output.out_dir=/home/bkadota/data/seqmri_checkpoints/brain_varnet_width/c6_ch26_s42",
+        "output.run_name=bvw_c6_ch26_s42"
+      ],
+      "wandb_run_id": "gmc6683o",
+      "trained_at_commit": "c19ef3b9ac37ee328eb8228f1f2ce678c226b944",
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 251893373,
+          "modified": "2026-11-15T02:29:29+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 251893373,
+          "modified": "2026-11-15T02:59:32+00:00"
+        }
+      }
+    },
+    {
+      "name": "bvw_c6_ch26_s43",
+      "path": "checkpoints/bvw_c6_ch26_s43",
+      "config_sha256": "21372cbffa812a4a",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair_knee",
+        "misc.resolution=[320,320]",
+        "sampler.accelerations=[8.0]",
+        "sampler.budget_over=acquired",
+        "training.num_step=1",
+        "training.batch_size=16",
+        "sampler.sampler_type=loupe_2d",
+        "sampler.mask_train_mode=straight_through",
+        "sampler.anatomy_conditioning=true",
+        "datasets.train_anatomies=[brain]",
+        "datasets.val_anatomies=[brain]",
+        "datasets.val_limit_volumes=0.25",
+        "training.early_stop_patience=5",
+        "datasets.limit_volumes=1.0",
+        "training.num_epochs=100",
+        "training.lr_step_size=90",
+        "training.val_every=5",
+        "sampler.fixed_mask_checkpoints={brain:/home/bkadota/data/seqmri_checkpoints/loss_domain/runs_v2/loss_domain_rss_r8_flair_knee_100ep_seed42/best_model.pt,knee-PD:/home/bkadota/data/seqmri_checkpoints/loss_domain/runs_v2/loss_domain_rss_r8_flair_knee_100ep_seed42/best_model.pt,knee-PDFS:/home/bkadota/data/seqmri_checkpoints/loss_domain/runs_v2/loss_domain_rss_r8_flair_knee_100ep_seed42/best_model.pt}",
+        "recon.num_cascades=6",
+        "recon.chans=26",
+        "training.seed=43",
+        "output.out_dir=/home/bkadota/data/seqmri_checkpoints/brain_varnet_width/c6_ch26_s43",
+        "output.run_name=bvw_c6_ch26_s43"
+      ],
+      "wandb_run_id": "gixusqva",
+      "trained_at_commit": "5c2fb4e29ee54232caa274f34eabed8e2b057b6b",
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 251893373,
+          "modified": "2026-11-15T22:42:40+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 251893373,
+          "modified": "2026-11-15T23:12:49+00:00"
+        }
+      }
+    },
+    {
+      "name": "bvw_c6_ch36_s42",
+      "path": "checkpoints/bvw_c6_ch36_s42",
+      "config_sha256": "d4ee3deb356309bc",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair_knee",
+        "misc.resolution=[320,320]",
+        "sampler.accelerations=[8.0]",
+        "sampler.budget_over=acquired",
+        "training.num_step=1",
+        "training.batch_size=16",
+        "sampler.sampler_type=loupe_2d",
+        "sampler.mask_train_mode=straight_through",
+        "sampler.anatomy_conditioning=true",
+        "datasets.train_anatomies=[brain]",
+        "datasets.val_anatomies=[brain]",
+        "datasets.val_limit_volumes=0.25",
+        "training.early_stop_patience=5",
+        "datasets.limit_volumes=1.0",
+        "training.num_epochs=100",
+        "training.lr_step_size=90",
+        "training.val_every=5",
+        "sampler.fixed_mask_checkpoints={brain:/home/bkadota/data/seqmri_checkpoints/loss_domain/runs_v2/loss_domain_rss_r8_flair_knee_100ep_seed42/best_model.pt,knee-PD:/home/bkadota/data/seqmri_checkpoints/loss_domain/runs_v2/loss_domain_rss_r8_flair_knee_100ep_seed42/best_model.pt,knee-PDFS:/home/bkadota/data/seqmri_checkpoints/loss_domain/runs_v2/loss_domain_rss_r8_flair_knee_100ep_seed42/best_model.pt}",
+        "recon.num_cascades=6",
+        "recon.chans=36",
+        "training.seed=42",
+        "output.out_dir=/home/bkadota/data/seqmri_checkpoints/brain_varnet_width/c6_ch36_s42",
+        "output.run_name=bvw_c6_ch36_s42"
+      ],
+      "wandb_run_id": "mbmhpaa6",
+      "trained_at_commit": "c19ef3b9ac37ee328eb8228f1f2ce678c226b944",
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 477472445,
+          "modified": "2026-11-15T00:54:38+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 477472445,
+          "modified": "2026-11-15T01:31:32+00:00"
+        }
+      }
+    },
+    {
+      "name": "bvwl_L_c12_ch18_s42",
+      "path": "checkpoints/bvwl_L_c12_ch18_s42",
+      "config_sha256": "232b0dd4b465d0b5",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair_knee",
+        "datasets.roots.hpc=\"/home/remote/bkadota/scratch/data/fastmri/{anatomy}/data\"",
+        "datasets.roots.local_batch2=/home/remote/bkadota/scratch/data/fastmri/knee/data",
+        "datasets.train_tier=L",
+        "datasets.limit_volumes=1.0",
+        "datasets.train_anatomies=[brain]",
+        "datasets.val_anatomies=[brain]",
+        "datasets.val_limit_volumes=0.25",
+        "misc.resolution=[320,320]",
+        "sampler.accelerations=[8.0]",
+        "sampler.budget_over=acquired",
+        "sampler.sampler_type=loupe_2d",
+        "sampler.mask_train_mode=straight_through",
+        "sampler.anatomy_conditioning=true",
+        "sampler.fixed_mask_checkpoints={brain:/home/remote/bkadota/scratch/brain_varnet_width_l/mask_S/best_model.pt,knee-PD:/home/remote/bkadota/scratch/brain_varnet_width_l/mask_S/best_model.pt,knee-PDFS:/home/remote/bkadota/scratch/brain_varnet_width_l/mask_S/best_model.pt}",
+        "training.num_step=1",
+        "training.batch_size=16",
+        "training.num_epochs=100",
+        "training.lr_step_size=90",
+        "training.val_every=5",
+        "training.early_stop_patience=5",
+        "training.seed=42",
+        "recon.num_cascades=12",
+        "recon.chans=18",
+        "output.out_dir=/home/remote/bkadota/scratch/brain_varnet_width_l/runs_L/c12_ch18_s42",
+        "output.run_name=bvwl_L_c12_ch18_s42"
+      ],
+      "trained_at_commit": "c334d89c5ad923cd43d54033b455f49108404d85",
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 242375682,
+          "modified": "2026-11-16T21:47:03+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 242375682,
+          "modified": "2026-11-16T22:45:26+00:00"
+        }
+      }
+    },
+    {
+      "name": "bvwl_L_c12_ch18_s43",
+      "path": "checkpoints/bvwl_L_c12_ch18_s43",
+      "config_sha256": "156e5fe49bc27e44",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair_knee",
+        "datasets.roots.hpc=\"/home/remote/bkadota/scratch/data/fastmri/{anatomy}/data\"",
+        "datasets.roots.local_batch2=/home/remote/bkadota/scratch/data/fastmri/knee/data",
+        "datasets.train_tier=L",
+        "datasets.limit_volumes=1.0",
+        "datasets.train_anatomies=[brain]",
+        "datasets.val_anatomies=[brain]",
+        "datasets.val_limit_volumes=0.25",
+        "misc.resolution=[320,320]",
+        "sampler.accelerations=[8.0]",
+        "sampler.budget_over=acquired",
+        "sampler.sampler_type=loupe_2d",
+        "sampler.mask_train_mode=straight_through",
+        "sampler.anatomy_conditioning=true",
+        "sampler.fixed_mask_checkpoints={brain:/home/remote/bkadota/scratch/brain_varnet_width_l/mask_S/best_model.pt,knee-PD:/home/remote/bkadota/scratch/brain_varnet_width_l/mask_S/best_model.pt,knee-PDFS:/home/remote/bkadota/scratch/brain_varnet_width_l/mask_S/best_model.pt}",
+        "training.num_step=1",
+        "training.batch_size=16",
+        "training.num_epochs=100",
+        "training.lr_step_size=90",
+        "training.val_every=5",
+        "training.early_stop_patience=5",
+        "training.seed=43",
+        "recon.num_cascades=12",
+        "recon.chans=18",
+        "output.out_dir=/home/remote/bkadota/scratch/brain_varnet_width_l/runs_L/c12_ch18_s43",
+        "output.run_name=bvwl_L_c12_ch18_s43"
+      ],
+      "trained_at_commit": "c334d89c5ad923cd43d54033b455f49108404d85",
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 242375682,
+          "modified": "2026-11-16T23:33:35+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 242375682,
+          "modified": "2026-11-17T00:31:51+00:00"
+        }
+      }
+    },
+    {
+      "name": "bvwl_L_c12_ch26_s42",
+      "path": "checkpoints/bvwl_L_c12_ch26_s42",
+      "config_sha256": "896bebc586ec45d3",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair_knee",
+        "datasets.roots.hpc=\"/home/remote/bkadota/scratch/data/fastmri/{anatomy}/data\"",
+        "datasets.roots.local_batch2=/home/remote/bkadota/scratch/data/fastmri/knee/data",
+        "datasets.train_tier=L",
+        "datasets.limit_volumes=1.0",
+        "datasets.train_anatomies=[brain]",
+        "datasets.val_anatomies=[brain]",
+        "datasets.val_limit_volumes=0.25",
+        "misc.resolution=[320,320]",
+        "sampler.accelerations=[8.0]",
+        "sampler.budget_over=acquired",
+        "sampler.sampler_type=loupe_2d",
+        "sampler.mask_train_mode=straight_through",
+        "sampler.anatomy_conditioning=true",
+        "sampler.fixed_mask_checkpoints={brain:/home/remote/bkadota/scratch/brain_varnet_width_l/mask_S/best_model.pt,knee-PD:/home/remote/bkadota/scratch/brain_varnet_width_l/mask_S/best_model.pt,knee-PDFS:/home/remote/bkadota/scratch/brain_varnet_width_l/mask_S/best_model.pt}",
+        "training.num_step=1",
+        "training.batch_size=16",
+        "training.num_epochs=100",
+        "training.lr_step_size=90",
+        "training.val_every=5",
+        "training.early_stop_patience=5",
+        "training.seed=42",
+        "recon.num_cascades=12",
+        "recon.chans=26",
+        "output.out_dir=/home/remote/bkadota/scratch/brain_varnet_width_l/runs_L/c12_ch26_s42",
+        "output.run_name=bvwl_L_c12_ch26_s42"
+      ],
+      "trained_at_commit": "c334d89c5ad923cd43d54033b455f49108404d85",
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 498574466,
+          "modified": "2026-11-17T01:10:16+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 498574466,
+          "modified": "2026-11-17T02:16:12+00:00"
+        }
+      }
+    },
+    {
+      "name": "bvwl_L_c12_ch26_s43",
+      "path": "checkpoints/bvwl_L_c12_ch26_s43",
+      "config_sha256": "caef4bc173e759e3",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair_knee",
+        "datasets.roots.hpc=\"/home/remote/bkadota/scratch/data/fastmri/{anatomy}/data\"",
+        "datasets.roots.local_batch2=/home/remote/bkadota/scratch/data/fastmri/knee/data",
+        "datasets.train_tier=L",
+        "datasets.limit_volumes=1.0",
+        "datasets.train_anatomies=[brain]",
+        "datasets.val_anatomies=[brain]",
+        "datasets.val_limit_volumes=0.25",
+        "misc.resolution=[320,320]",
+        "sampler.accelerations=[8.0]",
+        "sampler.budget_over=acquired",
+        "sampler.sampler_type=loupe_2d",
+        "sampler.mask_train_mode=straight_through",
+        "sampler.anatomy_conditioning=true",
+        "sampler.fixed_mask_checkpoints={brain:/home/remote/bkadota/scratch/brain_varnet_width_l/mask_S/best_model.pt,knee-PD:/home/remote/bkadota/scratch/brain_varnet_width_l/mask_S/best_model.pt,knee-PDFS:/home/remote/bkadota/scratch/brain_varnet_width_l/mask_S/best_model.pt}",
+        "training.num_step=1",
+        "training.batch_size=16",
+        "training.num_epochs=100",
+        "training.lr_step_size=90",
+        "training.val_every=5",
+        "training.early_stop_patience=5",
+        "training.seed=43",
+        "recon.num_cascades=12",
+        "recon.chans=26",
+        "output.out_dir=/home/remote/bkadota/scratch/brain_varnet_width_l/runs_L/c12_ch26_s43",
+        "output.run_name=bvwl_L_c12_ch26_s43"
+      ],
+      "trained_at_commit": "c334d89c5ad923cd43d54033b455f49108404d85",
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 498574466,
+          "modified": "2026-11-16T23:27:48+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 498574466,
+          "modified": "2026-11-17T00:35:09+00:00"
+        }
+      }
+    },
+    {
+      "name": "bvwl_L_c6_ch18_s42",
+      "path": "checkpoints/bvwl_L_c6_ch18_s42",
+      "config_sha256": "5de8c0401516795d",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair_knee",
+        "datasets.roots.hpc=\"/home/remote/bkadota/scratch/data/fastmri/{anatomy}/data\"",
+        "datasets.roots.local_batch2=/home/remote/bkadota/scratch/data/fastmri/knee/data",
+        "datasets.train_tier=L",
+        "datasets.limit_volumes=1.0",
+        "datasets.train_anatomies=[brain]",
+        "datasets.val_anatomies=[brain]",
+        "datasets.val_limit_volumes=0.25",
+        "misc.resolution=[320,320]",
+        "sampler.accelerations=[8.0]",
+        "sampler.budget_over=acquired",
+        "sampler.sampler_type=loupe_2d",
+        "sampler.mask_train_mode=straight_through",
+        "sampler.anatomy_conditioning=true",
+        "sampler.fixed_mask_checkpoints={brain:/home/remote/bkadota/scratch/brain_varnet_width_l/mask_S/best_model.pt,knee-PD:/home/remote/bkadota/scratch/brain_varnet_width_l/mask_S/best_model.pt,knee-PDFS:/home/remote/bkadota/scratch/brain_varnet_width_l/mask_S/best_model.pt}",
+        "training.num_step=1",
+        "training.batch_size=16",
+        "training.num_epochs=100",
+        "training.lr_step_size=90",
+        "training.val_every=5",
+        "training.early_stop_patience=5",
+        "training.seed=42",
+        "recon.num_cascades=6",
+        "recon.chans=18",
+        "output.out_dir=/home/remote/bkadota/scratch/brain_varnet_width_l/runs_L/c6_ch18_s42",
+        "output.run_name=bvwl_L_c6_ch18_s42"
+      ],
+      "trained_at_commit": "c334d89c5ad923cd43d54033b455f49108404d85",
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 123794262,
+          "modified": "2026-11-16T17:48:46+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 123794262,
+          "modified": "2026-11-16T18:28:21+00:00"
+        }
+      }
+    },
+    {
+      "name": "bvwl_L_c6_ch18_s43",
+      "path": "checkpoints/bvwl_L_c6_ch18_s43",
+      "config_sha256": "96d4b9fb887a9240",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair_knee",
+        "datasets.roots.hpc=\"/home/remote/bkadota/scratch/data/fastmri/{anatomy}/data\"",
+        "datasets.roots.local_batch2=/home/remote/bkadota/scratch/data/fastmri/knee/data",
+        "datasets.train_tier=L",
+        "datasets.limit_volumes=1.0",
+        "datasets.train_anatomies=[brain]",
+        "datasets.val_anatomies=[brain]",
+        "datasets.val_limit_volumes=0.25",
+        "misc.resolution=[320,320]",
+        "sampler.accelerations=[8.0]",
+        "sampler.budget_over=acquired",
+        "sampler.sampler_type=loupe_2d",
+        "sampler.mask_train_mode=straight_through",
+        "sampler.anatomy_conditioning=true",
+        "sampler.fixed_mask_checkpoints={brain:/home/remote/bkadota/scratch/brain_varnet_width_l/mask_S/best_model.pt,knee-PD:/home/remote/bkadota/scratch/brain_varnet_width_l/mask_S/best_model.pt,knee-PDFS:/home/remote/bkadota/scratch/brain_varnet_width_l/mask_S/best_model.pt}",
+        "training.num_step=1",
+        "training.batch_size=16",
+        "training.num_epochs=100",
+        "training.lr_step_size=90",
+        "training.val_every=5",
+        "training.early_stop_patience=5",
+        "training.seed=43",
+        "recon.num_cascades=6",
+        "recon.chans=18",
+        "output.out_dir=/home/remote/bkadota/scratch/brain_varnet_width_l/runs_L/c6_ch18_s43",
+        "output.run_name=bvwl_L_c6_ch18_s43"
+      ],
+      "trained_at_commit": "c334d89c5ad923cd43d54033b455f49108404d85",
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 123794262,
+          "modified": "2026-11-16T18:37:34+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 123794262,
+          "modified": "2026-11-16T19:17:27+00:00"
+        }
+      }
+    },
+    {
+      "name": "bvwl_L_c6_ch26_s42",
+      "path": "checkpoints/bvwl_L_c6_ch26_s42",
+      "config_sha256": "51b74f0d61b3cca4",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair_knee",
+        "datasets.roots.hpc=\"/home/remote/bkadota/scratch/data/fastmri/{anatomy}/data\"",
+        "datasets.roots.local_batch2=/home/remote/bkadota/scratch/data/fastmri/knee/data",
+        "datasets.train_tier=L",
+        "datasets.limit_volumes=1.0",
+        "datasets.train_anatomies=[brain]",
+        "datasets.val_anatomies=[brain]",
+        "datasets.val_limit_volumes=0.25",
+        "misc.resolution=[320,320]",
+        "sampler.accelerations=[8.0]",
+        "sampler.budget_over=acquired",
+        "sampler.sampler_type=loupe_2d",
+        "sampler.mask_train_mode=straight_through",
+        "sampler.anatomy_conditioning=true",
+        "sampler.fixed_mask_checkpoints={brain:/home/remote/bkadota/scratch/brain_varnet_width_l/mask_S/best_model.pt,knee-PD:/home/remote/bkadota/scratch/brain_varnet_width_l/mask_S/best_model.pt,knee-PDFS:/home/remote/bkadota/scratch/brain_varnet_width_l/mask_S/best_model.pt}",
+        "training.num_step=1",
+        "training.batch_size=16",
+        "training.num_epochs=100",
+        "training.lr_step_size=90",
+        "training.val_every=5",
+        "training.early_stop_patience=5",
+        "training.seed=42",
+        "recon.num_cascades=6",
+        "recon.chans=26",
+        "output.out_dir=/home/remote/bkadota/scratch/brain_varnet_width_l/runs_L/c6_ch26_s42",
+        "output.run_name=bvwl_L_c6_ch26_s42"
+      ],
+      "trained_at_commit": "c334d89c5ad923cd43d54033b455f49108404d85",
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 251893654,
+          "modified": "2026-11-16T20:08:01+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 251893654,
+          "modified": "2026-11-16T20:51:41+00:00"
+        }
+      }
+    },
+    {
+      "name": "bvwl_L_c6_ch26_s43",
+      "path": "checkpoints/bvwl_L_c6_ch26_s43",
+      "config_sha256": "b1603abd5a9d322f",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair_knee",
+        "datasets.roots.hpc=\"/home/remote/bkadota/scratch/data/fastmri/{anatomy}/data\"",
+        "datasets.roots.local_batch2=/home/remote/bkadota/scratch/data/fastmri/knee/data",
+        "datasets.train_tier=L",
+        "datasets.limit_volumes=1.0",
+        "datasets.train_anatomies=[brain]",
+        "datasets.val_anatomies=[brain]",
+        "datasets.val_limit_volumes=0.25",
+        "misc.resolution=[320,320]",
+        "sampler.accelerations=[8.0]",
+        "sampler.budget_over=acquired",
+        "sampler.sampler_type=loupe_2d",
+        "sampler.mask_train_mode=straight_through",
+        "sampler.anatomy_conditioning=true",
+        "sampler.fixed_mask_checkpoints={brain:/home/remote/bkadota/scratch/brain_varnet_width_l/mask_S/best_model.pt,knee-PD:/home/remote/bkadota/scratch/brain_varnet_width_l/mask_S/best_model.pt,knee-PDFS:/home/remote/bkadota/scratch/brain_varnet_width_l/mask_S/best_model.pt}",
+        "training.num_step=1",
+        "training.batch_size=16",
+        "training.num_epochs=100",
+        "training.lr_step_size=90",
+        "training.val_every=5",
+        "training.early_stop_patience=5",
+        "training.seed=43",
+        "recon.num_cascades=6",
+        "recon.chans=26",
+        "output.out_dir=/home/remote/bkadota/scratch/brain_varnet_width_l/runs_L/c6_ch26_s43",
+        "output.run_name=bvwl_L_c6_ch26_s43"
+      ],
+      "trained_at_commit": "c334d89c5ad923cd43d54033b455f49108404d85",
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 251893654,
+          "modified": "2026-11-16T21:08:56+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 251893654,
+          "modified": "2026-11-16T21:54:00+00:00"
+        }
+      }
+    },
+    {
+      "name": "bvwl_S_c6_ch18_s42",
+      "path": "checkpoints/bvwl_S_c6_ch18_s42",
+      "config_sha256": "9a8762916b7e9827",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair_knee",
+        "datasets.roots.hpc=\"/home/remote/bkadota/scratch/data/fastmri/{anatomy}/data\"",
+        "datasets.roots.local_batch2=/home/remote/bkadota/scratch/data/fastmri/knee/data",
+        "datasets.train_tier=S",
+        "datasets.limit_volumes=1.0",
+        "datasets.train_anatomies=[brain]",
+        "datasets.val_anatomies=[brain]",
+        "datasets.val_limit_volumes=0.25",
+        "misc.resolution=[320,320]",
+        "sampler.accelerations=[8.0]",
+        "sampler.budget_over=acquired",
+        "sampler.sampler_type=loupe_2d",
+        "sampler.mask_train_mode=straight_through",
+        "sampler.anatomy_conditioning=true",
+        "sampler.fixed_mask_checkpoints={brain:/home/remote/bkadota/scratch/brain_varnet_width_l/mask_S/best_model.pt,knee-PD:/home/remote/bkadota/scratch/brain_varnet_width_l/mask_S/best_model.pt,knee-PDFS:/home/remote/bkadota/scratch/brain_varnet_width_l/mask_S/best_model.pt}",
+        "training.num_step=1",
+        "training.batch_size=16",
+        "training.num_epochs=100",
+        "training.lr_step_size=90",
+        "training.val_every=5",
+        "training.early_stop_patience=5",
+        "training.seed=42",
+        "recon.num_cascades=6",
+        "recon.chans=18",
+        "output.out_dir=/home/remote/bkadota/scratch/brain_varnet_width_l/runs_S/c6_ch18_s42",
+        "output.run_name=bvwl_S_c6_ch18_s42"
+      ],
+      "trained_at_commit": "c334d89c5ad923cd43d54033b455f49108404d85",
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 123794262,
+          "modified": "2026-11-16T22:35:51+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 123794262,
+          "modified": "2026-11-16T22:48:10+00:00"
+        }
+      }
+    },
+    {
+      "name": "bvwl_S_c6_ch18_s43",
+      "path": "checkpoints/bvwl_S_c6_ch18_s43",
+      "config_sha256": "59507e53102d7810",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair_knee",
+        "datasets.roots.hpc=\"/home/remote/bkadota/scratch/data/fastmri/{anatomy}/data\"",
+        "datasets.roots.local_batch2=/home/remote/bkadota/scratch/data/fastmri/knee/data",
+        "datasets.train_tier=S",
+        "datasets.limit_volumes=1.0",
+        "datasets.train_anatomies=[brain]",
+        "datasets.val_anatomies=[brain]",
+        "datasets.val_limit_volumes=0.25",
+        "misc.resolution=[320,320]",
+        "sampler.accelerations=[8.0]",
+        "sampler.budget_over=acquired",
+        "sampler.sampler_type=loupe_2d",
+        "sampler.mask_train_mode=straight_through",
+        "sampler.anatomy_conditioning=true",
+        "sampler.fixed_mask_checkpoints={brain:/home/remote/bkadota/scratch/brain_varnet_width_l/mask_S/best_model.pt,knee-PD:/home/remote/bkadota/scratch/brain_varnet_width_l/mask_S/best_model.pt,knee-PDFS:/home/remote/bkadota/scratch/brain_varnet_width_l/mask_S/best_model.pt}",
+        "training.num_step=1",
+        "training.batch_size=16",
+        "training.num_epochs=100",
+        "training.lr_step_size=90",
+        "training.val_every=5",
+        "training.early_stop_patience=5",
+        "training.seed=43",
+        "recon.num_cascades=6",
+        "recon.chans=18",
+        "output.out_dir=/home/remote/bkadota/scratch/brain_varnet_width_l/runs_S/c6_ch18_s43",
+        "output.run_name=bvwl_S_c6_ch18_s43"
+      ],
+      "trained_at_commit": "c334d89c5ad923cd43d54033b455f49108404d85",
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 123794262,
+          "modified": "2026-11-16T23:20:47+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 123794262,
+          "modified": "2026-11-16T23:32:34+00:00"
+        }
+      }
+    }
+  ],
+  "commands": [
+    "CUDA_VISIBLE_DEVICES=0 python scripts/eval/brain_varnet_width_eval.py --seed 42 --split val",
+    "CUDA_VISIBLE_DEVICES=0 python scripts/eval/brain_varnet_width_eval.py --seed 42 --split train",
+    "CUDA_VISIBLE_DEVICES=0 python scripts/eval/brain_varnet_width_eval.py --seed 43 --split val",
+    "CUDA_VISIBLE_DEVICES=0 python scripts/eval/brain_varnet_width_eval.py --seed 43 --split train",
+    "python scripts/eval/brain_varnet_width_summary.py",
+    "CUDA_VISIBLE_DEVICES=1 python scripts/eval/brain_varnet_width_eval.py --local-data --queue $L/runs_L --seed 42 43 --split $split --out reports/brain_varnet_width/eval_L",
+    "CUDA_VISIBLE_DEVICES=1 python scripts/eval/brain_varnet_width_eval.py --local-data --queue $L/runs_S --seed 42 43 --split $split --out reports/brain_varnet_width/eval_hpcS",
+    "PYTHONPATH=scripts/diagnostics:scripts/eval python scripts/eval/brain_varnet_width_tier_l_summary.py"
+  ],
+  "results": [
+    {
+      "path": "eval/summary.json",
+      "bytes": 13205,
+      "sha256": "0ecda9cc52ceb692"
+    },
+    {
+      "path": "eval/train_best_model_c12_ch12_s42.pt",
+      "bytes": 27374,
+      "sha256": "d77510dade14ddcb"
+    },
+    {
+      "path": "eval/train_best_model_c12_ch12_s43.pt",
+      "bytes": 27374,
+      "sha256": "f704cf2f0938e276"
+    },
+    {
+      "path": "eval/train_best_model_c12_ch18_s42.pt",
+      "bytes": 27367,
+      "sha256": "11009eb3bb1e8d8e"
+    },
+    {
+      "path": "eval/train_best_model_c12_ch18_s43.pt",
+      "bytes": 27367,
+      "sha256": "b3324ab8351ff950"
+    },
+    {
+      "path": "eval/train_best_model_c12_ch26_s42.pt",
+      "bytes": 27374,
+      "sha256": "e7c4c3c36861e478"
+    },
+    {
+      "path": "eval/train_best_model_c12_ch36_s42.pt",
+      "bytes": 27374,
+      "sha256": "fe9dedf33a6aa9dd"
+    },
+    {
+      "path": "eval/train_best_model_c3_ch12_s42.pt",
+      "bytes": 27367,
+      "sha256": "16631f3ad5d3e801"
+    },
+    {
+      "path": "eval/train_best_model_c3_ch18_s42.pt",
+      "bytes": 27367,
+      "sha256": "09fb434bebc94464"
+    },
+    {
+      "path": "eval/train_best_model_c3_ch26_s42.pt",
+      "bytes": 27367,
+      "sha256": "8228381c410eb49a"
+    },
+    {
+      "path": "eval/train_best_model_c3_ch36_s42.pt",
+      "bytes": 27367,
+      "sha256": "41c64e1299f56de4"
+    },
+    {
+      "path": "eval/train_best_model_c3_ch36_s43.pt",
+      "bytes": 27367,
+      "sha256": "9a84cac5a8054c0b"
+    },
+    {
+      "path": "eval/train_best_model_c6_ch12_s42.pt",
+      "bytes": 27367,
+      "sha256": "cf9d11d4a7ff2b19"
+    },
+    {
+      "path": "eval/train_best_model_c6_ch18_s42.pt",
+      "bytes": 27232,
+      "sha256": "9868703ead9995f2"
+    },
+    {
+      "path": "eval/train_best_model_c6_ch18_s43.pt",
+      "bytes": 27232,
+      "sha256": "92e070113371a589"
+    },
+    {
+      "path": "eval/train_best_model_c6_ch26_s42.pt",
+      "bytes": 27367,
+      "sha256": "25a238488ea98971"
+    },
+    {
+      "path": "eval/train_best_model_c6_ch26_s43.pt",
+      "bytes": 27367,
+      "sha256": "3bb06f525f30bf15"
+    },
+    {
+      "path": "eval/train_best_model_c6_ch36_s42.pt",
+      "bytes": 27367,
+      "sha256": "383cf05c6804fc8f"
+    },
+    {
+      "path": "eval/train_last_model_c12_ch12_s42.pt",
+      "bytes": 27374,
+      "sha256": "2f3a45fcfc653f23"
+    },
+    {
+      "path": "eval/train_last_model_c12_ch12_s43.pt",
+      "bytes": 27374,
+      "sha256": "8e2990881d167249"
+    },
+    {
+      "path": "eval/train_last_model_c12_ch18_s42.pt",
+      "bytes": 27367,
+      "sha256": "cd2ab08318f388f1"
+    },
+    {
+      "path": "eval/train_last_model_c12_ch18_s43.pt",
+      "bytes": 27367,
+      "sha256": "6803d7a579e42e26"
+    },
+    {
+      "path": "eval/train_last_model_c12_ch26_s42.pt",
+      "bytes": 27374,
+      "sha256": "94445612ff75f530"
+    },
+    {
+      "path": "eval/train_last_model_c12_ch36_s42.pt",
+      "bytes": 27374,
+      "sha256": "ee56d171b7136735"
+    },
+    {
+      "path": "eval/train_last_model_c3_ch12_s42.pt",
+      "bytes": 27367,
+      "sha256": "8a7ff91c7ca29a64"
+    },
+    {
+      "path": "eval/train_last_model_c3_ch18_s42.pt",
+      "bytes": 27367,
+      "sha256": "a56d6e98370074a6"
+    },
+    {
+      "path": "eval/train_last_model_c3_ch26_s42.pt",
+      "bytes": 27367,
+      "sha256": "3e2ebc025c9bbb49"
+    },
+    {
+      "path": "eval/train_last_model_c3_ch36_s42.pt",
+      "bytes": 27367,
+      "sha256": "7fac1cfd19e02de7"
+    },
+    {
+      "path": "eval/train_last_model_c3_ch36_s43.pt",
+      "bytes": 27367,
+      "sha256": "e808b824f67bee1e"
+    },
+    {
+      "path": "eval/train_last_model_c6_ch12_s42.pt",
+      "bytes": 27367,
+      "sha256": "96ae075ede4171d6"
+    },
+    {
+      "path": "eval/train_last_model_c6_ch18_s42.pt",
+      "bytes": 27232,
+      "sha256": "59af2b428a842e63"
+    },
+    {
+      "path": "eval/train_last_model_c6_ch18_s43.pt",
+      "bytes": 27232,
+      "sha256": "87911924109b393c"
+    },
+    {
+      "path": "eval/train_last_model_c6_ch26_s42.pt",
+      "bytes": 27367,
+      "sha256": "17d9769f5fa9aef8"
+    },
+    {
+      "path": "eval/train_last_model_c6_ch26_s43.pt",
+      "bytes": 27367,
+      "sha256": "6e50e944dfa67c6c"
+    },
+    {
+      "path": "eval/train_last_model_c6_ch36_s42.pt",
+      "bytes": 27367,
+      "sha256": "0acbd9499fddf022"
+    },
+    {
+      "path": "eval/val_best_model_c12_ch12_s42.pt",
+      "bytes": 14752,
+      "sha256": "1dccbc677314789e"
+    },
+    {
+      "path": "eval/val_best_model_c12_ch12_s43.pt",
+      "bytes": 14752,
+      "sha256": "e56242ee6f164c08"
+    },
+    {
+      "path": "eval/val_best_model_c12_ch18_s42.pt",
+      "bytes": 14745,
+      "sha256": "4990a5542cbd084e"
+    },
+    {
+      "path": "eval/val_best_model_c12_ch18_s43.pt",
+      "bytes": 14745,
+      "sha256": "d11c444f9bdd5fc2"
+    },
+    {
+      "path": "eval/val_best_model_c12_ch26_s42.pt",
+      "bytes": 14752,
+      "sha256": "6708044c3fea37ee"
+    },
+    {
+      "path": "eval/val_best_model_c12_ch36_s42.pt",
+      "bytes": 14752,
+      "sha256": "40fc5658d21bc104"
+    },
+    {
+      "path": "eval/val_best_model_c3_ch12_s42.pt",
+      "bytes": 14745,
+      "sha256": "fd4d7f965d96b86e"
+    },
+    {
+      "path": "eval/val_best_model_c3_ch18_s42.pt",
+      "bytes": 14745,
+      "sha256": "0f382f14afd1ead8"
+    },
+    {
+      "path": "eval/val_best_model_c3_ch26_s42.pt",
+      "bytes": 14745,
+      "sha256": "5f717379c6890186"
+    },
+    {
+      "path": "eval/val_best_model_c3_ch36_s42.pt",
+      "bytes": 14745,
+      "sha256": "3692a8a10d01f2a0"
+    },
+    {
+      "path": "eval/val_best_model_c3_ch36_s43.pt",
+      "bytes": 14745,
+      "sha256": "2581f313a054083f"
+    },
+    {
+      "path": "eval/val_best_model_c6_ch12_s42.pt",
+      "bytes": 14745,
+      "sha256": "5ba15dad13a5360b"
+    },
+    {
+      "path": "eval/val_best_model_c6_ch18_s42.pt",
+      "bytes": 14738,
+      "sha256": "fd5dc9495005b03d"
+    },
+    {
+      "path": "eval/val_best_model_c6_ch18_s43.pt",
+      "bytes": 14738,
+      "sha256": "a6c3bb77c291748e"
+    },
+    {
+      "path": "eval/val_best_model_c6_ch26_s42.pt",
+      "bytes": 14745,
+      "sha256": "6a99ed99ebe97f21"
+    },
+    {
+      "path": "eval/val_best_model_c6_ch26_s43.pt",
+      "bytes": 14745,
+      "sha256": "91c2675175ff9ea4"
+    },
+    {
+      "path": "eval/val_best_model_c6_ch36_s42.pt",
+      "bytes": 14745,
+      "sha256": "97725bf69509e002"
+    },
+    {
+      "path": "eval/val_last_model_c12_ch12_s42.pt",
+      "bytes": 14752,
+      "sha256": "43b974c6a0a1f587"
+    },
+    {
+      "path": "eval/val_last_model_c12_ch12_s43.pt",
+      "bytes": 14752,
+      "sha256": "0ad9fd001cccbb46"
+    },
+    {
+      "path": "eval/val_last_model_c12_ch18_s42.pt",
+      "bytes": 14745,
+      "sha256": "172f1b89c62425ba"
+    },
+    {
+      "path": "eval/val_last_model_c12_ch18_s43.pt",
+      "bytes": 14745,
+      "sha256": "b87f6cbf7c421322"
+    },
+    {
+      "path": "eval/val_last_model_c12_ch26_s42.pt",
+      "bytes": 14752,
+      "sha256": "219168696af8d5cc"
+    },
+    {
+      "path": "eval/val_last_model_c12_ch36_s42.pt",
+      "bytes": 14752,
+      "sha256": "7a52e374fd4b5843"
+    },
+    {
+      "path": "eval/val_last_model_c3_ch12_s42.pt",
+      "bytes": 14745,
+      "sha256": "098583b92ea0c11f"
+    },
+    {
+      "path": "eval/val_last_model_c3_ch18_s42.pt",
+      "bytes": 14745,
+      "sha256": "5c8ac7fab5fc871e"
+    },
+    {
+      "path": "eval/val_last_model_c3_ch26_s42.pt",
+      "bytes": 14745,
+      "sha256": "a7870a92b2bcfa82"
+    },
+    {
+      "path": "eval/val_last_model_c3_ch36_s42.pt",
+      "bytes": 14745,
+      "sha256": "490c51e1271e99cb"
+    },
+    {
+      "path": "eval/val_last_model_c3_ch36_s43.pt",
+      "bytes": 14745,
+      "sha256": "93575d50e3cd439c"
+    },
+    {
+      "path": "eval/val_last_model_c6_ch12_s42.pt",
+      "bytes": 14745,
+      "sha256": "8f75bcd6f1e8680e"
+    },
+    {
+      "path": "eval/val_last_model_c6_ch18_s42.pt",
+      "bytes": 14738,
+      "sha256": "a3433c5a1571fc78"
+    },
+    {
+      "path": "eval/val_last_model_c6_ch18_s43.pt",
+      "bytes": 14738,
+      "sha256": "97cde8b07b9df5b2"
+    },
+    {
+      "path": "eval/val_last_model_c6_ch26_s42.pt",
+      "bytes": 14745,
+      "sha256": "0426bede551a2235"
+    },
+    {
+      "path": "eval/val_last_model_c6_ch26_s43.pt",
+      "bytes": 14745,
+      "sha256": "545f2ef799a085da"
+    },
+    {
+      "path": "eval/val_last_model_c6_ch36_s42.pt",
+      "bytes": 14745,
+      "sha256": "7c7e6e4ea51f6d65"
+    },
+    {
+      "path": "eval_L/summary.json",
+      "bytes": 11183,
+      "sha256": "842ced8325e4aaba"
+    },
+    {
+      "path": "eval_L/train_best_model_c12_ch18_s42.pt",
+      "bytes": 27374,
+      "sha256": "fdd3bc341b356020"
+    },
+    {
+      "path": "eval_L/train_best_model_c12_ch18_s43.pt",
+      "bytes": 27374,
+      "sha256": "88401bd0860d0681"
+    },
+    {
+      "path": "eval_L/train_best_model_c12_ch26_s42.pt",
+      "bytes": 27374,
+      "sha256": "e6611c8875815e6a"
+    },
+    {
+      "path": "eval_L/train_best_model_c12_ch26_s43.pt",
+      "bytes": 27374,
+      "sha256": "bb9a032abf221fe9"
+    },
+    {
+      "path": "eval_L/train_best_model_c6_ch18_s42.pt",
+      "bytes": 27367,
+      "sha256": "1bce8437a1f26eb4"
+    },
+    {
+      "path": "eval_L/train_best_model_c6_ch18_s43.pt",
+      "bytes": 27367,
+      "sha256": "3a3b0d597a9174b9"
+    },
+    {
+      "path": "eval_L/train_best_model_c6_ch26_s42.pt",
+      "bytes": 27367,
+      "sha256": "26b95d2e5d69a062"
+    },
+    {
+      "path": "eval_L/train_best_model_c6_ch26_s43.pt",
+      "bytes": 27367,
+      "sha256": "a5d24a356e3c9102"
+    },
+    {
+      "path": "eval_L/train_last_model_c12_ch18_s42.pt",
+      "bytes": 27374,
+      "sha256": "93eb63ddec5c24e3"
+    },
+    {
+      "path": "eval_L/train_last_model_c12_ch18_s43.pt",
+      "bytes": 27374,
+      "sha256": "d5bd646bc830487b"
+    },
+    {
+      "path": "eval_L/train_last_model_c12_ch26_s42.pt",
+      "bytes": 27374,
+      "sha256": "b416a39829df75d7"
+    },
+    {
+      "path": "eval_L/train_last_model_c12_ch26_s43.pt",
+      "bytes": 27374,
+      "sha256": "1960c1eee221493f"
+    },
+    {
+      "path": "eval_L/train_last_model_c6_ch18_s42.pt",
+      "bytes": 27367,
+      "sha256": "9b2518476a0b095e"
+    },
+    {
+      "path": "eval_L/train_last_model_c6_ch18_s43.pt",
+      "bytes": 27367,
+      "sha256": "f2bc8b05803cd908"
+    },
+    {
+      "path": "eval_L/train_last_model_c6_ch26_s42.pt",
+      "bytes": 27367,
+      "sha256": "6f24b19b3f2cd2c5"
+    },
+    {
+      "path": "eval_L/train_last_model_c6_ch26_s43.pt",
+      "bytes": 27367,
+      "sha256": "0fb57f7a281ff232"
+    },
+    {
+      "path": "eval_L/val_best_model_c12_ch18_s42.pt",
+      "bytes": 14752,
+      "sha256": "e3af4b3b4adbc130"
+    },
+    {
+      "path": "eval_L/val_best_model_c12_ch18_s43.pt",
+      "bytes": 14752,
+      "sha256": "21941fd08a455383"
+    },
+    {
+      "path": "eval_L/val_best_model_c12_ch26_s42.pt",
+      "bytes": 14752,
+      "sha256": "43795edb6e0bc56d"
+    },
+    {
+      "path": "eval_L/val_best_model_c12_ch26_s43.pt",
+      "bytes": 14752,
+      "sha256": "97ad1635257d42c6"
+    },
+    {
+      "path": "eval_L/val_best_model_c6_ch18_s42.pt",
+      "bytes": 14745,
+      "sha256": "ec1106d14086f1c6"
+    },
+    {
+      "path": "eval_L/val_best_model_c6_ch18_s43.pt",
+      "bytes": 14745,
+      "sha256": "ba66d09f70919256"
+    },
+    {
+      "path": "eval_L/val_best_model_c6_ch26_s42.pt",
+      "bytes": 14745,
+      "sha256": "920bad8853a252d9"
+    },
+    {
+      "path": "eval_L/val_best_model_c6_ch26_s43.pt",
+      "bytes": 14745,
+      "sha256": "1fdfb090a33e41db"
+    },
+    {
+      "path": "eval_L/val_last_model_c12_ch18_s42.pt",
+      "bytes": 14752,
+      "sha256": "04dc7e89e14dc63d"
+    },
+    {
+      "path": "eval_L/val_last_model_c12_ch18_s43.pt",
+      "bytes": 14752,
+      "sha256": "22c66cdd63c7521b"
+    },
+    {
+      "path": "eval_L/val_last_model_c12_ch26_s42.pt",
+      "bytes": 14752,
+      "sha256": "fbe2015dfbd6fb54"
+    },
+    {
+      "path": "eval_L/val_last_model_c12_ch26_s43.pt",
+      "bytes": 14752,
+      "sha256": "666b9569b80a120d"
+    },
+    {
+      "path": "eval_L/val_last_model_c6_ch18_s42.pt",
+      "bytes": 14745,
+      "sha256": "9f6b4492b709efc9"
+    },
+    {
+      "path": "eval_L/val_last_model_c6_ch18_s43.pt",
+      "bytes": 14745,
+      "sha256": "198c8acedd883a55"
+    },
+    {
+      "path": "eval_L/val_last_model_c6_ch26_s42.pt",
+      "bytes": 14745,
+      "sha256": "bae055dd149780a3"
+    },
+    {
+      "path": "eval_L/val_last_model_c6_ch26_s43.pt",
+      "bytes": 14745,
+      "sha256": "ceff5f18fa95fe22"
+    },
+    {
+      "path": "eval_hpcS/train_best_model_c6_ch18_s42.pt",
+      "bytes": 27367,
+      "sha256": "83e4f1d5805a2082"
+    },
+    {
+      "path": "eval_hpcS/train_best_model_c6_ch18_s43.pt",
+      "bytes": 27367,
+      "sha256": "422f7a06383e1e04"
+    },
+    {
+      "path": "eval_hpcS/train_last_model_c6_ch18_s42.pt",
+      "bytes": 27367,
+      "sha256": "bc5e81a88d76c45d"
+    },
+    {
+      "path": "eval_hpcS/train_last_model_c6_ch18_s43.pt",
+      "bytes": 27367,
+      "sha256": "e42a179bbe29fe71"
+    },
+    {
+      "path": "eval_hpcS/val_best_model_c6_ch18_s42.pt",
+      "bytes": 14745,
+      "sha256": "c22e5c67e8f51b13"
+    },
+    {
+      "path": "eval_hpcS/val_best_model_c6_ch18_s43.pt",
+      "bytes": 14745,
+      "sha256": "c6143c71f6f7ef9c"
+    },
+    {
+      "path": "eval_hpcS/val_last_model_c6_ch18_s42.pt",
+      "bytes": 14745,
+      "sha256": "948420ea8bfc2c0e"
+    },
+    {
+      "path": "eval_hpcS/val_last_model_c6_ch18_s43.pt",
+      "bytes": 14745,
+      "sha256": "539310febf09cfc4"
+    },
+    {
+      "path": "figures/full_val_grid.png",
+      "bytes": 43402,
+      "sha256": "bfb2469d1ced0c21"
+    },
+    {
+      "path": "figures/full_val_grid_s43.png",
+      "bytes": 34517,
+      "sha256": "421e8672914ae0c3"
+    },
+    {
+      "path": "figures/full_val_vs_params.png",
+      "bytes": 79959,
+      "sha256": "1f0f49af6745a011"
+    },
+    {
+      "path": "figures/full_val_vs_params_s43.png",
+      "bytes": 64200,
+      "sha256": "4bc61fe8d7180da7"
+    },
+    {
+      "path": "figures/tier_l_cells.png",
+      "bytes": 42169,
+      "sha256": "9eca3b6f4246b6b1"
+    },
+    {
+      "path": "proposal.md",
+      "bytes": 5826,
+      "sha256": "eaa1f06d774549b4"
+    },
+    {
+      "path": "proposal_tier_l.md",
+      "bytes": 4672,
+      "sha256": "bc5ed7ac2cd3fcea"
+    }
+  ]
+}
