@@ -21,6 +21,8 @@
 #SBATCH --mem=96GB
 #SBATCH --time=1-00:00:00
 #SBATCH --output=slurm_log/%x-%A_%a.log
+#SBATCH --mail-type=END,FAIL
+#SBATCH --mail-user=brenden.kadota@ucsf.edu
 
 set -eo pipefail
 
