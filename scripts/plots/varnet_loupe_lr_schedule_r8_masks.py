@@ -4,14 +4,17 @@ Reads `sampler.mask_net.mask` (the 320x320 logits) from each run's last_model.pt
 sampling probability p = sigmoid(slope * logits), before the per-slice budget rescale. CPU only.
 
 Per run: mean p, binarization mean|2p - 1|, support (fraction of the 320x320 grid with p > 0.05), the share of total p
-inside radius bands, and a radial profile.
-Per pair of masks: Pearson correlation of p, correlation of the residual after removing each map's own radial profile
-(the fine, pixel-scale structure), and the Jaccard overlap of the top 12.5% locations. Pairs are grouped as
+inside radius bands, a radial profile, and the right band: total p in rows within 12 of the centre row and columns
+more than 72 right of the centre column, a strip the masks either sample or leave empty.
+Per pair of masks: Pearson correlation of p (dominated by pixel speckle, which the start mask's seed sets), the same
+after a 9x9 box filter (the mask's shape), correlation of the residual after removing each map's own radial profile,
+the Jaccard overlap of the top 12.5% locations and of the supports. Pairs are grouped as
   lr     same seed and depth, arm vs the 1e-3 step control
   seed   same arm and depth, s42 vs s43
   depth  same arm and seed, 6 vs 12 cascades
   time   same run, best_model vs last_model
-The question the grouping answers: does changing the recon lr move the mask more than changing the training seed does?
+A second figure tiles the trainer's val prob_mask images logged to wandb every 10 epochs (rendered figures, colour
+scale per image), the only record of the masks during training.
 
     python scripts/plots/varnet_loupe_lr_schedule_r8_masks.py \
         --runs /export/scratch/bkadota/varnet_loupe_lr_schedule_r8 --report reports/varnet_loupe_lr_schedule_r8
@@ -26,11 +29,17 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
+from PIL import Image
+from scipy.ndimage import uniform_filter
 import _path  # noqa: F401
 
 SLOPE = 10
 TOP_FRACTION = 0.125
 SUPPORT_P = 0.05
+SMOOTH = 9
+RIGHT_BAND = (slice(160 - 12, 160 + 13), slice(160 + 72, None))
+STRIP_RUNS = (('runs_full', 'lr1e3_step_s42'), ('runs_full', 'lr4e3_step_s42'), ('runs_full', 'lr1e3_step_s43'),
+              ('runs_full', 'lr4e3_step_s43'), ('runs_full_c6', 'lr1e3_step_s42'), ('runs_full_c6', 'lr4e3_step_s42'))
 BANDS = ((0, 16), (16, 48), (48, 96), (96, 1000))
 RADIAL_STEP = 4
 GROUPS = {
@@ -63,6 +72,7 @@ def run_stats(p, radius):
     profile, _ = radial_profile(p, radius)
     total = p.sum()
     return {'mean_p': float(p.mean()), 'binarization': float(np.abs(2 * p - 1).mean()), 'support': float((p > SUPPORT_P).mean()),
+            'right_band': float(p[RIGHT_BAND].sum()),
             'band_share': {f'{lo}-{hi}': float(p[(radius >= lo) & (radius < hi)].sum() / total) for lo, hi in BANDS},
             'radial_profile': profile.tolist()}
 
@@ -76,8 +86,12 @@ def compare(a, b, radius):
     top = int(TOP_FRACTION * a.size)
     sa, sb = set(np.argsort(a.ravel())[-top:]), set(np.argsort(b.ravel())[-top:])
     ra, rb = residual(a, radius).ravel(), residual(b, radius).ravel()
-    return {'corr': float(np.corrcoef(a.ravel(), b.ravel())[0, 1]), 'residual_corr': float(np.corrcoef(ra, rb)[0, 1]),
-            'top_jaccard': len(sa & sb) / len(sa | sb), 'mean_abs_diff': float(np.abs(a - b).mean())}
+    support_a, support_b = a > SUPPORT_P, b > SUPPORT_P
+    smooth_a, smooth_b = uniform_filter(a, SMOOTH).ravel(), uniform_filter(b, SMOOTH).ravel()
+    return {'corr': float(np.corrcoef(a.ravel(), b.ravel())[0, 1]), 'smooth_corr': float(np.corrcoef(smooth_a, smooth_b)[0, 1]),
+            'residual_corr': float(np.corrcoef(ra, rb)[0, 1]), 'top_jaccard': len(sa & sb) / len(sa | sb),
+            'support_jaccard': float((support_a & support_b).sum() / (support_a | support_b).sum()),
+            'mean_abs_diff': float(np.abs(a - b).mean())}
 
 
 def pairs(maps):
@@ -129,6 +143,27 @@ def figure(maps, stats, path):
     fig.savefig(path, dpi=110, bbox_inches='tight')
 
 
+def strip(runs_root, path):
+    rows = []
+    for folder, name in STRIP_RUNS:
+        files = list((runs_root / folder / name / 'wandb').glob('offline-run-*/files/media/images/val/brain/prob_mask_*.png'))
+        files.sort(key=lambda f: int(f.name.split('_')[2]))
+        rows.append((f'{folder}/{name}', [np.asarray(Image.open(f).convert('RGB')) for f in files]))
+    columns = max(len(images) for _, images in rows)
+    fig, axes = plt.subplots(len(rows), columns, figsize=(1.6 * columns, 1.7 * len(rows)))
+    for r, (label, images) in enumerate(rows):
+        for c in range(columns):
+            ax = axes[r, c]
+            ax.axis('off')
+            if c < len(images):
+                ax.imshow(images[c][40:-40, 30:-110])
+            if r == 0:
+                ax.set_title(f'epoch {10 * (c + 1)}', fontsize=9)
+        axes[r, 0].text(-0.08, 0.5, label.replace('runs_full_c6/', '6c ').replace('runs_full/', '12c '), fontsize=9,
+                        transform=axes[r, 0].transAxes, ha='right', va='center')
+    fig.savefig(path, dpi=110, bbox_inches='tight')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('--runs', type=Path, required=True, help='folder holding runs/, runs_full/ and runs_full_c6/')
@@ -158,22 +193,24 @@ def main():
     table = {}
     for c in comparisons:
         table.setdefault(f"{c['group']}|{c['kind']}|{c['arm']}", []).append(c)
-    summary = {key: {m: float(np.mean([c[m] for c in rows])) for m in ('corr', 'residual_corr', 'top_jaccard', 'mean_abs_diff')}
+    metrics = ('corr', 'smooth_corr', 'residual_corr', 'top_jaccard', 'support_jaccard', 'mean_abs_diff')
+    summary = {key: {m: float(np.mean([c[m] for c in rows])) for m in metrics}
                | {'n': len(rows)} for key, rows in table.items()}
 
     (args.report / 'masks.json').write_text(json.dumps({'slope': SLOPE, 'top_fraction': TOP_FRACTION, 'runs': stats,
                                                          'comparisons': comparisons, 'summary': summary}, indent=1))
     figure(maps, stats, args.report / 'figures' / 'masks.png')
+    strip(args.runs, args.report / 'figures' / 'masks_over_training.png')
 
-    print(f"{'group|kind|arm':40s} {'corr':>6s} {'resid':>6s} {'top-J':>6s} {'|dp|':>6s}  n")
+    print(f"{'group|kind|arm':40s} " + ' '.join(f'{m[:9]:>9s}' for m in metrics) + '  n')
     for key, row in summary.items():
-        print(f"{key:40s} {row['corr']:6.3f} {row['residual_corr']:6.3f} {row['top_jaccard']:6.3f} {row['mean_abs_diff']:6.3f}  {row['n']}")
-    print(f"\n{'group run':34s} {'ep':>4s} {'mean p':>7s} {'binar':>6s} {'supp':>6s} " + ' '.join(f'{lo}-{hi:>4}' for lo, hi in BANDS))
+        print(f"{key:40s} " + ' '.join(f'{row[m]:9.3f}' for m in metrics) + f"  {row['n']}")
+    print(f"\n{'group run':34s} {'ep':>4s} {'mean p':>7s} {'binar':>6s} {'supp':>6s} {'rband':>6s} " + ' '.join(f'{lo}-{hi:>4}' for lo, hi in BANDS))
     for group, runs in stats.items():
         for name, entry in runs.items():
             for which in ('best', 'last'):
                 e = entry[which]
-                print(f"{group + ' ' + name + ':' + which:34s} {e['epoch']:4d} {e['mean_p']:7.4f} {e['binarization']:6.3f} {e['support']:6.3f} "
+                print(f"{group + ' ' + name + ':' + which:34s} {e['epoch']:4d} {e['mean_p']:7.4f} {e['binarization']:6.3f} {e['support']:6.3f} {e['right_band']:6.0f} "
                       + ' '.join(f'{v:7.3f}' for v in e['band_share'].values()))
 
 
