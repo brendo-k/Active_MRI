@@ -48,7 +48,7 @@ class UNetReconConfig(ReconConfig):
 @dataclass
 class VarNetReconConfig(ReconConfig):
     recon_type: str = 'varnet'
-    num_cascades: int = 12
+    num_cascades: int = 6
     chans: int = 18
     pools: int = 4
     anatomy_conditioning: bool = False

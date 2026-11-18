@@ -16,7 +16,7 @@ Roadmap (user's order, 2026-10-19):
 ## Instructions
 - Please ask clarifying questions if the experiment is not well defined.
 
-Main operating point is R=8, E2E VarNet reconstructor, fastMRI brain + knee. See `docs/idea.md`,
+Main operating point is R=8, E2E VarNet reconstructor (6 cascades x 18 channels; default since 2026-11-18, was 12), fastMRI brain + knee. See `docs/idea.md`,
 `docs/ADAPTIVE_MASK_EXPERIMENT_PLAN.md`, `docs/ISMRM_2027_ABSTRACT.md` for current thinking.
 
 ## Layout

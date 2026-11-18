@@ -1,5 +1,5 @@
 recon_type: varnet
-num_cascades: 12
+num_cascades: 6  # default since 2026-11-18 (was 12): 12 cascades add little at <=300 volumes (reports/brain_varnet_scaling, brain_varnet_width, varnet_loupe_lr_schedule_r8)
 chans: 18
 pools: 4
 anatomy_conditioning: false  # feed the anatomy label to every cascade
