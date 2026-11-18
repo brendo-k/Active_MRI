@@ -67,6 +67,8 @@ class Sequential_Trainer:
         self.model = build_model(self.options).to(device)
         self.val_mask_generator = torch.Generator(device=device)
         self.model.sampler.eval_generator = self.val_mask_generator
+        self._check_mask_commitment_options(options)
+        self.flat_mask_generator = torch.Generator().manual_seed(FLAT_MASK_SEED + (options.seed or 0))
         self.metric_mask_cache = {}  # (anatomy, fname, slice_id) -> [1, H, W] bool, filled by _metric_mask
 
         if options.pretrained_recon is not None:
@@ -286,6 +288,39 @@ class Sequential_Trainer:
             self.options.autosamp_anneal_fraction, progress,
         ) if annealing else 0.0
 
+    def _check_mask_commitment_options(self, options):
+        uses = {name: value for name, value in (
+            ('loupe_logit_limit', options.loupe_logit_limit > 0), ('slope_start', options.slope_start is not None),
+            ('flat_mask_fraction', options.flat_mask_fraction > 0)) if value}
+        if uses and options.sampler_type != 'loupe_2d':
+            raise ValueError(f"{sorted(uses)} need sampler_type=loupe_2d, got {options.sampler_type!r}")
+        if 'flat_mask_fraction' in uses and (options.mask_train_mode != 'straight_through' or options.freeze_recon):
+            raise ValueError("flat_mask_fraction trains the reconstructor on flat-mask batches, so it needs "
+                             "mask_train_mode=straight_through and an unfrozen reconstructor")
+        if 'slope_start' in uses and options.slope_anneal_epochs <= 0:
+            raise ValueError(f"slope_anneal_epochs must be > 0 with slope_start, got {options.slope_anneal_epochs}")
+
+    def _anneal_loupe_slope(self, epoch):
+        """Set the LOUPE sigmoid slope for fractional `epoch`: linear from slope_start to slope, then constant; None if off.
+
+        The mask is built (and its uniform start drawn) at the final slope, so the weights match a constant-slope run;
+        only the multiplier the sigmoid sees changes.
+        """
+        if self.options.slope_start is None:
+            return None
+        progress = min(epoch / self.options.slope_anneal_epochs, 1.0)
+        slope = self.options.slope_start + (self.options.slope - self.options.slope_start) * progress
+        _unwrapped(self.model).sampler.mask_net.slope = slope
+        return slope
+
+    def _draw_flat_mask_batch(self):
+        """Whether this training batch is masked by a flat-probability draw instead of the LOUPE mask (and set the sampler so)."""
+        if self.options.flat_mask_fraction <= 0:
+            return False
+        flat = bool(torch.rand((), generator=self.flat_mask_generator) < self.options.flat_mask_fraction)
+        _unwrapped(self.model).sampler.flat_draw = flat
+        return flat
+
     def _recon_modules(self):
         model = self.model.module if isinstance(self.model, torch.nn.DataParallel) else self.model
         return model.reconstructor, model.sensetivity_net
@@ -380,6 +415,8 @@ class Sequential_Trainer:
             if self.options.mask_train_mode == 'reinforce':
                 batch = self._replicate_for_reinforce(batch, self.options.reinforce_group_size)
             self._anneal_autosamp_kernel((self.epoch + iter_idx / max_batches) / self.options.num_epochs)
+            loupe_slope = self._anneal_loupe_slope(self.epoch + iter_idx / max_batches)
+            flat_mask_batch = self._draw_flat_mask_batch()
 
             kspace = self._load_kspace(batch)
             target = self._target(batch, kspace)
@@ -446,6 +483,10 @@ class Sequential_Trainer:
                 anatomy_stats.update(anatomies, masked_output, masked_target, pred_dict['mask'].detach())
 
             step_log = {'train/loss': loss.item(), 'train/step': global_step_offset + iter_idx, **grad_log}
+            if loupe_slope is not None:
+                step_log['train/loupe_slope'] = loupe_slope
+            if self.options.flat_mask_fraction > 0:
+                step_log['train/flat_mask_batch'] = float(flat_mask_batch)
             if self.options.mask_train_mode == 'reinforce':
                 step_log['train/reinforce_reward'] = log_dict.get('Reinforce Reward', 0.0)
                 step_log['train/reinforce_loss'] = log_dict.get('Reinforce Loss', 0.0)
@@ -1060,6 +1101,7 @@ def _sampler_type(options: TrainConfig) -> str:
 # per-step move at ~lr whatever their scale.
 POSITION_ADAM_EPS = 1e-16
 GRADIENT_GROUPS = ('sampler', 'reconstructor', 'sensetivity_net')
+FLAT_MASK_SEED = 9_173  # offset of the flat-mask batch generator's seed from training.seed
 SATURATED_LOGIT = math.log(99)  # |slope * w| beyond this puts the mask probability outside [0.01, 0.99]
 
 
@@ -1286,6 +1328,7 @@ def build_model(options: TrainConfig):
         mask_draws=getattr(options, 'mask_draws', 1),
         logit_limit=getattr(options, 'logit_limit', 6.0),
         logit_leak=getattr(options, 'logit_leak', 0.01),
+        loupe_logit_limit=getattr(options, 'loupe_logit_limit', 0.0),
         adapt_grid=getattr(options, 'adapt_grid', 16),
         adapt_hidden=getattr(options, 'adapt_hidden', 64),
         bank_size=getattr(options, 'bank_size', 8),

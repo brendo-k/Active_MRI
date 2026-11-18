@@ -21,6 +21,12 @@ from activemri.utils.mask_binarization import floored_grad_sigmoid
 VD_CENTER_OFFSET = 0.05  # radius (as a fraction of the k-space half-extent) below which the prior stops growing
 
 
+def soft_clamp(logits, limit, leak):
+    """`logits` clamped to +/-`limit`, with slope `leak` beyond it so pinned locations keep a gradient."""
+    clamped = logits.clamp(-limit, limit)
+    return clamped + leak * (logits - clamped)
+
+
 def _variable_density_logits(radius, power):
     """log p(r) = -power * log(r + offset): density falling off as a power of the radius."""
     return -power * torch.log(radius + VD_CENTER_OFFSET)
@@ -37,13 +43,19 @@ class ProbMask(nn.Module):
             one shared mask.
         grad_floor: Lower bound on the sigmoid's backward derivative, as a
             fraction of its peak, so saturated locations keep a gradient.
+        logit_limit: If > 0, slope * logit is soft-clamped to +/- this before the
+            sigmoid, as conv_2d's scores are; 0 leaves it unbounded.
+        logit_leak: Slope of slope * logit beyond the clamp.
     """
 
-    def __init__(self, shape=(320, 320), slope=10, num_conditioning_classes=0, grad_floor=0.0):
+    def __init__(self, shape=(320, 320), slope=10, num_conditioning_classes=0, grad_floor=0.0,
+                 logit_limit=0.0, logit_leak=0.01):
         super().__init__()
 
         self.slope = slope
         self.grad_floor = grad_floor
+        self.logit_limit = logit_limit
+        self.logit_leak = logit_leak
         self.num_conditioning_classes = num_conditioning_classes
         num_masks = max(num_conditioning_classes, 1)
         self.mask = nn.Parameter(torch.cat([self._init_mask_weights(shape) for _ in range(num_masks)]))
@@ -52,7 +64,10 @@ class ProbMask(nn.Module):
         """Args: input NHWC. Returns: probabilities [N or 1, H, W, 1]."""
         logits = _select_mask(self.mask, anatomy_labels, self.num_conditioning_classes)
         logits = logits.view(-1, input.shape[1], input.shape[2], 1)
-        return floored_grad_sigmoid(logits, self.slope, self.grad_floor)
+        if self.logit_limit <= 0:
+            return floored_grad_sigmoid(logits, self.slope, self.grad_floor)
+        return floored_grad_sigmoid(soft_clamp(self.slope * logits, self.logit_limit, self.logit_leak), 1.0,
+                                    self.grad_floor)
 
     def raw_logits(self, anatomy_labels=None):
         """The free parameter itself (pre-sigmoid), [N or 1, H, W] -- the score

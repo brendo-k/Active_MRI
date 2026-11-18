@@ -68,7 +68,11 @@ class TrainConfig:
     dcm_vd_power: float = 4.0  # selection=dcm: exponent p of the acceptance prior ((D - r) / D)^p
     dcm_tau: float = 5.0  # selection=dcm: softmax temperature of the straight-through backward
     logit_limit: float = 6.0  # conv_2d: scores are soft-clamped to +/- this before the sigmoid
-    logit_leak: float = 0.01  # conv_2d: slope of the score beyond the clamp (keeps the gradient of pinned locations alive)
+    logit_leak: float = 0.01  # conv_2d: slope of the score beyond the clamp (keeps the gradient of pinned locations alive); loupe_2d's too with loupe_logit_limit
+    loupe_logit_limit: float = 0.0  # loupe_2d: >0 soft-clamps slope * logit to +/- this before the sigmoid (0 = unbounded)
+    slope_start: Optional[float] = None  # loupe_2d: the slope ramps linearly from this to `slope` over slope_anneal_epochs (None = constant)
+    slope_anneal_epochs: float = 20.0
+    flat_mask_fraction: float = 0.0  # loupe_2d straight-through: fraction of training batches masked by a flat-probability draw at the same budget (reconstructor-only update)
     adapt_grid: int = 16  # smooth_adapt_2d: side of the coarse offset grid (0 = no offset: a bounded LOUPE mask)
     adapt_hidden: int = 64  # smooth_adapt_2d / bank_adapt_2d: width of the offset predictor / gate
     bank_size: int = 8  # bank_adapt_2d: number of learned masks the calibration-block gate blends

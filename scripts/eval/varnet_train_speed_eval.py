@@ -47,8 +47,8 @@ def finished(run_dir):
 
 
 @torch.no_grad()
-def score(run_dir, val_loader, device, seeds):
-    ckpt = torch.load(run_dir / 'last_model.pt', map_location='cpu', weights_only=False)
+def score(run_dir, val_loader, device, seeds, checkpoint='last_model.pt'):
+    ckpt = torch.load(run_dir / checkpoint, map_location='cpu', weights_only=False)
     model = build_model(ckpt['options']).to(device)
     model.load_state_dict(ckpt['model'])
     model.eval()

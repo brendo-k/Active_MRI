@@ -12,6 +12,7 @@ import torch
 from torch import nn
 
 from activemri.reconstructors.UNet import LOUPEUNet, upsample_block
+from activemri.samplers.loupe import soft_clamp
 from activemri.utils.conditioning import DEFAULT_EMBED_DIM, AnatomyEmbedding, FiLM, broadcast_channels
 from activemri.utils.mask_binarization import floored_grad_sigmoid
 
@@ -41,8 +42,7 @@ def scores_to_prob(logits, grad_floor=0.0, logit_limit=LOGIT_LIMIT, logit_leak=L
     expose their weights through a plain sigmoid. `grad_floor` additionally
     floors the sigmoid's backward derivative, as in `ProbMask`.
     """
-    clamped = logits.clamp(-logit_limit, logit_limit)
-    return floored_grad_sigmoid(clamped + logit_leak * (logits - clamped), 1.0, grad_floor)
+    return floored_grad_sigmoid(soft_clamp(logits, logit_limit, logit_leak), 1.0, grad_floor)
 
 
 class LocationHead(nn.Module):
