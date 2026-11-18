@@ -1,0 +1,277 @@
+{
+  "name": "L_1_s42_fscr1_tF",
+  "run": "/home/remote/bkadota/scratch/multistep_adaptivity/validate/3090319/L_1_s42_fscr1_tF",
+  "checkpoint": "last_model.pt",
+  "epoch": 0,
+  "training_code": {
+    "commit": "d58087f50aa3a327fd02402061708ab953f5836a",
+    "branch": "exp/multistep_adaptivity",
+    "dirty_tracked_files": [],
+    "started_at": "2026-11-17T16:25:42+00:00",
+    "argv": [
+      "train.py",
+      "sampler.sampler_type=loupe_2d",
+      "hydra.job.name=train_sequential",
+      "recon=varnet",
+      "datasets=fastmri_local_v1_flair",
+      "training.batch_size=16",
+      "training.seed=42",
+      "sampler.accelerations=[8.0]",
+      "training.num_step=1",
+      "training.num_epochs=1",
+      "training.lr_step_size=90",
+      "recon.num_cascades=6",
+      "recon.chans=18",
+      "recon.checkpoint_cascades=true",
+      "sampler.preselect_num=10",
+      "sampler.anatomy_conditioning=false",
+      "output.run_name=L_1_s42_fscr1_tF",
+      "datasets.train_tier=F",
+      "misc.resolution=[320,320]",
+      "sampler.budget_over=acquired",
+      "datasets.limit_volumes=1",
+      "datasets.roots.hpc=\"~/scratch/data/fastmri/{anatomy}/data\"",
+      "datasets.roots.local_batch2=\"~/scratch/data/fastmri/knee/data\"",
+      "datasets.val_half=dev",
+      "output.out_dir=/home/remote/bkadota/scratch/multistep_adaptivity/validate/3090319/L_1_s42_fscr1_tF",
+      "training.limit_batches=0.1"
+    ]
+  },
+  "eval_code": {
+    "commit": "d58087f50aa3a327fd02402061708ab953f5836a",
+    "branch": "exp/multistep_adaptivity",
+    "dirty_tracked_files": []
+  },
+  "options": {
+    "sampler_type": "loupe_2d",
+    "num_step": 1,
+    "data_blind": false,
+    "accelerations": [
+      8.0
+    ],
+    "budget_over": "acquired",
+    "seed": 42,
+    "residual_chans": 16,
+    "residual_depth": 4,
+    "residual_limit": 6.0,
+    "residual_lr": 0.0001,
+    "anatomy_conditioning": false,
+    "loss_type": "l1"
+  },
+  "draw_seeds": [
+    1234,
+    4321
+  ],
+  "slices": {
+    "count": 120,
+    "hash": "460efb7228ffc42e7c3fda6bc8f3397da5883e47"
+  },
+  "means": {
+    "psnr": {
+      "brain": 22.22815461953481,
+      "all": 22.22815461953481
+    },
+    "ssim": {
+      "brain": 0.5459723085766545,
+      "all": 0.5459723085766545
+    },
+    "nmse": {
+      "brain": 0.05193338153573374,
+      "all": 0.05193338153573374
+    },
+    "realised_fraction": {
+      "brain": 0.1248981872263054,
+      "all": 0.1248981872263054
+    }
+  },
+  "by_step": {
+    "step_new": {
+      "brain": [
+        7825.05
+      ],
+      "all": [
+        7825.05
+      ]
+    },
+    "step_budget": {
+      "brain": [
+        7831.466666666666
+      ],
+      "all": [
+        7831.466666666666
+      ]
+    }
+  },
+  "donors": {
+    "matched": 95,
+    "unmatched": {
+      "brain": 25
+    }
+  },
+  "guards": {
+    "ssim_pooled": 0.5459723085766545,
+    "ssim_at_least_0.80": false,
+    "realised_fraction_target": 0.125,
+    "realised_fraction_within_0.002": true,
+    "most_draws_outside_the_acquired_region": 0,
+    "no_draws_outside_the_acquired_region": true,
+    "failed_reconstructions_below_20dB": [
+      {
+        "volume": "file_brain_AXFLAIR_200_6002499.h5",
+        "slice_id": 2,
+        "condition": "brain",
+        "psnr": 19.953192710876465
+      },
+      {
+        "volume": "file_brain_AXFLAIR_200_6002581.h5",
+        "slice_id": 9,
+        "condition": "brain",
+        "psnr": 18.789847373962402
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6002868.h5",
+        "slice_id": 5,
+        "condition": "brain",
+        "psnr": 19.916086196899414
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6002868.h5",
+        "slice_id": 8,
+        "condition": "brain",
+        "psnr": 18.811208724975586
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6002868.h5",
+        "slice_id": 10,
+        "condition": "brain",
+        "psnr": 19.984115600585938
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6002872.h5",
+        "slice_id": 9,
+        "condition": "brain",
+        "psnr": 17.64150905609131
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6002873.h5",
+        "slice_id": 3,
+        "condition": "brain",
+        "psnr": 19.328373908996582
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6002873.h5",
+        "slice_id": 6,
+        "condition": "brain",
+        "psnr": 19.60449981689453
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6002873.h5",
+        "slice_id": 8,
+        "condition": "brain",
+        "psnr": 19.165698051452637
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6002873.h5",
+        "slice_id": 11,
+        "condition": "brain",
+        "psnr": 18.685646057128906
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6002915.h5",
+        "slice_id": 5,
+        "condition": "brain",
+        "psnr": 19.5727596282959
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6003021.h5",
+        "slice_id": 0,
+        "condition": "brain",
+        "psnr": 19.00860023498535
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6003021.h5",
+        "slice_id": 11,
+        "condition": "brain",
+        "psnr": 19.696112632751465
+      },
+      {
+        "volume": "file_brain_AXFLAIR_206_6000243.h5",
+        "slice_id": 3,
+        "condition": "brain",
+        "psnr": 19.66895866394043
+      }
+    ]
+  },
+  "swap_cost": {
+    "psnr": {
+      "brain": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 95,
+        "n_volumes": 16,
+        "n_left_out": 25
+      },
+      "all": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 95,
+        "n_volumes": 16,
+        "n_left_out": 25
+      }
+    },
+    "ssim": {
+      "brain": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 95,
+        "n_volumes": 16,
+        "n_left_out": 25
+      },
+      "all": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 95,
+        "n_volumes": 16,
+        "n_left_out": 25
+      }
+    },
+    "nmse": {
+      "brain": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 95,
+        "n_volumes": 16,
+        "n_left_out": 25
+      },
+      "all": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 95,
+        "n_volumes": 16,
+        "n_left_out": 25
+      }
+    }
+  },
+  "swap_null": {
+    "donor_final_mask_equals_own": 1.0,
+    "must_be_1_for_a_data_blind_twin": false
+  }
+}

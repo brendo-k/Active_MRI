@@ -1,0 +1,43 @@
+host=ggpu1-15 gpu=NVIDIA RTX PRO 6000 Blackwell Server Edition commit=d58087f50aa3a327fd02402061708ab953f5836a python=3.14.0 torch=2.12.0+cu130
+08:17:39 commit: pass
+08:18:13 tests: pass
+08:23:00 smoke_F_4_s42_fscr1_tF: pass
+08:25:37 smoke_Fb_4_s42_fscr1_tF: pass
+08:27:51 smoke_L_1_s42_fscr1_tF: pass
+08:29:52 smoke_F_4_s42_fscr1_tS5: pass
+08:31:45 smoke_Fb_4_s42_fscr1_tS5: pass
+08:33:28 smoke_L_1_s42_fscr1_tS5: pass
+08:35:07 score_F_4_s42_fscr1_tF: pass
+08:35:43 score_Fb_4_s42_fscr1_tF: pass
+08:36:11 score_L_1_s42_fscr1_tF: pass
+08:37:48 score_F_4_s42_fscr1_tS5: pass
+08:38:24 score_Fb_4_s42_fscr1_tS5: pass
+08:38:50 score_L_1_s42_fscr1_tS5: pass
+08:38:50 nulls: pass
+08:38:50 run_info: pass
+
+Epoch lines (10% of a train epoch, compile included, then the full FLAIR dev val half):
+  F_4_s42_fscr1_tF: TrainTime = 144.7819s ValTime = 53.8117s PeakMemory = 36.07GiB
+  Fb_4_s42_fscr1_tF: TrainTime = 62.0490s ValTime = 21.3456s PeakMemory = 26.52GiB
+  L_1_s42_fscr1_tF: TrainTime = 49.1367s ValTime = 14.1714s PeakMemory = 19.91GiB
+  F_4_s42_fscr1_tS5: TrainTime = 21.7040s ValTime = 28.8490s PeakMemory = 34.91GiB
+  Fb_4_s42_fscr1_tS5: TrainTime = 20.4751s ValTime = 22.6352s PeakMemory = 25.36GiB
+  L_1_s42_fscr1_tS5: TrainTime = 16.3475s ValTime = 16.4476s PeakMemory = 16.03GiB
+
+  commit                   pass
+  tests                    pass
+  smoke_F_4_s42_fscr1_tF   pass
+  smoke_Fb_4_s42_fscr1_tF  pass
+  smoke_L_1_s42_fscr1_tF   pass
+  smoke_F_4_s42_fscr1_tS5  pass
+  smoke_Fb_4_s42_fscr1_tS5 pass
+  smoke_L_1_s42_fscr1_tS5  pass
+  score_F_4_s42_fscr1_tF   pass
+  score_Fb_4_s42_fscr1_tF  pass
+  score_L_1_s42_fscr1_tF   pass
+  score_F_4_s42_fscr1_tS5  pass
+  score_Fb_4_s42_fscr1_tS5 pass
+  score_L_1_s42_fscr1_tS5  pass
+  nulls                    pass
+  run_info                 pass
+logs: /home/remote/bkadota/scratch/multistep_adaptivity/validate/3090319

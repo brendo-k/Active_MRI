@@ -1,0 +1,30 @@
+Sampler: seqmri_2d
+Number of sequential steps: 4
+Sparsity: 0.125
+val_half=dev (seed 20261111)
+Manifest train set (volumes, slices): {'brain': (339, 5139)}
+Manifest val set (volumes, slices): {'brain': (20, 307)}
+Fb_4_s42_fscr1_tF: /home/remote/bkadota/scratch/multistep_adaptivity/validate/3090319/Fb_4_s42_fscr1_tF/last_model.pt epoch 0, seqmri_2d, K=4, data_blind=True, 120 slices
+  scored 8/120 slices
+  scored 16/120 slices
+  scored 24/120 slices
+  scored 32/120 slices
+  scored 40/120 slices
+  scored 48/120 slices
+  scored 56/120 slices
+  scored 64/120 slices
+  scored 72/120 slices
+  scored 80/120 slices
+  scored 88/120 slices
+  scored 96/120 slices
+  scored 104/120 slices
+  scored 112/120 slices
+  scored 120/120 slices
+  PSNR_Masked brain 26.462  all 26.462
+  donors: {"matched": 95, "unmatched": {"brain": 25}}
+  swap_null: {"donor_final_mask_equals_own": 1.0, "must_be_1_for_a_data_blind_twin": true}
+  counterfactual_with_own_data_reproduces_every_step: true
+  guards: {"ssim_pooled": 0.7580249680564191, "ssim_at_least_0.80": false, "realised_fraction_target": 0.125, "realised_fraction_within_0.002": true, "most_draws_outside_the_acquired_region": 0, "no_draws_outside_the_acquired_region": true}
+  data-swap moved by step (all): 0.000 0.000 0.000 0.000
+/scratch/user/bkadota/conda/envs/dl/lib/python3.14/site-packages/torch/nn/functional.py:3855: UserWarning: size_average and reduce args will be deprecated, please use reduction='mean' instead.
+  reduction = _Reduction.legacy_get_string(size_average, reduce)
