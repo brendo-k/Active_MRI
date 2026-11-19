@@ -124,6 +124,7 @@ class SequentialSampling(nn.Module):
             virtual_coils=4,
             seqmri_input_scale='raw',
             seqmri_step_bias=False,
+            seqmri_union_route=False,
             ):
         """`budget_over='acquired'` makes `sparsity` a fraction of each slice's acquired k-space (`mask_budget`);
         'grid' (the default, as older runs trained) a fraction of the whole grid, all of it spent inside the acquired
@@ -144,7 +145,9 @@ class SequentialSampling(nn.Module):
         `sampler_type='seqmri_2d'` is SeqMRI's loop (activemri.samplers.seqmri, kscr3): the trained reconstructor
         reconstructs before every step, the centre included, and the gradient takes SeqMRI's routes (`_sample_steps`).
         `seqmri_input_scale` scales its input (fscr1: 'signed_log'), and `seqmri_step_bias` gives it one learned logit map
-        per step (seqmri_lr_bias_r8). Its `data_blind` twin reads no reconstruction, so
+        per step (seqmri_lr_bias_r8). `seqmri_union_route` also keeps every step's straight-through increment in the
+        union, so the loss on the final mask credits each step's draws directly, as the other samplers' loops do
+        (seqmri_lr_bias_r8 addendum). Its `data_blind` twin reads no reconstruction, so
         none runs before its steps; it keeps SeqMRI's routes, so its earlier draws are credited only through the weights
         every step shares.
 
@@ -169,6 +172,9 @@ class SequentialSampling(nn.Module):
             if virtual_coils < 1:
                 raise ValueError(f"sampler_input='seqmri' reads at least one virtual coil, got {virtual_coils}")
         self.seqmri_routes = sampler_type == 'seqmri_2d'
+        if seqmri_union_route and not self.seqmri_routes:
+            raise ValueError(f"seqmri_union_route changes seqmri_2d's routes, got sampler_type={sampler_type!r}")
+        self.seqmri_union_route = seqmri_union_route
         if self.seqmri_routes:
             if sampler_input != 'measured':
                 raise ValueError("seqmri_2d reads SeqMRI's own input (the predicted and measured k-space and the mask); "
@@ -820,8 +826,9 @@ class SequentialSampling(nn.Module):
         still available. The union keeps every step's straight-through increment, so a loss on the final mask reaches
         each step's choices. seqmri_2d takes SeqMRI's routes instead: the union is detached between steps and each in-loop
         reconstruction is not, so an earlier step's draws reach the loss only through the reconstructions later steps
-        read, and only the last step's reach it through the final mask. `visuals` (target, body mask) stores the panels
-        of the steps that are not reconstructed.
+        read, and only the last step's reach it through the final mask; with `seqmri_union_route` the union keeps every
+        step's increment as well, and the in-loop reconstructions stay attached. `visuals` (target, body mask) stores
+        the panels of the steps that are not reconstructed.
 
         Returns a dict: `mask` (the final mask, differentiable), `masks` (detached, after each step), `details` (each
         step's), the sampler's mean anatomy logits and its REINFORCE terms summed over the steps.
@@ -842,7 +849,8 @@ class SequentialSampling(nn.Module):
                 anatomy_labels=anatomy_labels, fixed_mask=fixed_mask, budget=step_budget,
                 context=self._step_context(header, observed, i, full_kspace, mask.detach(), anatomy_labels, predicted),
                 threshold=None if thresholds is None else thresholds[i])
-            mask = sampled['mask'] if i == 0 or self.seqmri_routes else mask + (sampled['mask'] - mask.detach())
+            detach_union = self.seqmri_routes and not self.seqmri_union_route
+            mask = sampled['mask'] if i == 0 or detach_union else mask + (sampled['mask'] - mask.detach())
             masks.append(mask.detach())
             details.append(sampled['details'])
             if sampled['anatomy_logits'] is not None:

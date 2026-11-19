@@ -27,10 +27,10 @@ source "${EXP_DIR:-$HOME/scratch/seqmri_lr_bias_r8}/code/scripts/launch/hpc/seqm
 start_job
 OUT="$EXP_DIR/validate/${SLURM_JOB_ID:-local}"
 mkdir -p "$OUT"
-read -r -a RESUME_ARMS <<< "${RESUME_ARMS:-F_4_s42_fscr1_tF_r150 Fb_4_s42_fscr1_tF_r150 L_1_s42_fscr1_tF_r150}"
-# The bias arms (F_4_s42_bias_tF Fb_4_s42_bias_tF) are validated at their own run state: the twin's early-step maps get no
-# gradient (scripts/diagnostics/seqmri_step_bias_gradients.py), so their design went back to the user.
-read -r -a SMOKE_ARMS <<< "${SMOKE_ARMS:-F_4_s42_lrs_tF Fb_4_s42_lrs_tF}"
+read -r -a RESUME_ARMS <<< "${RESUME_ARMS-F_4_s42_fscr1_tF_r150 Fb_4_s42_fscr1_tF_r150 L_1_s42_fscr1_tF_r150}"
+# The route arms (addendum_2026-11-19_route.md) are validated at run state 2 with RESUME_ARMS='' and
+# SMOKE_ARMS='F_4_s42_route_tF Fb_4_s42_route_tF F_4_s42_routebias_tF Fb_4_s42_routebias_tF'.
+read -r -a SMOKE_ARMS <<< "${SMOKE_ARMS-F_4_s42_lrs_tF Fb_4_s42_lrs_tF}"
 CHECKS=()
 declare -A RESULT
 
@@ -92,7 +92,7 @@ score() {
 }
 
 nulls() {
-    python - "$OUT/scores" "${SMOKE_ARMS[@]}" <<'EOF'
+    python - "$OUT/scores" ${SMOKE_ARMS[@]+"${SMOKE_ARMS[@]}"} <<'EOF'
 import json, sys
 from pathlib import Path
 
@@ -134,11 +134,11 @@ EOF
 
 check commit shipped_commit
 check tests python -m pytest -q tests
-for arm in "${RESUME_ARMS[@]}"; do
+for arm in ${RESUME_ARMS[@]+"${RESUME_ARMS[@]}"}; do
     check "resume_$arm" resume "$arm"
     check "continues_$arm" resume_continues "$arm"
 done
-for arm in "${SMOKE_ARMS[@]}"; do
+for arm in ${SMOKE_ARMS[@]+"${SMOKE_ARMS[@]}"}; do
     check "smoke_$arm" smoke "$arm"
     check "score_$arm" score "$arm"
 done

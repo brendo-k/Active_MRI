@@ -4,7 +4,11 @@
 #   <F|Fb|L>_<K>_s42_fscr1_tF_r150  the fscr1 run resumed from its epoch-100 checkpoint (optimizer state included) to
 #                                   epoch 150, at the lr the step schedule gives after epoch 90 (1e-4), in a new run folder
 #   <F|Fb>_4_s42_lrs_tF             the sampler in its own Adam group at sampler.lr=1e-4 (1e-5 after the step at 90)
-#   <F|Fb>_4_s42_bias_tF            one learned logit map per step (sampler.seqmri_step_bias=true)
+#   <F|Fb>_4_s42_route_tF           the union keeps every step's straight-through increment (sampler.seqmri_union_route),
+#                                   the control of the maps under that route (addendum_2026-11-19_route.md)
+#   <F|Fb>_4_s42_routebias_tF       that route plus one learned logit map per step (sampler.seqmri_step_bias=true)
+# The frozen per-step-map arms under SeqMRI's routes (<F|Fb>_4_s42_bias_tF) were replaced: the twin's earlier maps get
+# no gradient there (scripts/diagnostics/seqmri_step_bias_gradients.py).
 
 EXP_DIR="${EXP_DIR:-$HOME/scratch/seqmri_lr_bias_r8}"
 FSCR1_RUNS="${FSCR1_RUNS:-$HOME/scratch/multistep_adaptivity/runs}"
@@ -28,12 +32,14 @@ lr_bias_arm_args() {
         arm_args "$control"
         set_arg "output.checkpoint=$FSCR1_RUNS/$control/last_model.pt"
         set_arg training.num_epochs=150
-    elif [[ "$arm" =~ ^(F|Fb)_4_s42_(lrs|bias)_tF$ ]]; then
+    elif [[ "$arm" =~ ^(F|Fb)_4_s42_(lrs|route|routebias)_tF$ ]]; then
         local kind="${BASH_REMATCH[1]}" change="${BASH_REMATCH[2]}"
         arm_args "${kind}_4_s42_fscr1_tF"
         case "$change" in
             lrs) set_arg sampler.lr=1e-4 ;;
-            bias) set_arg sampler.seqmri_step_bias=true ;;
+            route) set_arg sampler.seqmri_union_route=true ;;
+            routebias) set_arg sampler.seqmri_union_route=true
+                       set_arg sampler.seqmri_step_bias=true ;;
         esac
     else
         echo "unknown seqmri_lr_bias_r8 arm '$arm'" >&2

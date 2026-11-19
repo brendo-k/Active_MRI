@@ -52,6 +52,7 @@ sampler:
   input_recon_checkpoint: null  # input=recon: the run whose reconstructor and sensitivity net make that image; they never train
   recon_steps: [6, 9, 12, 14]  # input=seqmri: the 0-indexed steps before which the trained reconstructor reconstructs y * M_i (with gradient into its weights, M_i detached) for the sampler
   virtual_coils: 4  # input=seqmri: ACS-compressed virtual coils of the measured and predicted coil k-space, each as log magnitude, cos and sin of the phase
+  seqmri_union_route: false  # seqmri_2d: the final mask keeps every step's straight-through increment, so the loss credits each step's draws directly (SeqMRI detaches the union between steps); the in-loop reconstructions stay attached (seqmri_lr_bias_r8 addendum)
   seqmri_step_bias: false  # seqmri_2d: one learned logit map per step, zero at the start, added to the U-Net's output before the softplus, in its own Adam group at sampler.lr (or training.lr) (seqmri_lr_bias_r8)
   seqmri_input_scale: raw  # seqmri_2d: raw = the real and imaginary k-space over the ACS peak, as kscr3 read it (~1e-5 beyond the centre); signed_log = sign(v) log1p(|v| / 1e-6) / log1p(1e6) of each (fscr1)
   data_channels: [image, kspace]  # seq_adapt_2d: the measured-data channels the residual reads, image = RSS of the zero-filled coil images, kspace = log coil-RSS magnitude of the measured k-space; the others get the twin's fixed values ([image] is the multistep_adaptivity channel ablation)

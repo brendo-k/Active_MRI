@@ -130,6 +130,7 @@ class TrainConfig:
     input_recon_checkpoint: Optional[str] = None  # sampler_input='recon': the run whose reconstructor and sensitivity net, frozen, make that image
     recon_steps: List[int] = field(default_factory=lambda: [6, 9, 12, 14])  # sampler_input='seqmri': the (0-indexed) steps before which the trained reconstructor reconstructs y * M_i for the sampler
     virtual_coils: int = 4  # sampler_input='seqmri': ACS-compressed virtual coils of the measured and predicted k-space the residual reads
+    seqmri_union_route: bool = False  # seqmri_2d: the final mask keeps every step's straight-through increment (seqmri_lr_bias_r8 addendum)
     seqmri_step_bias: bool = False  # seqmri_2d: one learned logit map per step, zero at the start, added before the softplus (seqmri_lr_bias_r8)
     seqmri_input_scale: str = 'raw'  # seqmri_2d: 'raw' real and imaginary k-space over the ACS peak (kscr3), or 'signed_log' of them (fscr1)
     data_channels: List[str] = field(default_factory=lambda: ['image', 'kspace'])  # seq_adapt_2d: the measured-data channels the residual reads; the others get the twin's fixed values

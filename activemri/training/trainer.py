@@ -1469,6 +1469,7 @@ def build_model(options: TrainConfig):
         virtual_coils=getattr(options, 'virtual_coils', 4),
         seqmri_input_scale=getattr(options, 'seqmri_input_scale', 'raw'),
         seqmri_step_bias=getattr(options, 'seqmri_step_bias', False),
+        seqmri_union_route=getattr(options, 'seqmri_union_route', False),
     )
     replace_instance_norms(model.reconstructor, getattr(recon_cfg, 'norm', 'instance'))
     replace_instance_norms(model.sensetivity_net, getattr(options, 'sens_norm', 'instance'))

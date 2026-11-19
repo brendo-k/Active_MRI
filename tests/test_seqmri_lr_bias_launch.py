@@ -29,8 +29,11 @@ ARMS = {
                                                    'training.num_epochs': 150}),
     'F_4_s42_lrs_tF': ('F_4_s42_fscr1_tF', {'sampler.lr': 1e-4}),
     'Fb_4_s42_lrs_tF': ('Fb_4_s42_fscr1_tF', {'sampler.lr': 1e-4}),
-    'F_4_s42_bias_tF': ('F_4_s42_fscr1_tF', {'sampler.seqmri_step_bias': True}),
-    'Fb_4_s42_bias_tF': ('Fb_4_s42_fscr1_tF', {'sampler.seqmri_step_bias': True}),
+    'F_4_s42_route_tF': ('F_4_s42_fscr1_tF', {'sampler.seqmri_union_route': True}),
+    'Fb_4_s42_route_tF': ('Fb_4_s42_fscr1_tF', {'sampler.seqmri_union_route': True}),
+    'F_4_s42_routebias_tF': ('F_4_s42_fscr1_tF', {'sampler.seqmri_union_route': True, 'sampler.seqmri_step_bias': True}),
+    'Fb_4_s42_routebias_tF': ('Fb_4_s42_fscr1_tF', {'sampler.seqmri_union_route': True,
+                                                    'sampler.seqmri_step_bias': True}),
 }
 
 
@@ -66,7 +69,8 @@ def test_each_arm_is_its_fscr1_control_with_one_change(arm, tmp_path):
     assert new['output.run_name'] == arm
 
 
-@pytest.mark.parametrize('arm', ['F_4_s42_fscr1_tS5_r150', 'L_1_s42_lrs_tF', 'F_4_s43_bias_tF', 'F_4_s42_fscr1_tF'])
+@pytest.mark.parametrize('arm', ['F_4_s42_fscr1_tS5_r150', 'L_1_s42_lrs_tF', 'F_4_s42_bias_tF', 'F_4_s43_route_tF',
+                                 'F_4_s42_fscr1_tF'])
 def test_other_names_are_refused(arm, tmp_path):
     with pytest.raises(AssertionError, match='unknown seqmri_lr_bias_r8 arm'):
         lr_bias_arguments(arm, tmp_path)
@@ -82,4 +86,5 @@ def test_the_trainer_options_carry_the_change(arm, tmp_path):
     assert options.checkpoint == (f'{FSCR1_RUNS}/{control}/last_model.pt' if resumed else None)
     assert options.num_epochs == (150 if resumed else 100)
     assert options.sampler_lr == (1e-4 if '_lrs_' in arm else None)
-    assert options.seqmri_step_bias == ('_bias_' in arm)
+    assert options.seqmri_step_bias == ('_routebias_' in arm)
+    assert options.seqmri_union_route == ('_route' in arm)

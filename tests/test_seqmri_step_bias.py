@@ -15,7 +15,7 @@ from activemri.config import TrainConfig  # noqa: E402
 from activemri.samplers.sampler import Sampler  # noqa: E402
 from activemri.samplers.seqmri import SeqMRISampler2D  # noqa: E402
 from activemri.training.trainer import Sequential_Trainer, build_lr_scheduler, build_optimizer  # noqa: E402
-from tests.test_multistep_sampling import LABELS, SIZE, data  # noqa: E402
+from tests.test_multistep_sampling import LABELS, SIZE, data, model as multistep_model  # noqa: E402
 from tests.test_seqmri_sampler import NUM_STEP, seqmri_model, step_context, thresholds  # noqa: E402
 
 
@@ -132,3 +132,38 @@ def test_the_step_schedule_scales_every_group_and_a_resume_continues_at_the_step
     for epoch in (100, 149):
         resumed.step(epoch)
         assert [group['lr'] for group in second.param_groups] == pytest.approx([1e-4, 1e-5])
+
+
+def step_map_gradients(**kwargs):
+    sampling_model = seqmri_model(seqmri_input_scale='signed_log', seqmri_step_bias=True, **kwargs)
+    sampling_model.train()
+    kspace, maps, target = data()
+    pred = sampling_model(target, kspace, anatomy_labels=LABELS, sense_maps=maps, thresholds=thresholds())
+    (pred['output'] - target).abs().mean().backward()
+    return sampling_model.sampler.mask_net.step_bias.grad.flatten(1).norm(dim=1)
+
+
+def test_under_seqmris_routes_the_twins_earlier_maps_get_no_gradient():
+    blind = step_map_gradients(data_blind=True)
+    assert blind[:-1].eq(0).all() and blind[-1].gt(0)
+
+
+@pytest.mark.parametrize('data_blind', [False, True])
+def test_the_union_route_credits_every_steps_map(data_blind):
+    assert step_map_gradients(data_blind=data_blind, seqmri_union_route=True).gt(0).all()
+
+
+@pytest.mark.parametrize('data_blind', [False, True])
+def test_the_union_route_changes_only_gradients_not_the_draws(data_blind):
+    seqmri, routed = (seqmri_model(seqmri_input_scale='signed_log', data_blind=data_blind, seqmri_union_route=route)
+                      for route in (False, True))
+    kspace, maps, target = data()
+    first = seqmri(target, kspace, anatomy_labels=LABELS, sense_maps=maps, thresholds=thresholds())
+    second = routed(target, kspace, anatomy_labels=LABELS, sense_maps=maps, thresholds=thresholds())
+    assert all(torch.equal(a, b) for a, b in zip(first['masks'], second['masks']))
+    assert torch.equal(first['output'], second['output']) and torch.equal(first['mask'], second['mask'])
+
+
+def test_the_union_route_belongs_to_seqmri_2d_only():
+    with pytest.raises(ValueError, match='seqmri_union_route'):
+        multistep_model(sampler_type='seq_adapt_2d', seqmri_union_route=True)
