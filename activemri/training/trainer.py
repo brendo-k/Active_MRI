@@ -220,6 +220,8 @@ class Sequential_Trainer:
             return [{'params': rest}, {'params': head_mlp, 'lr': getattr(self.options, 'sampler_head_mlp_lr', 1e-4)}]
         if self.options.sampler_type == 'seq_adapt_2d':
             return self._residual_param_groups(trainable)
+        if getattr(_unwrapped(self.model).sampler.mask_net, 'step_bias', None) is not None:
+            return self._step_bias_param_groups(trainable)
         gate_lr = getattr(self.options, 'gate_lr', None)
         if self.options.sampler_type == 'bank_adapt_2d' and gate_lr is not None:
             gate = [p for name, p in _unwrapped(self.model).sampler.mask_net.named_parameters() if name != 'mask' and p.requires_grad]
@@ -248,6 +250,37 @@ class Sequential_Trainer:
             policy_group['weight_decay'] = 0.0  # decay would drag every sample towards DC
             policy_group['eps'] = POSITION_ADAM_EPS
         return [group for group in ({'params': rest}, policy_group) if group['params']]
+
+    def _step_bias_param_groups(self, trainable):
+        """seqmri_2d with per-step logit maps: the U-Net in its own group at sampler_lr when that is set (else with the
+        rest at training.lr), and the maps alone in the last group at sampler_lr or training.lr."""
+        mask_net = _unwrapped(self.model).sampler.mask_net
+        sampler_lr = getattr(self.options, 'sampler_lr', None)
+        maps = [mask_net.step_bias] if mask_net.step_bias.requires_grad else []
+        network = [p for name, p in mask_net.named_parameters()
+                   if name != 'step_bias' and p.requires_grad] if sampler_lr is not None else []
+        separate = {id(p) for p in maps + network}
+        groups = ({'params': [p for p in trainable if id(p) not in separate]},
+                  {'params': network, 'lr': sampler_lr},
+                  {'params': maps, 'lr': sampler_lr if sampler_lr is not None else self.options.lr})
+        return [group for group in groups if group['params']]
+
+    def _group_lrs(self):
+        """' LR = ' and every optimizer group's current lr, in group order (e.g. ' LR = 0.0001,0.0001'), or '' without
+        an optimizer."""
+        optimizer = getattr(self, 'optimizer', None)
+        return '' if optimizer is None else ' LR = ' + ','.join(f"{group['lr']:.4g}" for group in optimizer.param_groups)
+
+    def _step_bias_rms(self):
+        """RMS of each step's seqmri_2d logit map, or None without them."""
+        model = getattr(self, 'model', None)
+        sampler = getattr(_unwrapped(model), 'sampler', None) if model is not None else None
+        step_bias = getattr(getattr(sampler, 'mask_net', None), 'step_bias', None)
+        return None if step_bias is None else step_bias.detach().float().pow(2).mean(dim=(1, 2, 3)).sqrt().tolist()
+
+    def _step_bias_summary(self):
+        rms = self._step_bias_rms()
+        return '' if rms is None else ' StepBiasRMS = ' + ','.join(f'{value:.4g}' for value in rms)
 
     def _residual_param_groups(self, trainable):
         """seq_adapt_2d: its residual U-Net in its own last Adam group at residual_lr (build_optimizer keeps the sampler
@@ -376,7 +409,8 @@ class Sequential_Trainer:
             self.logger.info(
                 f'Epoch = [{1 + self.epoch:4d}/{self.options.num_epochs:4d}] TrainLoss = {train_loss:.4g} '
                 f'ValLoss = {val_loss:.4g} MeanSparsity = {mean_sparsity:.4g} '
-                f'TrainTime = {train_time:.4f}s ValTime = {val_time:.4f}s PeakMemory = {self._peak_memory_gib():.2f}GiB',
+                f'TrainTime = {train_time:.4f}s ValTime = {val_time:.4f}s PeakMemory = {self._peak_memory_gib():.2f}GiB'
+                f'{self._group_lrs()}{self._step_bias_summary()}',
             )
             patience = getattr(self.options, 'early_stop_patience', 0)
             if patience > 0 and self.validations_since_best >= patience:
@@ -534,6 +568,10 @@ class Sequential_Trainer:
         if isinstance(mask_net, (ProbMask, LineConstrainedProbMask)):
             logit_log, self.previous_mask_logits = mask_logit_stats(mask_net, self.previous_mask_logits)
             epoch_log.update(logit_log)
+        for step, rms in enumerate(self._step_bias_rms() or []):
+            epoch_log[f'train/step_bias_rms/step{step}'] = rms
+        if getattr(self, 'optimizer', None) is not None:
+            epoch_log.update({f'train/lr/group{index}': group['lr'] for index, group in enumerate(self.optimizer.param_groups)})
         wandb.log(epoch_log)
 
         return np.mean(losses), time.perf_counter() - epoch_start_time, metric_means
@@ -1430,6 +1468,7 @@ def build_model(options: TrainConfig):
         recon_steps=getattr(options, 'recon_steps', None) or [6, 9, 12, 14],
         virtual_coils=getattr(options, 'virtual_coils', 4),
         seqmri_input_scale=getattr(options, 'seqmri_input_scale', 'raw'),
+        seqmri_step_bias=getattr(options, 'seqmri_step_bias', False),
     )
     replace_instance_norms(model.reconstructor, getattr(recon_cfg, 'norm', 'instance'))
     replace_instance_norms(model.sensetivity_net, getattr(options, 'sens_norm', 'instance'))

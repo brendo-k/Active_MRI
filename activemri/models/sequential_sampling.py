@@ -123,6 +123,7 @@ class SequentialSampling(nn.Module):
             recon_steps=IN_LOOP_RECON_STEPS,
             virtual_coils=4,
             seqmri_input_scale='raw',
+            seqmri_step_bias=False,
             ):
         """`budget_over='acquired'` makes `sparsity` a fraction of each slice's acquired k-space (`mask_budget`);
         'grid' (the default, as older runs trained) a fraction of the whole grid, all of it spent inside the acquired
@@ -142,7 +143,8 @@ class SequentialSampling(nn.Module):
 
         `sampler_type='seqmri_2d'` is SeqMRI's loop (activemri.samplers.seqmri, kscr3): the trained reconstructor
         reconstructs before every step, the centre included, and the gradient takes SeqMRI's routes (`_sample_steps`).
-        `seqmri_input_scale` scales its input (fscr1: 'signed_log'). Its `data_blind` twin reads no reconstruction, so
+        `seqmri_input_scale` scales its input (fscr1: 'signed_log'), and `seqmri_step_bias` gives it one learned logit map
+        per step (seqmri_lr_bias_r8). Its `data_blind` twin reads no reconstruction, so
         none runs before its steps; it keeps SeqMRI's routes, so its earlier draws are credited only through the weights
         every step shares.
 
@@ -275,6 +277,7 @@ class SequentialSampling(nn.Module):
             reads_reconstruction=sampler_input == 'recon',
             complex_coils=virtual_coils if sampler_input == 'seqmri' else 0,
             seqmri_input_scale=seqmri_input_scale,
+            seqmri_step_bias_steps=num_step if seqmri_step_bias else 0,
         )
 
         if loupe_same_start:
