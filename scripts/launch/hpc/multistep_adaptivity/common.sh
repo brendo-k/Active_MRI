@@ -92,7 +92,8 @@ arm_args() {
     fi
     if [[ "$arm" =~ ^B_([0-9]+)$ ]]; then
         ARM_ARGS=(--model loupe --seed "${BASH_REMATCH[1]}" training.num_step=1 training.num_epochs=100
-                  training.lr_step_size=90 sampler.loupe_vd_init_power=4 sampler.anatomy_conditioning=false)
+                  training.lr_step_size=90 sampler.loupe_vd_init_power=4 sampler.anatomy_conditioning=false
+                  recon.num_cascades=12)
         return
     fi
     if [[ ! "$arm" =~ ^([ATCS])_([0-9]+)_s([0-9]+)(_f([0-9]+)|_scr|_kscr([0-9]+)|_rec|_img)?$ ]]; then
@@ -111,7 +112,7 @@ arm_args() {
               training.num_step="$steps" sampler.data_blind="$blind")
     if [[ "$variant" == _kscr* ]]; then
         case "$iteration" in
-            1) ARM_ARGS+=(--seed "$base_seed" training.num_epochs=100 training.lr_step_size=90) ;;
+            1) ARM_ARGS+=(--seed "$base_seed" training.num_epochs=100 training.lr_step_size=90 recon.num_cascades=12) ;;
             2) ARM_ARGS+=(--seed "$base_seed" training.num_epochs=100 training.lr_step_size=90 recon.num_cascades=6) ;;
             *) echo "knee subproblem iteration $iteration is not defined" >&2; exit 1 ;;
         esac
@@ -123,7 +124,8 @@ arm_args() {
         return
     fi
     if [[ "$variant" == _scr ]]; then
-        ARM_ARGS+=(--seed "$base_seed" training.num_epochs=100 training.lr_step_size=90 sampler.loupe_vd_init_power=4)
+        ARM_ARGS+=(--seed "$base_seed" training.num_epochs=100 training.lr_step_size=90 sampler.loupe_vd_init_power=4
+                   recon.num_cascades=12)
         return
     fi
     local base="$RUNS_DIR/B_$base_seed/last_model.pt"
@@ -137,5 +139,5 @@ arm_args() {
     esac
     ARM_ARGS+=(--seed "${floor_seed:-$base_seed}" training.num_epochs=30 training.lr=1e-4 training.lr_scheduler=constant
                sampler.residual_lr=1e-4 "output.pretrained_recon=$base" "sampler.init_mask_checkpoint=$base"
-               'training.save_epochs=[10]')
+               'training.save_epochs=[10]' recon.num_cascades=12)
 }
