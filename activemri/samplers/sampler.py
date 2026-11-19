@@ -158,6 +158,7 @@ class Sampler(nn.Module):
         reads_reconstruction=False,
         complex_coils=0,
         seqmri_input_scale='raw',
+        loupe_point_symmetric=False,
         ):
         super().__init__()
 
@@ -176,6 +177,8 @@ class Sampler(nn.Module):
             raise ValueError(f"data_blind is the twin of {CONTEXT_SAMPLERS}, got sampler_type={sampler_type!r}")
         if seqmri_input_scale != 'raw' and sampler_type != "seqmri_2d":
             raise ValueError(f"seqmri_input_scale scales seqmri_2d's input, got sampler_type={sampler_type!r}")
+        if loupe_point_symmetric and sampler_type != "loupe_2d":
+            raise ValueError(f"loupe_point_symmetric ties loupe_2d's map, got sampler_type={sampler_type!r}")
         if data_channels is not None and set(data_channels) != set(DATA_CHANNEL_NAMES) and sampler_type != "seq_adapt_2d":
             raise ValueError(f"data_channels selects seq_adapt_2d's data inputs, got sampler_type={sampler_type!r}")
         if (reads_reconstruction or complex_coils) and sampler_type != "seq_adapt_2d":
@@ -265,7 +268,7 @@ class Sampler(nn.Module):
                                             input_scale=seqmri_input_scale, data_blind=data_blind)
         elif sampler_type == "loupe_2d":
             self.mask_net = ProbMask(shape, slope, num_conditioning_classes=num_conditioning_classes,
-                                     grad_floor=mask_grad_floor)
+                                     grad_floor=mask_grad_floor, point_symmetric=loupe_point_symmetric)
         else:
             self.mask_net = LineConstrainedProbMask(shape, slope, num_conditioning_classes=num_conditioning_classes,
                                                     grad_floor=mask_grad_floor)

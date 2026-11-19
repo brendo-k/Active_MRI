@@ -33,7 +33,7 @@ training:
   seed: 42
 
 loss:
-  loss_type: l1
+  loss_type: l1  # l1 (RSS magnitude) | complex_l1 (complex image through the model's own detached maps, loupe_loss_partial_fourier) | ssim | nmse | psnr
   uncertainty_loss: false
   uncertainty_weight: 0.0
   anatomy_weight: 0.0
@@ -52,6 +52,7 @@ sampler:
   input_recon_checkpoint: null  # input=recon: the run whose reconstructor and sensitivity net make that image; they never train
   recon_steps: [6, 9, 12, 14]  # input=seqmri: the 0-indexed steps before which the trained reconstructor reconstructs y * M_i (with gradient into its weights, M_i detached) for the sampler
   virtual_coils: 4  # input=seqmri: ACS-compressed virtual coils of the measured and predicted coil k-space, each as log magnitude, cos and sin of the phase
+  loupe_point_symmetric: false  # loupe_2d: tie each logit to its partner's at -k, (w(k) + w(-k)) / 2, so k and -k get one probability (loupe_loss_partial_fourier)
   seqmri_input_scale: raw  # seqmri_2d: raw = the real and imaginary k-space over the ACS peak, as kscr3 read it (~1e-5 beyond the centre); signed_log = sign(v) log1p(|v| / 1e-6) / log1p(1e6) of each (fscr1)
   data_channels: [image, kspace]  # seq_adapt_2d: the measured-data channels the residual reads, image = RSS of the zero-filled coil images, kspace = log coil-RSS magnitude of the measured k-space; the others get the twin's fixed values ([image] is the multistep_adaptivity channel ablation)
   residual_checkpoint: true  # seq_adapt_2d: recompute the residual U-Net in backward instead of storing each step's activations (K=16 at batch 16 OOMs on 48 GB without it); the gradients are the same

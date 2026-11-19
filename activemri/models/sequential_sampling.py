@@ -123,6 +123,7 @@ class SequentialSampling(nn.Module):
             recon_steps=IN_LOOP_RECON_STEPS,
             virtual_coils=4,
             seqmri_input_scale='raw',
+            loupe_point_symmetric=False,
             ):
         """`budget_over='acquired'` makes `sparsity` a fraction of each slice's acquired k-space (`mask_budget`);
         'grid' (the default, as older runs trained) a fraction of the whole grid, all of it spent inside the acquired
@@ -275,6 +276,7 @@ class SequentialSampling(nn.Module):
             reads_reconstruction=sampler_input == 'recon',
             complex_coils=virtual_coils if sampler_input == 'seqmri' else 0,
             seqmri_input_scale=seqmri_input_scale,
+            loupe_point_symmetric=loupe_point_symmetric,
         )
 
         if loupe_same_start:
@@ -358,6 +360,19 @@ class SequentialSampling(nn.Module):
         if self.sampler_coil_combine == 'rss':
             return torch_ifft2(coil_kspace).abs().pow(2).sum(dim=1).sqrt().to(coil_kspace.dtype)
         return self._coil_combine(coil_kspace, sense_maps)
+
+    def complex_l1(self, recon, sense_maps, full_kspace):
+        """Mean |x_o - t| over the image (loupe_loss_partial_fourier): the complex-image counterpart of the RSS L1 loss.
+
+        x_o = sum_c conj(S_c) IFFT(FFT(S_c x) E) combines the reconstruction's coil k-space inside the acquired extent E,
+        as the RSS output takes it, and t = sum_c conj(S_c) IFFT(y_c E) the fully sampled coil k-space y, both through
+        the model's own maps, detached in the combination. So the maps' common phase cancels, the maps cannot be trained
+        to hide coil errors through the combination, and the loss differs from the RSS loss only in keeping the phase."""
+        extent = self._kspace_extent(full_kspace)
+        maps = sense_maps.detach().conj()
+        output = (torch_ifft2(torch_fft2(recon * sense_maps) * extent) * maps).sum(dim=1, keepdim=True)
+        target = (torch_ifft2(torch.view_as_complex(full_kspace.contiguous()) * extent) * maps).sum(dim=1, keepdim=True)
+        return (output - target).abs().mean()
 
     @staticmethod
     def _coil_rss(image, sense_maps, kspace_extent):
@@ -935,6 +950,9 @@ class SequentialSampling(nn.Module):
         elif loss_type == 'l1':
             reconstruction_loss = F.l1_loss(pred, target, size_average=True)
             zero_loss = zero_filled_baseline(lambda image: F.l1_loss(image, target, size_average=True))
+        elif loss_type == 'complex_l1':
+            reconstruction_loss = self.complex_l1(pred_dict['recon_complex'], pred_dict['sense_maps'], gt_kspace)
+            zero_loss = pred.new_tensor(float('nan'))
         elif loss_type == 'ssim':
             reconstruction_loss = -torch.mean(compute_ssim_torch(pred, target))
             zero_loss = zero_filled_baseline(lambda image: -torch.mean(compute_ssim_torch(image, target)))

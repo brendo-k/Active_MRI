@@ -1430,6 +1430,7 @@ def build_model(options: TrainConfig):
         recon_steps=getattr(options, 'recon_steps', None) or [6, 9, 12, 14],
         virtual_coils=getattr(options, 'virtual_coils', 4),
         seqmri_input_scale=getattr(options, 'seqmri_input_scale', 'raw'),
+        loupe_point_symmetric=getattr(options, 'loupe_point_symmetric', False),
     )
     replace_instance_norms(model.reconstructor, getattr(recon_cfg, 'norm', 'instance'))
     replace_instance_norms(model.sensetivity_net, getattr(options, 'sens_norm', 'instance'))

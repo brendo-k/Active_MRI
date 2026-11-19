@@ -26,6 +26,12 @@ def _variable_density_logits(radius, power):
     return -power * torch.log(radius + VD_CENTER_OFFSET)
 
 
+def point_reflected(values, dims=(1, 2)):
+    """`values` at -k on the centred grid dims `dims`: index i -> (N - i) % N, i.e. flip then roll by one, so DC at N // 2
+    and index 0 map to themselves."""
+    return torch.roll(torch.flip(values, dims), (1,) * len(dims), dims)
+
+
 class ProbMask(nn.Module):
     """A learned probability for every k-space location.
 
@@ -37,10 +43,14 @@ class ProbMask(nn.Module):
             one shared mask.
         grad_floor: Lower bound on the sigmoid's backward derivative, as a
             fraction of its peak, so saturated locations keep a gradient.
+        point_symmetric: Tie every location's logit to its partner's at -k, logit = (w(k) + w(-k)) / 2, so the
+            map gives k and -k the same probability (loupe_loss_partial_fourier).
     """
 
-    def __init__(self, shape=(320, 320), slope=10, num_conditioning_classes=0, grad_floor=0.0):
+    def __init__(self, shape=(320, 320), slope=10, num_conditioning_classes=0, grad_floor=0.0, point_symmetric=False):
         super().__init__()
+
+        self.point_symmetric = point_symmetric
 
         self.slope = slope
         self.grad_floor = grad_floor
@@ -51,15 +61,19 @@ class ProbMask(nn.Module):
     def forward(self, input, anatomy_labels=None):
         """Args: input NHWC. Returns: probabilities [N or 1, H, W, 1]."""
         logits = _select_mask(self.mask, anatomy_labels, self.num_conditioning_classes)
-        logits = logits.view(-1, input.shape[1], input.shape[2], 1)
+        logits = self._tied(logits.view(-1, input.shape[1], input.shape[2], 1))
         return floored_grad_sigmoid(logits, self.slope, self.grad_floor)
+
+    def _tied(self, logits):
+        """[N, H, W, ...] logits, averaged with their partners at -k when the map is point-symmetric."""
+        return (logits + point_reflected(logits)) / 2 if self.point_symmetric else logits
 
     def raw_logits(self, anatomy_labels=None):
         """The free parameter itself (pre-sigmoid), [N or 1, H, W] -- the score
         field a REINFORCE policy samples from, as opposed to :meth:`forward`'s
         sigmoid probabilities used by the straight-through path."""
         logits = _select_mask(self.mask, anatomy_labels, self.num_conditioning_classes)
-        return logits.squeeze(-1)
+        return self._tied(logits).squeeze(-1)
 
     def init_variable_density(self, power):
         """Overwrite every anatomy's logits with a radial variable-density prior.
