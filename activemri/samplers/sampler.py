@@ -14,6 +14,8 @@ from activemri.samplers.conv import KspaceLineConstrainedSampler, SampProb2D
 from activemri.samplers.loupe import LineConstrainedProbMask, ProbMask
 from activemri.samplers.oracle import plackett_luce_sample_and_logprob
 from activemri.samplers.mask_bank import MaskBank
+from activemri.samplers.seq_adapt import DATA_CHANNEL_NAMES, SequentialAdaptiveMask
+from activemri.samplers.seqmri import SeqMRISampler2D
 from activemri.samplers.cnn_router import CNNRoutedMaskBank
 from activemri.samplers.smooth_adapt import SmoothAdaptiveMask
 from activemri.utils.image_processing import ifft_2d_img
@@ -21,7 +23,8 @@ from activemri.utils.mask_binarization import (
     RescaleProbMap, stratified_thresholds, threshold_random_mask, topk_straight_through)
 
 
-SAMPLER_TYPES = ("conv_2d", "conv_1d", "loupe_2d", "loupe_1d", "caipi_2d", "poisson_2d", "autosamp_2d", "mnet_2d", "smooth_adapt_2d", "bank_adapt_2d", "cnn_router_2d")
+SAMPLER_TYPES = ("conv_2d", "conv_1d", "loupe_2d", "loupe_1d", "caipi_2d", "poisson_2d", "autosamp_2d", "mnet_2d", "smooth_adapt_2d", "bank_adapt_2d", "cnn_router_2d", "seq_adapt_2d", "seqmri_2d")
+CONTEXT_SAMPLERS = ("seq_adapt_2d", "seqmri_2d")  # samplers that read a StepContext
 MASK_TRAIN_MODES = ("straight_through", "reinforce", "random")
 SELECTIONS = ("bernoulli", "dcm")
 
@@ -73,6 +76,8 @@ class Sampler(nn.Module):
         smooth_adapt_2d  LOUPE mask + smooth offset from the calibration  (input-adaptive, smooth)
         bank_adapt_2d    bank of LOUPE masks blended by a gate on the calibration (input-adaptive)
         cnn_router_2d   ACS CNN selects one LOUPE mask by index (input-adaptive)
+        seq_adapt_2d    LOUPE mask per condition + a residual on the k-space measured so far (input-adaptive per step;
+                        `data_blind` is its twin, which sees the mask and header but no data)
 
     `mnet_2d` is the sampler network of Huang & Ravishankar (TCI 2022), trained by the
     alternating scheme in :mod:`activemri.training.mnet_trainer`. It is `conv_2d`
@@ -144,6 +149,15 @@ class Sampler(nn.Module):
         selection="bernoulli",
         dcm_vd_power=4.0,
         dcm_tau=5.0,
+        residual_chans=16,
+        residual_depth=4,
+        residual_limit=6.0,
+        data_blind=False,
+        residual_checkpoint=True,
+        data_channels=None,
+        reads_reconstruction=False,
+        complex_coils=0,
+        seqmri_input_scale='raw',
         ):
         super().__init__()
 
@@ -158,6 +172,14 @@ class Sampler(nn.Module):
                              f"got {sampler_type!r}, {mask_train_mode!r}, mask_draws={mask_draws}")
         if reinforce_eval not in REINFORCE_EVAL_MODES:
             raise ValueError(f"Unknown reinforce_eval {reinforce_eval!r}; expected one of {REINFORCE_EVAL_MODES}")
+        if data_blind and sampler_type not in CONTEXT_SAMPLERS:
+            raise ValueError(f"data_blind is the twin of {CONTEXT_SAMPLERS}, got sampler_type={sampler_type!r}")
+        if seqmri_input_scale != 'raw' and sampler_type != "seqmri_2d":
+            raise ValueError(f"seqmri_input_scale scales seqmri_2d's input, got sampler_type={sampler_type!r}")
+        if data_channels is not None and set(data_channels) != set(DATA_CHANNEL_NAMES) and sampler_type != "seq_adapt_2d":
+            raise ValueError(f"data_channels selects seq_adapt_2d's data inputs, got sampler_type={sampler_type!r}")
+        if (reads_reconstruction or complex_coils) and sampler_type != "seq_adapt_2d":
+            raise ValueError(f"a reconstruction input is seq_adapt_2d's, got sampler_type={sampler_type!r}")
 
         self.sampler_type = sampler_type
         self.line_constrained = is_line_constrained(sampler_type)
@@ -232,6 +254,15 @@ class Sampler(nn.Module):
         elif sampler_type == "cnn_router_2d":
             self.mask_net = CNNRoutedMaskBank(shape, slope, calibration_size, bank_size=bank_size,
                                               hidden=adapt_hidden, grad_floor=mask_grad_floor)
+        elif sampler_type == "seq_adapt_2d":
+            self.mask_net = SequentialAdaptiveMask(shape, slope, num_conditioning_classes, chans=residual_chans,
+                                                   depth=residual_depth, limit=residual_limit, data_blind=data_blind,
+                                                   grad_floor=mask_grad_floor, checkpoint_residual=residual_checkpoint,
+                                                   data_channels=data_channels, reads_reconstruction=reads_reconstruction,
+                                                   complex_coils=complex_coils)
+        elif sampler_type == "seqmri_2d":
+            self.mask_net = SeqMRISampler2D(shape, chans=sampler_chans, num_pool_layers=sampler_depth,
+                                            input_scale=seqmri_input_scale, data_blind=data_blind)
         elif sampler_type == "loupe_2d":
             self.mask_net = ProbMask(shape, slope, num_conditioning_classes=num_conditioning_classes,
                                      grad_floor=mask_grad_floor)
@@ -300,10 +331,10 @@ class Sampler(nn.Module):
 
         Returns the starting [H, W] probability.
         """
-        if not (self.sampler_type == "loupe_2d" and self.mask_train_mode == "straight_through"
+        if not (self.sampler_type in ("loupe_2d", "seq_adapt_2d") and self.mask_train_mode == "straight_through"
                 and self.selection == "bernoulli"):
-            raise ValueError("the variable-density start is for a straight-through loupe_2d mask with Bernoulli "
-                             f"selection, got {self.sampler_type!r}, {self.mask_train_mode!r}, {self.selection!r}")
+            raise ValueError("the variable-density start is for a straight-through loupe_2d or seq_adapt_2d mask with "
+                             f"Bernoulli selection, got {self.sampler_type!r}, {self.mask_train_mode!r}, {self.selection!r}")
         available = available.to(torch.float64)
         if not eps * available.sum() < budget < (1 - eps) * available.sum():
             raise ValueError(f"a budget of {budget} is outside what [{eps}, {1 - eps}] probabilities can hold")
@@ -331,8 +362,14 @@ class Sampler(nn.Module):
         images = ifft_2d_img(torch.view_as_complex(pairs.contiguous()), axes=[1, 2])
         return torch.view_as_real(images).reshape(kspace_channels.shape)
 
-    def _predict_probabilities(self, input_kspace, old_mask, recon_complex, gfactor, anatomy_labels):
+    def _predict_probabilities(self, input_kspace, old_mask, recon_complex, gfactor, anatomy_labels, context=None,
+                               details=None):
         """Run the mask network, returning (scores NCHW, uncertainty or None, anatomy_logits or None)."""
+        if self.reads_context:
+            if context is None:
+                raise ValueError(f"{self.sampler_type} reads a StepContext (measured k-space, step, header); got none")
+            return self.mask_net(old_mask, context, anatomy_labels, details=details) * (1 - old_mask), None, None
+
         if self.is_loupe:
             prob = self.mask_net(input_kspace, anatomy_labels).permute(0, 3, 1, 2)
             prob = prob.expand(input_kspace.shape[0], -1, -1, -1)
@@ -443,13 +480,34 @@ class Sampler(nn.Module):
 
     @property
     def reads_input(self) -> bool:
-        """Whether the k-space passed to `forward` matters; the input-independent samplers only take its shape from it."""
-        return not (self.is_loupe or self.sampler_type in ("caipi_2d", "poisson_2d", "autosamp_2d"))
+        """Whether the k-space passed to `forward` matters; the input-independent samplers only take its shape from it,
+        and seq_adapt_2d reads its `context` instead."""
+        return not (self.is_loupe or self.reads_context or self.sampler_type in ("caipi_2d", "poisson_2d", "autosamp_2d"))
 
-    def unscaled_probabilities(self, observed_kspace, old_mask, recon_complex=None, gfactor=None, anatomy_labels=None):
+    @property
+    def reads_context(self) -> bool:
+        """Whether `forward` needs a StepContext: the coil k-space measured so far, the step and the header."""
+        return self.sampler_type in CONTEXT_SAMPLERS
+
+    @property
+    def data_blind(self) -> bool:
+        return self.reads_context and self.mask_net.data_blind
+
+    @property
+    def reads_reconstruction(self) -> bool:
+        return self.reads_context and self.mask_net.reads_reconstruction
+
+    @property
+    def complex_coils(self) -> int:
+        """Virtual coils of the kscr2 SeqMRI-style input, 0 for every other sampler."""
+        return self.mask_net.complex_coils if self.reads_context else 0
+
+    def unscaled_probabilities(self, observed_kspace, old_mask, recon_complex=None, gfactor=None, anatomy_labels=None,
+                               context=None, details=None):
         """The network's per-location scores before budget control: (scores NCHW, uncertainty or None, anatomy_logits or None)."""
         if not self.reads_input:
-            return self._predict_probabilities(observed_kspace, old_mask, recon_complex, gfactor, anatomy_labels)
+            return self._predict_probabilities(observed_kspace, old_mask, recon_complex, gfactor, anatomy_labels, context,
+                                               details)
         sampler_input = torch.cat([observed_kspace, observed_kspace * old_mask.permute(0, 2, 3, 1)], dim=-1)
         if self.image_domain_input:
             sampler_input = self._to_image_domain(sampler_input)
@@ -464,11 +522,12 @@ class Sampler(nn.Module):
             return stratified_thresholds(probabilities, self.mask_draws)
         return None
 
-    def select_locations(self, samp_prob_unscaled, old_mask, budget, valid_mask=None):
+    def select_locations(self, samp_prob_unscaled, old_mask, budget, valid_mask=None, threshold=None):
         """Turn unscaled per-location probabilities into this step's binary mask.
 
         Rescales to the sparsity `budget` implies over the still-available locations, then
         binarizes: a Bernoulli draw, or the exact top-k for `mnet_2d`. `budget` is one count, or one per slice.
+        `threshold` (U(0, 1), the probabilities' shape) replaces the Bernoulli draw's fresh noise.
 
         Returns:
             (rescaled probabilities, old_mask union the new locations), both NCHW.
@@ -484,6 +543,8 @@ class Sampler(nn.Module):
         if valid_mask is not None:
             available = available * valid_mask
 
+        if threshold is not None and (self.selection == "dcm" or self.exact_budget):
+            raise ValueError("a threshold replaces a Bernoulli draw's noise; this sampler selects deterministically")
         if self.selection == "dcm":
             return self._decoupled_comparison(samp_prob_unscaled, old_mask, single_budget(budget, "selection='dcm'"),
                                               available)
@@ -492,7 +553,7 @@ class Sampler(nn.Module):
         if self.exact_budget:
             binary_mask = topk_straight_through(samp_prob, int(round(single_budget(budget, self.sampler_type))), available)
         else:
-            binary_mask = self.binarize(samp_prob, threshold=self._draw_thresholds(samp_prob))
+            binary_mask = self.binarize(samp_prob, threshold=self._draw_thresholds(samp_prob) if threshold is None else threshold)
 
         if valid_mask is not None:
             binary_mask = binary_mask * valid_mask
@@ -519,8 +580,12 @@ class Sampler(nn.Module):
         chosen = topk_straight_through(allocation, int(round(float(budget))), available)
         return allocation, torch.clamp(old_mask + chosen, min=0, max=1)
 
-    def forward(self, observed_kspace, old_mask, budget, uncertainty_mask=None, valid_mask=None, recon_complex=None, gfactor=None, anatomy_labels=None):  # noqa: ARG002
-        """
+    def forward(self, observed_kspace, old_mask, budget, uncertainty_mask=None, valid_mask=None, recon_complex=None, gfactor=None, anatomy_labels=None, context=None,  # noqa: ARG002
+                threshold=None, details=None):
+        """`context` is the StepContext a `reads_context` sampler (seq_adapt_2d) needs. `threshold` replaces the
+        Bernoulli draw's noise (`select_locations`). A `details` dict receives the step's unscaled and rescaled
+        probabilities, and seq_adapt_2d's residual.
+
         Returns:
             binary_mask: Updated sampling mask (includes previous locations), shape NCHW
             data_to_vis_sampler: Dict of intermediate results for visualization
@@ -532,6 +597,10 @@ class Sampler(nn.Module):
         """
         if self.detach_kspace:
             observed_kspace = observed_kspace.detach()
+        if threshold is not None and (self.sampler_type in ("caipi_2d", "poisson_2d", "autosamp_2d")
+                                      or self.mask_train_mode != 'straight_through'):
+            raise ValueError(f"a threshold replaces a Bernoulli draw's noise; {self.sampler_type} with "
+                             f"mask_train_mode={self.mask_train_mode!r} draws none")
 
         if self.sampler_type in ("caipi_2d", "poisson_2d"):
             pattern = self.fixed_pattern(valid_mask).to(old_mask.dtype)
@@ -565,9 +634,11 @@ class Sampler(nn.Module):
             return binary_mask, data_to_vis_sampler, None, None, None
 
         samp_prob_unscaled, sampler_uncertainty, anatomy_logits = self.unscaled_probabilities(
-            observed_kspace, old_mask, recon_complex, gfactor, anatomy_labels)
+            observed_kspace, old_mask, recon_complex, gfactor, anatomy_labels, context, details)
 
-        samp_prob, binary_mask = self.select_locations(samp_prob_unscaled, old_mask, budget, valid_mask)
+        samp_prob, binary_mask = self.select_locations(samp_prob_unscaled, old_mask, budget, valid_mask, threshold=threshold)
+        if details is not None:
+            details.update(unscaled=samp_prob_unscaled, rescaled=samp_prob)
 
         data_to_vis_sampler = {
             'prob_mask': samp_prob_unscaled[0, 0, :, :].detach(),

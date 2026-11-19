@@ -1,0 +1,38 @@
+host=ggpu1-14 gpu=NVIDIA RTX PRO 6000 Blackwell Server Edition commit=b21c6b23617248fd7b066b11ae99fcbef22592b5 python=3.14.0 torch=2.12.0+cu130
+14:22:56 commit: pass
+14:23:35 tests: pass
+14:27:06 smoke_T_16_s42_kscr2: pass
+14:29:32 smoke_A_16_s42_kscr2: pass
+14:31:57 smoke_C_16_s42_kscr2: pass
+14:34:47 smoke_S_16_s42_kscr2: pass
+14:36:39 smoke_T_1_s42_kscr2: pass
+14:37:35 score_T_16_s42_kscr2: pass
+14:38:33 score_A_16_s42_kscr2: pass
+14:39:30 score_C_16_s42_kscr2: pass
+14:41:35 score_S_16_s42_kscr2: pass
+14:42:08 score_T_1_s42_kscr2: pass
+14:42:09 nulls: pass
+14:42:09 run_info: pass
+
+Epoch lines (10% of a train epoch, compile included, then the full dev val half):
+  T_16_s42_kscr2: TrainTime = 83.1514s ValTime = 58.2404s PeakMemory = 26.26GiB
+  A_16_s42_kscr2: TrainTime = 42.2753s ValTime = 32.9941s PeakMemory = 26.26GiB
+  C_16_s42_kscr2: TrainTime = 41.9566s ValTime = 32.9261s PeakMemory = 26.26GiB
+  S_16_s42_kscr2: TrainTime = 54.9879s ValTime = 44.7377s PeakMemory = 78.75GiB
+  T_1_s42_kscr2: TrainTime = 24.9208s ValTime = 16.6145s PeakMemory = 24.06GiB
+
+  commit                   pass
+  tests                    pass
+  smoke_T_16_s42_kscr2     pass
+  smoke_A_16_s42_kscr2     pass
+  smoke_C_16_s42_kscr2     pass
+  smoke_S_16_s42_kscr2     pass
+  smoke_T_1_s42_kscr2      pass
+  score_T_16_s42_kscr2     pass
+  score_A_16_s42_kscr2     pass
+  score_C_16_s42_kscr2     pass
+  score_S_16_s42_kscr2     pass
+  score_T_1_s42_kscr2      pass
+  nulls                    pass
+  run_info                 pass
+logs: /home/remote/bkadota/scratch/multistep_adaptivity/validate/3073267

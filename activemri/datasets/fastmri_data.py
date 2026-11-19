@@ -750,12 +750,14 @@ def _limit_volume_rows(rows: List[Dict], fraction: Optional[float], seed: int = 
 
 def _manifest_split_rows(rows: List[Dict], train_tier: str = 'S', train_anatomies: Sequence[str] = (),
                          limit_volumes: Optional[float] = None, val_anatomies: Sequence[str] = (),
-                         val_limit_volumes: Optional[float] = None) -> Tuple[List[Dict], List[Dict]]:
+                         val_limit_volumes: Optional[float] = None,
+                         val_half: str = 'all') -> Tuple[List[Dict], List[Dict]]:
     """Train and val rows of a manifest.
 
     Train keeps `train_tier` rows of `train_anatomies` (empty = all) and `limit_volumes` of each condition. Val keeps
     the val rows of `val_anatomies` (empty = all) and `val_limit_volumes` of each condition, or `limit_volumes` when
-    that is `None`. Pinning `val_limit_volumes` keeps one val set across runs whose training data differs.
+    that is `None`. Pinning `val_limit_volumes` keeps one val set across runs whose training data differs. `val_half`
+    then keeps one fixed half of each condition's val volumes (`_val_half_rows`).
     """
     train_rows = [row for row in rows if row['split'] == 'train' and row['tier'] in MANIFEST_TRAIN_TIERS[train_tier]
                   and (not train_anatomies or row['anatomy'] in train_anatomies)]
@@ -767,17 +769,65 @@ def _manifest_split_rows(rows: List[Dict], train_tier: str = 'S', train_anatomie
         print(f"limit_volumes={float(limit_volumes):g} of each train condition (seed {LIMIT_VOLUMES_SEED})")
     if val_fraction is not None and float(val_fraction) != 1:
         print(f"val keeps {float(val_fraction):g} of each condition (seed {LIMIT_VOLUMES_SEED})")
+    if val_half != 'all':
+        val_rows = _val_half_rows(val_rows, val_half)
+        print(f"val_half={val_half} (seed {VAL_HALF_SEED})")
     return train_rows, val_rows
 
 
-def _manifest_datasets(rows: List[Dict], roots: Dict[str, str], split: str, **dataset_kwargs) -> List[FastMRIDataset]:
-    """One FastMRIDataset per (anatomy, directory) of the manifest rows; prints the volumes and slices per condition."""
+VAL_HALVES = ('all', 'dev', 'holdout')
+VAL_HALF_SEED = 20261111
+
+
+def _val_half_rows(rows: List[Dict], half: str, seed: int = VAL_HALF_SEED) -> List[Dict]:
+    """Split the val volumes of each condition into two fixed halves: `dev` to iterate on, `holdout` to confirm on.
+
+    Volumes of a condition are sorted by filename and shuffled once with a seed of their own; `dev` takes the first
+    ceil(n / 2), `holdout` the rest. The split never depends on the training seed or on the other conditions.
+    """
+    if half not in VAL_HALVES:
+        raise ValueError(f"val_half must be one of {VAL_HALVES}, got {half!r}")
+    if half == 'all':
+        return rows
+    groups: Dict[str, List[Dict]] = {}
+    for row in rows:
+        groups.setdefault(condition_name(row['anatomy'], row), []).append(row)
+    kept: List[Dict] = []
+    for condition in sorted(groups):
+        group = sorted(groups[condition], key=lambda row: row['file'])
+        order = np.random.RandomState(zlib.crc32(f"{seed}:{condition}".encode())).permutation(len(group))
+        cut = (len(group) + 1) // 2
+        kept.extend(group[i] for i in (order[:cut] if half == 'dev' else order[cut:]))
+    return kept
+
+
+def _every_nth_slice(dataset: FastMRIDataset, stride: int) -> None:
+    """Keep every `stride`-th of each volume's slices in `dataset`, the middle one of each run of `stride`."""
+    kept, seen = [], {}
+    for fname, slice_id in dataset.examples:
+        position = seen.get(fname, 0)
+        seen[fname] = position + 1
+        if position % stride == stride // 2:
+            kept.append((fname, slice_id))
+    dataset.examples = kept
+
+
+def _manifest_datasets(rows: List[Dict], roots: Dict[str, str], split: str, slice_stride: int = 1,
+                       **dataset_kwargs) -> List[FastMRIDataset]:
+    """One FastMRIDataset per (anatomy, directory) of the manifest rows, keeping every `slice_stride`-th slice of each
+    volume (`_every_nth_slice`); prints the volumes and slices per condition."""
+    if int(slice_stride) != slice_stride or slice_stride < 1:
+        raise ValueError(f"slice_stride must be a positive integer, got {slice_stride}")
     groups: Dict[Tuple[str, pathlib.Path], List[str]] = {}
     for row in rows:
         path = pathlib.Path(roots[row['source']].format(anatomy=row['anatomy'])).expanduser() / row['hpc_relpath']
         groups.setdefault((row['anatomy'], path.parent), []).append(path.name)
     datasets = [FastMRIDataset(root=root, anatomy=anatomy, file_names=names, **dataset_kwargs)
                 for (anatomy, root), names in groups.items()]
+    if slice_stride > 1:
+        for ds in datasets:
+            _every_nth_slice(ds, int(slice_stride))
+        print(f"{split}: every {int(slice_stride)}th slice of each volume")
     condition_of = {row['file']: condition_name(row['anatomy'], row) for row in rows}
     volumes: Dict[str, set] = {}
     slices: Dict[str, int] = {}
@@ -806,6 +856,8 @@ def build_manifest_dataloaders(
     limit_volumes: Optional[float] = None,
     val_anatomies: Sequence[str] = (),
     val_limit_volumes: Optional[float] = None,
+    val_half: str = 'all',
+    train_slice_stride: int = 1,
 ) -> Tuple[torch.utils.data.DataLoader, torch.utils.data.DataLoader]:
     """Train and val loaders over the raw h5 volumes a subset manifest lists (scripts/data/select_fastmri_subset.py).
 
@@ -816,7 +868,9 @@ def build_manifest_dataloaders(
     `train_anatomies`, when given, trains on those anatomies' rows alone while val keeps every class.
     `limit_volumes` is the fraction of each condition kept in train and again in val (`_limit_volume_rows`). 1 and
     `None` keep the whole tier. The choice does not depend on `shuffle_seed`. `val_anatomies` and `val_limit_volumes`
-    override the val side alone (`_manifest_split_rows`).
+    override the val side alone (`_manifest_split_rows`). `val_half` then keeps one fixed half of each condition's val
+    volumes (`_val_half_rows`). `train_slice_stride` keeps every n-th of each train volume's slices that pass the
+    energy filter (`_every_nth_slice`); val keeps all of them.
     """
     import csv
     with open(REPO_ROOT / pathlib.Path(manifest).expanduser()) as f:
@@ -832,9 +886,9 @@ def build_manifest_dataloaders(
         if unknown:
             raise ValueError(f"{name} {sorted(unknown)} are not among the anatomies of classes {list(classes)}")
     train_rows, val_rows = _manifest_split_rows(rows, train_tier, train_anatomies, limit_volumes, val_anatomies,
-                                                val_limit_volumes)
+                                                val_limit_volumes, val_half)
     dataset_kwargs = dict(image_shape=image_shape, transform=transform, num_coils=num_coils,
                           min_energy_fraction=min_energy_fraction, readout_crop=True)
-    return _dataloaders(_manifest_datasets(train_rows, roots, 'train', **dataset_kwargs),
+    return _dataloaders(_manifest_datasets(train_rows, roots, 'train', slice_stride=train_slice_stride, **dataset_kwargs),
                         _manifest_datasets(val_rows, roots, 'val', **dataset_kwargs),
                         batch_size, num_workers, shuffle_seed)

@@ -22,7 +22,7 @@ import math
 import torch
 from torch.autograd import Function
 
-from activemri.utils.compilers import use_system_compilers_if_missing
+from activemri.utils.compilers import allow_recompiles, use_system_compilers_if_missing
 
 FFT_AXES = (-1, -2)
 _COMPILED = {}
@@ -31,6 +31,7 @@ _COMPILED = {}
 def _compiled(fn):
     if fn not in _COMPILED:
         use_system_compilers_if_missing()
+        allow_recompiles()
         _COMPILED[fn] = torch.compile(fn, dynamic=False, fullgraph=True)
     return _COMPILED[fn]
 

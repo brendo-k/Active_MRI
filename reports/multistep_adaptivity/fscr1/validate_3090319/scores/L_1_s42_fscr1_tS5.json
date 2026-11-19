@@ -1,0 +1,890 @@
+{
+  "name": "L_1_s42_fscr1_tS5",
+  "run": "/home/remote/bkadota/scratch/multistep_adaptivity/validate/3090319/L_1_s42_fscr1_tS5",
+  "checkpoint": "last_model.pt",
+  "epoch": 0,
+  "training_code": {
+    "commit": "d58087f50aa3a327fd02402061708ab953f5836a",
+    "branch": "exp/multistep_adaptivity",
+    "dirty_tracked_files": [],
+    "started_at": "2026-11-17T16:31:50+00:00",
+    "argv": [
+      "train.py",
+      "sampler.sampler_type=loupe_2d",
+      "hydra.job.name=train_sequential",
+      "recon=varnet",
+      "datasets=fastmri_local_v1_flair",
+      "training.batch_size=16",
+      "training.seed=42",
+      "sampler.accelerations=[8.0]",
+      "training.num_step=1",
+      "training.num_epochs=1",
+      "training.lr_step_size=90",
+      "recon.num_cascades=6",
+      "recon.chans=18",
+      "recon.checkpoint_cascades=true",
+      "sampler.preselect_num=10",
+      "sampler.anatomy_conditioning=false",
+      "output.run_name=L_1_s42_fscr1_tS5",
+      "datasets.train_tier=S",
+      "datasets.train_slice_stride=5",
+      "misc.resolution=[320,320]",
+      "sampler.budget_over=acquired",
+      "datasets.limit_volumes=1",
+      "datasets.roots.hpc=\"~/scratch/data/fastmri/{anatomy}/data\"",
+      "datasets.roots.local_batch2=\"~/scratch/data/fastmri/knee/data\"",
+      "datasets.val_half=dev",
+      "output.out_dir=/home/remote/bkadota/scratch/multistep_adaptivity/validate/3090319/L_1_s42_fscr1_tS5",
+      "training.limit_batches=0.1"
+    ]
+  },
+  "eval_code": {
+    "commit": "d58087f50aa3a327fd02402061708ab953f5836a",
+    "branch": "exp/multistep_adaptivity",
+    "dirty_tracked_files": []
+  },
+  "options": {
+    "sampler_type": "loupe_2d",
+    "num_step": 1,
+    "data_blind": false,
+    "accelerations": [
+      8.0
+    ],
+    "budget_over": "acquired",
+    "seed": 42,
+    "residual_chans": 16,
+    "residual_depth": 4,
+    "residual_limit": 6.0,
+    "residual_lr": 0.0001,
+    "anatomy_conditioning": false,
+    "loss_type": "l1"
+  },
+  "draw_seeds": [
+    1234,
+    4321
+  ],
+  "slices": {
+    "count": 120,
+    "hash": "460efb7228ffc42e7c3fda6bc8f3397da5883e47"
+  },
+  "means": {
+    "psnr": {
+      "brain": 15.85950808127721,
+      "all": 15.85950808127721
+    },
+    "ssim": {
+      "brain": 0.18852381454341838,
+      "all": 0.18852381454341838
+    },
+    "nmse": {
+      "brain": 0.21795543394982814,
+      "all": 0.21795543394982814
+    },
+    "realised_fraction": {
+      "brain": 0.124881553525726,
+      "all": 0.124881553525726
+    }
+  },
+  "by_step": {
+    "step_new": {
+      "brain": [
+        7824.491666666667
+      ],
+      "all": [
+        7824.491666666667
+      ]
+    },
+    "step_budget": {
+      "brain": [
+        7831.466666666666
+      ],
+      "all": [
+        7831.466666666666
+      ]
+    }
+  },
+  "donors": {
+    "matched": 95,
+    "unmatched": {
+      "brain": 25
+    }
+  },
+  "guards": {
+    "ssim_pooled": 0.18852381454341838,
+    "ssim_at_least_0.80": false,
+    "realised_fraction_target": 0.125,
+    "realised_fraction_within_0.002": true,
+    "most_draws_outside_the_acquired_region": 0,
+    "no_draws_outside_the_acquired_region": true,
+    "failed_reconstructions_below_20dB": [
+      {
+        "volume": "file_brain_AXFLAIR_200_6002499.h5",
+        "slice_id": 0,
+        "condition": "brain",
+        "psnr": 14.822539806365967
+      },
+      {
+        "volume": "file_brain_AXFLAIR_200_6002499.h5",
+        "slice_id": 2,
+        "condition": "brain",
+        "psnr": 13.950272560119629
+      },
+      {
+        "volume": "file_brain_AXFLAIR_200_6002499.h5",
+        "slice_id": 5,
+        "condition": "brain",
+        "psnr": 14.559276103973389
+      },
+      {
+        "volume": "file_brain_AXFLAIR_200_6002499.h5",
+        "slice_id": 7,
+        "condition": "brain",
+        "psnr": 14.09013557434082
+      },
+      {
+        "volume": "file_brain_AXFLAIR_200_6002499.h5",
+        "slice_id": 10,
+        "condition": "brain",
+        "psnr": 14.027309894561768
+      },
+      {
+        "volume": "file_brain_AXFLAIR_200_6002499.h5",
+        "slice_id": 12,
+        "condition": "brain",
+        "psnr": 12.497450828552246
+      },
+      {
+        "volume": "file_brain_AXFLAIR_200_6002581.h5",
+        "slice_id": 1,
+        "condition": "brain",
+        "psnr": 14.982149600982666
+      },
+      {
+        "volume": "file_brain_AXFLAIR_200_6002581.h5",
+        "slice_id": 4,
+        "condition": "brain",
+        "psnr": 17.13282871246338
+      },
+      {
+        "volume": "file_brain_AXFLAIR_200_6002581.h5",
+        "slice_id": 6,
+        "condition": "brain",
+        "psnr": 18.566386222839355
+      },
+      {
+        "volume": "file_brain_AXFLAIR_200_6002581.h5",
+        "slice_id": 9,
+        "condition": "brain",
+        "psnr": 13.327218055725098
+      },
+      {
+        "volume": "file_brain_AXFLAIR_200_6002581.h5",
+        "slice_id": 11,
+        "condition": "brain",
+        "psnr": 16.1400146484375
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6002868.h5",
+        "slice_id": 0,
+        "condition": "brain",
+        "psnr": 16.79744529724121
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6002868.h5",
+        "slice_id": 2,
+        "condition": "brain",
+        "psnr": 14.729130744934082
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6002868.h5",
+        "slice_id": 5,
+        "condition": "brain",
+        "psnr": 13.053953647613525
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6002868.h5",
+        "slice_id": 8,
+        "condition": "brain",
+        "psnr": 12.530590057373047
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6002868.h5",
+        "slice_id": 10,
+        "condition": "brain",
+        "psnr": 13.746196746826172
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6002868.h5",
+        "slice_id": 13,
+        "condition": "brain",
+        "psnr": 13.457016468048096
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6002872.h5",
+        "slice_id": 1,
+        "condition": "brain",
+        "psnr": 15.431654930114746
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6002872.h5",
+        "slice_id": 4,
+        "condition": "brain",
+        "psnr": 14.911050796508789
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6002872.h5",
+        "slice_id": 6,
+        "condition": "brain",
+        "psnr": 14.406749248504639
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6002872.h5",
+        "slice_id": 9,
+        "condition": "brain",
+        "psnr": 11.942363262176514
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6002872.h5",
+        "slice_id": 12,
+        "condition": "brain",
+        "psnr": 13.61698579788208
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6002872.h5",
+        "slice_id": 14,
+        "condition": "brain",
+        "psnr": 13.966176509857178
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6002873.h5",
+        "slice_id": 1,
+        "condition": "brain",
+        "psnr": 13.825094223022461
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6002873.h5",
+        "slice_id": 3,
+        "condition": "brain",
+        "psnr": 12.810070514678955
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6002873.h5",
+        "slice_id": 6,
+        "condition": "brain",
+        "psnr": 12.689127922058105
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6002873.h5",
+        "slice_id": 8,
+        "condition": "brain",
+        "psnr": 12.307016372680664
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6002873.h5",
+        "slice_id": 11,
+        "condition": "brain",
+        "psnr": 12.53554391860962
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6002873.h5",
+        "slice_id": 14,
+        "condition": "brain",
+        "psnr": 14.662042617797852
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6002915.h5",
+        "slice_id": 0,
+        "condition": "brain",
+        "psnr": 16.132935523986816
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6002915.h5",
+        "slice_id": 3,
+        "condition": "brain",
+        "psnr": 15.522128582000732
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6002915.h5",
+        "slice_id": 5,
+        "condition": "brain",
+        "psnr": 12.707395553588867
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6002915.h5",
+        "slice_id": 8,
+        "condition": "brain",
+        "psnr": 12.705207824707031
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6002915.h5",
+        "slice_id": 10,
+        "condition": "brain",
+        "psnr": 11.99236011505127
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6002915.h5",
+        "slice_id": 13,
+        "condition": "brain",
+        "psnr": 12.571331977844238
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6002968.h5",
+        "slice_id": 0,
+        "condition": "brain",
+        "psnr": 18.99151611328125
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6002968.h5",
+        "slice_id": 2,
+        "condition": "brain",
+        "psnr": 19.937870979309082
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6002968.h5",
+        "slice_id": 5,
+        "condition": "brain",
+        "psnr": 17.153945922851562
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6002968.h5",
+        "slice_id": 7,
+        "condition": "brain",
+        "psnr": 16.446741104125977
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6002968.h5",
+        "slice_id": 10,
+        "condition": "brain",
+        "psnr": 15.017160892486572
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6002968.h5",
+        "slice_id": 12,
+        "condition": "brain",
+        "psnr": 15.627484321594238
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6002968.h5",
+        "slice_id": 15,
+        "condition": "brain",
+        "psnr": 16.103665351867676
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6002979.h5",
+        "slice_id": 2,
+        "condition": "brain",
+        "psnr": 19.13066864013672
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6002979.h5",
+        "slice_id": 4,
+        "condition": "brain",
+        "psnr": 18.663942337036133
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6002979.h5",
+        "slice_id": 7,
+        "condition": "brain",
+        "psnr": 18.392888069152832
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6002979.h5",
+        "slice_id": 9,
+        "condition": "brain",
+        "psnr": 16.02152729034424
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6002979.h5",
+        "slice_id": 12,
+        "condition": "brain",
+        "psnr": 15.06110954284668
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6003021.h5",
+        "slice_id": 0,
+        "condition": "brain",
+        "psnr": 14.346274375915527
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6003021.h5",
+        "slice_id": 3,
+        "condition": "brain",
+        "psnr": 16.130399703979492
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6003021.h5",
+        "slice_id": 6,
+        "condition": "brain",
+        "psnr": 18.024425506591797
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6003021.h5",
+        "slice_id": 8,
+        "condition": "brain",
+        "psnr": 15.329869747161865
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6003021.h5",
+        "slice_id": 11,
+        "condition": "brain",
+        "psnr": 13.472713470458984
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6003021.h5",
+        "slice_id": 13,
+        "condition": "brain",
+        "psnr": 13.93972110748291
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6003025.h5",
+        "slice_id": 0,
+        "condition": "brain",
+        "psnr": 15.821427345275879
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6003025.h5",
+        "slice_id": 2,
+        "condition": "brain",
+        "psnr": 14.80491590499878
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6003025.h5",
+        "slice_id": 5,
+        "condition": "brain",
+        "psnr": 14.654631614685059
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6003025.h5",
+        "slice_id": 8,
+        "condition": "brain",
+        "psnr": 14.69674015045166
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6003025.h5",
+        "slice_id": 10,
+        "condition": "brain",
+        "psnr": 14.465731143951416
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6003025.h5",
+        "slice_id": 13,
+        "condition": "brain",
+        "psnr": 13.833574295043945
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6003025.h5",
+        "slice_id": 15,
+        "condition": "brain",
+        "psnr": 13.458643913269043
+      },
+      {
+        "volume": "file_brain_AXFLAIR_202_6000450.h5",
+        "slice_id": 2,
+        "condition": "brain",
+        "psnr": 16.491860389709473
+      },
+      {
+        "volume": "file_brain_AXFLAIR_202_6000450.h5",
+        "slice_id": 4,
+        "condition": "brain",
+        "psnr": 16.803955078125
+      },
+      {
+        "volume": "file_brain_AXFLAIR_202_6000450.h5",
+        "slice_id": 7,
+        "condition": "brain",
+        "psnr": 15.814348697662354
+      },
+      {
+        "volume": "file_brain_AXFLAIR_202_6000450.h5",
+        "slice_id": 10,
+        "condition": "brain",
+        "psnr": 16.51085376739502
+      },
+      {
+        "volume": "file_brain_AXFLAIR_202_6000450.h5",
+        "slice_id": 12,
+        "condition": "brain",
+        "psnr": 13.86629343032837
+      },
+      {
+        "volume": "file_brain_AXFLAIR_202_6000450.h5",
+        "slice_id": 15,
+        "condition": "brain",
+        "psnr": 15.280710697174072
+      },
+      {
+        "volume": "file_brain_AXFLAIR_202_6000468.h5",
+        "slice_id": 1,
+        "condition": "brain",
+        "psnr": 19.177234649658203
+      },
+      {
+        "volume": "file_brain_AXFLAIR_202_6000468.h5",
+        "slice_id": 6,
+        "condition": "brain",
+        "psnr": 18.24509048461914
+      },
+      {
+        "volume": "file_brain_AXFLAIR_202_6000468.h5",
+        "slice_id": 9,
+        "condition": "brain",
+        "psnr": 19.13612651824951
+      },
+      {
+        "volume": "file_brain_AXFLAIR_202_6000468.h5",
+        "slice_id": 14,
+        "condition": "brain",
+        "psnr": 19.6357421875
+      },
+      {
+        "volume": "file_brain_AXFLAIR_202_6000559.h5",
+        "slice_id": 1,
+        "condition": "brain",
+        "psnr": 16.60792827606201
+      },
+      {
+        "volume": "file_brain_AXFLAIR_202_6000559.h5",
+        "slice_id": 3,
+        "condition": "brain",
+        "psnr": 17.5330867767334
+      },
+      {
+        "volume": "file_brain_AXFLAIR_202_6000559.h5",
+        "slice_id": 6,
+        "condition": "brain",
+        "psnr": 15.032648086547852
+      },
+      {
+        "volume": "file_brain_AXFLAIR_202_6000559.h5",
+        "slice_id": 8,
+        "condition": "brain",
+        "psnr": 14.893092155456543
+      },
+      {
+        "volume": "file_brain_AXFLAIR_202_6000559.h5",
+        "slice_id": 11,
+        "condition": "brain",
+        "psnr": 16.65010356903076
+      },
+      {
+        "volume": "file_brain_AXFLAIR_202_6000559.h5",
+        "slice_id": 14,
+        "condition": "brain",
+        "psnr": 13.698365688323975
+      },
+      {
+        "volume": "file_brain_AXFLAIR_203_6000881.h5",
+        "slice_id": 0,
+        "condition": "brain",
+        "psnr": 17.431791305541992
+      },
+      {
+        "volume": "file_brain_AXFLAIR_203_6000881.h5",
+        "slice_id": 5,
+        "condition": "brain",
+        "psnr": 19.85415554046631
+      },
+      {
+        "volume": "file_brain_AXFLAIR_203_6000881.h5",
+        "slice_id": 8,
+        "condition": "brain",
+        "psnr": 19.875000953674316
+      },
+      {
+        "volume": "file_brain_AXFLAIR_203_6000881.h5",
+        "slice_id": 10,
+        "condition": "brain",
+        "psnr": 15.909576892852783
+      },
+      {
+        "volume": "file_brain_AXFLAIR_203_6000881.h5",
+        "slice_id": 13,
+        "condition": "brain",
+        "psnr": 18.52361297607422
+      },
+      {
+        "volume": "file_brain_AXFLAIR_203_6000896.h5",
+        "slice_id": 1,
+        "condition": "brain",
+        "psnr": 18.833148956298828
+      },
+      {
+        "volume": "file_brain_AXFLAIR_203_6000896.h5",
+        "slice_id": 3,
+        "condition": "brain",
+        "psnr": 19.732990264892578
+      },
+      {
+        "volume": "file_brain_AXFLAIR_203_6000896.h5",
+        "slice_id": 6,
+        "condition": "brain",
+        "psnr": 18.324716567993164
+      },
+      {
+        "volume": "file_brain_AXFLAIR_203_6000896.h5",
+        "slice_id": 8,
+        "condition": "brain",
+        "psnr": 16.275495529174805
+      },
+      {
+        "volume": "file_brain_AXFLAIR_203_6000896.h5",
+        "slice_id": 11,
+        "condition": "brain",
+        "psnr": 16.602676391601562
+      },
+      {
+        "volume": "file_brain_AXFLAIR_203_6000896.h5",
+        "slice_id": 13,
+        "condition": "brain",
+        "psnr": 16.599635124206543
+      },
+      {
+        "volume": "file_brain_AXFLAIR_203_6000925.h5",
+        "slice_id": 4,
+        "condition": "brain",
+        "psnr": 19.311888694763184
+      },
+      {
+        "volume": "file_brain_AXFLAIR_203_6000925.h5",
+        "slice_id": 6,
+        "condition": "brain",
+        "psnr": 18.116251945495605
+      },
+      {
+        "volume": "file_brain_AXFLAIR_203_6000925.h5",
+        "slice_id": 9,
+        "condition": "brain",
+        "psnr": 17.807169914245605
+      },
+      {
+        "volume": "file_brain_AXFLAIR_203_6000925.h5",
+        "slice_id": 11,
+        "condition": "brain",
+        "psnr": 18.256275177001953
+      },
+      {
+        "volume": "file_brain_AXFLAIR_203_6000925.h5",
+        "slice_id": 14,
+        "condition": "brain",
+        "psnr": 16.489981651306152
+      },
+      {
+        "volume": "file_brain_AXFLAIR_205_6000163.h5",
+        "slice_id": 0,
+        "condition": "brain",
+        "psnr": 19.61709213256836
+      },
+      {
+        "volume": "file_brain_AXFLAIR_205_6000163.h5",
+        "slice_id": 3,
+        "condition": "brain",
+        "psnr": 19.233509063720703
+      },
+      {
+        "volume": "file_brain_AXFLAIR_205_6000163.h5",
+        "slice_id": 6,
+        "condition": "brain",
+        "psnr": 17.473464965820312
+      },
+      {
+        "volume": "file_brain_AXFLAIR_205_6000163.h5",
+        "slice_id": 8,
+        "condition": "brain",
+        "psnr": 18.332371711730957
+      },
+      {
+        "volume": "file_brain_AXFLAIR_205_6000163.h5",
+        "slice_id": 11,
+        "condition": "brain",
+        "psnr": 15.12825870513916
+      },
+      {
+        "volume": "file_brain_AXFLAIR_205_6000163.h5",
+        "slice_id": 13,
+        "condition": "brain",
+        "psnr": 13.63024377822876
+      },
+      {
+        "volume": "file_brain_AXFLAIR_206_6000230.h5",
+        "slice_id": 0,
+        "condition": "brain",
+        "psnr": 17.29719638824463
+      },
+      {
+        "volume": "file_brain_AXFLAIR_206_6000230.h5",
+        "slice_id": 2,
+        "condition": "brain",
+        "psnr": 17.61751365661621
+      },
+      {
+        "volume": "file_brain_AXFLAIR_206_6000230.h5",
+        "slice_id": 5,
+        "condition": "brain",
+        "psnr": 18.425461769104004
+      },
+      {
+        "volume": "file_brain_AXFLAIR_206_6000230.h5",
+        "slice_id": 8,
+        "condition": "brain",
+        "psnr": 13.81908130645752
+      },
+      {
+        "volume": "file_brain_AXFLAIR_206_6000230.h5",
+        "slice_id": 10,
+        "condition": "brain",
+        "psnr": 13.188879489898682
+      },
+      {
+        "volume": "file_brain_AXFLAIR_206_6000230.h5",
+        "slice_id": 13,
+        "condition": "brain",
+        "psnr": 12.97007942199707
+      },
+      {
+        "volume": "file_brain_AXFLAIR_206_6000243.h5",
+        "slice_id": 0,
+        "condition": "brain",
+        "psnr": 16.916922569274902
+      },
+      {
+        "volume": "file_brain_AXFLAIR_206_6000243.h5",
+        "slice_id": 3,
+        "condition": "brain",
+        "psnr": 13.089950561523438
+      },
+      {
+        "volume": "file_brain_AXFLAIR_206_6000243.h5",
+        "slice_id": 5,
+        "condition": "brain",
+        "psnr": 13.360031604766846
+      },
+      {
+        "volume": "file_brain_AXFLAIR_206_6000243.h5",
+        "slice_id": 8,
+        "condition": "brain",
+        "psnr": 13.867316246032715
+      },
+      {
+        "volume": "file_brain_AXFLAIR_206_6000243.h5",
+        "slice_id": 11,
+        "condition": "brain",
+        "psnr": 14.965605735778809
+      },
+      {
+        "volume": "file_brain_AXFLAIR_206_6000243.h5",
+        "slice_id": 13,
+        "condition": "brain",
+        "psnr": 14.379953384399414
+      },
+      {
+        "volume": "file_brain_AXFLAIR_210_6001919.h5",
+        "slice_id": 2,
+        "condition": "brain",
+        "psnr": 14.867834568023682
+      },
+      {
+        "volume": "file_brain_AXFLAIR_210_6001919.h5",
+        "slice_id": 4,
+        "condition": "brain",
+        "psnr": 15.323122501373291
+      },
+      {
+        "volume": "file_brain_AXFLAIR_210_6001919.h5",
+        "slice_id": 7,
+        "condition": "brain",
+        "psnr": 13.51208209991455
+      },
+      {
+        "volume": "file_brain_AXFLAIR_210_6001919.h5",
+        "slice_id": 9,
+        "condition": "brain",
+        "psnr": 13.41740894317627
+      },
+      {
+        "volume": "file_brain_AXFLAIR_210_6001919.h5",
+        "slice_id": 12,
+        "condition": "brain",
+        "psnr": 14.90954303741455
+      },
+      {
+        "volume": "file_brain_AXFLAIR_210_6001919.h5",
+        "slice_id": 15,
+        "condition": "brain",
+        "psnr": 15.946340560913086
+      }
+    ]
+  },
+  "swap_cost": {
+    "psnr": {
+      "brain": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 95,
+        "n_volumes": 16,
+        "n_left_out": 25
+      },
+      "all": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 95,
+        "n_volumes": 16,
+        "n_left_out": 25
+      }
+    },
+    "ssim": {
+      "brain": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 95,
+        "n_volumes": 16,
+        "n_left_out": 25
+      },
+      "all": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 95,
+        "n_volumes": 16,
+        "n_left_out": 25
+      }
+    },
+    "nmse": {
+      "brain": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 95,
+        "n_volumes": 16,
+        "n_left_out": 25
+      },
+      "all": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 95,
+        "n_volumes": 16,
+        "n_left_out": 25
+      }
+    }
+  },
+  "swap_null": {
+    "donor_final_mask_equals_own": 1.0,
+    "must_be_1_for_a_data_blind_twin": false
+  }
+}

@@ -1,0 +1,29 @@
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+val_half=dev (seed 20261111)
+train: every 5th slice of each volume
+Manifest train set (volumes, slices): {'brain': (80, 238)}
+Manifest val set (volumes, slices): {'brain': (20, 307)}
+L_1_s42_fscr1_tS5: /home/remote/bkadota/scratch/multistep_adaptivity/validate/3090319/L_1_s42_fscr1_tS5/last_model.pt epoch 0, loupe_2d, K=1, data_blind=False, 120 slices
+  scored 8/120 slices
+  scored 16/120 slices
+  scored 24/120 slices
+  scored 32/120 slices
+  scored 40/120 slices
+  scored 48/120 slices
+  scored 56/120 slices
+  scored 64/120 slices
+  scored 72/120 slices
+  scored 80/120 slices
+  scored 88/120 slices
+  scored 96/120 slices
+  scored 104/120 slices
+  scored 112/120 slices
+  scored 120/120 slices
+  PSNR_Masked brain 15.860  all 15.860
+  donors: {"matched": 95, "unmatched": {"brain": 25}}
+  swap_null: {"donor_final_mask_equals_own": 1.0, "must_be_1_for_a_data_blind_twin": false}
+  guards: {"ssim_pooled": 0.18852381454341838, "ssim_at_least_0.80": false, "realised_fraction_target": 0.125, "realised_fraction_within_0.002": true, "most_draws_outside_the_acquired_region": 0, "no_draws_outside_the_acquired_region": true}
+/scratch/user/bkadota/conda/envs/dl/lib/python3.14/site-packages/torch/nn/functional.py:3855: UserWarning: size_average and reduce args will be deprecated, please use reduction='mean' instead.
+  reduction = _Reduction.legacy_get_string(size_average, reduce)

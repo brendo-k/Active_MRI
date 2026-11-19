@@ -1,0 +1,2594 @@
+{
+  "schema": 1,
+  "generated_at": "2026-11-19T21:26:20+00:00",
+  "code": {
+    "produced_at": "d58087f50aa3a327fd02402061708ab953f5836a",
+    "produced_at_subject": "multistep_adaptivity: run state 7, fscr1 SeqMRI's design on all the FLAIR data",
+    "head": "aa63237e69529f4bc5e0dafef70fcea7b74f5415",
+    "branch": "exp/multistep_adaptivity",
+    "dirty_tracked_files": [],
+    "scripts": [
+      {
+        "path": "scripts/eval/eval_multistep_adaptivity.py",
+        "changed_since_produced_at": false
+      },
+      {
+        "path": "scripts/launch/train_multistep_kscr3_local.sh",
+        "changed_since_produced_at": false
+      },
+      {
+        "path": "reports/multistep_adaptivity/fscr1/analysis/by_scan_type.py",
+        "changed_since_produced_at": true
+      },
+      {
+        "path": "reports/multistep_adaptivity/fscr1/analysis/render_figures.py",
+        "changed_since_produced_at": true
+      },
+      {
+        "path": "reports/multistep_adaptivity/kscr3/analysis/blind_probe.py",
+        "changed_since_produced_at": false
+      },
+      {
+        "path": "reports/multistep_adaptivity/kscr3/analysis/rotate_probe.py",
+        "changed_since_produced_at": false
+      },
+      {
+        "path": "reports/multistep_adaptivity/kscr3/analysis/loupe_speckle.py",
+        "changed_since_produced_at": false
+      },
+      {
+        "path": "reports/multistep_adaptivity/kscr3/analysis/per_scan_speckle.py",
+        "changed_since_produced_at": false
+      },
+      {
+        "path": "reports/multistep_adaptivity/kscr3/analysis/render_mask_compare.py",
+        "changed_since_produced_at": false
+      }
+    ]
+  },
+  "metric_mask": {
+    "version": "apodized",
+    "definition": "k-space-apodized per-anatomy mask (activemri/utils/metric_mask.py), the trainer metric since 2026-10-20",
+    "apodization_sigma": 16,
+    "params": {
+      "brain": {
+        "fraction": 0.15,
+        "radius": 6
+      },
+      "knee": {
+        "fraction": 0.06,
+        "radius": 12
+      }
+    }
+  },
+  "data": {
+    "config": {
+      "loader": "fastmri_manifest",
+      "manifest": "configs/datasets/fastmri_local_v1/manifest.csv",
+      "roots": {
+        "local_batch2": "~/scratch/data/fastmri/knee/data",
+        "hpc": "~/scratch/data/fastmri/{anatomy}/data"
+      },
+      "train_tier": "S",
+      "limit_volumes": 1,
+      "train_anatomies": [],
+      "val_half": "dev",
+      "condition_classes": [
+        "knee-PD",
+        "knee-PDFS"
+      ],
+      "classes": [
+        "knee"
+      ],
+      "anatomy": [
+        "knee"
+      ],
+      "num_coils": 20,
+      "num_workers": 8
+    },
+    "note": "P1/P2: local v1 FLAIR + knee PD/PDFS tier S, 1938 val slices (hash 78f07c15). kscr1-3: knee PD + PDFS, dev half of the knee val volumes, 669 slices / 20 volumes (hash 720f599c). fscr1: FLAIR tier F (339 volumes, 5,139 slices) or tier S every 5th slice (238 slices), dev half of the FLAIR val volumes, 307 slices / 20 volumes (hash 1874f6fc). Holdout halves untouched."
+  },
+  "runs": [
+    {
+      "name": "A_16_s42",
+      "path": "checkpoints/A_16_s42",
+      "trained_at_commit": "44c3fbad37d34017b8f1145667c64b78519bf4c9",
+      "checkpoints": {}
+    },
+    {
+      "name": "A_16_s42_img",
+      "path": "checkpoints/A_16_s42_img",
+      "trained_at_commit": "44c3fbad37d34017b8f1145667c64b78519bf4c9",
+      "checkpoints": {}
+    },
+    {
+      "name": "A_16_s42_kscr1",
+      "path": "checkpoints/A_16_s42_kscr1",
+      "trained_at_commit": "707a5c9369a0484c6db2bafa5f82ddd85ba637b3",
+      "checkpoints": {}
+    },
+    {
+      "name": "A_16_s42_kscr2",
+      "path": "checkpoints/A_16_s42_kscr2",
+      "config_sha256": "bc989c899d609144",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_knee",
+        "training.batch_size=16",
+        "training.seed=42",
+        "sampler.accelerations=[8.0]",
+        "sampler.sampler_type=seq_adapt_2d",
+        "sampler.anatomy_conditioning=true",
+        "training.num_step=16",
+        "sampler.data_blind=false",
+        "training.num_epochs=100",
+        "training.lr_step_size=90",
+        "recon.num_cascades=6",
+        "misc.resolution=[320,320]",
+        "sampler.budget_over=acquired",
+        "datasets.limit_volumes=1",
+        "datasets.roots.hpc=\"~/scratch/data/fastmri/{anatomy}/data\"",
+        "datasets.roots.local_batch2=\"~/scratch/data/fastmri/knee/data\"",
+        "datasets.val_half=dev",
+        "output.out_dir=/home/remote/bkadota/scratch/multistep_adaptivity/runs/A_16_s42_kscr2"
+      ],
+      "trained_at_commit": "b21c6b23617248fd7b066b11ae99fcbef22592b5",
+      "checkpoints": {}
+    },
+    {
+      "name": "A_16_s43",
+      "path": "checkpoints/A_16_s43",
+      "trained_at_commit": "44c3fbad37d34017b8f1145667c64b78519bf4c9",
+      "checkpoints": {}
+    },
+    {
+      "name": "A_1_s42",
+      "path": "checkpoints/A_1_s42",
+      "trained_at_commit": "44c3fbad37d34017b8f1145667c64b78519bf4c9",
+      "checkpoints": {}
+    },
+    {
+      "name": "A_1_s43",
+      "path": "checkpoints/A_1_s43",
+      "trained_at_commit": "44c3fbad37d34017b8f1145667c64b78519bf4c9",
+      "checkpoints": {}
+    },
+    {
+      "name": "A_4_s42",
+      "path": "checkpoints/A_4_s42",
+      "trained_at_commit": "44c3fbad37d34017b8f1145667c64b78519bf4c9",
+      "checkpoints": {}
+    },
+    {
+      "name": "A_4_s42_rec",
+      "path": "checkpoints/A_4_s42_rec",
+      "trained_at_commit": "44c3fbad37d34017b8f1145667c64b78519bf4c9",
+      "checkpoints": {}
+    },
+    {
+      "name": "A_4_s43",
+      "path": "checkpoints/A_4_s43",
+      "trained_at_commit": "44c3fbad37d34017b8f1145667c64b78519bf4c9",
+      "checkpoints": {}
+    },
+    {
+      "name": "B_42",
+      "path": "checkpoints/B_42",
+      "trained_at_commit": "44c3fbad37d34017b8f1145667c64b78519bf4c9",
+      "checkpoints": {}
+    },
+    {
+      "name": "B_43",
+      "path": "checkpoints/B_43",
+      "trained_at_commit": "44c3fbad37d34017b8f1145667c64b78519bf4c9",
+      "checkpoints": {}
+    },
+    {
+      "name": "C_16_s42_kscr2",
+      "path": "checkpoints/C_16_s42_kscr2",
+      "config_sha256": "be1ccdf00f955345",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_knee",
+        "training.batch_size=16",
+        "training.seed=42",
+        "sampler.accelerations=[8.0]",
+        "sampler.sampler_type=seq_adapt_2d",
+        "sampler.anatomy_conditioning=true",
+        "training.num_step=16",
+        "sampler.data_blind=false",
+        "training.num_epochs=100",
+        "training.lr_step_size=90",
+        "recon.num_cascades=6",
+        "sampler.input=full",
+        "misc.resolution=[320,320]",
+        "sampler.budget_over=acquired",
+        "datasets.limit_volumes=1",
+        "datasets.roots.hpc=\"~/scratch/data/fastmri/{anatomy}/data\"",
+        "datasets.roots.local_batch2=\"~/scratch/data/fastmri/knee/data\"",
+        "datasets.val_half=dev",
+        "output.out_dir=/home/remote/bkadota/scratch/multistep_adaptivity/runs/C_16_s42_kscr2"
+      ],
+      "trained_at_commit": "b21c6b23617248fd7b066b11ae99fcbef22592b5",
+      "checkpoints": {}
+    },
+    {
+      "name": "F_4_s42_fscr1_tF",
+      "path": "checkpoints/F_4_s42_fscr1_tF",
+      "config_sha256": "20cf998e2eb31f15",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair",
+        "training.batch_size=16",
+        "training.seed=42",
+        "sampler.accelerations=[8.0]",
+        "training.num_step=4",
+        "training.num_epochs=100",
+        "training.lr_step_size=90",
+        "recon.num_cascades=6",
+        "recon.chans=18",
+        "recon.checkpoint_cascades=true",
+        "sampler.preselect_num=10",
+        "sampler.anatomy_conditioning=false",
+        "output.run_name=F_4_s42_fscr1_tF",
+        "sampler.sampler_type=seqmri_2d",
+        "sampler.seqmri_input_scale=signed_log",
+        "training.save_epochs=[10]",
+        "datasets.train_tier=F",
+        "misc.resolution=[320,320]",
+        "sampler.budget_over=acquired",
+        "datasets.limit_volumes=1",
+        "datasets.roots.hpc=\"~/scratch/data/fastmri/{anatomy}/data\"",
+        "datasets.roots.local_batch2=\"~/scratch/data/fastmri/knee/data\"",
+        "datasets.val_half=dev",
+        "output.out_dir=/home/remote/bkadota/scratch/multistep_adaptivity/runs/F_4_s42_fscr1_tF"
+      ],
+      "trained_at_commit": "d58087f50aa3a327fd02402061708ab953f5836a",
+      "checkpoints": {
+        "last_model.pt": {
+          "bytes": 283307993,
+          "modified": "2026-11-18T11:58:38+00:00"
+        }
+      }
+    },
+    {
+      "name": "F_4_s42_fscr1_tS5",
+      "path": "checkpoints/F_4_s42_fscr1_tS5",
+      "config_sha256": "c9ba3cbce0ed8180",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair",
+        "training.batch_size=16",
+        "training.seed=42",
+        "sampler.accelerations=[8.0]",
+        "training.num_step=4",
+        "training.num_epochs=100",
+        "training.lr_step_size=90",
+        "recon.num_cascades=6",
+        "recon.chans=18",
+        "recon.checkpoint_cascades=true",
+        "sampler.preselect_num=10",
+        "sampler.anatomy_conditioning=false",
+        "output.run_name=F_4_s42_fscr1_tS5",
+        "sampler.sampler_type=seqmri_2d",
+        "sampler.seqmri_input_scale=signed_log",
+        "training.save_epochs=[10]",
+        "datasets.train_tier=S",
+        "datasets.train_slice_stride=5",
+        "misc.resolution=[320,320]",
+        "sampler.budget_over=acquired",
+        "datasets.limit_volumes=1",
+        "datasets.roots.hpc=\"~/scratch/data/fastmri/{anatomy}/data\"",
+        "datasets.roots.local_batch2=\"~/scratch/data/fastmri/knee/data\"",
+        "datasets.val_half=dev",
+        "output.out_dir=/home/remote/bkadota/scratch/multistep_adaptivity/runs/F_4_s42_fscr1_tS5"
+      ],
+      "trained_at_commit": "d58087f50aa3a327fd02402061708ab953f5836a",
+      "checkpoints": {
+        "last_model.pt": {
+          "bytes": 283307993,
+          "modified": "2026-11-18T04:28:46+00:00"
+        }
+      }
+    },
+    {
+      "name": "F_4_s42_kscr3",
+      "path": "checkpoints/F_4_s42_kscr3",
+      "config_sha256": "326ab5586b7c502d",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_knee",
+        "training.batch_size=16",
+        "training.seed=42",
+        "sampler.accelerations=[8.0]",
+        "sampler.sampler_type=seqmri_2d",
+        "training.num_step=4",
+        "sampler.anatomy_conditioning=false",
+        "misc.resolution=[320,320]",
+        "sampler.budget_over=acquired",
+        "sampler.preselect_num=40",
+        "recon.num_cascades=4",
+        "recon.checkpoint_cascades=true",
+        "training.num_epochs=100",
+        "training.lr_step_size=90",
+        "datasets.val_half=dev",
+        "datasets.train_slice_stride=5",
+        "datasets.roots.local_batch2=/export/scratch/bkadota/fastmri_raw/knee",
+        "output.out_dir=/home/bkadota/data/seqmri_checkpoints/multistep_kscr3/F_4_s42_kscr3"
+      ],
+      "wandb_run_id": "2l8m63ni",
+      "trained_at_commit": "0329845e4e694a58a08f15a5ae042ef47405ec34",
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 243780508,
+          "modified": "2026-11-17T01:55:40+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 243780508,
+          "modified": "2026-11-17T02:24:40+00:00"
+        }
+      }
+    },
+    {
+      "name": "Fb_4_s42_fscr1_tF",
+      "path": "checkpoints/Fb_4_s42_fscr1_tF",
+      "config_sha256": "b3527c0e7f837686",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair",
+        "training.batch_size=16",
+        "training.seed=42",
+        "sampler.accelerations=[8.0]",
+        "training.num_step=4",
+        "training.num_epochs=100",
+        "training.lr_step_size=90",
+        "recon.num_cascades=6",
+        "recon.chans=18",
+        "recon.checkpoint_cascades=true",
+        "sampler.preselect_num=10",
+        "sampler.anatomy_conditioning=false",
+        "output.run_name=Fb_4_s42_fscr1_tF",
+        "sampler.sampler_type=seqmri_2d",
+        "sampler.seqmri_input_scale=signed_log",
+        "sampler.data_blind=true",
+        "training.save_epochs=[10]",
+        "datasets.train_tier=F",
+        "misc.resolution=[320,320]",
+        "sampler.budget_over=acquired",
+        "datasets.limit_volumes=1",
+        "datasets.roots.hpc=\"~/scratch/data/fastmri/{anatomy}/data\"",
+        "datasets.roots.local_batch2=\"~/scratch/data/fastmri/knee/data\"",
+        "datasets.val_half=dev",
+        "output.out_dir=/home/remote/bkadota/scratch/multistep_adaptivity/runs/Fb_4_s42_fscr1_tF"
+      ],
+      "trained_at_commit": "d58087f50aa3a327fd02402061708ab953f5836a",
+      "checkpoints": {
+        "last_model.pt": {
+          "bytes": 284946782,
+          "modified": "2026-11-17T23:19:54+00:00"
+        }
+      }
+    },
+    {
+      "name": "Fb_4_s42_fscr1_tS5",
+      "path": "checkpoints/Fb_4_s42_fscr1_tS5",
+      "config_sha256": "4813ee38755d5ba8",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair",
+        "training.batch_size=16",
+        "training.seed=42",
+        "sampler.accelerations=[8.0]",
+        "training.num_step=4",
+        "training.num_epochs=100",
+        "training.lr_step_size=90",
+        "recon.num_cascades=6",
+        "recon.chans=18",
+        "recon.checkpoint_cascades=true",
+        "sampler.preselect_num=10",
+        "sampler.anatomy_conditioning=false",
+        "output.run_name=Fb_4_s42_fscr1_tS5",
+        "sampler.sampler_type=seqmri_2d",
+        "sampler.seqmri_input_scale=signed_log",
+        "sampler.data_blind=true",
+        "training.save_epochs=[10]",
+        "datasets.train_tier=S",
+        "datasets.train_slice_stride=5",
+        "misc.resolution=[320,320]",
+        "sampler.budget_over=acquired",
+        "datasets.limit_volumes=1",
+        "datasets.roots.hpc=\"~/scratch/data/fastmri/{anatomy}/data\"",
+        "datasets.roots.local_batch2=\"~/scratch/data/fastmri/knee/data\"",
+        "datasets.val_half=dev",
+        "output.out_dir=/home/remote/bkadota/scratch/multistep_adaptivity/runs/Fb_4_s42_fscr1_tS5"
+      ],
+      "trained_at_commit": "d58087f50aa3a327fd02402061708ab953f5836a",
+      "checkpoints": {
+        "last_model.pt": {
+          "bytes": 284946782,
+          "modified": "2026-11-18T03:57:15+00:00"
+        }
+      }
+    },
+    {
+      "name": "L_1_s42_fscr1_tF",
+      "path": "checkpoints/L_1_s42_fscr1_tF",
+      "config_sha256": "a5c9adf044e547ad",
+      "overrides": [
+        "sampler.sampler_type=loupe_2d",
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair",
+        "training.batch_size=16",
+        "training.seed=42",
+        "sampler.accelerations=[8.0]",
+        "training.num_step=1",
+        "training.num_epochs=100",
+        "training.lr_step_size=90",
+        "recon.num_cascades=6",
+        "recon.chans=18",
+        "recon.checkpoint_cascades=true",
+        "sampler.preselect_num=10",
+        "sampler.anatomy_conditioning=false",
+        "output.run_name=L_1_s42_fscr1_tF",
+        "datasets.train_tier=F",
+        "misc.resolution=[320,320]",
+        "sampler.budget_over=acquired",
+        "datasets.limit_volumes=1",
+        "datasets.roots.hpc=\"~/scratch/data/fastmri/{anatomy}/data\"",
+        "datasets.roots.local_batch2=\"~/scratch/data/fastmri/knee/data\"",
+        "datasets.val_half=dev",
+        "output.out_dir=/home/remote/bkadota/scratch/multistep_adaptivity/runs/L_1_s42_fscr1_tF"
+      ],
+      "trained_at_commit": "d58087f50aa3a327fd02402061708ab953f5836a",
+      "checkpoints": {
+        "last_model.pt": {
+          "bytes": 123795237,
+          "modified": "2026-11-17T21:09:43+00:00"
+        }
+      }
+    },
+    {
+      "name": "L_1_s42_fscr1_tS5",
+      "path": "checkpoints/L_1_s42_fscr1_tS5",
+      "config_sha256": "d5c4d76417d6bca4",
+      "overrides": [
+        "sampler.sampler_type=loupe_2d",
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair",
+        "training.batch_size=16",
+        "training.seed=42",
+        "sampler.accelerations=[8.0]",
+        "training.num_step=1",
+        "training.num_epochs=100",
+        "training.lr_step_size=90",
+        "recon.num_cascades=6",
+        "recon.chans=18",
+        "recon.checkpoint_cascades=true",
+        "sampler.preselect_num=10",
+        "sampler.anatomy_conditioning=false",
+        "output.run_name=L_1_s42_fscr1_tS5",
+        "datasets.train_tier=S",
+        "datasets.train_slice_stride=5",
+        "misc.resolution=[320,320]",
+        "sampler.budget_over=acquired",
+        "datasets.limit_volumes=1",
+        "datasets.roots.hpc=\"~/scratch/data/fastmri/{anatomy}/data\"",
+        "datasets.roots.local_batch2=\"~/scratch/data/fastmri/knee/data\"",
+        "datasets.val_half=dev",
+        "output.out_dir=/home/remote/bkadota/scratch/multistep_adaptivity/runs/L_1_s42_fscr1_tS5"
+      ],
+      "trained_at_commit": "d58087f50aa3a327fd02402061708ab953f5836a",
+      "checkpoints": {
+        "last_model.pt": {
+          "bytes": 123795237,
+          "modified": "2026-11-18T04:58:02+00:00"
+        }
+      }
+    },
+    {
+      "name": "L_1_s42_kscr3",
+      "path": "checkpoints/L_1_s42_kscr3",
+      "config_sha256": "06f3e169f3292668",
+      "overrides": [
+        "sampler.sampler_type=loupe_2d",
+        "recon=varnet",
+        "datasets=fastmri_local_v1_knee",
+        "training.batch_size=16",
+        "training.seed=42",
+        "sampler.accelerations=[8.0]",
+        "training.num_step=1",
+        "sampler.anatomy_conditioning=false",
+        "misc.resolution=[320,320]",
+        "sampler.budget_over=acquired",
+        "sampler.preselect_num=40",
+        "recon.num_cascades=4",
+        "recon.checkpoint_cascades=true",
+        "training.num_epochs=100",
+        "training.lr_step_size=90",
+        "datasets.val_half=dev",
+        "datasets.train_slice_stride=5",
+        "datasets.roots.local_batch2=/export/scratch/bkadota/fastmri_raw/knee",
+        "output.out_dir=/home/bkadota/data/seqmri_checkpoints/multistep_kscr3/L_1_s42_kscr3"
+      ],
+      "wandb_run_id": "hoax9yj4",
+      "trained_at_commit": "0329845e4e694a58a08f15a5ae042ef47405ec34",
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 84267752,
+          "modified": "2026-11-16T22:28:21+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 84267752,
+          "modified": "2026-11-16T22:32:47+00:00"
+        }
+      }
+    },
+    {
+      "name": "Lc_1_s42_kscr3",
+      "path": "checkpoints/Lc_1_s42_kscr3",
+      "config_sha256": "036f3b5c9a543ca4",
+      "overrides": [
+        "sampler.sampler_type=loupe_2d",
+        "recon=varnet",
+        "datasets=fastmri_local_v1_knee",
+        "training.batch_size=16",
+        "training.seed=42",
+        "sampler.accelerations=[8.0]",
+        "training.num_step=1",
+        "sampler.anatomy_conditioning=true",
+        "misc.resolution=[320,320]",
+        "sampler.budget_over=acquired",
+        "sampler.preselect_num=40",
+        "recon.num_cascades=4",
+        "recon.checkpoint_cascades=true",
+        "training.num_epochs=100",
+        "training.lr_step_size=90",
+        "datasets.val_half=dev",
+        "datasets.train_slice_stride=5",
+        "datasets.roots.local_batch2=/export/scratch/bkadota/fastmri_raw/knee",
+        "output.out_dir=/home/bkadota/data/seqmri_checkpoints/multistep_kscr3/Lc_1_s42_kscr3"
+      ],
+      "wandb_run_id": "yo7rd22x",
+      "trained_at_commit": "0329845e4e694a58a08f15a5ae042ef47405ec34",
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 85496552,
+          "modified": "2026-11-17T00:04:25+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 85496552,
+          "modified": "2026-11-17T00:08:50+00:00"
+        }
+      }
+    },
+    {
+      "name": "S_16_s42_kscr2",
+      "path": "checkpoints/S_16_s42_kscr2",
+      "config_sha256": "198a21eb74c68e55",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_knee",
+        "training.batch_size=16",
+        "training.seed=42",
+        "sampler.accelerations=[8.0]",
+        "sampler.sampler_type=seq_adapt_2d",
+        "sampler.anatomy_conditioning=true",
+        "training.num_step=16",
+        "sampler.data_blind=false",
+        "training.num_epochs=100",
+        "training.lr_step_size=90",
+        "recon.num_cascades=6",
+        "sampler.input=seqmri",
+        "misc.resolution=[320,320]",
+        "sampler.budget_over=acquired",
+        "datasets.limit_volumes=1",
+        "datasets.roots.hpc=\"~/scratch/data/fastmri/{anatomy}/data\"",
+        "datasets.roots.local_batch2=\"~/scratch/data/fastmri/knee/data\"",
+        "datasets.val_half=dev",
+        "output.out_dir=/home/remote/bkadota/scratch/multistep_adaptivity/runs/S_16_s42_kscr2"
+      ],
+      "trained_at_commit": "b21c6b23617248fd7b066b11ae99fcbef22592b5",
+      "checkpoints": {}
+    },
+    {
+      "name": "T_16_s142_kscr1",
+      "path": "checkpoints/T_16_s142_kscr1",
+      "trained_at_commit": "707a5c9369a0484c6db2bafa5f82ddd85ba637b3",
+      "checkpoints": {}
+    },
+    {
+      "name": "T_16_s42",
+      "path": "checkpoints/T_16_s42",
+      "trained_at_commit": "44c3fbad37d34017b8f1145667c64b78519bf4c9",
+      "checkpoints": {}
+    },
+    {
+      "name": "T_16_s42_f142",
+      "path": "checkpoints/T_16_s42_f142",
+      "trained_at_commit": "44c3fbad37d34017b8f1145667c64b78519bf4c9",
+      "checkpoints": {}
+    },
+    {
+      "name": "T_16_s42_kscr1",
+      "path": "checkpoints/T_16_s42_kscr1",
+      "trained_at_commit": "707a5c9369a0484c6db2bafa5f82ddd85ba637b3",
+      "checkpoints": {}
+    },
+    {
+      "name": "T_16_s42_kscr2",
+      "path": "checkpoints/T_16_s42_kscr2",
+      "config_sha256": "eb8d3ef4880c5111",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_knee",
+        "training.batch_size=16",
+        "training.seed=42",
+        "sampler.accelerations=[8.0]",
+        "sampler.sampler_type=seq_adapt_2d",
+        "sampler.anatomy_conditioning=true",
+        "training.num_step=16",
+        "sampler.data_blind=true",
+        "training.num_epochs=100",
+        "training.lr_step_size=90",
+        "recon.num_cascades=6",
+        "misc.resolution=[320,320]",
+        "sampler.budget_over=acquired",
+        "datasets.limit_volumes=1",
+        "datasets.roots.hpc=\"~/scratch/data/fastmri/{anatomy}/data\"",
+        "datasets.roots.local_batch2=\"~/scratch/data/fastmri/knee/data\"",
+        "datasets.val_half=dev",
+        "output.out_dir=/home/remote/bkadota/scratch/multistep_adaptivity/runs/T_16_s42_kscr2"
+      ],
+      "trained_at_commit": "b21c6b23617248fd7b066b11ae99fcbef22592b5",
+      "checkpoints": {}
+    },
+    {
+      "name": "T_16_s43",
+      "path": "checkpoints/T_16_s43",
+      "trained_at_commit": "44c3fbad37d34017b8f1145667c64b78519bf4c9",
+      "checkpoints": {}
+    },
+    {
+      "name": "T_1_s42",
+      "path": "checkpoints/T_1_s42",
+      "trained_at_commit": "44c3fbad37d34017b8f1145667c64b78519bf4c9",
+      "checkpoints": {}
+    },
+    {
+      "name": "T_1_s42_f142",
+      "path": "checkpoints/T_1_s42_f142",
+      "trained_at_commit": "44c3fbad37d34017b8f1145667c64b78519bf4c9",
+      "checkpoints": {}
+    },
+    {
+      "name": "T_1_s42_kscr2",
+      "path": "checkpoints/T_1_s42_kscr2",
+      "config_sha256": "4ef35e05263a7f51",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_knee",
+        "training.batch_size=16",
+        "training.seed=42",
+        "sampler.accelerations=[8.0]",
+        "sampler.sampler_type=seq_adapt_2d",
+        "sampler.anatomy_conditioning=true",
+        "training.num_step=1",
+        "sampler.data_blind=true",
+        "training.num_epochs=100",
+        "training.lr_step_size=90",
+        "recon.num_cascades=6",
+        "misc.resolution=[320,320]",
+        "sampler.budget_over=acquired",
+        "datasets.limit_volumes=1",
+        "datasets.roots.hpc=\"~/scratch/data/fastmri/{anatomy}/data\"",
+        "datasets.roots.local_batch2=\"~/scratch/data/fastmri/knee/data\"",
+        "datasets.val_half=dev",
+        "output.out_dir=/home/remote/bkadota/scratch/multistep_adaptivity/runs/T_1_s42_kscr2"
+      ],
+      "trained_at_commit": "b21c6b23617248fd7b066b11ae99fcbef22592b5",
+      "checkpoints": {}
+    },
+    {
+      "name": "T_1_s43",
+      "path": "checkpoints/T_1_s43",
+      "trained_at_commit": "44c3fbad37d34017b8f1145667c64b78519bf4c9",
+      "checkpoints": {}
+    },
+    {
+      "name": "T_4_s42",
+      "path": "checkpoints/T_4_s42",
+      "trained_at_commit": "44c3fbad37d34017b8f1145667c64b78519bf4c9",
+      "checkpoints": {}
+    },
+    {
+      "name": "T_4_s43",
+      "path": "checkpoints/T_4_s43",
+      "trained_at_commit": "44c3fbad37d34017b8f1145667c64b78519bf4c9",
+      "checkpoints": {}
+    }
+  ],
+  "commands": [
+    "python reports/multistep_adaptivity/fscr1/analysis/by_scan_type.py",
+    "CUDA_VISIBLE_DEVICES=0 python reports/multistep_adaptivity/fscr1/analysis/render_figures.py render",
+    "python reports/multistep_adaptivity/fscr1/analysis/render_figures.py plot",
+    "python reports/multistep_adaptivity/fscr1/analysis/render_figures.py curves",
+    "bash scripts/launch/train_multistep_kscr3_local.sh"
+  ],
+  "results": [
+    {
+      "path": "addendum_2026-11-11.md",
+      "bytes": 5014,
+      "sha256": "261a6bf70d102d2f"
+    },
+    {
+      "path": "addendum_2026-11-15.md",
+      "bytes": 7704,
+      "sha256": "559a93740b8f96df"
+    },
+    {
+      "path": "addendum_2026-11-16.md",
+      "bytes": 6753,
+      "sha256": "aca1703413e47cb4"
+    },
+    {
+      "path": "addendum_2026-11-16_fscr1.md",
+      "bytes": 10843,
+      "sha256": "b15efaa0512f167d"
+    },
+    {
+      "path": "contrasts.json",
+      "bytes": 63273,
+      "sha256": "31dcb8194d3ed0cd"
+    },
+    {
+      "path": "contrasts.txt",
+      "bytes": 2831,
+      "sha256": "131e99637aa47672"
+    },
+    {
+      "path": "fscr1/README.md",
+      "bytes": 10537,
+      "sha256": "52e985074ccf463b"
+    },
+    {
+      "path": "fscr1/analysis/by_scan_type.py",
+      "bytes": 3560,
+      "sha256": "9ee52916fc2fd464"
+    },
+    {
+      "path": "fscr1/analysis/render_figures.py",
+      "bytes": 28372,
+      "sha256": "8f0cd33dd3d2e6d1"
+    },
+    {
+      "path": "fscr1/by_scan_type.json",
+      "bytes": 7872,
+      "sha256": "0b22567da7e96054"
+    },
+    {
+      "path": "fscr1/by_scan_type.txt",
+      "bytes": 1195,
+      "sha256": "8595bdfc338a69c4"
+    },
+    {
+      "path": "fscr1/contrasts.json",
+      "bytes": 11321,
+      "sha256": "20b557f09e57cccd"
+    },
+    {
+      "path": "fscr1/contrasts.txt",
+      "bytes": 486,
+      "sha256": "48c8ca244d1104a9"
+    },
+    {
+      "path": "fscr1/contrasts_descriptive.json",
+      "bytes": 13007,
+      "sha256": "75ff3eebdd40995a"
+    },
+    {
+      "path": "fscr1/contrasts_descriptive.txt",
+      "bytes": 569,
+      "sha256": "3466edaf40689594"
+    },
+    {
+      "path": "fscr1/curves.json",
+      "bytes": 28626,
+      "sha256": "ce8a7d78e378fe2e"
+    },
+    {
+      "path": "fscr1/figures/curves.png",
+      "bytes": 448158,
+      "sha256": "3806874b9604d9f0"
+    },
+    {
+      "path": "fscr1/figures/density_tF.png",
+      "bytes": 526300,
+      "sha256": "5d5d7e4be95be3ba"
+    },
+    {
+      "path": "fscr1/figures/density_tS5.png",
+      "bytes": 531315,
+      "sha256": "772f16e8302aa1a1"
+    },
+    {
+      "path": "fscr1/figures/recon_brain_q25_tF.png",
+      "bytes": 1074475,
+      "sha256": "2ce9678bad73d7fa"
+    },
+    {
+      "path": "fscr1/figures/recon_brain_q50_tF.png",
+      "bytes": 1268463,
+      "sha256": "3792e56848d450aa"
+    },
+    {
+      "path": "fscr1/figures/recon_brain_q75_tF.png",
+      "bytes": 1048529,
+      "sha256": "c05102de055d76f1"
+    },
+    {
+      "path": "fscr1/figures/sampling_brain_q25_tF.png",
+      "bytes": 557034,
+      "sha256": "f5ee86902f7b0ee5"
+    },
+    {
+      "path": "fscr1/figures/sampling_brain_q50_tF.png",
+      "bytes": 492395,
+      "sha256": "70820223361f413c"
+    },
+    {
+      "path": "fscr1/figures/sampling_brain_q75_tF.png",
+      "bytes": 497398,
+      "sha256": "6da75f77cf83f587"
+    },
+    {
+      "path": "fscr1/figures/steps_F_tF_brain_q25.png",
+      "bytes": 1444023,
+      "sha256": "d56b7c466bf4bc88"
+    },
+    {
+      "path": "fscr1/figures/steps_F_tF_brain_q50.png",
+      "bytes": 1468293,
+      "sha256": "92429acc94d6b5ee"
+    },
+    {
+      "path": "fscr1/figures/steps_F_tF_brain_q75.png",
+      "bytes": 1358074,
+      "sha256": "c8e6ebdbb27a0f63"
+    },
+    {
+      "path": "fscr1/fscr1_jobs.txt",
+      "bytes": 218,
+      "sha256": "d0ded0dd1ed60d91"
+    },
+    {
+      "path": "fscr1/multistep-3090320.log",
+      "bytes": 74256,
+      "sha256": "6ed45df85488841d"
+    },
+    {
+      "path": "fscr1/multistep-3090321.log",
+      "bytes": 74197,
+      "sha256": "464ca41a1d217cda"
+    },
+    {
+      "path": "fscr1/multistep-3090322.log",
+      "bytes": 70102,
+      "sha256": "db05ade199d41465"
+    },
+    {
+      "path": "fscr1/multistep-3090323.log",
+      "bytes": 74136,
+      "sha256": "9decfaa3b369fa23"
+    },
+    {
+      "path": "fscr1/multistep-3090324.log",
+      "bytes": 74030,
+      "sha256": "6227eb62111c8f40"
+    },
+    {
+      "path": "fscr1/multistep-3090325.log",
+      "bytes": 69871,
+      "sha256": "6bb83cea2129c465"
+    },
+    {
+      "path": "fscr1/multistep_eval-3099177.log",
+      "bytes": 3955,
+      "sha256": "3b8e2b8780675029"
+    },
+    {
+      "path": "fscr1/multistep_validate-3090319.log",
+      "bytes": 1871,
+      "sha256": "d4304eb4433d210d"
+    },
+    {
+      "path": "fscr1/render_checks.json",
+      "bytes": 12258,
+      "sha256": "819acbd820009ae2"
+    },
+    {
+      "path": "fscr1/scores/F_4_s42_fscr1_tF.json",
+      "bytes": 5745,
+      "sha256": "921916c49422a13c"
+    },
+    {
+      "path": "fscr1/scores/F_4_s42_fscr1_tF.npz",
+      "bytes": 62041,
+      "sha256": "6cb076caf79ece40"
+    },
+    {
+      "path": "fscr1/scores/F_4_s42_fscr1_tF_epoch_010.json",
+      "bytes": 5765,
+      "sha256": "f4d7decae422de83"
+    },
+    {
+      "path": "fscr1/scores/F_4_s42_fscr1_tF_epoch_010.npz",
+      "bytes": 61940,
+      "sha256": "4d6ebdb665616042"
+    },
+    {
+      "path": "fscr1/scores/F_4_s42_fscr1_tS5.json",
+      "bytes": 5788,
+      "sha256": "fb4970e3afb45a1f"
+    },
+    {
+      "path": "fscr1/scores/F_4_s42_fscr1_tS5.npz",
+      "bytes": 61915,
+      "sha256": "3504567a6612f4c5"
+    },
+    {
+      "path": "fscr1/scores/Fb_4_s42_fscr1_tF.json",
+      "bytes": 5029,
+      "sha256": "579adb494972dd4a"
+    },
+    {
+      "path": "fscr1/scores/Fb_4_s42_fscr1_tF.npz",
+      "bytes": 29742,
+      "sha256": "08f7a37551b8ccdc"
+    },
+    {
+      "path": "fscr1/scores/Fb_4_s42_fscr1_tS5.json",
+      "bytes": 5076,
+      "sha256": "4891be4cca352021"
+    },
+    {
+      "path": "fscr1/scores/Fb_4_s42_fscr1_tS5.npz",
+      "bytes": 29806,
+      "sha256": "32e43caa714aa9ed"
+    },
+    {
+      "path": "fscr1/scores/L_1_s42_fscr1_tF.json",
+      "bytes": 4316,
+      "sha256": "8575016c3f9548d6"
+    },
+    {
+      "path": "fscr1/scores/L_1_s42_fscr1_tF.npz",
+      "bytes": 26457,
+      "sha256": "426b28f757086c00"
+    },
+    {
+      "path": "fscr1/scores/L_1_s42_fscr1_tS5.json",
+      "bytes": 4355,
+      "sha256": "823675c8c462d240"
+    },
+    {
+      "path": "fscr1/scores/L_1_s42_fscr1_tS5.npz",
+      "bytes": 26579,
+      "sha256": "097ceb5d0caece7c"
+    },
+    {
+      "path": "fscr1/slice_descriptions.json",
+      "bytes": 1110,
+      "sha256": "75703fb1532da09e"
+    },
+    {
+      "path": "fscr1/validate_3090319/F_4_s42_fscr1_tF/.hydra/config.yaml",
+      "bytes": 3845,
+      "sha256": "492c506c227569ce"
+    },
+    {
+      "path": "fscr1/validate_3090319/F_4_s42_fscr1_tF/.hydra/hydra.yaml",
+      "bytes": 4405,
+      "sha256": "a898c63d3c3bd8e7"
+    },
+    {
+      "path": "fscr1/validate_3090319/F_4_s42_fscr1_tF/.hydra/overrides.yaml",
+      "bytes": 859,
+      "sha256": "bc4f9e4e230f4b8d"
+    },
+    {
+      "path": "fscr1/validate_3090319/F_4_s42_fscr1_tF/run_info.json",
+      "bytes": 1237,
+      "sha256": "38e0c59a687290cc"
+    },
+    {
+      "path": "fscr1/validate_3090319/F_4_s42_fscr1_tF/train_sequential.log",
+      "bytes": 24212,
+      "sha256": "9315d1a2f1225a5c"
+    },
+    {
+      "path": "fscr1/validate_3090319/F_4_s42_fscr1_tS5/.hydra/config.yaml",
+      "bytes": 3847,
+      "sha256": "d5acc240388ee321"
+    },
+    {
+      "path": "fscr1/validate_3090319/F_4_s42_fscr1_tS5/.hydra/hydra.yaml",
+      "bytes": 4444,
+      "sha256": "143e39048a146eea"
+    },
+    {
+      "path": "fscr1/validate_3090319/F_4_s42_fscr1_tS5/.hydra/overrides.yaml",
+      "bytes": 893,
+      "sha256": "776d6724ca2fa33e"
+    },
+    {
+      "path": "fscr1/validate_3090319/F_4_s42_fscr1_tS5/run_info.json",
+      "bytes": 1276,
+      "sha256": "8be134d3be01246d"
+    },
+    {
+      "path": "fscr1/validate_3090319/F_4_s42_fscr1_tS5/train_sequential.log",
+      "bytes": 24210,
+      "sha256": "47449d0acb3ebad9"
+    },
+    {
+      "path": "fscr1/validate_3090319/Fb_4_s42_fscr1_tF/.hydra/config.yaml",
+      "bytes": 3846,
+      "sha256": "0587bcb3cdf225a1"
+    },
+    {
+      "path": "fscr1/validate_3090319/Fb_4_s42_fscr1_tF/.hydra/hydra.yaml",
+      "bytes": 4438,
+      "sha256": "57c412f59f9e7e59"
+    },
+    {
+      "path": "fscr1/validate_3090319/Fb_4_s42_fscr1_tF/.hydra/overrides.yaml",
+      "bytes": 887,
+      "sha256": "7a7af432b2651d06"
+    },
+    {
+      "path": "fscr1/validate_3090319/Fb_4_s42_fscr1_tF/run_info.json",
+      "bytes": 1270,
+      "sha256": "073112fb52a4bdc7"
+    },
+    {
+      "path": "fscr1/validate_3090319/Fb_4_s42_fscr1_tF/train_sequential.log",
+      "bytes": 24210,
+      "sha256": "fcb59a6080be60ee"
+    },
+    {
+      "path": "fscr1/validate_3090319/Fb_4_s42_fscr1_tS5/.hydra/config.yaml",
+      "bytes": 3848,
+      "sha256": "6af72086e1188592"
+    },
+    {
+      "path": "fscr1/validate_3090319/Fb_4_s42_fscr1_tS5/.hydra/hydra.yaml",
+      "bytes": 4477,
+      "sha256": "7cad905f36837797"
+    },
+    {
+      "path": "fscr1/validate_3090319/Fb_4_s42_fscr1_tS5/.hydra/overrides.yaml",
+      "bytes": 921,
+      "sha256": "5684b59a671aa57a"
+    },
+    {
+      "path": "fscr1/validate_3090319/Fb_4_s42_fscr1_tS5/run_info.json",
+      "bytes": 1309,
+      "sha256": "99882df3f9edde80"
+    },
+    {
+      "path": "fscr1/validate_3090319/Fb_4_s42_fscr1_tS5/train_sequential.log",
+      "bytes": 24211,
+      "sha256": "56c1f177ac2b6ad7"
+    },
+    {
+      "path": "fscr1/validate_3090319/L_1_s42_fscr1_tF/.hydra/config.yaml",
+      "bytes": 3833,
+      "sha256": "8ffc747afd002a1e"
+    },
+    {
+      "path": "fscr1/validate_3090319/L_1_s42_fscr1_tF/.hydra/hydra.yaml",
+      "bytes": 4328,
+      "sha256": "a47521ec7c7f78c7"
+    },
+    {
+      "path": "fscr1/validate_3090319/L_1_s42_fscr1_tF/.hydra/overrides.yaml",
+      "bytes": 790,
+      "sha256": "b4c7f22249bafe79"
+    },
+    {
+      "path": "fscr1/validate_3090319/L_1_s42_fscr1_tF/run_info.json",
+      "bytes": 1158,
+      "sha256": "91ed20875d46b3c2"
+    },
+    {
+      "path": "fscr1/validate_3090319/L_1_s42_fscr1_tF/train_sequential.log",
+      "bytes": 19665,
+      "sha256": "b3caf23446bcdf79"
+    },
+    {
+      "path": "fscr1/validate_3090319/L_1_s42_fscr1_tS5/.hydra/config.yaml",
+      "bytes": 3835,
+      "sha256": "cdcd2cd472930cd1"
+    },
+    {
+      "path": "fscr1/validate_3090319/L_1_s42_fscr1_tS5/.hydra/hydra.yaml",
+      "bytes": 4367,
+      "sha256": "9661f30b52665ddb"
+    },
+    {
+      "path": "fscr1/validate_3090319/L_1_s42_fscr1_tS5/.hydra/overrides.yaml",
+      "bytes": 824,
+      "sha256": "c7d9a6791038b25d"
+    },
+    {
+      "path": "fscr1/validate_3090319/L_1_s42_fscr1_tS5/run_info.json",
+      "bytes": 1197,
+      "sha256": "b5bb8193b5bd0a9e"
+    },
+    {
+      "path": "fscr1/validate_3090319/L_1_s42_fscr1_tS5/train_sequential.log",
+      "bytes": 19661,
+      "sha256": "3deaf2d21bf05818"
+    },
+    {
+      "path": "fscr1/validate_3090319/commit.log",
+      "bytes": 41,
+      "sha256": "4261f1783939588e"
+    },
+    {
+      "path": "fscr1/validate_3090319/nulls.log",
+      "bytes": 1544,
+      "sha256": "6a82f644c0fb4b93"
+    },
+    {
+      "path": "fscr1/validate_3090319/run_info.log",
+      "bytes": 451,
+      "sha256": "ce785b03fa805d74"
+    },
+    {
+      "path": "fscr1/validate_3090319/score_F_4_s42_fscr1_tF.log",
+      "bytes": 1529,
+      "sha256": "1378200a941cc6e1"
+    },
+    {
+      "path": "fscr1/validate_3090319/score_F_4_s42_fscr1_tS5.log",
+      "bytes": 1568,
+      "sha256": "97e1d91875d49360"
+    },
+    {
+      "path": "fscr1/validate_3090319/score_Fb_4_s42_fscr1_tF.log",
+      "bytes": 1529,
+      "sha256": "61511da72aa3ae2b"
+    },
+    {
+      "path": "fscr1/validate_3090319/score_Fb_4_s42_fscr1_tS5.log",
+      "bytes": 1567,
+      "sha256": "abe2869737e85f46"
+    },
+    {
+      "path": "fscr1/validate_3090319/score_L_1_s42_fscr1_tF.log",
+      "bytes": 1411,
+      "sha256": "f33d33e5ba71855e"
+    },
+    {
+      "path": "fscr1/validate_3090319/score_L_1_s42_fscr1_tS5.log",
+      "bytes": 1450,
+      "sha256": "5469eb4880611bb6"
+    },
+    {
+      "path": "fscr1/validate_3090319/scores/F_4_s42_fscr1_tF.json",
+      "bytes": 5802,
+      "sha256": "c90cc6dbf1b695d1"
+    },
+    {
+      "path": "fscr1/validate_3090319/scores/F_4_s42_fscr1_tS5.json",
+      "bytes": 22982,
+      "sha256": "b27181b138564100"
+    },
+    {
+      "path": "fscr1/validate_3090319/scores/Fb_4_s42_fscr1_tF.json",
+      "bytes": 5090,
+      "sha256": "ed601c1566a31b99"
+    },
+    {
+      "path": "fscr1/validate_3090319/scores/Fb_4_s42_fscr1_tS5.json",
+      "bytes": 23700,
+      "sha256": "2e823c734fa381cb"
+    },
+    {
+      "path": "fscr1/validate_3090319/scores/L_1_s42_fscr1_tF.json",
+      "bytes": 6582,
+      "sha256": "f58aa461e5d62a66"
+    },
+    {
+      "path": "fscr1/validate_3090319/scores/L_1_s42_fscr1_tS5.json",
+      "bytes": 22966,
+      "sha256": "73d3c08460d6c829"
+    },
+    {
+      "path": "fscr1/validate_3090319/smoke_F_4_s42_fscr1_tF.log",
+      "bytes": 33404,
+      "sha256": "442f46ecd5b94350"
+    },
+    {
+      "path": "fscr1/validate_3090319/smoke_F_4_s42_fscr1_tS5.log",
+      "bytes": 31625,
+      "sha256": "a7c6b5a6fd46faac"
+    },
+    {
+      "path": "fscr1/validate_3090319/smoke_Fb_4_s42_fscr1_tF.log",
+      "bytes": 32426,
+      "sha256": "dc4d72341ebfd998"
+    },
+    {
+      "path": "fscr1/validate_3090319/smoke_Fb_4_s42_fscr1_tS5.log",
+      "bytes": 31627,
+      "sha256": "0107a0972922b9bc"
+    },
+    {
+      "path": "fscr1/validate_3090319/smoke_L_1_s42_fscr1_tF.log",
+      "bytes": 28328,
+      "sha256": "0e5f1ab7f1f0e209"
+    },
+    {
+      "path": "fscr1/validate_3090319/smoke_L_1_s42_fscr1_tS5.log",
+      "bytes": 27061,
+      "sha256": "436d9f06a457e315"
+    },
+    {
+      "path": "fscr1/validate_3090319/tests.log",
+      "bytes": 1780,
+      "sha256": "34ab59ec018fad0e"
+    },
+    {
+      "path": "kscr1/README.md",
+      "bytes": 2310,
+      "sha256": "50e0d362fd40a465"
+    },
+    {
+      "path": "kscr1/contrasts.json",
+      "bytes": 5464,
+      "sha256": "b0b7f36f91b27c7d"
+    },
+    {
+      "path": "kscr1/contrasts.txt",
+      "bytes": 236,
+      "sha256": "975e29e8a42e679e"
+    },
+    {
+      "path": "kscr1/kscr_jobs.txt",
+      "bytes": 70,
+      "sha256": "44648e339ebbaf19"
+    },
+    {
+      "path": "kscr1/multistep-3027891.log",
+      "bytes": 72212,
+      "sha256": "b310c42b250df78a"
+    },
+    {
+      "path": "kscr1/multistep-3027892.log",
+      "bytes": 72203,
+      "sha256": "9e80885aa8c4d20e"
+    },
+    {
+      "path": "kscr1/multistep-3027893.log",
+      "bytes": 72221,
+      "sha256": "d22be2a6aece4c1f"
+    },
+    {
+      "path": "kscr1/scores/A_16_s42_kscr1.json",
+      "bytes": 11721,
+      "sha256": "dfb02514c0112b3f"
+    },
+    {
+      "path": "kscr1/scores/A_16_s42_kscr1.npz",
+      "bytes": 370635,
+      "sha256": "0e084212c4a1b400"
+    },
+    {
+      "path": "kscr1/scores/T_16_s142_kscr1.json",
+      "bytes": 9790,
+      "sha256": "9b54a4fe67ae3023"
+    },
+    {
+      "path": "kscr1/scores/T_16_s142_kscr1.npz",
+      "bytes": 153019,
+      "sha256": "65b4221822583c08"
+    },
+    {
+      "path": "kscr1/scores/T_16_s42_kscr1.json",
+      "bytes": 9790,
+      "sha256": "356a7927943c1187"
+    },
+    {
+      "path": "kscr1/scores/T_16_s42_kscr1.npz",
+      "bytes": 154841,
+      "sha256": "a18011b09ec66811"
+    },
+    {
+      "path": "kscr2/README.md",
+      "bytes": 7684,
+      "sha256": "568b8b09ddd398e6"
+    },
+    {
+      "path": "kscr2/contrasts.json",
+      "bytes": 23279,
+      "sha256": "e3cc4c2f3be9d42f"
+    },
+    {
+      "path": "kscr2/contrasts.txt",
+      "bytes": 1064,
+      "sha256": "ac7f121beca0b08c"
+    },
+    {
+      "path": "kscr2/contrasts_c_minus_s.json",
+      "bytes": 2912,
+      "sha256": "6b92ca80503f068f"
+    },
+    {
+      "path": "kscr2/contrasts_c_minus_s.txt",
+      "bytes": 118,
+      "sha256": "5e9c10b0bd245989"
+    },
+    {
+      "path": "kscr2/contrasts_cascades.json",
+      "bytes": 5550,
+      "sha256": "7143c167f2d7947d"
+    },
+    {
+      "path": "kscr2/contrasts_cascades.txt",
+      "bytes": 236,
+      "sha256": "59a3557d08086d62"
+    },
+    {
+      "path": "kscr2/kscr2_jobs.txt",
+      "bytes": 137,
+      "sha256": "8505fd407bfb26a3"
+    },
+    {
+      "path": "kscr2/leak/README.md",
+      "bytes": 10364,
+      "sha256": "392c821511142e2b"
+    },
+    {
+      "path": "kscr2/leak/contrasts_gap.json",
+      "bytes": 18900,
+      "sha256": "a269804069fe83be"
+    },
+    {
+      "path": "kscr2/leak/contrasts_gap.txt",
+      "bytes": 842,
+      "sha256": "b6db8024c0bb17e9"
+    },
+    {
+      "path": "kscr2/leak/contrasts_swap.json",
+      "bytes": 13607,
+      "sha256": "e518f46c67039c33"
+    },
+    {
+      "path": "kscr2/leak/contrasts_swap.txt",
+      "bytes": 611,
+      "sha256": "9e724ac0c75e0271"
+    },
+    {
+      "path": "kscr2/leak/leak_kscr2.log",
+      "bytes": 8374,
+      "sha256": "02fa0df9bd38ef2e"
+    },
+    {
+      "path": "kscr2/leak/scores/A_16_s42_kscr2__via__A_16_s42_kscr2.json",
+      "bytes": 3868,
+      "sha256": "88f0f2d1a738aeb5"
+    },
+    {
+      "path": "kscr2/leak/scores/A_16_s42_kscr2__via__A_16_s42_kscr2.npz",
+      "bytes": 50063,
+      "sha256": "a39d3c9b29ce4173"
+    },
+    {
+      "path": "kscr2/leak/scores/A_16_s42_kscr2__via__C_16_s42_kscr2.json",
+      "bytes": 3867,
+      "sha256": "d0f516974e76ba26"
+    },
+    {
+      "path": "kscr2/leak/scores/A_16_s42_kscr2__via__C_16_s42_kscr2.npz",
+      "bytes": 50228,
+      "sha256": "b77ea75f189fe4c6"
+    },
+    {
+      "path": "kscr2/leak/scores/A_16_s42_kscr2__via__S_16_s42_kscr2.json",
+      "bytes": 3865,
+      "sha256": "48e5fe35431977c8"
+    },
+    {
+      "path": "kscr2/leak/scores/A_16_s42_kscr2__via__S_16_s42_kscr2.npz",
+      "bytes": 50148,
+      "sha256": "2fa6aba15406b933"
+    },
+    {
+      "path": "kscr2/leak/scores/A_16_s42_kscr2__via__T_16_s42_kscr2.json",
+      "bytes": 3862,
+      "sha256": "8d90edb0f4a3984d"
+    },
+    {
+      "path": "kscr2/leak/scores/A_16_s42_kscr2__via__T_16_s42_kscr2.npz",
+      "bytes": 50141,
+      "sha256": "44787358f7b7b35d"
+    },
+    {
+      "path": "kscr2/leak/scores/A_16_s42_kscr2__via__T_1_s42_kscr2.json",
+      "bytes": 3860,
+      "sha256": "8529497a74bbcf3b"
+    },
+    {
+      "path": "kscr2/leak/scores/A_16_s42_kscr2__via__T_1_s42_kscr2.npz",
+      "bytes": 50159,
+      "sha256": "09069b8f300c4f14"
+    },
+    {
+      "path": "kscr2/leak/scores/C_16_s42_kscr2__via__A_16_s42_kscr2.json",
+      "bytes": 3851,
+      "sha256": "3be9d6ae45c46034"
+    },
+    {
+      "path": "kscr2/leak/scores/C_16_s42_kscr2__via__A_16_s42_kscr2.npz",
+      "bytes": 50114,
+      "sha256": "be7ee8396f4dd5bb"
+    },
+    {
+      "path": "kscr2/leak/scores/C_16_s42_kscr2__via__C_16_s42_kscr2.json",
+      "bytes": 3843,
+      "sha256": "aef8c61d8db9f626"
+    },
+    {
+      "path": "kscr2/leak/scores/C_16_s42_kscr2__via__C_16_s42_kscr2.npz",
+      "bytes": 50169,
+      "sha256": "cbedf9f565c2cd09"
+    },
+    {
+      "path": "kscr2/leak/scores/C_16_s42_kscr2__via__S_16_s42_kscr2.json",
+      "bytes": 3858,
+      "sha256": "dbacafd60d6819fd"
+    },
+    {
+      "path": "kscr2/leak/scores/C_16_s42_kscr2__via__S_16_s42_kscr2.npz",
+      "bytes": 50145,
+      "sha256": "e05a6c1b1552fae8"
+    },
+    {
+      "path": "kscr2/leak/scores/C_16_s42_kscr2__via__T_16_s42_kscr2.json",
+      "bytes": 3856,
+      "sha256": "45ec2159419f4e38"
+    },
+    {
+      "path": "kscr2/leak/scores/C_16_s42_kscr2__via__T_16_s42_kscr2.npz",
+      "bytes": 50176,
+      "sha256": "091e1177314965c0"
+    },
+    {
+      "path": "kscr2/leak/scores/C_16_s42_kscr2__via__T_1_s42_kscr2.json",
+      "bytes": 3851,
+      "sha256": "d2222c127a3aefb2"
+    },
+    {
+      "path": "kscr2/leak/scores/C_16_s42_kscr2__via__T_1_s42_kscr2.npz",
+      "bytes": 50237,
+      "sha256": "f4df0675468d345b"
+    },
+    {
+      "path": "kscr2/leak/scores/S_16_s42_kscr2__via__A_16_s42_kscr2.json",
+      "bytes": 3855,
+      "sha256": "1a05216c292c110a"
+    },
+    {
+      "path": "kscr2/leak/scores/S_16_s42_kscr2__via__A_16_s42_kscr2.npz",
+      "bytes": 50219,
+      "sha256": "60e67565b2826663"
+    },
+    {
+      "path": "kscr2/leak/scores/S_16_s42_kscr2__via__C_16_s42_kscr2.json",
+      "bytes": 3861,
+      "sha256": "afc7e74ba2d7211a"
+    },
+    {
+      "path": "kscr2/leak/scores/S_16_s42_kscr2__via__C_16_s42_kscr2.npz",
+      "bytes": 50277,
+      "sha256": "e6321e902e0afa4f"
+    },
+    {
+      "path": "kscr2/leak/scores/S_16_s42_kscr2__via__S_16_s42_kscr2.json",
+      "bytes": 3862,
+      "sha256": "4a774edc2c97cffa"
+    },
+    {
+      "path": "kscr2/leak/scores/S_16_s42_kscr2__via__S_16_s42_kscr2.npz",
+      "bytes": 50133,
+      "sha256": "f4a82244864ae07b"
+    },
+    {
+      "path": "kscr2/leak/scores/S_16_s42_kscr2__via__T_16_s42_kscr2.json",
+      "bytes": 3862,
+      "sha256": "49ee1c6c0c43c1ea"
+    },
+    {
+      "path": "kscr2/leak/scores/S_16_s42_kscr2__via__T_16_s42_kscr2.npz",
+      "bytes": 50181,
+      "sha256": "1ea8e66d309ff078"
+    },
+    {
+      "path": "kscr2/leak/scores/S_16_s42_kscr2__via__T_1_s42_kscr2.json",
+      "bytes": 3862,
+      "sha256": "65cc28ae2c3dacc9"
+    },
+    {
+      "path": "kscr2/leak/scores/S_16_s42_kscr2__via__T_1_s42_kscr2.npz",
+      "bytes": 50242,
+      "sha256": "e5727a7e0b11c310"
+    },
+    {
+      "path": "kscr2/leak/scores/T_16_s42_kscr2__via__A_16_s42_kscr2.json",
+      "bytes": 3386,
+      "sha256": "ce31e185182c940a"
+    },
+    {
+      "path": "kscr2/leak/scores/T_16_s42_kscr2__via__A_16_s42_kscr2.npz",
+      "bytes": 50064,
+      "sha256": "5828616edc7e9004"
+    },
+    {
+      "path": "kscr2/leak/scores/T_16_s42_kscr2__via__C_16_s42_kscr2.json",
+      "bytes": 3389,
+      "sha256": "3e2b8d197b528967"
+    },
+    {
+      "path": "kscr2/leak/scores/T_16_s42_kscr2__via__C_16_s42_kscr2.npz",
+      "bytes": 50288,
+      "sha256": "8232627aed551563"
+    },
+    {
+      "path": "kscr2/leak/scores/T_16_s42_kscr2__via__S_16_s42_kscr2.json",
+      "bytes": 3390,
+      "sha256": "58f3a8f7ff95bc96"
+    },
+    {
+      "path": "kscr2/leak/scores/T_16_s42_kscr2__via__S_16_s42_kscr2.npz",
+      "bytes": 50040,
+      "sha256": "19eef374d9dccc11"
+    },
+    {
+      "path": "kscr2/leak/scores/T_16_s42_kscr2__via__T_16_s42_kscr2.json",
+      "bytes": 3389,
+      "sha256": "c72c7f53c06c65e0"
+    },
+    {
+      "path": "kscr2/leak/scores/T_16_s42_kscr2__via__T_16_s42_kscr2.npz",
+      "bytes": 50194,
+      "sha256": "08c4219e5c95c17c"
+    },
+    {
+      "path": "kscr2/leak/scores/T_16_s42_kscr2__via__T_1_s42_kscr2.json",
+      "bytes": 3386,
+      "sha256": "1618deebac9978fb"
+    },
+    {
+      "path": "kscr2/leak/scores/T_16_s42_kscr2__via__T_1_s42_kscr2.npz",
+      "bytes": 50112,
+      "sha256": "704af9be545d4ad5"
+    },
+    {
+      "path": "kscr2/leak/scores/leak_kscr2_summary.json",
+      "bytes": 65307,
+      "sha256": "3ce8533e23b7fde8"
+    },
+    {
+      "path": "kscr2/multistep-3073268.log",
+      "bytes": 72292,
+      "sha256": "5f203de1c33389db"
+    },
+    {
+      "path": "kscr2/multistep-3073269.log",
+      "bytes": 72306,
+      "sha256": "3ad452ddf101d939"
+    },
+    {
+      "path": "kscr2/multistep-3073270.log",
+      "bytes": 72330,
+      "sha256": "9235d231313ad58a"
+    },
+    {
+      "path": "kscr2/multistep-3073271.log",
+      "bytes": 72190,
+      "sha256": "0d73a936e3365cf0"
+    },
+    {
+      "path": "kscr2/multistep-3073272.log",
+      "bytes": 72321,
+      "sha256": "c2a72f8b29c7336c"
+    },
+    {
+      "path": "kscr2/multistep_validate-3073267.log",
+      "bytes": 1594,
+      "sha256": "8885c88c7c59dfdc"
+    },
+    {
+      "path": "kscr2/scores/A_16_s42_kscr2.json",
+      "bytes": 11773,
+      "sha256": "61aa35caa786b597"
+    },
+    {
+      "path": "kscr2/scores/A_16_s42_kscr2.npz",
+      "bytes": 365045,
+      "sha256": "07687e17f9ae8b38"
+    },
+    {
+      "path": "kscr2/scores/C_16_s42_kscr2.json",
+      "bytes": 11736,
+      "sha256": "aacb2420e4a98c96"
+    },
+    {
+      "path": "kscr2/scores/C_16_s42_kscr2.npz",
+      "bytes": 369018,
+      "sha256": "ce20d8268981023e"
+    },
+    {
+      "path": "kscr2/scores/S_16_s42_kscr2.json",
+      "bytes": 11790,
+      "sha256": "314e04d27d34eb63"
+    },
+    {
+      "path": "kscr2/scores/S_16_s42_kscr2.npz",
+      "bytes": 373190,
+      "sha256": "93fa42c3b4d04fea"
+    },
+    {
+      "path": "kscr2/scores/T_16_s42_kscr2.json",
+      "bytes": 9816,
+      "sha256": "e7f12df48ead2f5c"
+    },
+    {
+      "path": "kscr2/scores/T_16_s42_kscr2.npz",
+      "bytes": 153714,
+      "sha256": "6d48a6f4ac7fad2a"
+    },
+    {
+      "path": "kscr2/scores/T_1_s42_kscr2.json",
+      "bytes": 5479,
+      "sha256": "b5033af6911da954"
+    },
+    {
+      "path": "kscr2/scores/T_1_s42_kscr2.npz",
+      "bytes": 53873,
+      "sha256": "3e80ec4af605a7dc"
+    },
+    {
+      "path": "kscr2/validate_3073267/A_16_s42_kscr2/.hydra/config.yaml",
+      "bytes": 3788,
+      "sha256": "b01b443d354b5630"
+    },
+    {
+      "path": "kscr2/validate_3073267/A_16_s42_kscr2/.hydra/hydra.yaml",
+      "bytes": 4201,
+      "sha256": "ee30ad31946d6b1f"
+    },
+    {
+      "path": "kscr2/validate_3073267/A_16_s42_kscr2/.hydra/overrides.yaml",
+      "bytes": 682,
+      "sha256": "d7b78c9d397a61a6"
+    },
+    {
+      "path": "kscr2/validate_3073267/A_16_s42_kscr2/run_info.json",
+      "bytes": 1030,
+      "sha256": "7add3606234c3380"
+    },
+    {
+      "path": "kscr2/validate_3073267/A_16_s42_kscr2/train_sequential.log",
+      "bytes": 21664,
+      "sha256": "22f47ec8ca403823"
+    },
+    {
+      "path": "kscr2/validate_3073267/C_16_s42_kscr2/.hydra/config.yaml",
+      "bytes": 3784,
+      "sha256": "794365e67e3a5d6f"
+    },
+    {
+      "path": "kscr2/validate_3073267/C_16_s42_kscr2/.hydra/hydra.yaml",
+      "bytes": 4226,
+      "sha256": "497e33abc7321a68"
+    },
+    {
+      "path": "kscr2/validate_3073267/C_16_s42_kscr2/.hydra/overrides.yaml",
+      "bytes": 703,
+      "sha256": "a73146b2b679f652"
+    },
+    {
+      "path": "kscr2/validate_3073267/C_16_s42_kscr2/run_info.json",
+      "bytes": 1056,
+      "sha256": "3f79641518a2032c"
+    },
+    {
+      "path": "kscr2/validate_3073267/C_16_s42_kscr2/train_sequential.log",
+      "bytes": 21660,
+      "sha256": "c3410efe6a8039bf"
+    },
+    {
+      "path": "kscr2/validate_3073267/S_16_s42_kscr2/.hydra/config.yaml",
+      "bytes": 3786,
+      "sha256": "feca75c39d9cbb5e"
+    },
+    {
+      "path": "kscr2/validate_3073267/S_16_s42_kscr2/.hydra/hydra.yaml",
+      "bytes": 4228,
+      "sha256": "92988934c7b721b7"
+    },
+    {
+      "path": "kscr2/validate_3073267/S_16_s42_kscr2/.hydra/overrides.yaml",
+      "bytes": 705,
+      "sha256": "8526153eb968c9c3"
+    },
+    {
+      "path": "kscr2/validate_3073267/S_16_s42_kscr2/run_info.json",
+      "bytes": 1058,
+      "sha256": "ff1ffbed1c0e3990"
+    },
+    {
+      "path": "kscr2/validate_3073267/S_16_s42_kscr2/train_sequential.log",
+      "bytes": 21662,
+      "sha256": "9265c0b0bf4536c9"
+    },
+    {
+      "path": "kscr2/validate_3073267/T_16_s42_kscr2/.hydra/config.yaml",
+      "bytes": 3787,
+      "sha256": "9c451a58466dfa7c"
+    },
+    {
+      "path": "kscr2/validate_3073267/T_16_s42_kscr2/.hydra/hydra.yaml",
+      "bytes": 4200,
+      "sha256": "27e1278ef5641511"
+    },
+    {
+      "path": "kscr2/validate_3073267/T_16_s42_kscr2/.hydra/overrides.yaml",
+      "bytes": 681,
+      "sha256": "91322b99090a2b72"
+    },
+    {
+      "path": "kscr2/validate_3073267/T_16_s42_kscr2/run_info.json",
+      "bytes": 1029,
+      "sha256": "9ebf5c50da4e8fa2"
+    },
+    {
+      "path": "kscr2/validate_3073267/T_16_s42_kscr2/train_sequential.log",
+      "bytes": 21663,
+      "sha256": "64a6f22ece48060a"
+    },
+    {
+      "path": "kscr2/validate_3073267/T_1_s42_kscr2/.hydra/config.yaml",
+      "bytes": 3785,
+      "sha256": "652c706bad62499e"
+    },
+    {
+      "path": "kscr2/validate_3073267/T_1_s42_kscr2/.hydra/hydra.yaml",
+      "bytes": 4197,
+      "sha256": "1c4dec06164a1ae3"
+    },
+    {
+      "path": "kscr2/validate_3073267/T_1_s42_kscr2/.hydra/overrides.yaml",
+      "bytes": 679,
+      "sha256": "0449c6ed0a8826cf"
+    },
+    {
+      "path": "kscr2/validate_3073267/T_1_s42_kscr2/run_info.json",
+      "bytes": 1027,
+      "sha256": "6237b9ca5255f2d5"
+    },
+    {
+      "path": "kscr2/validate_3073267/T_1_s42_kscr2/train_sequential.log",
+      "bytes": 21661,
+      "sha256": "87bdc40d7f9c2e82"
+    },
+    {
+      "path": "kscr2/validate_3073267/commit.log",
+      "bytes": 41,
+      "sha256": "6c5fd74d0accd759"
+    },
+    {
+      "path": "kscr2/validate_3073267/nulls.log",
+      "bytes": 1157,
+      "sha256": "1517b742bee9c9f0"
+    },
+    {
+      "path": "kscr2/validate_3073267/run_info.log",
+      "bytes": 371,
+      "sha256": "7bc5e35e3fd63666"
+    },
+    {
+      "path": "kscr2/validate_3073267/score_A_16_s42_kscr2.log",
+      "bytes": 1621,
+      "sha256": "9398765ed60eaf76"
+    },
+    {
+      "path": "kscr2/validate_3073267/score_C_16_s42_kscr2.log",
+      "bytes": 1605,
+      "sha256": "3a217bdc5a551e19"
+    },
+    {
+      "path": "kscr2/validate_3073267/score_S_16_s42_kscr2.log",
+      "bytes": 1605,
+      "sha256": "f5c0d70f38ee7838"
+    },
+    {
+      "path": "kscr2/validate_3073267/score_T_16_s42_kscr2.log",
+      "bytes": 1861,
+      "sha256": "67a650375088dee8"
+    },
+    {
+      "path": "kscr2/validate_3073267/score_T_1_s42_kscr2.log",
+      "bytes": 1508,
+      "sha256": "276c523ba6974155"
+    },
+    {
+      "path": "kscr2/validate_3073267/scores/A_16_s42_kscr2.json",
+      "bytes": 17214,
+      "sha256": "6463148978f6d204"
+    },
+    {
+      "path": "kscr2/validate_3073267/scores/A_16_s42_kscr2.npz",
+      "bytes": 50963,
+      "sha256": "48df71a2d0ffb0e1"
+    },
+    {
+      "path": "kscr2/validate_3073267/scores/C_16_s42_kscr2.json",
+      "bytes": 17178,
+      "sha256": "dffc8d4753b51f5c"
+    },
+    {
+      "path": "kscr2/validate_3073267/scores/C_16_s42_kscr2.npz",
+      "bytes": 52823,
+      "sha256": "13424d9758da214c"
+    },
+    {
+      "path": "kscr2/validate_3073267/scores/S_16_s42_kscr2.json",
+      "bytes": 17131,
+      "sha256": "9e9fd18149439a0a"
+    },
+    {
+      "path": "kscr2/validate_3073267/scores/S_16_s42_kscr2.npz",
+      "bytes": 52101,
+      "sha256": "ac49a864d30c1a59"
+    },
+    {
+      "path": "kscr2/validate_3073267/scores/T_16_s42_kscr2.json",
+      "bytes": 14917,
+      "sha256": "827e9af000761d81"
+    },
+    {
+      "path": "kscr2/validate_3073267/scores/T_16_s42_kscr2.npz",
+      "bytes": 30342,
+      "sha256": "188e50413866c55a"
+    },
+    {
+      "path": "kscr2/validate_3073267/scores/T_1_s42_kscr2.json",
+      "bytes": 10117,
+      "sha256": "147e90a016d2df87"
+    },
+    {
+      "path": "kscr2/validate_3073267/scores/T_1_s42_kscr2.npz",
+      "bytes": 14055,
+      "sha256": "c458e8c43db07b96"
+    },
+    {
+      "path": "kscr2/validate_3073267/smoke_A_16_s42_kscr2.log",
+      "bytes": 29259,
+      "sha256": "91f1ca7179e01814"
+    },
+    {
+      "path": "kscr2/validate_3073267/smoke_C_16_s42_kscr2.log",
+      "bytes": 29251,
+      "sha256": "7274ba3f202cc89a"
+    },
+    {
+      "path": "kscr2/validate_3073267/smoke_S_16_s42_kscr2.log",
+      "bytes": 29513,
+      "sha256": "d742882500354719"
+    },
+    {
+      "path": "kscr2/validate_3073267/smoke_T_16_s42_kscr2.log",
+      "bytes": 30031,
+      "sha256": "d2db739096535551"
+    },
+    {
+      "path": "kscr2/validate_3073267/smoke_T_1_s42_kscr2.log",
+      "bytes": 29507,
+      "sha256": "c367282accece7b0"
+    },
+    {
+      "path": "kscr2/validate_3073267/tests.log",
+      "bytes": 1780,
+      "sha256": "35191fc87210fb27"
+    },
+    {
+      "path": "kscr3/README.md",
+      "bytes": 6656,
+      "sha256": "06861276ddea64cd"
+    },
+    {
+      "path": "kscr3/analysis/blind_probe.py",
+      "bytes": 2991,
+      "sha256": "665f39e5cf8a3790"
+    },
+    {
+      "path": "kscr3/analysis/loupe_speckle.py",
+      "bytes": 2558,
+      "sha256": "f22a58f79dbbc855"
+    },
+    {
+      "path": "kscr3/analysis/per_scan_speckle.py",
+      "bytes": 4298,
+      "sha256": "9243aaef8180d7ed"
+    },
+    {
+      "path": "kscr3/analysis/render_mask_compare.py",
+      "bytes": 4904,
+      "sha256": "09159948ee7a3104"
+    },
+    {
+      "path": "kscr3/analysis/rotate_probe.py",
+      "bytes": 7438,
+      "sha256": "098dcb4e2be52acd"
+    },
+    {
+      "path": "kscr3/contrasts.json",
+      "bytes": 8040,
+      "sha256": "223e78f85f6a9fae"
+    },
+    {
+      "path": "kscr3/contrasts.txt",
+      "bytes": 354,
+      "sha256": "f99d1d39cd3aa4a0"
+    },
+    {
+      "path": "kscr3/launcher.log",
+      "bytes": 64,
+      "sha256": "8f2b9900dc5b3301"
+    },
+    {
+      "path": "kscr3/scores/F_4_s42_kscr3.json",
+      "bytes": 6330,
+      "sha256": "51872458b88ec7d5"
+    },
+    {
+      "path": "kscr3/scores/F_4_s42_kscr3.npz",
+      "bytes": 82084,
+      "sha256": "e5b50553a316cde6"
+    },
+    {
+      "path": "kscr3/scores/L_1_s42_kscr3.json",
+      "bytes": 5020,
+      "sha256": "90fd42be907ad4f1"
+    },
+    {
+      "path": "kscr3/scores/L_1_s42_kscr3.npz",
+      "bytes": 53998,
+      "sha256": "e6fd7427b9bf71e8"
+    },
+    {
+      "path": "kscr3/scores/Lc_1_s42_kscr3.json",
+      "bytes": 5022,
+      "sha256": "962b9003da2c7fde"
+    },
+    {
+      "path": "kscr3/scores/Lc_1_s42_kscr3.npz",
+      "bytes": 54002,
+      "sha256": "ca4dea428966ca49"
+    },
+    {
+      "path": "p0/README.md",
+      "bytes": 17762,
+      "sha256": "ef3e883bbc7678d2"
+    },
+    {
+      "path": "p0/corehpc/multistep_validate-2996412.log",
+      "bytes": 1020,
+      "sha256": "d75e07ba63dc1ac0"
+    },
+    {
+      "path": "p0/corehpc/multistep_validate-2996689.log",
+      "bytes": 1387,
+      "sha256": "36e20de13a8d4736"
+    },
+    {
+      "path": "p0/corehpc/validate_2996412/commit.log",
+      "bytes": 41,
+      "sha256": "f6890a5df318e43a"
+    },
+    {
+      "path": "p0/corehpc/validate_2996412/data.log",
+      "bytes": 3438,
+      "sha256": "1cae76e14c0069eb"
+    },
+    {
+      "path": "p0/corehpc/validate_2996412/nulls.log",
+      "bytes": 765,
+      "sha256": "b76043b47f837505"
+    },
+    {
+      "path": "p0/corehpc/validate_2996412/run_info.log",
+      "bytes": 64,
+      "sha256": "86f22cd243a0fe58"
+    },
+    {
+      "path": "p0/corehpc/validate_2996412/score_A4.log",
+      "bytes": 1466,
+      "sha256": "ebe17507122a6c4f"
+    },
+    {
+      "path": "p0/corehpc/validate_2996412/score_T4.log",
+      "bytes": 1466,
+      "sha256": "59e1203ad20a07e3"
+    },
+    {
+      "path": "p0/corehpc/validate_2996412/score_base.log",
+      "bytes": 1468,
+      "sha256": "f5a09e2f4666ac4c"
+    },
+    {
+      "path": "p0/corehpc/validate_2996412/score_rec.log",
+      "bytes": 1467,
+      "sha256": "b5ffb2a0533d9d3b"
+    },
+    {
+      "path": "p0/corehpc/validate_2996412/smoke_A16.log",
+      "bytes": 1202,
+      "sha256": "59f0ebff672a76dc"
+    },
+    {
+      "path": "p0/corehpc/validate_2996412/smoke_A4.log",
+      "bytes": 1200,
+      "sha256": "da49e6772760daa8"
+    },
+    {
+      "path": "p0/corehpc/validate_2996412/smoke_T4.log",
+      "bytes": 1199,
+      "sha256": "8a44627930a8afce"
+    },
+    {
+      "path": "p0/corehpc/validate_2996412/smoke_base.log",
+      "bytes": 1111,
+      "sha256": "5a1259ee2230671b"
+    },
+    {
+      "path": "p0/corehpc/validate_2996412/smoke_img.log",
+      "bytes": 1234,
+      "sha256": "1e8bb47e26fae3dd"
+    },
+    {
+      "path": "p0/corehpc/validate_2996412/smoke_rec.log",
+      "bytes": 1593,
+      "sha256": "297134b3e0116f9c"
+    },
+    {
+      "path": "p0/corehpc/validate_2996412/tests.log",
+      "bytes": 1700,
+      "sha256": "081da95ddaae2b89"
+    },
+    {
+      "path": "p0/corehpc/validate_2996689/commit.log",
+      "bytes": 41,
+      "sha256": "28b6b4be74debb90"
+    },
+    {
+      "path": "p0/corehpc/validate_2996689/data.log",
+      "bytes": 1084,
+      "sha256": "cdf75d15296659fc"
+    },
+    {
+      "path": "p0/corehpc/validate_2996689/nulls.log",
+      "bytes": 403,
+      "sha256": "6716faba32c83077"
+    },
+    {
+      "path": "p0/corehpc/validate_2996689/run_info.log",
+      "bytes": 403,
+      "sha256": "ba6a76f8e1a1b57e"
+    },
+    {
+      "path": "p0/corehpc/validate_2996689/score_A4.log",
+      "bytes": 1299,
+      "sha256": "142e494e28ebf682"
+    },
+    {
+      "path": "p0/corehpc/validate_2996689/score_T4.log",
+      "bytes": 1297,
+      "sha256": "797436594136d9a2"
+    },
+    {
+      "path": "p0/corehpc/validate_2996689/score_base.log",
+      "bytes": 1178,
+      "sha256": "67e9feb7afc06a5f"
+    },
+    {
+      "path": "p0/corehpc/validate_2996689/score_rec.log",
+      "bytes": 1300,
+      "sha256": "666939fc695823a9"
+    },
+    {
+      "path": "p0/corehpc/validate_2996689/scores/smoke_A4.json",
+      "bytes": 19450,
+      "sha256": "e4184dac5c6b0940"
+    },
+    {
+      "path": "p0/corehpc/validate_2996689/scores/smoke_T4.json",
+      "bytes": 18195,
+      "sha256": "416a2dce8de27222"
+    },
+    {
+      "path": "p0/corehpc/validate_2996689/scores/smoke_base.json",
+      "bytes": 6579,
+      "sha256": "bff47bad1801f1b0"
+    },
+    {
+      "path": "p0/corehpc/validate_2996689/scores/smoke_rec.json",
+      "bytes": 9477,
+      "sha256": "42dc44674baec13a"
+    },
+    {
+      "path": "p0/corehpc/validate_2996689/smoke_A16/run_info.json",
+      "bytes": 1079,
+      "sha256": "f79c093416b1ab85"
+    },
+    {
+      "path": "p0/corehpc/validate_2996689/smoke_A16/train_sequential.log",
+      "bytes": 21721,
+      "sha256": "7f5597d97aa6da9d"
+    },
+    {
+      "path": "p0/corehpc/validate_2996689/smoke_A16.log",
+      "bytes": 29661,
+      "sha256": "54f001f86bf87fd2"
+    },
+    {
+      "path": "p0/corehpc/validate_2996689/smoke_A4/run_info.json",
+      "bytes": 1077,
+      "sha256": "15766f9f95e2464e"
+    },
+    {
+      "path": "p0/corehpc/validate_2996689/smoke_A4/train_sequential.log",
+      "bytes": 21719,
+      "sha256": "7ca2c174ba4ba0c4"
+    },
+    {
+      "path": "p0/corehpc/validate_2996689/smoke_A4.log",
+      "bytes": 30426,
+      "sha256": "d4afbee0f8e5eff0"
+    },
+    {
+      "path": "p0/corehpc/validate_2996689/smoke_T4/run_info.json",
+      "bytes": 1076,
+      "sha256": "cd0f5a0fbaecccc6"
+    },
+    {
+      "path": "p0/corehpc/validate_2996689/smoke_T4/train_sequential.log",
+      "bytes": 21718,
+      "sha256": "f2137fb44db11eac"
+    },
+    {
+      "path": "p0/corehpc/validate_2996689/smoke_T4.log",
+      "bytes": 29651,
+      "sha256": "72529509e0fbd147"
+    },
+    {
+      "path": "p0/corehpc/validate_2996689/smoke_base/run_info.json",
+      "bytes": 976,
+      "sha256": "50a16117e78ae982"
+    },
+    {
+      "path": "p0/corehpc/validate_2996689/smoke_base/train_sequential.log",
+      "bytes": 19690,
+      "sha256": "7a21db7d7c16759c"
+    },
+    {
+      "path": "p0/corehpc/validate_2996689/smoke_base.log",
+      "bytes": 27877,
+      "sha256": "2e3d0ec0f3b6940b"
+    },
+    {
+      "path": "p0/corehpc/validate_2996689/smoke_img/run_info.json",
+      "bytes": 1115,
+      "sha256": "8fc706b0c4e44ae3"
+    },
+    {
+      "path": "p0/corehpc/validate_2996689/smoke_img/train_sequential.log",
+      "bytes": 21710,
+      "sha256": "27576774d2e765f7"
+    },
+    {
+      "path": "p0/corehpc/validate_2996689/smoke_img.log",
+      "bytes": 29637,
+      "sha256": "5058d7e36c673ecb"
+    },
+    {
+      "path": "p0/corehpc/validate_2996689/smoke_rec/run_info.json",
+      "bytes": 1486,
+      "sha256": "20d4a12d50017f74"
+    },
+    {
+      "path": "p0/corehpc/validate_2996689/smoke_rec/train_sequential.log",
+      "bytes": 38273,
+      "sha256": "5e7c2e8a0dfb5753"
+    },
+    {
+      "path": "p0/corehpc/validate_2996689/smoke_rec.log",
+      "bytes": 46727,
+      "sha256": "3986d5d967503938"
+    },
+    {
+      "path": "p0/corehpc/validate_2996689/tests.log",
+      "bytes": 1700,
+      "sha256": "c0b0c587a340705a"
+    },
+    {
+      "path": "p0/eval_smoke/base_loupe.json",
+      "bytes": 7468,
+      "sha256": "64a326451bf98742"
+    },
+    {
+      "path": "p0/eval_smoke/contrasts.json",
+      "bytes": 6715,
+      "sha256": "49b10fea44e1f8a5"
+    },
+    {
+      "path": "p0/eval_smoke/k16_adaptive.json",
+      "bytes": 21469,
+      "sha256": "c648fc9d5041c5dc"
+    },
+    {
+      "path": "p0/eval_smoke/k16_blind.json",
+      "bytes": 18475,
+      "sha256": "8f86089e02e08d39"
+    },
+    {
+      "path": "p0/eval_smoke/k4_adaptive.json",
+      "bytes": 25177,
+      "sha256": "c1f8aa948c948d2e"
+    },
+    {
+      "path": "p0/eval_smoke/k4_blind.json",
+      "bytes": 23907,
+      "sha256": "d61ed22b025d2d19"
+    },
+    {
+      "path": "p0/k1_bitwise_vs_main.txt",
+      "bytes": 191,
+      "sha256": "24bc1fcb4bd00b7d"
+    },
+    {
+      "path": "p0/step_gradients_main_vs_branch.txt",
+      "bytes": 236,
+      "sha256": "f4684bfc332b6df3"
+    },
+    {
+      "path": "p0/union_marginals_muon_layer_s42.txt",
+      "bytes": 1365,
+      "sha256": "647814bfd4c7966f"
+    },
+    {
+      "path": "p1/README.md",
+      "bytes": 6330,
+      "sha256": "3362b849df8ab4d7"
+    },
+    {
+      "path": "p1/multistep-2997083.log",
+      "bytes": 83239,
+      "sha256": "378be267a67253c1"
+    },
+    {
+      "path": "p1/multistep-2997084.log",
+      "bytes": 83235,
+      "sha256": "c924215045893628"
+    },
+    {
+      "path": "p1/multistep-3000520.log",
+      "bytes": 55798,
+      "sha256": "bd6f658a997324a1"
+    },
+    {
+      "path": "p1/multistep-3000521.log",
+      "bytes": 55797,
+      "sha256": "5a3dccfa7973a64c"
+    },
+    {
+      "path": "p1/multistep_eval-3001401.log",
+      "bytes": 9543,
+      "sha256": "4ee6be40218e0b3f"
+    },
+    {
+      "path": "p1/multistep_eval-3001402.log",
+      "bytes": 9541,
+      "sha256": "d89cac4dc51800a2"
+    },
+    {
+      "path": "p1/scores/A_16_s42.json",
+      "bytes": 15434,
+      "sha256": "12c0e6d0b5be9ba6"
+    },
+    {
+      "path": "p1/scores/A_16_s42.npz",
+      "bytes": 938358,
+      "sha256": "812a431e71cf0790"
+    },
+    {
+      "path": "p1/scores/A_16_s42_epoch_010.json",
+      "bytes": 15491,
+      "sha256": "e95d6a7536d1f7c8"
+    },
+    {
+      "path": "p1/scores/A_16_s42_epoch_010.npz",
+      "bytes": 934733,
+      "sha256": "2854c331e0a64621"
+    },
+    {
+      "path": "p1/scores/B_42.json",
+      "bytes": 5643,
+      "sha256": "cc1aff10087f7280"
+    },
+    {
+      "path": "p1/scores/B_42.npz",
+      "bytes": 145854,
+      "sha256": "f8973c51b57ddc13"
+    },
+    {
+      "path": "p1/scores/B_43.json",
+      "bytes": 5642,
+      "sha256": "5fdad2ddd224527f"
+    },
+    {
+      "path": "p1/scores/B_43.npz",
+      "bytes": 146037,
+      "sha256": "e268480728850508"
+    },
+    {
+      "path": "p1/scores/T_16_s42.json",
+      "bytes": 12795,
+      "sha256": "fcd8877b119d0c03"
+    },
+    {
+      "path": "p1/scores/T_16_s42.npz",
+      "bytes": 430222,
+      "sha256": "710ca9a6e8f2f5a1"
+    },
+    {
+      "path": "p1/scores/T_16_s42_epoch_010.json",
+      "bytes": 12819,
+      "sha256": "7a36131fca205a4a"
+    },
+    {
+      "path": "p1/scores/T_16_s42_epoch_010.npz",
+      "bytes": 426901,
+      "sha256": "f3af5630ff253b87"
+    },
+    {
+      "path": "p2/README.md",
+      "bytes": 1949,
+      "sha256": "38ee09b25466247e"
+    },
+    {
+      "path": "p2/contrasts.md",
+      "bytes": 2976,
+      "sha256": "5e914b5f78a345f3"
+    },
+    {
+      "path": "p2/multistep-3001463.log",
+      "bytes": 55807,
+      "sha256": "e67c58fff6ba5116"
+    },
+    {
+      "path": "p2/multistep-3001464.log",
+      "bytes": 55802,
+      "sha256": "6d9b8084589899b1"
+    },
+    {
+      "path": "p2/multistep-3001465.log",
+      "bytes": 55770,
+      "sha256": "708412a6f92766eb"
+    },
+    {
+      "path": "p2/multistep-3001466.log",
+      "bytes": 55770,
+      "sha256": "697914fe71d26dc2"
+    },
+    {
+      "path": "p2/multistep-3001467.log",
+      "bytes": 55805,
+      "sha256": "ed5462ea3d2df1d6"
+    },
+    {
+      "path": "p2/multistep-3001468.log",
+      "bytes": 55795,
+      "sha256": "5ed68d8deee4e296"
+    },
+    {
+      "path": "p2/multistep-3001469.log",
+      "bytes": 55760,
+      "sha256": "c2d0d4f754f24a9a"
+    },
+    {
+      "path": "p2/multistep-3001470.log",
+      "bytes": 55766,
+      "sha256": "f1b6171720c1c589"
+    },
+    {
+      "path": "p2/multistep-3001471.log",
+      "bytes": 55783,
+      "sha256": "0702402b2453690e"
+    },
+    {
+      "path": "p2/multistep-3001472.log",
+      "bytes": 55793,
+      "sha256": "2aafd7f14af025d1"
+    },
+    {
+      "path": "p2/multistep-3001473.log",
+      "bytes": 56053,
+      "sha256": "a830ab599b31216d"
+    },
+    {
+      "path": "p2/multistep-3001474.log",
+      "bytes": 56052,
+      "sha256": "e208fafe38f4fb5c"
+    },
+    {
+      "path": "p2/multistep-3001475.log",
+      "bytes": 71860,
+      "sha256": "ced6da092003d82c"
+    },
+    {
+      "path": "p2/multistep-3001476.log",
+      "bytes": 55816,
+      "sha256": "63ddb225d7449329"
+    },
+    {
+      "path": "p2/scores/A_16_s42_img.json",
+      "bytes": 15470,
+      "sha256": "8e6fad81604fe983"
+    },
+    {
+      "path": "p2/scores/A_16_s42_img.npz",
+      "bytes": 943085,
+      "sha256": "4deef35f91f08984"
+    },
+    {
+      "path": "p2/scores/A_16_s43.json",
+      "bytes": 15418,
+      "sha256": "d8399fabe583473c"
+    },
+    {
+      "path": "p2/scores/A_16_s43.npz",
+      "bytes": 969608,
+      "sha256": "911c675ebfcefc78"
+    },
+    {
+      "path": "p2/scores/A_1_s42.json",
+      "bytes": 7451,
+      "sha256": "094a0bfb31342494"
+    },
+    {
+      "path": "p2/scores/A_1_s42.npz",
+      "bytes": 188724,
+      "sha256": "d814baf51ed4cd46"
+    },
+    {
+      "path": "p2/scores/A_1_s43.json",
+      "bytes": 7448,
+      "sha256": "4063c47c68f54af4"
+    },
+    {
+      "path": "p2/scores/A_1_s43.npz",
+      "bytes": 188558,
+      "sha256": "d36c691f832533b5"
+    },
+    {
+      "path": "p2/scores/A_4_s42.json",
+      "bytes": 9076,
+      "sha256": "7ab304ef5ab57897"
+    },
+    {
+      "path": "p2/scores/A_4_s42.npz",
+      "bytes": 374584,
+      "sha256": "ec009308db1efdfc"
+    },
+    {
+      "path": "p2/scores/A_4_s42_rec.json",
+      "bytes": 9217,
+      "sha256": "0d8bee2b56060d26"
+    },
+    {
+      "path": "p2/scores/A_4_s42_rec.npz",
+      "bytes": 374454,
+      "sha256": "5abebdc1ca34ceba"
+    },
+    {
+      "path": "p2/scores/A_4_s43.json",
+      "bytes": 9065,
+      "sha256": "701a908e85de1ebd"
+    },
+    {
+      "path": "p2/scores/A_4_s43.npz",
+      "bytes": 374075,
+      "sha256": "97b7ba8637a82bb7"
+    },
+    {
+      "path": "p2/scores/T_16_s42_f142.json",
+      "bytes": 12818,
+      "sha256": "53fab9f60676e214"
+    },
+    {
+      "path": "p2/scores/T_16_s42_f142.npz",
+      "bytes": 428576,
+      "sha256": "cd0629d5c2db749b"
+    },
+    {
+      "path": "p2/scores/T_16_s43.json",
+      "bytes": 12776,
+      "sha256": "f004bb7c7d5be548"
+    },
+    {
+      "path": "p2/scores/T_16_s43.npz",
+      "bytes": 430796,
+      "sha256": "338a47e70016d47b"
+    },
+    {
+      "path": "p2/scores/T_1_s42.json",
+      "bytes": 6681,
+      "sha256": "f7c0d5201adb6970"
+    },
+    {
+      "path": "p2/scores/T_1_s42.npz",
+      "bytes": 146310,
+      "sha256": "76779d6204b84cee"
+    },
+    {
+      "path": "p2/scores/T_1_s42_f142.json",
+      "bytes": 6695,
+      "sha256": "d111a54971f91f6f"
+    },
+    {
+      "path": "p2/scores/T_1_s42_f142.npz",
+      "bytes": 146362,
+      "sha256": "a9e4fc7e3cf8e4ad"
+    },
+    {
+      "path": "p2/scores/T_1_s43.json",
+      "bytes": 6675,
+      "sha256": "f98f90d106a538b8"
+    },
+    {
+      "path": "p2/scores/T_1_s43.npz",
+      "bytes": 146180,
+      "sha256": "ea9238dd953ec89e"
+    },
+    {
+      "path": "p2/scores/T_4_s42.json",
+      "bytes": 7910,
+      "sha256": "27151a5ad7fe1d6c"
+    },
+    {
+      "path": "p2/scores/T_4_s42.npz",
+      "bytes": 209783,
+      "sha256": "a0846e3383084389"
+    },
+    {
+      "path": "p2/scores/T_4_s43.json",
+      "bytes": 7900,
+      "sha256": "45763f2e0c22a0c4"
+    },
+    {
+      "path": "p2/scores/T_4_s43.npz",
+      "bytes": 209083,
+      "sha256": "13e599bc8f60010b"
+    },
+    {
+      "path": "proposal.md",
+      "bytes": 35432,
+      "sha256": "f49051c8b807f1a9"
+    }
+  ]
+}

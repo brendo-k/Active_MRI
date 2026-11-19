@@ -1,0 +1,301 @@
+{
+  "scores": "/tmp/claude-2081/-home-bkadota-code-active-mri-SeqMRI/c7ec8449-71b5-430d-80e2-e5e096769ce4/scratchpad/smoke_fullval_eval",
+  "slices": {
+    "count": 120,
+    "hash": "8a8f3bd61fd02026ee129606a8595743f182ddf0"
+  },
+  "draw_seeds": [
+    1234,
+    4321
+  ],
+  "eval_code": {
+    "commit": "9123f445ae0b907b647911e42dc04a7a1dad9c6f",
+    "branch": "exp/multistep_adaptivity",
+    "dirty_tracked_files": [
+      "M activemri/config.py",
+      " M activemri/models/sequential_sampling.py",
+      " M activemri/reconstructors/UNet.py",
+      " M activemri/samplers/sampler.py",
+      " M activemri/training/builders.py",
+      " M activemri/training/run_naming.py",
+      " M activemri/training/trainer.py",
+      " M configs/config.yaml"
+    ]
+  },
+  "contrasts": {
+    "G_4_smoke": {
+      "difference": "k4_adaptive - k4_blind",
+      "num_step": [
+        4,
+        4
+      ],
+      "data_blind": [
+        false,
+        true
+      ],
+      "psnr": {
+        "brain": {
+          "mean": 0.005689633520025956,
+          "ci95": [
+            0.004341260696712293,
+            0.007132701811037565
+          ],
+          "n_slices": 38,
+          "n_volumes": 38,
+          "n_left_out": 0
+        },
+        "knee-PD": {
+          "mean": 0.008986473083496094,
+          "ci95": [
+            0.006759239977270822,
+            0.011641392111778255
+          ],
+          "n_slices": 42,
+          "n_volumes": 20,
+          "n_left_out": 0
+        },
+        "knee-PDFS": {
+          "mean": 0.009944140911102295,
+          "ci95": [
+            0.007666789568387545,
+            0.012401367790169185
+          ],
+          "n_slices": 40,
+          "n_volumes": 20,
+          "n_left_out": 0
+        },
+        "all": {
+          "mean": 0.008261696497599284,
+          "ci95": [
+            0.006996069368252084,
+            0.009556760219362297
+          ],
+          "n_slices": 120,
+          "n_volumes": 78,
+          "n_left_out": 0
+        }
+      },
+      "ssim": {
+        "brain": {
+          "mean": 0.0003392425977166078,
+          "ci95": [
+            0.00024000242650421265,
+            0.0004432327792237502
+          ],
+          "n_slices": 38,
+          "n_volumes": 38,
+          "n_left_out": 0
+        },
+        "knee-PD": {
+          "mean": 0.00014728208867473446,
+          "ci95": [
+            -5.621637592869786e-05,
+            0.000298912508566755
+          ],
+          "n_slices": 42,
+          "n_volumes": 20,
+          "n_left_out": 0
+        },
+        "knee-PDFS": {
+          "mean": 0.0002822813942735501,
+          "ci95": [
+            0.00020788335950829533,
+            0.0003575184294712061
+          ],
+          "n_slices": 40,
+          "n_volumes": 20,
+          "n_left_out": 0
+        },
+        "all": {
+          "mean": 0.0002530693517375996,
+          "ci95": [
+            0.00017269779256242338,
+            0.00031852329214551923
+          ],
+          "n_slices": 120,
+          "n_volumes": 78,
+          "n_left_out": 0
+        }
+      },
+      "nmse": {
+        "brain": {
+          "mean": -0.00024367663028993105,
+          "ci95": [
+            -0.0003079108697803397,
+            -0.00018481166396094
+          ],
+          "n_slices": 38,
+          "n_volumes": 38,
+          "n_left_out": 0
+        },
+        "knee-PD": {
+          "mean": -0.0003951280599548703,
+          "ci95": [
+            -0.000500307606942043,
+            -0.0002943952994055519
+          ],
+          "n_slices": 42,
+          "n_volumes": 20,
+          "n_left_out": 0
+        },
+        "knee-PDFS": {
+          "mean": -0.00040616998448967935,
+          "ci95": [
+            -0.0005061680474915566,
+            -0.00030986662267540126
+          ],
+          "n_slices": 40,
+          "n_volumes": 20,
+          "n_left_out": 0
+        },
+        "all": {
+          "mean": -0.00035084908207257587,
+          "ci95": [
+            -0.00040551103491845924,
+            -0.00029708756881768975
+          ],
+          "n_slices": 120,
+          "n_volumes": 78,
+          "n_left_out": 0
+        }
+      }
+    },
+    "self": {
+      "difference": "k4_blind - k4_blind",
+      "num_step": [
+        4,
+        4
+      ],
+      "data_blind": [
+        true,
+        true
+      ],
+      "psnr": {
+        "brain": {
+          "mean": 0.0,
+          "ci95": [
+            0.0,
+            0.0
+          ],
+          "n_slices": 38,
+          "n_volumes": 38,
+          "n_left_out": 0
+        },
+        "knee-PD": {
+          "mean": 0.0,
+          "ci95": [
+            0.0,
+            0.0
+          ],
+          "n_slices": 42,
+          "n_volumes": 20,
+          "n_left_out": 0
+        },
+        "knee-PDFS": {
+          "mean": 0.0,
+          "ci95": [
+            0.0,
+            0.0
+          ],
+          "n_slices": 40,
+          "n_volumes": 20,
+          "n_left_out": 0
+        },
+        "all": {
+          "mean": 0.0,
+          "ci95": [
+            0.0,
+            0.0
+          ],
+          "n_slices": 120,
+          "n_volumes": 78,
+          "n_left_out": 0
+        }
+      },
+      "ssim": {
+        "brain": {
+          "mean": 0.0,
+          "ci95": [
+            0.0,
+            0.0
+          ],
+          "n_slices": 38,
+          "n_volumes": 38,
+          "n_left_out": 0
+        },
+        "knee-PD": {
+          "mean": 0.0,
+          "ci95": [
+            0.0,
+            0.0
+          ],
+          "n_slices": 42,
+          "n_volumes": 20,
+          "n_left_out": 0
+        },
+        "knee-PDFS": {
+          "mean": 0.0,
+          "ci95": [
+            0.0,
+            0.0
+          ],
+          "n_slices": 40,
+          "n_volumes": 20,
+          "n_left_out": 0
+        },
+        "all": {
+          "mean": 0.0,
+          "ci95": [
+            0.0,
+            0.0
+          ],
+          "n_slices": 120,
+          "n_volumes": 78,
+          "n_left_out": 0
+        }
+      },
+      "nmse": {
+        "brain": {
+          "mean": 0.0,
+          "ci95": [
+            0.0,
+            0.0
+          ],
+          "n_slices": 38,
+          "n_volumes": 38,
+          "n_left_out": 0
+        },
+        "knee-PD": {
+          "mean": 0.0,
+          "ci95": [
+            0.0,
+            0.0
+          ],
+          "n_slices": 42,
+          "n_volumes": 20,
+          "n_left_out": 0
+        },
+        "knee-PDFS": {
+          "mean": 0.0,
+          "ci95": [
+            0.0,
+            0.0
+          ],
+          "n_slices": 40,
+          "n_volumes": 20,
+          "n_left_out": 0
+        },
+        "all": {
+          "mean": 0.0,
+          "ci95": [
+            0.0,
+            0.0
+          ],
+          "n_slices": 120,
+          "n_volumes": 78,
+          "n_left_out": 0
+        }
+      }
+    }
+  }
+}

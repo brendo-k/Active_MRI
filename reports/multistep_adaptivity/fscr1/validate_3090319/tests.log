@@ -1,0 +1,22 @@
+.............................................................. [ 19%]
+........................................................................ [ 42%]
+........................................................................ [ 65%]
+.................................................................... [ 86%]
+..........................................                             [100%]
+=============================== warnings summary ===============================
+../../../../../../scratch/user/bkadota/conda/envs/dl/lib/python3.14/site-packages/torch/jit/_script.py:1640
+../../../../../../scratch/user/bkadota/conda/envs/dl/lib/python3.14/site-packages/torch/jit/_script.py:1640
+  /scratch/user/bkadota/conda/envs/dl/lib/python3.14/site-packages/torch/jit/_script.py:1640: DeprecationWarning: `torch.jit.interface` is deprecated. Please use `torch.compile` instead.
+    warnings.warn(
+
+tests/test_autosamp_sampler.py::test_sequential_sampling_spends_the_sparsity_budget_and_trains_positions
+tests/test_autosamp_sampler.py::test_trainer_freezes_positions_on_the_hard_mask_after_the_anneal
+  /scratch/user/bkadota/conda/envs/dl/lib/python3.14/site-packages/torch/nn/functional.py:3855: UserWarning: size_average and reduce args will be deprecated, please use reduction='mean' instead.
+    reduction = _Reduction.legacy_get_string(size_average, reduce)
+
+tests/test_fused_coil_ops.py: 14 warnings
+  /scratch/user/bkadota/conda/envs/dl/lib/python3.14/site-packages/torch/jit/_script.py:359: DeprecationWarning: `torch.jit.script_method` is not supported in Python 3.14+ and may break. Please switch to `torch.compile` or `torch.export`.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+316 passed, 18 warnings, 16 subtests passed in 30.03s

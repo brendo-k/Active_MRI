@@ -1,0 +1,11 @@
+F_4_s42_fscr1_tF realised 0.125 most draws outside the acquired region 0 donors {'matched': 95, 'unmatched': {'brain': 25}}
+F_4_s42_fscr1_tF data swap moved by step [0.07463507339875441, 0.038173472768818766, 0.050992233667130286, 0.06915020790615038] zero data moved by step [0.3055956951520295, 0.33131103721104577, 0.33347095188071385, 0.33354542412142607]
+Fb_4_s42_fscr1_tF realised 0.1249 most draws outside the acquired region 0 donors {'matched': 95, 'unmatched': {'brain': 25}}
+Fb_4_s42_fscr1_tF data swap moved by step [0.0, 0.0, 0.0, 0.0] zero data moved by step None
+L_1_s42_fscr1_tF realised 0.1249 most draws outside the acquired region 0 donors {'matched': 95, 'unmatched': {'brain': 25}}
+F_4_s42_fscr1_tS5 realised 0.125 most draws outside the acquired region 0 donors {'matched': 95, 'unmatched': {'brain': 25}}
+F_4_s42_fscr1_tS5 data swap moved by step [0.07139658519158974, 0.06996778451151214, 0.06894491643267617, 0.06890836121531277] zero data moved by step [0.06991685275205106, 0.0757190007934324, 0.06899366737659192, 0.06811309455834653]
+Fb_4_s42_fscr1_tS5 realised 0.1251 most draws outside the acquired region 0 donors {'matched': 95, 'unmatched': {'brain': 25}}
+Fb_4_s42_fscr1_tS5 data swap moved by step [0.0, 0.0, 0.0, 0.0] zero data moved by step None
+L_1_s42_fscr1_tS5 realised 0.1249 most draws outside the acquired region 0 donors {'matched': 95, 'unmatched': {'brain': 25}}
+twin nulls hold, the signed-log arms read their data, every arm reproduces its own steps and no draw lands outside the acquired region

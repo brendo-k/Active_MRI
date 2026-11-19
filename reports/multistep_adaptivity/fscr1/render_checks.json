@@ -1,0 +1,460 @@
+{
+  "local_slices_hash": "1874f6fc07ee779c8d4570f7cb7a72f8107a1a5f",
+  "positions": {
+    "brain_q25": 82,
+    "brain_q50": 160,
+    "brain_q75": 238
+  },
+  "runs": {
+    "F_4_s42_fscr1_tF": {
+      "epoch": 99,
+      "brain_q25": {
+        "psnr_scored": 33.54484176635742,
+        "psnr_local_scoring_path": 33.518009185791016,
+        "psnr_local_figure_path": 33.517616271972656,
+        "ssim_scored": 0.9312054249475663,
+        "ssim_local": 0.9311387534233385,
+        "new_scored": [
+          2284.0,
+          2253.0,
+          2199.0,
+          2266.0
+        ],
+        "new_local_scoring_path": [
+          2242.0,
+          2216.0,
+          2228.0,
+          2294.0
+        ],
+        "new_local_figure_path": [
+          2242.0,
+          2216.0,
+          2228.0,
+          2294.0
+        ],
+        "figure_and_scoring_final_masks_equal": true,
+        "psnr_difference": -0.02683258056640625
+      },
+      "brain_q50": {
+        "psnr_scored": 30.01380729675293,
+        "psnr_local_scoring_path": 30.031261444091797,
+        "psnr_local_figure_path": 30.03118896484375,
+        "ssim_scored": 0.7486517041099334,
+        "ssim_local": 0.7493862303790672,
+        "new_scored": [
+          1916.0,
+          1985.0,
+          2060.0,
+          1932.0
+        ],
+        "new_local_scoring_path": [
+          1917.0,
+          1984.0,
+          2055.0,
+          1919.0
+        ],
+        "new_local_figure_path": [
+          1917.0,
+          1984.0,
+          2055.0,
+          1919.0
+        ],
+        "figure_and_scoring_final_masks_equal": true,
+        "psnr_difference": 0.017454147338867188
+      },
+      "brain_q75": {
+        "psnr_scored": 38.87286376953125,
+        "psnr_local_scoring_path": 38.843196868896484,
+        "psnr_local_figure_path": 38.84210968017578,
+        "ssim_scored": 0.9621732996792682,
+        "ssim_local": 0.9618599652975796,
+        "new_scored": [
+          1767.0,
+          1769.0,
+          1747.0,
+          1792.0
+        ],
+        "new_local_scoring_path": [
+          1755.0,
+          1793.0,
+          1741.0,
+          1771.0
+        ],
+        "new_local_figure_path": [
+          1755.0,
+          1793.0,
+          1741.0,
+          1771.0
+        ],
+        "figure_and_scoring_final_masks_equal": true,
+        "psnr_difference": -0.029666900634765625
+      }
+    },
+    "Fb_4_s42_fscr1_tF": {
+      "epoch": 99,
+      "brain_q25": {
+        "psnr_scored": 33.505043029785156,
+        "psnr_local_scoring_path": 33.505271911621094,
+        "psnr_local_figure_path": 33.50724792480469,
+        "ssim_scored": 0.9330875157150811,
+        "ssim_local": 0.9331486791938408,
+        "new_scored": [
+          2211.0,
+          2165.0,
+          2208.0,
+          2191.0
+        ],
+        "new_local_scoring_path": [
+          2211.0,
+          2164.0,
+          2207.0,
+          2192.0
+        ],
+        "new_local_figure_path": [
+          2211.0,
+          2164.0,
+          2207.0,
+          2192.0
+        ],
+        "figure_and_scoring_final_masks_equal": true,
+        "psnr_difference": 0.0002288818359375
+      },
+      "brain_q50": {
+        "psnr_scored": 29.276063919067383,
+        "psnr_local_scoring_path": 29.277132034301758,
+        "psnr_local_figure_path": 29.2764949798584,
+        "ssim_scored": 0.7167410231944217,
+        "ssim_local": 0.7167690294602945,
+        "new_scored": [
+          1939.0,
+          1945.0,
+          1933.0,
+          1975.0
+        ],
+        "new_local_scoring_path": [
+          1939.0,
+          1945.0,
+          1933.0,
+          1974.0
+        ],
+        "new_local_figure_path": [
+          1939.0,
+          1945.0,
+          1933.0,
+          1974.0
+        ],
+        "figure_and_scoring_final_masks_equal": true,
+        "psnr_difference": 0.001068115234375
+      },
+      "brain_q75": {
+        "psnr_scored": 38.79719543457031,
+        "psnr_local_scoring_path": 38.792633056640625,
+        "psnr_local_figure_path": 38.799537658691406,
+        "ssim_scored": 0.9628091061060289,
+        "ssim_local": 0.96279090027934,
+        "new_scored": [
+          1760.0,
+          1691.0,
+          1784.0,
+          1784.0
+        ],
+        "new_local_scoring_path": [
+          1760.0,
+          1691.0,
+          1784.0,
+          1784.0
+        ],
+        "new_local_figure_path": [
+          1760.0,
+          1691.0,
+          1784.0,
+          1784.0
+        ],
+        "figure_and_scoring_final_masks_equal": true,
+        "psnr_difference": -0.0045623779296875
+      }
+    },
+    "L_1_s42_fscr1_tF": {
+      "epoch": 99,
+      "brain_q25": {
+        "psnr_scored": 33.69343185424805,
+        "psnr_local_scoring_path": 33.69358825683594,
+        "psnr_local_figure_path": 33.69358825683594,
+        "ssim_scored": 0.9338281593545312,
+        "ssim_local": 0.9338551041672514,
+        "new_scored": [
+          8912.0
+        ],
+        "new_local_scoring_path": [
+          8912.0
+        ],
+        "new_local_figure_path": [
+          8912.0
+        ],
+        "figure_and_scoring_final_masks_equal": true,
+        "psnr_difference": 0.000156402587890625
+      },
+      "brain_q50": {
+        "psnr_scored": 29.473018646240234,
+        "psnr_local_scoring_path": 29.474164962768555,
+        "psnr_local_figure_path": 29.474164962768555,
+        "ssim_scored": 0.7222563285828965,
+        "ssim_local": 0.7222007543414793,
+        "new_scored": [
+          7804.0
+        ],
+        "new_local_scoring_path": [
+          7804.0
+        ],
+        "new_local_figure_path": [
+          7804.0
+        ],
+        "figure_and_scoring_final_masks_equal": true,
+        "psnr_difference": 0.0011463165283203125
+      },
+      "brain_q75": {
+        "psnr_scored": 38.785526275634766,
+        "psnr_local_scoring_path": 38.78038024902344,
+        "psnr_local_figure_path": 38.78038024902344,
+        "ssim_scored": 0.9608860922284882,
+        "ssim_local": 0.9608643128998322,
+        "new_scored": [
+          6961.0
+        ],
+        "new_local_scoring_path": [
+          6961.0
+        ],
+        "new_local_figure_path": [
+          6961.0
+        ],
+        "figure_and_scoring_final_masks_equal": true,
+        "psnr_difference": -0.005146026611328125
+      }
+    },
+    "F_4_s42_fscr1_tS5": {
+      "epoch": 99,
+      "brain_q25": {
+        "psnr_scored": 32.25566101074219,
+        "psnr_local_scoring_path": 32.26455307006836,
+        "psnr_local_figure_path": 32.26353073120117,
+        "ssim_scored": 0.9162983140760192,
+        "ssim_local": 0.9160718244084902,
+        "new_scored": [
+          2172.0,
+          2217.0,
+          2249.0,
+          2182.0
+        ],
+        "new_local_scoring_path": [
+          2174.0,
+          2196.0,
+          2243.0,
+          2195.0
+        ],
+        "new_local_figure_path": [
+          2174.0,
+          2196.0,
+          2243.0,
+          2195.0
+        ],
+        "figure_and_scoring_final_masks_equal": true,
+        "psnr_difference": 0.008892059326171875
+      },
+      "brain_q50": {
+        "psnr_scored": 29.16457748413086,
+        "psnr_local_scoring_path": 29.15712547302246,
+        "psnr_local_figure_path": 29.15643882751465,
+        "ssim_scored": 0.7147334615109684,
+        "ssim_local": 0.7151417644470677,
+        "new_scored": [
+          1930.0,
+          1975.0,
+          1969.0,
+          1952.0
+        ],
+        "new_local_scoring_path": [
+          1936.0,
+          1960.0,
+          1977.0,
+          1991.0
+        ],
+        "new_local_figure_path": [
+          1936.0,
+          1960.0,
+          1977.0,
+          1991.0
+        ],
+        "figure_and_scoring_final_masks_equal": true,
+        "psnr_difference": -0.0074520111083984375
+      },
+      "brain_q75": {
+        "psnr_scored": 36.804752349853516,
+        "psnr_local_scoring_path": 36.77763366699219,
+        "psnr_local_figure_path": 36.776451110839844,
+        "ssim_scored": 0.9447483139545284,
+        "ssim_local": 0.944431553035157,
+        "new_scored": [
+          1730.0,
+          1730.0,
+          1809.0,
+          1715.0
+        ],
+        "new_local_scoring_path": [
+          1728.0,
+          1726.0,
+          1798.0,
+          1694.0
+        ],
+        "new_local_figure_path": [
+          1728.0,
+          1726.0,
+          1798.0,
+          1694.0
+        ],
+        "figure_and_scoring_final_masks_equal": true,
+        "psnr_difference": -0.027118682861328125
+      }
+    },
+    "Fb_4_s42_fscr1_tS5": {
+      "epoch": 99,
+      "brain_q25": {
+        "psnr_scored": 31.969758987426758,
+        "psnr_local_scoring_path": 31.971166610717773,
+        "psnr_local_figure_path": 31.96906089782715,
+        "ssim_scored": 0.9127537588155225,
+        "ssim_local": 0.9127974433253153,
+        "new_scored": [
+          2232.0,
+          2167.0,
+          2205.0,
+          2164.0
+        ],
+        "new_local_scoring_path": [
+          2232.0,
+          2167.0,
+          2205.0,
+          2163.0
+        ],
+        "new_local_figure_path": [
+          2232.0,
+          2167.0,
+          2205.0,
+          2163.0
+        ],
+        "figure_and_scoring_final_masks_equal": true,
+        "psnr_difference": 0.001407623291015625
+      },
+      "brain_q50": {
+        "psnr_scored": 28.708690643310547,
+        "psnr_local_scoring_path": 28.708782196044922,
+        "psnr_local_figure_path": 28.708721160888672,
+        "ssim_scored": 0.6934455818914081,
+        "ssim_local": 0.6935189279002314,
+        "new_scored": [
+          1928.0,
+          1977.0,
+          1981.0,
+          1941.0
+        ],
+        "new_local_scoring_path": [
+          1928.0,
+          1977.0,
+          1981.0,
+          1942.0
+        ],
+        "new_local_figure_path": [
+          1928.0,
+          1977.0,
+          1981.0,
+          1942.0
+        ],
+        "figure_and_scoring_final_masks_equal": true,
+        "psnr_difference": 9.1552734375e-05
+      },
+      "brain_q75": {
+        "psnr_scored": 36.97966766357422,
+        "psnr_local_scoring_path": 36.97773742675781,
+        "psnr_local_figure_path": 36.978981018066406,
+        "ssim_scored": 0.9458566724175208,
+        "ssim_local": 0.9458250186976703,
+        "new_scored": [
+          1758.0,
+          1736.0,
+          1735.0,
+          1697.0
+        ],
+        "new_local_scoring_path": [
+          1758.0,
+          1736.0,
+          1735.0,
+          1697.0
+        ],
+        "new_local_figure_path": [
+          1758.0,
+          1736.0,
+          1735.0,
+          1697.0
+        ],
+        "figure_and_scoring_final_masks_equal": true,
+        "psnr_difference": -0.00193023681640625
+      }
+    },
+    "L_1_s42_fscr1_tS5": {
+      "epoch": 99,
+      "brain_q25": {
+        "psnr_scored": 32.253395080566406,
+        "psnr_local_scoring_path": 32.25614547729492,
+        "psnr_local_figure_path": 32.25614547729492,
+        "ssim_scored": 0.9138941614500647,
+        "ssim_local": 0.9139361944059753,
+        "new_scored": [
+          8792.0
+        ],
+        "new_local_scoring_path": [
+          8792.0
+        ],
+        "new_local_figure_path": [
+          8792.0
+        ],
+        "figure_and_scoring_final_masks_equal": true,
+        "psnr_difference": 0.002750396728515625
+      },
+      "brain_q50": {
+        "psnr_scored": 29.301881790161133,
+        "psnr_local_scoring_path": 29.300060272216797,
+        "psnr_local_figure_path": 29.300060272216797,
+        "ssim_scored": 0.7232986998525699,
+        "ssim_local": 0.7233058391104966,
+        "new_scored": [
+          7819.0
+        ],
+        "new_local_scoring_path": [
+          7819.0
+        ],
+        "new_local_figure_path": [
+          7819.0
+        ],
+        "figure_and_scoring_final_masks_equal": true,
+        "psnr_difference": -0.0018215179443359375
+      },
+      "brain_q75": {
+        "psnr_scored": 36.541847229003906,
+        "psnr_local_scoring_path": 36.546958923339844,
+        "psnr_local_figure_path": 36.546958923339844,
+        "ssim_scored": 0.9398148235478425,
+        "ssim_local": 0.9398579775637566,
+        "new_scored": [
+          6990.0
+        ],
+        "new_local_scoring_path": [
+          6990.0
+        ],
+        "new_local_figure_path": [
+          6990.0
+        ],
+        "figure_and_scoring_final_masks_equal": true,
+        "psnr_difference": 0.0051116943359375
+      }
+    }
+  }
+}

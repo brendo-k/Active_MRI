@@ -1,0 +1,25 @@
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+Manifest train set (volumes, slices): {'brain': (80, 1211), 'knee-PD': (40, 1369), 'knee-PDFS': (40, 1349)}
+Manifest val set (volumes, slices): {'brain': (40, 605), 'knee-PD': (20, 673), 'knee-PDFS': (20, 660)}
+smoke_base: /home/remote/bkadota/scratch/multistep_adaptivity/validate/2996689/smoke_base/last_model.pt epoch 0, loupe_2d, K=1, data_blind=False, 120 slices
+  scored 8/120 slices
+  scored 16/120 slices
+  scored 24/120 slices
+  scored 32/120 slices
+  scored 40/120 slices
+  scored 48/120 slices
+  scored 56/120 slices
+  scored 64/120 slices
+  scored 72/120 slices
+  scored 80/120 slices
+  scored 88/120 slices
+  scored 96/120 slices
+  scored 104/120 slices
+  scored 112/120 slices
+  scored 120/120 slices
+  PSNR_Masked brain 22.842  knee-PD 25.113  knee-PDFS 25.214  all 24.428
+  donors: {"matched": 113, "unmatched": {"brain": 7, "knee-PD": 0, "knee-PDFS": 0}}
+  swap_null: {"donor_final_mask_equals_own": 1.0, "must_be_1_for_a_data_blind_twin": false}
+  guards: {"ssim_pooled": 0.6983808228947567, "ssim_at_least_0.80": false, "realised_fraction_target": 0.125, "realised_fraction_within_0.002": true}

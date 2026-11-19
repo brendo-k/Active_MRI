@@ -1,0 +1,456 @@
+{
+  "name": "T_1_s42_kscr2",
+  "run": "/home/remote/bkadota/scratch/multistep_adaptivity/validate/3073267/T_1_s42_kscr2",
+  "checkpoint": "last_model.pt",
+  "epoch": 0,
+  "training_code": {
+    "commit": "b21c6b23617248fd7b066b11ae99fcbef22592b5",
+    "branch": "exp/multistep_adaptivity",
+    "dirty_tracked_files": [],
+    "started_at": "2026-11-15T22:34:53+00:00",
+    "argv": [
+      "train.py",
+      "hydra.job.name=train_sequential",
+      "recon=varnet",
+      "datasets=fastmri_local_v1_knee",
+      "training.batch_size=16",
+      "training.seed=42",
+      "sampler.accelerations=[8.0]",
+      "sampler.sampler_type=seq_adapt_2d",
+      "sampler.anatomy_conditioning=true",
+      "training.num_step=1",
+      "sampler.data_blind=true",
+      "training.num_epochs=1",
+      "training.lr_step_size=90",
+      "recon.num_cascades=6",
+      "misc.resolution=[320,320]",
+      "sampler.budget_over=acquired",
+      "datasets.limit_volumes=1",
+      "datasets.roots.hpc=\"~/scratch/data/fastmri/{anatomy}/data\"",
+      "datasets.roots.local_batch2=\"~/scratch/data/fastmri/knee/data\"",
+      "datasets.val_half=dev",
+      "output.out_dir=/home/remote/bkadota/scratch/multistep_adaptivity/validate/3073267/T_1_s42_kscr2",
+      "training.limit_batches=0.1"
+    ]
+  },
+  "eval_code": {
+    "commit": "b21c6b23617248fd7b066b11ae99fcbef22592b5",
+    "branch": "exp/multistep_adaptivity",
+    "dirty_tracked_files": []
+  },
+  "options": {
+    "sampler_type": "seq_adapt_2d",
+    "num_step": 1,
+    "data_blind": true,
+    "accelerations": [
+      8.0
+    ],
+    "budget_over": "acquired",
+    "seed": 42,
+    "residual_chans": 16,
+    "residual_depth": 4,
+    "residual_limit": 6.0,
+    "residual_lr": 0.0001,
+    "anatomy_conditioning": true,
+    "loss_type": "l1"
+  },
+  "draw_seeds": [
+    1234,
+    4321
+  ],
+  "slices": {
+    "count": 120,
+    "hash": "685c16a01ee77b584da9e1154f074bf076e9cabe"
+  },
+  "means": {
+    "psnr": {
+      "knee-PD": 20.284589370091755,
+      "knee-PDFS": 23.11625167528788,
+      "all": 21.700420522689818
+    },
+    "ssim": {
+      "knee-PD": 0.4686393232347974,
+      "knee-PDFS": 0.5057061281597764,
+      "all": 0.4871727256972869
+    },
+    "nmse": {
+      "knee-PD": 0.07975662716974814,
+      "knee-PDFS": 0.07330424350996813,
+      "all": 0.07653043533985814
+    },
+    "realised_fraction": {
+      "knee-PD": 0.1250578610226512,
+      "knee-PDFS": 0.12496419250965118,
+      "all": 0.1250110267661512
+    }
+  },
+  "by_step": {
+    "step_new": {
+      "knee-PD": [
+        12705.925
+      ],
+      "knee-PDFS": [
+        12696.333333333334
+      ],
+      "all": [
+        12701.129166666668
+      ]
+    },
+    "step_budget": {
+      "knee-PD": [
+        12700.0
+      ],
+      "knee-PDFS": [
+        12700.0
+      ],
+      "all": [
+        12700.0
+      ]
+    },
+    "residual_rms": {
+      "knee-PD": [
+        0.009190905839204788
+      ],
+      "knee-PDFS": [
+        0.009190848097205162
+      ],
+      "all": [
+        0.009190876968204975
+      ]
+    }
+  },
+  "donors": {
+    "matched": 120,
+    "unmatched": {
+      "knee-PD": 0,
+      "knee-PDFS": 0
+    }
+  },
+  "guards": {
+    "ssim_pooled": 0.4871727256972869,
+    "ssim_at_least_0.80": false,
+    "realised_fraction_target": 0.125,
+    "realised_fraction_within_0.002": true,
+    "failed_reconstructions_below_20dB": [
+      {
+        "volume": "file1000107.h5",
+        "slice_id": 6,
+        "condition": "knee-PD",
+        "psnr": 19.01799201965332
+      },
+      {
+        "volume": "file1000107.h5",
+        "slice_id": 11,
+        "condition": "knee-PD",
+        "psnr": 19.931867599487305
+      },
+      {
+        "volume": "file1000114.h5",
+        "slice_id": 6,
+        "condition": "knee-PDFS",
+        "psnr": 18.408577919006348
+      },
+      {
+        "volume": "file1000464.h5",
+        "slice_id": 3,
+        "condition": "knee-PD",
+        "psnr": 19.801857948303223
+      },
+      {
+        "volume": "file1000758.h5",
+        "slice_id": 6,
+        "condition": "knee-PD",
+        "psnr": 18.218640327453613
+      },
+      {
+        "volume": "file1000758.h5",
+        "slice_id": 12,
+        "condition": "knee-PD",
+        "psnr": 17.872926712036133
+      },
+      {
+        "volume": "file1000758.h5",
+        "slice_id": 23,
+        "condition": "knee-PD",
+        "psnr": 19.655088424682617
+      },
+      {
+        "volume": "file1000871.h5",
+        "slice_id": 6,
+        "condition": "knee-PD",
+        "psnr": 18.961017608642578
+      },
+      {
+        "volume": "file1000871.h5",
+        "slice_id": 12,
+        "condition": "knee-PD",
+        "psnr": 19.55539035797119
+      },
+      {
+        "volume": "file1000871.h5",
+        "slice_id": 17,
+        "condition": "knee-PD",
+        "psnr": 19.559985160827637
+      },
+      {
+        "volume": "file1000871.h5",
+        "slice_id": 29,
+        "condition": "knee-PD",
+        "psnr": 19.956445693969727
+      },
+      {
+        "volume": "file1001057.h5",
+        "slice_id": 3,
+        "condition": "knee-PD",
+        "psnr": 19.98593807220459
+      },
+      {
+        "volume": "file1001057.h5",
+        "slice_id": 9,
+        "condition": "knee-PD",
+        "psnr": 17.872633934020996
+      },
+      {
+        "volume": "file1001057.h5",
+        "slice_id": 26,
+        "condition": "knee-PD",
+        "psnr": 19.927139282226562
+      },
+      {
+        "volume": "file1001077.h5",
+        "slice_id": 1,
+        "condition": "knee-PD",
+        "psnr": 14.484045028686523
+      },
+      {
+        "volume": "file1001077.h5",
+        "slice_id": 7,
+        "condition": "knee-PD",
+        "psnr": 18.857593536376953
+      },
+      {
+        "volume": "file1001077.h5",
+        "slice_id": 12,
+        "condition": "knee-PD",
+        "psnr": 19.936195373535156
+      },
+      {
+        "volume": "file1001077.h5",
+        "slice_id": 18,
+        "condition": "knee-PD",
+        "psnr": 19.658848762512207
+      },
+      {
+        "volume": "file1001077.h5",
+        "slice_id": 23,
+        "condition": "knee-PD",
+        "psnr": 18.322036743164062
+      },
+      {
+        "volume": "file1001077.h5",
+        "slice_id": 29,
+        "condition": "knee-PD",
+        "psnr": 19.53512668609619
+      },
+      {
+        "volume": "file1001126.h5",
+        "slice_id": 4,
+        "condition": "knee-PD",
+        "psnr": 19.06952476501465
+      },
+      {
+        "volume": "file1001126.h5",
+        "slice_id": 9,
+        "condition": "knee-PD",
+        "psnr": 18.38933277130127
+      },
+      {
+        "volume": "file1001126.h5",
+        "slice_id": 15,
+        "condition": "knee-PD",
+        "psnr": 18.66620635986328
+      },
+      {
+        "volume": "file1001126.h5",
+        "slice_id": 21,
+        "condition": "knee-PD",
+        "psnr": 18.684288024902344
+      },
+      {
+        "volume": "file1001126.h5",
+        "slice_id": 26,
+        "condition": "knee-PD",
+        "psnr": 18.562715530395508
+      },
+      {
+        "volume": "file1001126.h5",
+        "slice_id": 32,
+        "condition": "knee-PD",
+        "psnr": 19.706640243530273
+      },
+      {
+        "volume": "file1001159.h5",
+        "slice_id": 6,
+        "condition": "knee-PDFS",
+        "psnr": 17.970232009887695
+      },
+      {
+        "volume": "file1001715.h5",
+        "slice_id": 3,
+        "condition": "knee-PD",
+        "psnr": 18.03096103668213
+      },
+      {
+        "volume": "file1001843.h5",
+        "slice_id": 6,
+        "condition": "knee-PD",
+        "psnr": 18.43976879119873
+      },
+      {
+        "volume": "file1002382.h5",
+        "slice_id": 5,
+        "condition": "knee-PD",
+        "psnr": 19.569446563720703
+      },
+      {
+        "volume": "file1002382.h5",
+        "slice_id": 10,
+        "condition": "knee-PD",
+        "psnr": 19.27539825439453
+      },
+      {
+        "volume": "file1002382.h5",
+        "slice_id": 16,
+        "condition": "knee-PD",
+        "psnr": 19.341760635375977
+      }
+    ]
+  },
+  "swap_cost": {
+    "psnr": {
+      "knee-PD": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 60,
+        "n_volumes": 10,
+        "n_left_out": 0
+      },
+      "knee-PDFS": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 60,
+        "n_volumes": 10,
+        "n_left_out": 0
+      },
+      "all": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 120,
+        "n_volumes": 20,
+        "n_left_out": 0
+      }
+    },
+    "ssim": {
+      "knee-PD": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 60,
+        "n_volumes": 10,
+        "n_left_out": 0
+      },
+      "knee-PDFS": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 60,
+        "n_volumes": 10,
+        "n_left_out": 0
+      },
+      "all": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 120,
+        "n_volumes": 20,
+        "n_left_out": 0
+      }
+    },
+    "nmse": {
+      "knee-PD": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 60,
+        "n_volumes": 10,
+        "n_left_out": 0
+      },
+      "knee-PDFS": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 60,
+        "n_volumes": 10,
+        "n_left_out": 0
+      },
+      "all": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 120,
+        "n_volumes": 20,
+        "n_left_out": 0
+      }
+    }
+  },
+  "swap_null": {
+    "donor_final_mask_equals_own": 1.0,
+    "must_be_1_for_a_data_blind_twin": true
+  },
+  "counterfactual_with_own_data_reproduces_every_step": true,
+  "data_swap": {
+    "moved_by_step": {
+      "knee-PD": [
+        0.0
+      ],
+      "knee-PDFS": [
+        0.0
+      ],
+      "all": [
+        0.0
+      ]
+    },
+    "residual_change_rms_by_step": {
+      "knee-PD": [
+        0.0
+      ],
+      "knee-PDFS": [
+        0.0
+      ],
+      "all": [
+        0.0
+      ]
+    }
+  }
+}

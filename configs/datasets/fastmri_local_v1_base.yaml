@@ -25,4 +25,6 @@ limit_volumes: 1  # fraction of each condition, train and val. 1 = the whole tie
 train_anatomies: []  # train on these anatomies only, still validating on every class; empty = all
 val_anatomies: []  # validate on these anatomies only (val loss, best_model.pt); empty = all
 val_limit_volumes: null  # fraction of each val condition; null = limit_volumes. Pin it to keep one val set across data sizes
+val_half: all  # all, or one fixed half of each condition's val volumes: dev (iterate) or holdout (confirm)
+train_slice_stride: 1  # keep every n-th of each train volume's slices after the energy filter (5 = 20%); val keeps all
 condition_classes: []  # per-sample conditioning labels, e.g. [brain, knee-PD, knee-PDFS]; empty = use anatomy

@@ -1,0 +1,293 @@
+host=ggpu1-17 gpu=NVIDIA RTX PRO 6000 Blackwell Server Edition commit=44c3fbad37d34017b8f1145667c64b78519bf4c9 python=3.14.0 torch=2.12.0+cu130
+Sampler: seq_adapt_2d
+Number of sequential steps: 16
+Sparsity: 0.125
+Manifest train set (volumes, slices): {'brain': (80, 1211), 'knee-PD': (40, 1369), 'knee-PDFS': (40, 1349)}
+Manifest val set (volumes, slices): {'brain': (40, 605), 'knee-PD': (20, 673), 'knee-PDFS': (20, 660)}
+A_16_s42_epoch_010: /home/remote/bkadota/scratch/multistep_adaptivity/runs/A_16_s42/epoch_010.pt epoch 9, seq_adapt_2d, K=16, data_blind=False, 1938 slices
+  scored 8/1938 slices
+  scored 16/1938 slices
+  scored 24/1938 slices
+  scored 32/1938 slices
+  scored 40/1938 slices
+  scored 48/1938 slices
+  scored 56/1938 slices
+  scored 64/1938 slices
+  scored 72/1938 slices
+  scored 80/1938 slices
+  scored 88/1938 slices
+  scored 96/1938 slices
+  scored 104/1938 slices
+  scored 112/1938 slices
+  scored 120/1938 slices
+  scored 128/1938 slices
+  scored 136/1938 slices
+  scored 144/1938 slices
+  scored 152/1938 slices
+  scored 160/1938 slices
+  scored 168/1938 slices
+  scored 176/1938 slices
+  scored 184/1938 slices
+  scored 192/1938 slices
+  scored 200/1938 slices
+  scored 208/1938 slices
+  scored 216/1938 slices
+  scored 224/1938 slices
+  scored 232/1938 slices
+  scored 240/1938 slices
+  scored 248/1938 slices
+  scored 256/1938 slices
+  scored 264/1938 slices
+  scored 272/1938 slices
+  scored 280/1938 slices
+  scored 288/1938 slices
+  scored 296/1938 slices
+  scored 304/1938 slices
+  scored 312/1938 slices
+  scored 320/1938 slices
+  scored 328/1938 slices
+  scored 336/1938 slices
+  scored 344/1938 slices
+  scored 352/1938 slices
+  scored 360/1938 slices
+  scored 368/1938 slices
+  scored 376/1938 slices
+  scored 384/1938 slices
+  scored 392/1938 slices
+  scored 400/1938 slices
+  scored 408/1938 slices
+  scored 416/1938 slices
+  scored 424/1938 slices
+  scored 432/1938 slices
+  scored 440/1938 slices
+  scored 448/1938 slices
+  scored 456/1938 slices
+  scored 464/1938 slices
+  scored 472/1938 slices
+  scored 480/1938 slices
+  scored 488/1938 slices
+  scored 496/1938 slices
+  scored 504/1938 slices
+  scored 512/1938 slices
+  scored 520/1938 slices
+  scored 528/1938 slices
+  scored 536/1938 slices
+  scored 544/1938 slices
+  scored 552/1938 slices
+  scored 560/1938 slices
+  scored 568/1938 slices
+  scored 576/1938 slices
+  scored 584/1938 slices
+  scored 592/1938 slices
+  scored 600/1938 slices
+  scored 608/1938 slices
+  scored 616/1938 slices
+  scored 624/1938 slices
+  scored 632/1938 slices
+  scored 640/1938 slices
+  scored 648/1938 slices
+  scored 656/1938 slices
+  scored 664/1938 slices
+  scored 672/1938 slices
+  scored 680/1938 slices
+  scored 688/1938 slices
+  scored 696/1938 slices
+  scored 704/1938 slices
+  scored 712/1938 slices
+  scored 720/1938 slices
+  scored 728/1938 slices
+  scored 736/1938 slices
+  scored 744/1938 slices
+  scored 752/1938 slices
+  scored 760/1938 slices
+  scored 768/1938 slices
+  scored 776/1938 slices
+  scored 784/1938 slices
+  scored 792/1938 slices
+  scored 800/1938 slices
+  scored 808/1938 slices
+  scored 816/1938 slices
+  scored 824/1938 slices
+  scored 832/1938 slices
+  scored 840/1938 slices
+  scored 848/1938 slices
+  scored 856/1938 slices
+  scored 864/1938 slices
+  scored 872/1938 slices
+  scored 880/1938 slices
+  scored 888/1938 slices
+  scored 896/1938 slices
+  scored 904/1938 slices
+  scored 912/1938 slices
+  scored 920/1938 slices
+  scored 928/1938 slices
+  scored 936/1938 slices
+  scored 944/1938 slices
+  scored 952/1938 slices
+  scored 960/1938 slices
+  scored 968/1938 slices
+  scored 976/1938 slices
+  scored 984/1938 slices
+  scored 992/1938 slices
+  scored 1000/1938 slices
+  scored 1008/1938 slices
+  scored 1016/1938 slices
+  scored 1024/1938 slices
+  scored 1032/1938 slices
+  scored 1040/1938 slices
+  scored 1048/1938 slices
+  scored 1056/1938 slices
+  scored 1064/1938 slices
+  scored 1072/1938 slices
+  scored 1080/1938 slices
+  scored 1088/1938 slices
+  scored 1096/1938 slices
+  scored 1104/1938 slices
+  scored 1112/1938 slices
+  scored 1120/1938 slices
+  scored 1128/1938 slices
+  scored 1136/1938 slices
+  scored 1144/1938 slices
+  scored 1152/1938 slices
+  scored 1160/1938 slices
+  scored 1168/1938 slices
+  scored 1176/1938 slices
+  scored 1184/1938 slices
+  scored 1192/1938 slices
+  scored 1200/1938 slices
+  scored 1208/1938 slices
+  scored 1216/1938 slices
+  scored 1224/1938 slices
+  scored 1232/1938 slices
+  scored 1240/1938 slices
+  scored 1248/1938 slices
+  scored 1256/1938 slices
+  scored 1264/1938 slices
+  scored 1272/1938 slices
+  scored 1280/1938 slices
+  scored 1288/1938 slices
+  scored 1296/1938 slices
+  scored 1304/1938 slices
+  scored 1312/1938 slices
+  scored 1320/1938 slices
+  scored 1328/1938 slices
+  scored 1336/1938 slices
+  scored 1344/1938 slices
+  scored 1352/1938 slices
+  scored 1360/1938 slices
+  scored 1368/1938 slices
+  scored 1376/1938 slices
+  scored 1384/1938 slices
+  scored 1392/1938 slices
+  scored 1400/1938 slices
+  scored 1408/1938 slices
+  scored 1416/1938 slices
+  scored 1424/1938 slices
+  scored 1432/1938 slices
+  scored 1440/1938 slices
+  scored 1448/1938 slices
+  scored 1456/1938 slices
+  scored 1464/1938 slices
+  scored 1472/1938 slices
+  scored 1480/1938 slices
+  scored 1488/1938 slices
+  scored 1496/1938 slices
+  scored 1504/1938 slices
+  scored 1512/1938 slices
+  scored 1520/1938 slices
+  scored 1528/1938 slices
+  scored 1536/1938 slices
+  scored 1544/1938 slices
+  scored 1552/1938 slices
+  scored 1560/1938 slices
+  scored 1568/1938 slices
+  scored 1576/1938 slices
+  scored 1584/1938 slices
+  scored 1592/1938 slices
+  scored 1600/1938 slices
+  scored 1608/1938 slices
+  scored 1616/1938 slices
+  scored 1624/1938 slices
+  scored 1632/1938 slices
+  scored 1640/1938 slices
+  scored 1648/1938 slices
+  scored 1656/1938 slices
+  scored 1664/1938 slices
+  scored 1672/1938 slices
+  scored 1680/1938 slices
+  scored 1688/1938 slices
+  scored 1696/1938 slices
+  scored 1704/1938 slices
+  scored 1712/1938 slices
+  scored 1720/1938 slices
+  scored 1728/1938 slices
+  scored 1736/1938 slices
+  scored 1744/1938 slices
+  scored 1752/1938 slices
+  scored 1760/1938 slices
+  scored 1768/1938 slices
+  scored 1776/1938 slices
+  scored 1784/1938 slices
+  scored 1792/1938 slices
+  scored 1800/1938 slices
+  scored 1808/1938 slices
+  scored 1816/1938 slices
+  scored 1824/1938 slices
+  scored 1832/1938 slices
+  scored 1840/1938 slices
+  scored 1848/1938 slices
+  scored 1856/1938 slices
+  scored 1864/1938 slices
+  scored 1872/1938 slices
+  scored 1880/1938 slices
+  scored 1888/1938 slices
+  scored 1896/1938 slices
+  scored 1904/1938 slices
+  scored 1912/1938 slices
+  scored 1920/1938 slices
+  scored 1928/1938 slices
+  scored 1936/1938 slices
+  scored 1938/1938 slices
+  PSNR_Masked brain 33.040  knee-PD 36.119  knee-PDFS 32.424  all 33.900
+  donors: {"matched": 1848, "unmatched": {"brain": 90, "knee-PD": 0, "knee-PDFS": 0}}
+  swap_null: {"donor_final_mask_equals_own": 0.0, "must_be_1_for_a_data_blind_twin": false}
+  counterfactual_with_own_data_reproduces_every_step: true
+  guards: {"ssim_pooled": 0.864910616837399, "ssim_at_least_0.80": true, "realised_fraction_target": 0.125, "realised_fraction_within_0.002": true}
+  data-swap moved by step (all): 0.041 0.038 0.016 0.010 0.008 0.007 0.007 0.008 0.009 0.011 0.018 0.037 0.086 0.168 0.203 0.195
+/scratch/user/bkadota/conda/envs/dl/lib/python3.14/site-packages/torch/nn/functional.py:3855: UserWarning: size_average and reduce args will be deprecated, please use reduction='mean' instead.
+  reduction = _Reduction.legacy_get_string(size_average, reduce)
+/scratch/user/bkadota/conda/envs/dl/lib/python3.14/site-packages/torch/nn/functional.py:3855: UserWarning: size_average and reduce args will be deprecated, please use reduction='mean' instead.
+  reduction = _Reduction.legacy_get_string(size_average, reduce)
+wandb: Tracking run with wandb version 0.27.0
+wandb: W&B syncing is set to `offline` in this directory. Run `wandb online` or set WANDB_MODE=online to enable cloud syncing.
+wandb: Run data is saved locally in /home/remote/bkadota/scratch/multistep_adaptivity/scores/wandb/offline-run-20261110_222242-umavftx0
+wandb: 
+wandb: Run history:
+wandb:  eval/by_step/residual_rms/all/0 ▁
+wandb:  eval/by_step/residual_rms/all/1 ▁
+wandb: eval/by_step/residual_rms/all/10 ▁
+wandb: eval/by_step/residual_rms/all/11 ▁
+wandb: eval/by_step/residual_rms/all/12 ▁
+wandb: eval/by_step/residual_rms/all/13 ▁
+wandb: eval/by_step/residual_rms/all/14 ▁
+wandb: eval/by_step/residual_rms/all/15 ▁
+wandb:  eval/by_step/residual_rms/all/2 ▁
+wandb:  eval/by_step/residual_rms/all/3 ▁
+wandb:                             +408 ...
+wandb: 
+wandb: Run summary:
+wandb:  eval/by_step/residual_rms/all/0 1.31792
+wandb:  eval/by_step/residual_rms/all/1 1.47185
+wandb: eval/by_step/residual_rms/all/10 1.46391
+wandb: eval/by_step/residual_rms/all/11 1.46697
+wandb: eval/by_step/residual_rms/all/12 1.47914
+wandb: eval/by_step/residual_rms/all/13 1.51184
+wandb: eval/by_step/residual_rms/all/14 1.56293
+wandb: eval/by_step/residual_rms/all/15 1.58586
+wandb:  eval/by_step/residual_rms/all/2 1.47022
+wandb:  eval/by_step/residual_rms/all/3 1.46446
+wandb:                             +408 ...
+wandb: 
+wandb: You can sync this run to the cloud by running:
+wandb: wandb sync /home/remote/bkadota/scratch/multistep_adaptivity/scores/wandb/offline-run-20261110_222242-umavftx0
+wandb: Find logs at: /home/remote/bkadota/scratch/multistep_adaptivity/scores/wandb/offline-run-20261110_222242-umavftx0/logs

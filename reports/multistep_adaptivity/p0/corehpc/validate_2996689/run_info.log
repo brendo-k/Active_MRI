@@ -1,0 +1,2 @@
+6 runs recorded {'smoke_A16': '44c3fbad37d34017b8f1145667c64b78519bf4c9', 'smoke_A4': '44c3fbad37d34017b8f1145667c64b78519bf4c9', 'smoke_T4': '44c3fbad37d34017b8f1145667c64b78519bf4c9', 'smoke_base': '44c3fbad37d34017b8f1145667c64b78519bf4c9', 'smoke_img': '44c3fbad37d34017b8f1145667c64b78519bf4c9', 'smoke_rec': '44c3fbad37d34017b8f1145667c64b78519bf4c9'}
+every run recorded the shipped commit, clean

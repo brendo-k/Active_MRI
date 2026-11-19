@@ -39,5 +39,18 @@ def test_tier_f_keeps_val_and_has_no_val_or_test_patients():
     val = {tier: {r['file'] for r in _manifest_split_rows(rows, train_tier=tier, val_limit_volumes=0.25)[1]}
            for tier in 'SLF'}
     assert val['S'] == val['L'] == val['F']
+    for half in ('all', 'dev'):
+        val = {tier: {r['file'] for r in _manifest_split_rows(rows, train_tier=tier, val_half=half)[1]} for tier in 'SLF'}
+        assert val['S'] == val['L'] == val['F']
     held_out = {r['patient_id'] for r in rows if r['split'] in ('val', 'test')}
     assert not held_out & {r['patient_id'] for r in rows if r['tier'] == 'F-only'}
+
+
+def test_fscr1_flair_splits():
+    """fscr1 trains on tier F, or every 5th slice of tier S, and scores the dev half: 20 of the 40 FLAIR val volumes."""
+    flair = [r for r in _rows() if r['cls'] == 'FLAIR']
+    train, dev = _manifest_split_rows(flair, train_tier='F', val_half='dev')
+    _, holdout = _manifest_split_rows(flair, train_tier='F', val_half='holdout')
+    assert len(train) == 339 and len(dev) == len(holdout) == 20
+    assert not {r['file'] for r in dev} & {r['file'] for r in holdout}
+    assert not {r['patient_id'] for r in train} & {r['patient_id'] for r in dev + holdout}

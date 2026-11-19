@@ -11,7 +11,8 @@ every adaptive mask is compared against a non-adaptive twin.
 Roadmap (user's order, 2026-10-19):
 1. Anatomy / header routing (brain vs knee, coil count) — in progress.
 2. ACS-based budget adaptation (choose acceleration R per volume).
-3. Multi-step sequential sampling — blocked until echo-train evolution (SPACE) is modelled.
+3. Multi-step sequential sampling — order-free go/no-go done 2026-11-19 (`reports/multistep_adaptivity/`): no adaptive
+   gain over a data-blind twin at R=8. A SPACE claim still waits on modelling echo-train evolution.
 
 ## Instructions
 - Please ask clarifying questions if the experiment is not well defined.

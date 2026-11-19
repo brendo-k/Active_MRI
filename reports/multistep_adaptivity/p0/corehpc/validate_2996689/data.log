@@ -1,0 +1,47 @@
+Manifest train set (volumes, slices): {'brain': (80, 1211), 'knee-PD': (40, 1369), 'knee-PDFS': (40, 1349)}
+Manifest val set (volumes, slices): {'brain': (40, 605), 'knee-PD': (20, 673), 'knee-PDFS': (20, 660)}
+{
+  "train": {
+    "slices": 3929,
+    "volumes": 160,
+    "by_condition": {
+      "brain": [
+        80,
+        1211
+      ],
+      "knee-PD": [
+        40,
+        1369
+      ],
+      "knee-PDFS": [
+        40,
+        1349
+      ]
+    },
+    "sorted_sha1": "699d233946c0d108a97df41b03eb02e830f0aa47",
+    "ordered_sha1": "5cf18037376075344474ef6859ea52b876320afd"
+  },
+  "val": {
+    "slices": 1938,
+    "volumes": 80,
+    "by_condition": {
+      "brain": [
+        40,
+        605
+      ],
+      "knee-PD": [
+        20,
+        673
+      ],
+      "knee-PDFS": [
+        20,
+        660
+      ]
+    },
+    "sorted_sha1": "8be6e252fd3f385252d6c83acf24d70033212087",
+    "ordered_sha1": "518f919a31eb566186d39c0504cb90d69bf9ac5a"
+  }
+}
+train: loader order matches the reference
+val: loader order matches the reference
+data check passed: the same slices as the reference

@@ -18,11 +18,13 @@ import numpy as np
 import time
 import matplotlib.pyplot as plt
 
-from activemri.utils.compilers import use_system_compilers_if_missing
+from activemri.utils.compilers import allow_recompiles, use_system_compilers_if_missing
 from activemri.utils.evaluate import build_metrics
 from activemri.utils.metrics import MaskedMetricAccumulator
 from activemri.utils.phase_scramble import scramble_phase_real
 from activemri.utils.metric_mask import metric_mask_from_real_kspace
+from activemri.utils.multistep import StepRecorder, step_grid_figure, step_panels
+from activemri.samplers.seq_adapt import SequentialAdaptiveMask
 from activemri.models.sequential_sampling import SequentialSampling, reinforce_group_size
 from activemri.samplers.autosamp import annealed_kernel_sigma
 from activemri.samplers.loupe import LineConstrainedProbMask, ProbMask
@@ -71,6 +73,8 @@ class Sequential_Trainer:
 
         if options.pretrained_recon is not None:
             self._load_pretrained_recon(options.pretrained_recon)
+        if getattr(options, 'sampler_input', 'measured') == 'recon':
+            self._load_input_reconstructor(getattr(options, 'input_recon_checkpoint', None))
         if options.freeze_recon:
             self._freeze_recon()
         if options.fixed_mask_checkpoints:
@@ -131,13 +135,31 @@ class Sequential_Trainer:
             if k.startswith('reconstructor.') or k.startswith('sensetivity_net.')
         }
         missing, unexpected = self.model.load_state_dict(recon_state, strict=False)
-        missing = [k for k in missing if not k.startswith('sampler.')]
+        missing = [k for k in missing if not k.startswith(('sampler.', 'input_reconstructor.', 'input_sensetivity_net.'))]
         if missing or unexpected:
             raise RuntimeError(
                 f"Pretrained recon checkpoint {checkpoint_path} did not match the model's "
                 f"reconstructor/sensetivity_net: missing={missing}, unexpected={unexpected}"
             )
         self.logger.info(f"Loaded pretrained reconstructor weights from {checkpoint_path}")
+
+    def _load_input_reconstructor(self, checkpoint_path: Optional[str]):
+        """Load a prior run's reconstructor and sensitivity net into the frozen copies that make seq_adapt_2d's recon
+        input (sampler.input=recon)."""
+        if checkpoint_path is None:
+            raise ValueError("sampler.input=recon needs sampler.input_recon_checkpoint, the run whose reconstructor "
+                             "makes the sampler's input")
+        checkpoint = torch.load(checkpoint_path, map_location=self.device, weights_only=False)
+        state_dict = {k.removeprefix('module.'): v for k, v in checkpoint['model'].items()}
+        frozen_state = {f'input_{k}': v for k, v in state_dict.items()
+                        if k.startswith('reconstructor.') or k.startswith('sensetivity_net.')}
+        model = _unwrapped(self.model)
+        missing, unexpected = model.load_state_dict(frozen_state, strict=False)
+        missing = [k for k in missing if k.startswith(('input_reconstructor.', 'input_sensetivity_net.'))]
+        if missing or unexpected:
+            raise RuntimeError(f"{checkpoint_path} does not fit the frozen input reconstructor: missing={missing}, "
+                               f"unexpected={unexpected}")
+        self.logger.info(f"Loaded the frozen input reconstructor from {checkpoint_path}")
 
     def _load_fixed_masks(self, checkpoints: Dict[str, str]):
         """Copy each anatomy's learned LOUPE mask from its own checkpoint into the
@@ -174,11 +196,12 @@ class Sequential_Trainer:
         mask_net = _unwrapped(self.model).sampler.mask_net
         if options.sampler_type == 'smooth_adapt_2d':
             mask_net.set_base_logits(logits.to(mask_net.mask))
-        elif options.sampler_type == 'loupe_2d':
+        elif options.sampler_type in ('loupe_2d', 'seq_adapt_2d'):
             with torch.no_grad():
                 mask_net.mask.copy_((logits / options.slope).view(1, *logits.shape, 1).expand_as(mask_net.mask))
         else:
-            raise ValueError(f"init_mask_checkpoint is for loupe_2d or smooth_adapt_2d, not {options.sampler_type}")
+            raise ValueError("init_mask_checkpoint is for loupe_2d, smooth_adapt_2d or seq_adapt_2d, "
+                             f"not {options.sampler_type}")
         self.logger.info(f"Started the sampler's mask from {path}")
 
     def _param_groups(self):
@@ -195,6 +218,8 @@ class Sequential_Trainer:
             head_ids = {id(p) for p in head_mlp}
             rest = [p for p in trainable if id(p) not in head_ids]
             return [{'params': rest}, {'params': head_mlp, 'lr': getattr(self.options, 'sampler_head_mlp_lr', 1e-4)}]
+        if self.options.sampler_type == 'seq_adapt_2d':
+            return self._residual_param_groups(trainable)
         gate_lr = getattr(self.options, 'gate_lr', None)
         if self.options.sampler_type == 'bank_adapt_2d' and gate_lr is not None:
             gate = [p for name, p in _unwrapped(self.model).sampler.mask_net.named_parameters() if name != 'mask' and p.requires_grad]
@@ -223,6 +248,19 @@ class Sequential_Trainer:
             policy_group['weight_decay'] = 0.0  # decay would drag every sample towards DC
             policy_group['eps'] = POSITION_ADAM_EPS
         return [group for group in ({'params': rest}, policy_group) if group['params']]
+
+    def _residual_param_groups(self, trainable):
+        """seq_adapt_2d: its residual U-Net in its own last Adam group at residual_lr (build_optimizer keeps the sampler
+        out of Muon), and its static maps in a group at sampler_lr when that is set."""
+        mask_net = _unwrapped(self.model).sampler.mask_net
+        residual = [p for p in mask_net.residual.parameters() if p.requires_grad]
+        sampler_lr = getattr(self.options, 'sampler_lr', None)
+        static = [mask_net.mask] if mask_net.mask.requires_grad and sampler_lr is not None else []
+        separate = {id(p) for p in residual + static}
+        groups = ({'params': [p for p in trainable if id(p) not in separate]},
+                  {'params': static, 'lr': sampler_lr},
+                  {'params': residual, 'lr': getattr(self.options, 'residual_lr', 1e-4)})
+        return [group for group in groups if group['params']]
 
     @staticmethod
     def _tile_for_mask_draws(batch, kspace, target, draws):
@@ -328,6 +366,8 @@ class Sequential_Trainer:
             if not np.isnan(val_loss):
                 self.validations_since_best = 0 if is_new_best else self.validations_since_best + 1
             self.save_model(is_new_best)
+            if epoch + 1 in getattr(self.options, 'save_epochs', []):
+                self.save_epoch_snapshot()
             if epoch == self.start_epoch:
                 # Compiled graphs and hydra's config stay alive all run; left in the collector, every full collection walks them.
                 gc.collect()
@@ -336,7 +376,7 @@ class Sequential_Trainer:
             self.logger.info(
                 f'Epoch = [{1 + self.epoch:4d}/{self.options.num_epochs:4d}] TrainLoss = {train_loss:.4g} '
                 f'ValLoss = {val_loss:.4g} MeanSparsity = {mean_sparsity:.4g} '
-                f'TrainTime = {train_time:.4f}s ValTime = {val_time:.4f}s',
+                f'TrainTime = {train_time:.4f}s ValTime = {val_time:.4f}s PeakMemory = {self._peak_memory_gib():.2f}GiB',
             )
             patience = getattr(self.options, 'early_stop_patience', 0)
             if patience > 0 and self.validations_since_best >= patience:
@@ -346,6 +386,10 @@ class Sequential_Trainer:
 
         self.save_ema_model()
         wandb.finish()
+
+    def _peak_memory_gib(self) -> float:
+        """Peak memory held by tensors on the training GPU so far, not the allocator's reserve that nvidia-smi shows."""
+        return torch.cuda.max_memory_allocated(self.device) / 2**30 if torch.cuda.is_available() else float('nan')
 
     def _is_every(self, every: int) -> bool:
         """Whether this epoch is one of every `every`-th epochs; the last epoch always is."""
@@ -388,6 +432,10 @@ class Sequential_Trainer:
             anatomies = list(batch['anatomy'])
             log_images = visualize and not set(anatomies) <= logged_train_anatomies
             self._set_store_visuals(log_images)
+            step_figure_slices = {anatomy: anatomies.index(anatomy) for anatomy in dict.fromkeys(anatomies)
+                                  if anatomy not in logged_train_anatomies} if log_images else {}
+            recorder = self._record_steps(step_figure_slices.values()) \
+                if log_images or iter_idx % metrics_every == 0 else None
 
             try:
                 pred_dict = self._train_forward(target, kspace, batch)
@@ -400,6 +448,8 @@ class Sequential_Trainer:
                 )
                 self.optimizer.zero_grad()
                 continue
+            finally:
+                _unwrapped(self.model).step_recorder = None
 
             if iter_idx == 0 and visualize:
                 data_for_vis_name = f'train_epoch={self.epoch + 1}_iter=1'
@@ -430,6 +480,11 @@ class Sequential_Trainer:
                 continue
 
             losses.append(loss.item())
+            if recorder is not None:
+                grad_log.update(recorder.scalars('train'))
+            if step_figure_slices:
+                anatomy_images.update(self._step_figures(pred_dict, kspace, target, batch, step_figure_slices,
+                                                         recorder, 'train'))
 
             if iter_idx % metrics_every == 0:
                 target_for_metrics = target.detach()
@@ -471,6 +526,8 @@ class Sequential_Trainer:
         self._set_store_visuals(True)
         epoch_log['train/loss'] = np.mean(losses)
         epoch_log['epoch'] = self.epoch
+        epoch_log['system/peak_memory_gib'] = self._peak_memory_gib()
+        epoch_log['system/train_epoch_seconds'] = time.perf_counter() - epoch_start_time
         epoch_log.update(anatomy_images)
         epoch_log.update(anatomy_stats.compute('train'))
         mask_net = getattr(_unwrapped(self.model).sampler, 'mask_net', None)  # caipi_2d has none
@@ -529,6 +586,7 @@ class Sequential_Trainer:
         start = time.perf_counter()
         logged_anatomies = set()
         anatomy_images = {}
+        step_scalars = []
 
         with torch.no_grad():
             for iter_idx, batch in enumerate(self.val_loader):
@@ -538,6 +596,7 @@ class Sequential_Trainer:
                 log_images = visualize and (
                     iter_idx == 0 or not set(anatomies) <= logged_anatomies | set(self.visual_examples))
                 self._set_store_visuals(log_images)
+                recorder = self._record_steps(())
 
                 try:
                     pred_dict = self.model(target, kspace, **self._model_inputs(batch))
@@ -549,6 +608,9 @@ class Sequential_Trainer:
                         f"(fnames={batch['fname']}, slice_ids={batch['slice_id'].tolist()}): {err}"
                     )
                     continue
+                finally:
+                    _unwrapped(self.model).step_recorder = None
+                step_scalars.append(recorder.scalars('val'))
 
                 if iter_idx == 0 and visualize:
                     data_for_vis_name = f'val_epoch={self.epoch + 1}'
@@ -605,6 +667,7 @@ class Sequential_Trainer:
             epoch_log['epoch'] = self.epoch
             epoch_log.update(anatomy_images)
             epoch_log.update(anatomy_stats.compute('val'))
+            epoch_log.update(_mean_scalars(step_scalars))
             wandb.log(epoch_log)
 
             self.logger.info(anatomy_stats.summary())
@@ -619,6 +682,7 @@ class Sequential_Trainer:
             batch = self.val_loader.collate_fn([dataset[index]])
             kspace = self._load_kspace(batch, self.val_phase_generator)
             target = batch['target'].to(self.device)
+            recorder = self._record_steps([0])
             try:
                 pred_dict = self.model(target, kspace, **self._model_inputs(batch))
             except RuntimeError as err:
@@ -626,7 +690,36 @@ class Sequential_Trainer:
                     raise
                 self.logger.warning(f"Skipping fixed {anatomy} val example: {err}")
                 continue
+            finally:
+                _unwrapped(self.model).step_recorder = None
             images.update(_build_image_log(pred_dict, target, f'val/{anatomy}', self.model.data_for_vis))
+            images.update(self._step_figures(pred_dict, kspace, target, batch, {anatomy: 0}, recorder, 'val'))
+        return images
+
+    def _record_steps(self, slices):
+        """A StepRecorder that the model's next forward reports every step to; the caller clears it afterwards."""
+        recorder = StepRecorder(slices=slices)
+        _unwrapped(self.model).step_recorder = recorder
+        return recorder
+
+    def _step_figures(self, pred_dict, kspace, target, batch, slices, recorder, prefix):
+        """{f'{prefix}/{anatomy}/steps': image} of one row per sampling step for each `slices` index, also saved as
+        PNGs in the visualization folder (activemri.utils.multistep.step_grid_figure)."""
+        model = _unwrapped(self.model)
+        labels, metric_mask = self._anatomy_labels(batch), self._metric_mask(batch)
+        images = {}
+        for anatomy, index in slices.items():
+            panels = step_panels(model, kspace, target, pred_dict['sense_maps'].detach(), pred_dict['masks'], index,
+                                 labels, metric_mask, recorder)
+            source = 'the loss gradient is this batch\'s, the reconstructions use the weights after its update; ' \
+                if prefix == 'train' else ''
+            title = (f"{prefix} epoch {self.epoch + 1}: {anatomy} {batch['fname'][index]} slice "
+                     f"{int(batch['slice_id'][index])}, K={model.num_step}; {source}rows before the last reconstruct "
+                     "masks the reconstructor never trained on")
+            figure = step_grid_figure(panels, title)
+            figure.savefig(self.vis_dir / f'{prefix}_epoch={self.epoch + 1}_{anatomy}_steps.png')
+            images[f'{prefix}/{anatomy}/steps'] = wandb.Image(figure)
+            plt.close(figure)
         return images
 
     def _metric_mask(self, batch):
@@ -748,6 +841,14 @@ class Sequential_Trainer:
         best_tmp.replace(best_path)
         for old_checkpoint in self.exp_dir.glob('model_epoch_*.pt'):
             old_checkpoint.unlink()
+
+    def save_epoch_snapshot(self):
+        """`epoch_NNN.pt` (1-indexed, weights only), kept for an eval of a fixed epoch, e.g. the pilot gate's epoch 10.
+
+        Not `model_epoch_*.pt`: save_model deletes those whenever a new best is saved.
+        """
+        torch.save({'epoch': self.epoch, 'options': self.options, 'model': self.model.state_dict(),
+                    'best_val_loss': self.best_val_loss}, self.exp_dir / f'epoch_{self.epoch + 1:03d}.pt')
 
     def save_ema_model(self):
         """`ema_model.pt`: a `last_model.pt` with the averaged weights, for the same eval scripts."""
@@ -1122,7 +1223,23 @@ def gradient_stats(model, max_norm):
             torch.stack(torch._foreach_norm(grads, math.inf)).max(),
             (~torch.isfinite(per_tensor_norm)).sum().float(),
         ]
+    mask_net = getattr(model.sampler, 'mask_net', None)
+    if isinstance(mask_net, SequentialAdaptiveMask):
+        for name, params in (('sampler_residual', list(mask_net.residual.parameters())), ('sampler_static', [mask_net.mask])):
+            grads = [p.grad for p in params if p.grad is not None]
+            if grads:
+                names.append(f'grad/{name}_norm')
+                values.append(torch.stack(torch._foreach_norm(grads)).norm())
     return dict(zip(names, torch.stack([v.float() for v in values]).tolist()))
+
+
+def _mean_scalars(logs):
+    """Key-wise mean of {name: number} dicts, each key over the dicts that hold it."""
+    collected = defaultdict(list)
+    for log in logs:
+        for key, value in log.items():
+            collected[key].append(value)
+    return {key: float(np.mean(values)) for key, values in collected.items()}
 
 
 def clip_gradients_per_group(model, max_norm):
@@ -1172,6 +1289,7 @@ def compile_unets(model: torch.nn.Module, channels_last=False) -> None:
     `channels_last` True lays out every U-Net channels-last; 'sens' only the sensitivity net, whose channel counts are
     multiples of 8. cuDNN pads the cascades' 18 and 36 channels in that layout, which costs more than it saves."""
     use_system_compilers_if_missing()
+    allow_recompiles()
     for module in list(model.modules()):
         if isinstance(module, NormUnet):
             module.unet.compile(dynamic=False)
@@ -1302,9 +1420,24 @@ def build_model(options: TrainConfig):
         budget_over=getattr(options, 'budget_over', 'grid'),
         sampler_coil_combine=getattr(options, 'sampler_coil_combine', 'sense'),
         restrict_recon_to_extent=getattr(recon_cfg, 'restrict_to_extent', False),
+        residual_chans=getattr(options, 'residual_chans', 16),
+        residual_depth=getattr(options, 'residual_depth', 4),
+        residual_limit=getattr(options, 'residual_limit', 6.0),
+        data_blind=getattr(options, 'data_blind', False),
+        residual_checkpoint=getattr(options, 'residual_checkpoint', True),
+        data_channels=getattr(options, 'data_channels', None),
+        sampler_input=getattr(options, 'sampler_input', 'measured'),
+        recon_steps=getattr(options, 'recon_steps', None) or [6, 9, 12, 14],
+        virtual_coils=getattr(options, 'virtual_coils', 4),
+        seqmri_input_scale=getattr(options, 'seqmri_input_scale', 'raw'),
     )
     replace_instance_norms(model.reconstructor, getattr(recon_cfg, 'norm', 'instance'))
     replace_instance_norms(model.sensetivity_net, getattr(options, 'sens_norm', 'instance'))
+    if model.input_reconstructor is not None:
+        replace_instance_norms(model.input_reconstructor, getattr(recon_cfg, 'norm', 'instance'))
+        replace_instance_norms(model.input_sensetivity_net, getattr(options, 'sens_norm', 'instance'))
+        model.input_reconstructor.requires_grad_(False)
+        model.input_sensetivity_net.requires_grad_(False)
 
     return model
 

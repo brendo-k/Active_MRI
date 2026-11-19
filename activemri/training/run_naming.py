@@ -113,6 +113,24 @@ def _family_tokens(options, sampler):
     elif sampler == 'bank_adapt_2d':
         fields = [('bank_size', 'bank'), ('gate_temperature', 'gT'), ('gate_logit_limit', 'glim'), ('gate_lr', 'glr')]
         tokens = []
+    elif sampler == 'seq_adapt_2d':
+        fields = [('residual_chans', 'resc'), ('residual_depth', 'resd'), ('residual_limit', 'reslim'),
+                  ('residual_lr', 'reslr')]
+        tokens = ['data-blind'] if _get(options, 'data_blind') else []
+        tokens += {'recon': ['recon-input'], 'full': ['clairvoyant'], 'seqmri': ['seqmri-input']}.get(
+            _get(options, 'sampler_input'), [])
+        if _get(options, 'sampler_input') == 'seqmri':
+            if list(_get(options, 'recon_steps')) != list(_DEFAULTS.recon_steps):
+                tokens.append('rsteps' + '-'.join(str(step) for step in _get(options, 'recon_steps')))
+            if _differs(options, 'virtual_coils'):
+                tokens.append(f"vc{_get(options, 'virtual_coils')}")
+        channels = _get(options, 'data_channels')
+        if channels and set(channels) != {'image', 'kspace'}:
+            tokens.append('data-' + '+'.join(channels))
+    elif sampler == 'seqmri_2d':
+        fields = []
+        tokens = ['data-blind'] if _get(options, 'data_blind') else []
+        tokens += ['signed-log'] if _get(options, 'seqmri_input_scale') == 'signed_log' else []
     elif sampler == 'mnet_2d':
         fields = [('mnet_accept', 'accept-'), ('mnet_label_steps', 'T'), ('mnet_sampler_steps', 'c'),
                   ('mnet_init_margin', 'margin'), ('mnet_sparsity_weight', 'sp'), ('mnet_consistency_weight', 'cons'),

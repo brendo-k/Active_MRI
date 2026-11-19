@@ -1,0 +1,41 @@
+host=ggpu1-14 gpu=NVIDIA RTX PRO 6000 Blackwell Server Edition commit=de7af04843d92a51946f1f596b4f883e036f9fb4 python=3.14.0 torch=2.12.0+cu130
+14:42:44 commit: pass
+14:43:23 tests: pass
+14:43:25 data: FAIL
+14:43:26 smoke_A4: FAIL
+14:43:27 smoke_T4: FAIL
+14:43:33 score_A4: FAIL
+14:43:38 score_T4: FAIL
+14:43:38 nulls: FAIL
+14:43:39 smoke_A16: FAIL
+14:43:41 smoke_base: FAIL
+14:43:46 score_base: FAIL
+14:43:47 smoke_rec: FAIL
+14:43:53 score_rec: FAIL
+14:43:54 smoke_img: FAIL
+14:43:54 run_info: FAIL
+
+Epoch lines (10% of a train epoch, compile included, then the full val set):
+  smoke_base: 
+  smoke_A4: 
+  smoke_T4: 
+  smoke_A16: 
+  smoke_rec: 
+  smoke_img: 
+
+  commit      pass
+  tests       pass
+  data        FAIL
+  smoke_A4    FAIL
+  smoke_T4    FAIL
+  score_A4    FAIL
+  score_T4    FAIL
+  nulls       FAIL
+  smoke_A16   FAIL
+  smoke_base  FAIL
+  score_base  FAIL
+  smoke_rec   FAIL
+  score_rec   FAIL
+  smoke_img   FAIL
+  run_info    FAIL
+logs: /home/remote/bkadota/scratch/multistep_adaptivity/validate/2996412

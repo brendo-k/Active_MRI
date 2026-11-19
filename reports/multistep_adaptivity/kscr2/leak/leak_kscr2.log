@@ -1,0 +1,170 @@
+Sampler: seq_adapt_2d
+Number of sequential steps: 16
+Sparsity: 0.125
+Sampler: seq_adapt_2d
+Number of sequential steps: 16
+Sparsity: 0.125
+Sampler: seq_adapt_2d
+Number of sequential steps: 16
+Sparsity: 0.125
+Sampler: seq_adapt_2d
+Number of sequential steps: 16
+Sparsity: 0.125
+Sampler: seq_adapt_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+val_half=dev (seed 20261111)
+Manifest train set (volumes, slices): {'knee-PD': (40, 1369), 'knee-PDFS': (40, 1349)}
+Manifest val set (volumes, slices): {'knee-PD': (10, 337), 'knee-PDFS': (10, 332)}
+leak_kscr2: masks of C_16_s42_kscr2, A_16_s42_kscr2, S_16_s42_kscr2, T_16_s42_kscr2 decoded by T_16_s42_kscr2, T_1_s42_kscr2, C_16_s42_kscr2, A_16_s42_kscr2, S_16_s42_kscr2, 669 slices, NVIDIA RTX A6000
+  decoded 8/669 slices
+  decoded 16/669 slices
+  decoded 24/669 slices
+  decoded 32/669 slices
+  decoded 40/669 slices
+  decoded 48/669 slices
+  decoded 56/669 slices
+  decoded 64/669 slices
+  decoded 72/669 slices
+  decoded 80/669 slices
+  decoded 88/669 slices
+  decoded 96/669 slices
+  decoded 104/669 slices
+  decoded 112/669 slices
+  decoded 120/669 slices
+  decoded 128/669 slices
+  decoded 136/669 slices
+  decoded 144/669 slices
+  decoded 152/669 slices
+  decoded 160/669 slices
+  decoded 168/669 slices
+  decoded 176/669 slices
+  decoded 184/669 slices
+  decoded 192/669 slices
+  decoded 200/669 slices
+  decoded 208/669 slices
+  decoded 216/669 slices
+  decoded 224/669 slices
+  decoded 232/669 slices
+  decoded 240/669 slices
+  decoded 248/669 slices
+  decoded 256/669 slices
+  decoded 264/669 slices
+  decoded 272/669 slices
+  decoded 280/669 slices
+  decoded 288/669 slices
+  decoded 296/669 slices
+  decoded 304/669 slices
+  decoded 312/669 slices
+  decoded 320/669 slices
+  decoded 328/669 slices
+  decoded 336/669 slices
+  decoded 344/669 slices
+  decoded 352/669 slices
+  decoded 360/669 slices
+  decoded 368/669 slices
+  decoded 376/669 slices
+  decoded 384/669 slices
+  decoded 392/669 slices
+  decoded 400/669 slices
+  decoded 408/669 slices
+  decoded 416/669 slices
+  decoded 424/669 slices
+  decoded 432/669 slices
+  decoded 440/669 slices
+  decoded 448/669 slices
+  decoded 456/669 slices
+  decoded 464/669 slices
+  decoded 472/669 slices
+  decoded 480/669 slices
+  decoded 488/669 slices
+  decoded 496/669 slices
+  decoded 504/669 slices
+  decoded 512/669 slices
+  decoded 520/669 slices
+  decoded 528/669 slices
+  decoded 536/669 slices
+  decoded 544/669 slices
+  decoded 552/669 slices
+  decoded 560/669 slices
+  decoded 568/669 slices
+  decoded 576/669 slices
+  decoded 584/669 slices
+  decoded 592/669 slices
+  decoded 600/669 slices
+  decoded 608/669 slices
+  decoded 616/669 slices
+  decoded 624/669 slices
+  decoded 632/669 slices
+  decoded 640/669 slices
+  decoded 648/669 slices
+  decoded 656/669 slices
+  decoded 664/669 slices
+  decoded 669/669 slices
+  C_16_s42_kscr2__via__T_16_s42_kscr2: PSNR 34.642, swap cost +0.264
+  C_16_s42_kscr2__via__T_1_s42_kscr2: PSNR 34.483, swap cost +0.160
+  C_16_s42_kscr2__via__C_16_s42_kscr2: PSNR 35.020, swap cost +0.989
+  C_16_s42_kscr2__via__A_16_s42_kscr2: PSNR 34.757, swap cost +0.350
+  C_16_s42_kscr2__via__S_16_s42_kscr2: PSNR 34.789, swap cost +0.361
+  A_16_s42_kscr2__via__T_16_s42_kscr2: PSNR 34.725, swap cost +0.080
+  A_16_s42_kscr2__via__T_1_s42_kscr2: PSNR 34.721, swap cost +0.096
+  A_16_s42_kscr2__via__C_16_s42_kscr2: PSNR 34.402, swap cost +0.132
+  A_16_s42_kscr2__via__A_16_s42_kscr2: PSNR 34.773, swap cost +0.112
+  A_16_s42_kscr2__via__S_16_s42_kscr2: PSNR 34.767, swap cost +0.114
+  S_16_s42_kscr2__via__T_16_s42_kscr2: PSNR 34.683, swap cost +0.132
+  S_16_s42_kscr2__via__T_1_s42_kscr2: PSNR 34.646, swap cost +0.149
+  S_16_s42_kscr2__via__C_16_s42_kscr2: PSNR 34.381, swap cost +0.211
+  S_16_s42_kscr2__via__A_16_s42_kscr2: PSNR 34.741, swap cost +0.177
+  S_16_s42_kscr2__via__S_16_s42_kscr2: PSNR 34.773, swap cost +0.188
+  T_16_s42_kscr2__via__T_16_s42_kscr2: PSNR 34.714, swap cost +0.000
+  T_16_s42_kscr2__via__T_1_s42_kscr2: PSNR 34.679, swap cost +0.000
+  T_16_s42_kscr2__via__C_16_s42_kscr2: PSNR 34.309, swap cost +0.000
+  T_16_s42_kscr2__via__A_16_s42_kscr2: PSNR 34.705, swap cost +0.000
+  T_16_s42_kscr2__via__S_16_s42_kscr2: PSNR 34.704, swap cost +0.000
+  diagonal C_16_s42_kscr2: {"pooled_psnr_difference": -0.00013013449128607135, "largest_slice_psnr_difference": 0.07512283325195312, "pooled_swap_cost_difference": -4.249624072694136e-05, "within_tolerance": true}
+  diagonal A_16_s42_kscr2: {"pooled_psnr_difference": -0.0007257561334341744, "largest_slice_psnr_difference": 0.2335186004638672, "pooled_swap_cost_difference": -0.0010529049130655055, "within_tolerance": true}
+  diagonal S_16_s42_kscr2: {"pooled_psnr_difference": -0.0014116233061614025, "largest_slice_psnr_difference": 0.8407096862792969, "pooled_swap_cost_difference": -0.0008552733736366114, "within_tolerance": true}
+  diagonal T_16_s42_kscr2: {"pooled_psnr_difference": -0.0006452683019730898, "largest_slice_psnr_difference": 0.21912097930908203, "pooled_swap_cost_difference": 0.0, "within_tolerance": true}
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from /home/bkadota/.netrc.
+wandb: Currently logged in as: brenden-kadota (brenden-kadota-university-of-california-sf) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: Tracking run with wandb version 0.30.0
+wandb: Run data is saved locally in reports/multistep_adaptivity/kscr2/leak/scores/wandb/run-20261116_113029-d8thextx
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run eval_leak_kscr2
+wandb: ⭐️ View project at https://wandb.ai/brenden-kadota-university-of-california-sf/SeqMRI
+wandb: 🚀 View run at https://wandb.ai/brenden-kadota-university-of-california-sf/SeqMRI/runs/d8thextx
+wandb: updating run metadata
+wandb: uploading wandb-metadata.json; uploading requirements.txt; uploading wandb-summary.json; uploading config.yaml
+wandb: uploading history steps 0-0, summary
+wandb: 
+wandb: Run history:
+wandb:                    cross/A_16_s42_kscr2__via__A_16_s42_kscr2/means/nmse/all ▁
+wandb:                cross/A_16_s42_kscr2__via__A_16_s42_kscr2/means/nmse/knee-PD ▁
+wandb:              cross/A_16_s42_kscr2__via__A_16_s42_kscr2/means/nmse/knee-PDFS ▁
+wandb:                    cross/A_16_s42_kscr2__via__A_16_s42_kscr2/means/psnr/all ▁
+wandb:                cross/A_16_s42_kscr2__via__A_16_s42_kscr2/means/psnr/knee-PD ▁
+wandb:              cross/A_16_s42_kscr2__via__A_16_s42_kscr2/means/psnr/knee-PDFS ▁
+wandb:       cross/A_16_s42_kscr2__via__A_16_s42_kscr2/means/realised_fraction/all ▁
+wandb:   cross/A_16_s42_kscr2__via__A_16_s42_kscr2/means/realised_fraction/knee-PD ▁
+wandb: cross/A_16_s42_kscr2__via__A_16_s42_kscr2/means/realised_fraction/knee-PDFS ▁
+wandb:                    cross/A_16_s42_kscr2__via__A_16_s42_kscr2/means/ssim/all ▁
+wandb:                                                                      +1,326 ...
+wandb: 
+wandb: Run summary:
+wandb:                    cross/A_16_s42_kscr2__via__A_16_s42_kscr2/means/nmse/all 0.00475
+wandb:                cross/A_16_s42_kscr2__via__A_16_s42_kscr2/means/nmse/knee-PD 0.00237
+wandb:              cross/A_16_s42_kscr2__via__A_16_s42_kscr2/means/nmse/knee-PDFS 0.00718
+wandb:                    cross/A_16_s42_kscr2__via__A_16_s42_kscr2/means/psnr/all 34.77284
+wandb:                cross/A_16_s42_kscr2__via__A_16_s42_kscr2/means/psnr/knee-PD 36.39101
+wandb:              cross/A_16_s42_kscr2__via__A_16_s42_kscr2/means/psnr/knee-PDFS 33.13029
+wandb:       cross/A_16_s42_kscr2__via__A_16_s42_kscr2/means/realised_fraction/all 0.125
+wandb:   cross/A_16_s42_kscr2__via__A_16_s42_kscr2/means/realised_fraction/knee-PD 0.12498
+wandb: cross/A_16_s42_kscr2__via__A_16_s42_kscr2/means/realised_fraction/knee-PDFS 0.12503
+wandb:                    cross/A_16_s42_kscr2__via__A_16_s42_kscr2/means/ssim/all 0.8662
+wandb:                                                                      +1,326 ...
+wandb: 
+wandb: 🚀 View run eval_leak_kscr2 at: https://wandb.ai/brenden-kadota-university-of-california-sf/SeqMRI/runs/d8thextx
+wandb: ⭐️ View project at: https://wandb.ai/brenden-kadota-university-of-california-sf/SeqMRI
+wandb: Synced 4 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: reports/multistep_adaptivity/kscr2/leak/scores/wandb/run-20261116_113029-d8thextx/logs
+exit 0

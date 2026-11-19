@@ -1,0 +1,795 @@
+{
+  "name": "smoke_T4",
+  "run": "/home/remote/bkadota/scratch/multistep_adaptivity/validate/2996689/smoke_T4",
+  "checkpoint": "last_model.pt",
+  "epoch": 0,
+  "training_code": {
+    "commit": "44c3fbad37d34017b8f1145667c64b78519bf4c9",
+    "branch": "exp/multistep_adaptivity",
+    "dirty_tracked_files": [],
+    "started_at": "2026-11-10T23:13:28+00:00",
+    "argv": [
+      "train.py",
+      "hydra.job.name=train_sequential",
+      "recon=varnet",
+      "datasets=fastmri_local_v1_flair_knee",
+      "training.batch_size=16",
+      "training.seed=42",
+      "sampler.accelerations=[8.0]",
+      "misc.resolution=[320,320]",
+      "sampler.budget_over=acquired",
+      "datasets.limit_volumes=1",
+      "datasets.roots.hpc=\"~/scratch/data/fastmri/{anatomy}/data\"",
+      "datasets.roots.local_batch2=\"~/scratch/data/fastmri/knee/data\"",
+      "output.out_dir=/home/remote/bkadota/scratch/multistep_adaptivity/validate/2996689/smoke_T4",
+      "sampler.sampler_type=seq_adapt_2d",
+      "sampler.anatomy_conditioning=true",
+      "sampler.loupe_vd_init_power=4",
+      "training.num_step=4",
+      "sampler.data_blind=true",
+      "training.num_epochs=1",
+      "training.limit_batches=0.1",
+      "training.lr=1e-4",
+      "training.lr_scheduler=constant",
+      "training.train_metrics_every=1"
+    ]
+  },
+  "eval_code": {
+    "commit": "44c3fbad37d34017b8f1145667c64b78519bf4c9",
+    "branch": "exp/multistep_adaptivity",
+    "dirty_tracked_files": []
+  },
+  "options": {
+    "sampler_type": "seq_adapt_2d",
+    "num_step": 4,
+    "data_blind": true,
+    "accelerations": [
+      8.0
+    ],
+    "budget_over": "acquired",
+    "seed": 42,
+    "residual_chans": 16,
+    "residual_depth": 4,
+    "residual_limit": 6.0,
+    "residual_lr": 0.0001,
+    "anatomy_conditioning": true,
+    "loss_type": "l1"
+  },
+  "draw_seeds": [
+    1234,
+    4321
+  ],
+  "slices": {
+    "count": 120,
+    "hash": "8a8f3bd61fd02026ee129606a8595743f182ddf0"
+  },
+  "means": {
+    "psnr": {
+      "brain": 19.47613583113018,
+      "knee-PD": 19.13500870977129,
+      "knee-PDFS": 21.353476095199586,
+      "all": 19.982521426677703
+    },
+    "ssim": {
+      "brain": 0.4052003061896264,
+      "knee-PD": 0.3660532722149287,
+      "knee-PDFS": 0.386572384294481,
+      "all": 0.38528953700010043
+    },
+    "nmse": {
+      "brain": 0.08671286707057764,
+      "knee-PD": 0.1013664992614871,
+      "knee-PDFS": 0.10048886458389461,
+      "all": 0.0964336375085016
+    },
+    "realised_fraction": {
+      "brain": 0.12496009635690011,
+      "knee-PD": 0.1251298598058167,
+      "knee-PDFS": 0.12504858430474997,
+      "all": 0.12504900954663753
+    }
+  },
+  "by_step": {
+    "step_new": {
+      "brain": [
+        2062.6973684210525,
+        2055.657894736842,
+        2065.7105263157896,
+        2067.7368421052633
+      ],
+      "knee-PD": [
+        3180.3333333333335,
+        3173.3571428571427,
+        3178.9166666666665,
+        3180.690476190476
+      ],
+      "knee-PDFS": [
+        3172.2625,
+        3176.975,
+        3181.0375,
+        3174.7
+      ],
+      "all": [
+        2823.725,
+        2820.625,
+        2827.108333333333,
+        2826.258333333333
+      ]
+    },
+    "step_budget": {
+      "brain": [
+        2063.2105263157896,
+        2063.2105263157896,
+        2063.2105263157896,
+        2063.2105263157896
+      ],
+      "knee-PD": [
+        3175.0,
+        3175.0,
+        3175.0,
+        3175.0
+      ],
+      "knee-PDFS": [
+        3175.0,
+        3175.0,
+        3175.0,
+        3175.0
+      ],
+      "all": [
+        2822.9333333333334,
+        2822.9333333333334,
+        2822.9333333333334,
+        2822.9333333333334
+      ]
+    },
+    "residual_rms": {
+      "brain": [
+        0.025870034471154213,
+        0.025841532887792902,
+        0.025827708874682064,
+        0.025821101998812275
+      ],
+      "knee-PD": [
+        0.0257632564753294,
+        0.02571459597952309,
+        0.025723019348723546,
+        0.02572123451335799
+      ],
+      "knee-PDFS": [
+        0.02576506696641445,
+        0.02570583508349955,
+        0.025718543864786624,
+        0.02570276886690408
+      ],
+      "all": [
+        0.02579767300436894,
+        0.025751872368467352,
+        0.02575467920396477,
+        0.025746704001600545
+      ]
+    }
+  },
+  "donors": {
+    "matched": 113,
+    "unmatched": {
+      "brain": 7,
+      "knee-PD": 0,
+      "knee-PDFS": 0
+    }
+  },
+  "guards": {
+    "ssim_pooled": 0.38528953700010043,
+    "ssim_at_least_0.80": false,
+    "realised_fraction_target": 0.125,
+    "realised_fraction_within_0.002": true,
+    "failed_reconstructions_below_20dB": [
+      {
+        "volume": "file_brain_AXFLAIR_200_6002499.h5",
+        "slice_id": 0,
+        "condition": "brain",
+        "psnr": 18.377907752990723
+      },
+      {
+        "volume": "file_brain_AXFLAIR_200_6002536.h5",
+        "slice_id": 2,
+        "condition": "brain",
+        "psnr": 17.378867149353027
+      },
+      {
+        "volume": "file_brain_AXFLAIR_200_6002584.h5",
+        "slice_id": 5,
+        "condition": "brain",
+        "psnr": 16.83578586578369
+      },
+      {
+        "volume": "file_brain_AXFLAIR_200_6002656.h5",
+        "slice_id": 6,
+        "condition": "brain",
+        "psnr": 17.644390106201172
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6002868.h5",
+        "slice_id": 8,
+        "condition": "brain",
+        "psnr": 17.320871353149414
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6002872.h5",
+        "slice_id": 10,
+        "condition": "brain",
+        "psnr": 17.595194816589355
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6002873.h5",
+        "slice_id": 11,
+        "condition": "brain",
+        "psnr": 17.57532787322998
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6002899.h5",
+        "slice_id": 11,
+        "condition": "brain",
+        "psnr": 16.65149974822998
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6002910.h5",
+        "slice_id": 13,
+        "condition": "brain",
+        "psnr": 19.913097381591797
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6002946.h5",
+        "slice_id": 0,
+        "condition": "brain",
+        "psnr": 17.90487289428711
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6003000.h5",
+        "slice_id": 7,
+        "condition": "brain",
+        "psnr": 18.834174156188965
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6003001.h5",
+        "slice_id": 7,
+        "condition": "brain",
+        "psnr": 17.940207481384277
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6003015.h5",
+        "slice_id": 8,
+        "condition": "brain",
+        "psnr": 16.73069477081299
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6003021.h5",
+        "slice_id": 8,
+        "condition": "brain",
+        "psnr": 19.780000686645508
+      },
+      {
+        "volume": "file_brain_AXFLAIR_201_6003025.h5",
+        "slice_id": 9,
+        "condition": "brain",
+        "psnr": 18.549314498901367
+      },
+      {
+        "volume": "file_brain_AXFLAIR_202_6000418.h5",
+        "slice_id": 9,
+        "condition": "brain",
+        "psnr": 19.396486282348633
+      },
+      {
+        "volume": "file_brain_AXFLAIR_202_6000521.h5",
+        "slice_id": 13,
+        "condition": "brain",
+        "psnr": 19.451558113098145
+      },
+      {
+        "volume": "file_brain_AXFLAIR_202_6000571.h5",
+        "slice_id": 14,
+        "condition": "brain",
+        "psnr": 19.995293617248535
+      },
+      {
+        "volume": "file_brain_AXFLAIR_203_6000881.h5",
+        "slice_id": 14,
+        "condition": "brain",
+        "psnr": 19.177217483520508
+      },
+      {
+        "volume": "file_brain_AXFLAIR_206_6000243.h5",
+        "slice_id": 6,
+        "condition": "brain",
+        "psnr": 18.356538772583008
+      },
+      {
+        "volume": "file_brain_AXFLAIR_209_6001370.h5",
+        "slice_id": 9,
+        "condition": "brain",
+        "psnr": 19.471609115600586
+      },
+      {
+        "volume": "file_brain_AXFLAIR_209_6001399.h5",
+        "slice_id": 10,
+        "condition": "brain",
+        "psnr": 17.0286865234375
+      },
+      {
+        "volume": "file_brain_AXFLAIR_210_6001919.h5",
+        "slice_id": 11,
+        "condition": "brain",
+        "psnr": 16.480517387390137
+      },
+      {
+        "volume": "file_brain_AXFLAIR_210_6001927.h5",
+        "slice_id": 11,
+        "condition": "brain",
+        "psnr": 18.733888626098633
+      },
+      {
+        "volume": "file_brain_AXFLAIR_210_6001932.h5",
+        "slice_id": 12,
+        "condition": "brain",
+        "psnr": 18.705056190490723
+      },
+      {
+        "volume": "file1000007.h5",
+        "slice_id": 19,
+        "condition": "knee-PDFS",
+        "psnr": 18.145328521728516
+      },
+      {
+        "volume": "file1000007.h5",
+        "slice_id": 35,
+        "condition": "knee-PDFS",
+        "psnr": 19.4127779006958
+      },
+      {
+        "volume": "file1000071.h5",
+        "slice_id": 14,
+        "condition": "knee-PD",
+        "psnr": 18.764768600463867
+      },
+      {
+        "volume": "file1000107.h5",
+        "slice_id": 12,
+        "condition": "knee-PD",
+        "psnr": 19.053390502929688
+      },
+      {
+        "volume": "file1000114.h5",
+        "slice_id": 16,
+        "condition": "knee-PDFS",
+        "psnr": 18.813166618347168
+      },
+      {
+        "volume": "file1000432.h5",
+        "slice_id": 1,
+        "condition": "knee-PD",
+        "psnr": 16.356271743774414
+      },
+      {
+        "volume": "file1000432.h5",
+        "slice_id": 17,
+        "condition": "knee-PD",
+        "psnr": 19.78684902191162
+      },
+      {
+        "volume": "file1000464.h5",
+        "slice_id": 32,
+        "condition": "knee-PD",
+        "psnr": 18.910659790039062
+      },
+      {
+        "volume": "file1000552.h5",
+        "slice_id": 12,
+        "condition": "knee-PD",
+        "psnr": 18.067977905273438
+      },
+      {
+        "volume": "file1000552.h5",
+        "slice_id": 28,
+        "condition": "knee-PD",
+        "psnr": 19.801837921142578
+      },
+      {
+        "volume": "file1000625.h5",
+        "slice_id": 11,
+        "condition": "knee-PD",
+        "psnr": 19.67199420928955
+      },
+      {
+        "volume": "file1000625.h5",
+        "slice_id": 27,
+        "condition": "knee-PD",
+        "psnr": 18.583407402038574
+      },
+      {
+        "volume": "file1000647.h5",
+        "slice_id": 8,
+        "condition": "knee-PDFS",
+        "psnr": 19.06199359893799
+      },
+      {
+        "volume": "file1000758.h5",
+        "slice_id": 6,
+        "condition": "knee-PD",
+        "psnr": 15.68871545791626
+      },
+      {
+        "volume": "file1000831.h5",
+        "slice_id": 11,
+        "condition": "knee-PD",
+        "psnr": 17.85529327392578
+      },
+      {
+        "volume": "file1000831.h5",
+        "slice_id": 27,
+        "condition": "knee-PD",
+        "psnr": 19.91452121734619
+      },
+      {
+        "volume": "file1000842.h5",
+        "slice_id": 7,
+        "condition": "knee-PD",
+        "psnr": 17.24382972717285
+      },
+      {
+        "volume": "file1000842.h5",
+        "slice_id": 24,
+        "condition": "knee-PD",
+        "psnr": 19.986291885375977
+      },
+      {
+        "volume": "file1000871.h5",
+        "slice_id": 4,
+        "condition": "knee-PD",
+        "psnr": 15.862160205841064
+      },
+      {
+        "volume": "file1000885.h5",
+        "slice_id": 5,
+        "condition": "knee-PD",
+        "psnr": 16.14583683013916
+      },
+      {
+        "volume": "file1000885.h5",
+        "slice_id": 22,
+        "condition": "knee-PD",
+        "psnr": 19.61728000640869
+      },
+      {
+        "volume": "file1000932.h5",
+        "slice_id": 8,
+        "condition": "knee-PDFS",
+        "psnr": 18.500701904296875
+      },
+      {
+        "volume": "file1000932.h5",
+        "slice_id": 24,
+        "condition": "knee-PDFS",
+        "psnr": 17.64425563812256
+      },
+      {
+        "volume": "file1001057.h5",
+        "slice_id": 13,
+        "condition": "knee-PD",
+        "psnr": 18.904086112976074
+      },
+      {
+        "volume": "file1001057.h5",
+        "slice_id": 29,
+        "condition": "knee-PD",
+        "psnr": 19.54531478881836
+      },
+      {
+        "volume": "file1001077.h5",
+        "slice_id": 10,
+        "condition": "knee-PD",
+        "psnr": 18.69121551513672
+      },
+      {
+        "volume": "file1001077.h5",
+        "slice_id": 26,
+        "condition": "knee-PD",
+        "psnr": 18.60910415649414
+      },
+      {
+        "volume": "file1001126.h5",
+        "slice_id": 11,
+        "condition": "knee-PD",
+        "psnr": 17.903947830200195
+      },
+      {
+        "volume": "file1001126.h5",
+        "slice_id": 28,
+        "condition": "knee-PD",
+        "psnr": 17.6995267868042
+      },
+      {
+        "volume": "file1001159.h5",
+        "slice_id": 7,
+        "condition": "knee-PDFS",
+        "psnr": 18.480061531066895
+      },
+      {
+        "volume": "file1001219.h5",
+        "slice_id": 28,
+        "condition": "knee-PD",
+        "psnr": 18.29646587371826
+      },
+      {
+        "volume": "file1001289.h5",
+        "slice_id": 11,
+        "condition": "knee-PDFS",
+        "psnr": 19.68614959716797
+      },
+      {
+        "volume": "file1001298.h5",
+        "slice_id": 7,
+        "condition": "knee-PD",
+        "psnr": 17.532211303710938
+      },
+      {
+        "volume": "file1001298.h5",
+        "slice_id": 23,
+        "condition": "knee-PD",
+        "psnr": 19.301847457885742
+      },
+      {
+        "volume": "file1001338.h5",
+        "slice_id": 3,
+        "condition": "knee-PDFS",
+        "psnr": 18.84412670135498
+      },
+      {
+        "volume": "file1001338.h5",
+        "slice_id": 35,
+        "condition": "knee-PDFS",
+        "psnr": 18.48024272918701
+      },
+      {
+        "volume": "file1001643.h5",
+        "slice_id": 4,
+        "condition": "knee-PDFS",
+        "psnr": 19.19097900390625
+      },
+      {
+        "volume": "file1001818.h5",
+        "slice_id": 32,
+        "condition": "knee-PDFS",
+        "psnr": 18.027064323425293
+      },
+      {
+        "volume": "file1001843.h5",
+        "slice_id": 33,
+        "condition": "knee-PD",
+        "psnr": 19.870494842529297
+      },
+      {
+        "volume": "file1002159.h5",
+        "slice_id": 11,
+        "condition": "knee-PDFS",
+        "psnr": 18.17273235321045
+      },
+      {
+        "volume": "file1002340.h5",
+        "slice_id": 33,
+        "condition": "knee-PDFS",
+        "psnr": 19.40981960296631
+      },
+      {
+        "volume": "file1002377.h5",
+        "slice_id": 29,
+        "condition": "knee-PDFS",
+        "psnr": 18.956113815307617
+      },
+      {
+        "volume": "file1002382.h5",
+        "slice_id": 9,
+        "condition": "knee-PD",
+        "psnr": 16.781158447265625
+      },
+      {
+        "volume": "file1002417.h5",
+        "slice_id": 2,
+        "condition": "knee-PD",
+        "psnr": 14.963106632232666
+      },
+      {
+        "volume": "file1002417.h5",
+        "slice_id": 35,
+        "condition": "knee-PD",
+        "psnr": 16.430277824401855
+      }
+    ]
+  },
+  "swap_cost": {
+    "psnr": {
+      "brain": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 31,
+        "n_volumes": 31,
+        "n_left_out": 7
+      },
+      "knee-PD": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 42,
+        "n_volumes": 20,
+        "n_left_out": 0
+      },
+      "knee-PDFS": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 40,
+        "n_volumes": 20,
+        "n_left_out": 0
+      },
+      "all": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 113,
+        "n_volumes": 71,
+        "n_left_out": 7
+      }
+    },
+    "ssim": {
+      "brain": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 31,
+        "n_volumes": 31,
+        "n_left_out": 7
+      },
+      "knee-PD": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 42,
+        "n_volumes": 20,
+        "n_left_out": 0
+      },
+      "knee-PDFS": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 40,
+        "n_volumes": 20,
+        "n_left_out": 0
+      },
+      "all": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 113,
+        "n_volumes": 71,
+        "n_left_out": 7
+      }
+    },
+    "nmse": {
+      "brain": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 31,
+        "n_volumes": 31,
+        "n_left_out": 7
+      },
+      "knee-PD": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 42,
+        "n_volumes": 20,
+        "n_left_out": 0
+      },
+      "knee-PDFS": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 40,
+        "n_volumes": 20,
+        "n_left_out": 0
+      },
+      "all": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 113,
+        "n_volumes": 71,
+        "n_left_out": 7
+      }
+    }
+  },
+  "swap_null": {
+    "donor_final_mask_equals_own": 1.0,
+    "must_be_1_for_a_data_blind_twin": true
+  },
+  "counterfactual_with_own_data_reproduces_every_step": true,
+  "data_swap": {
+    "moved_by_step": {
+      "brain": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "knee-PD": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "knee-PDFS": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "all": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "residual_change_rms_by_step": {
+      "brain": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "knee-PD": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "knee-PDFS": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "all": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  }
+}

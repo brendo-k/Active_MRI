@@ -131,6 +131,19 @@ def build_train_config(cfg: DictConfig) -> TrainConfig:
         fixed_mask_checkpoints=dict(cfg.sampler.fixed_mask_checkpoints) if cfg.sampler.get('fixed_mask_checkpoints') else None,
         budget_over=cfg.sampler.get('budget_over', 'grid'),
         sampler_coil_combine=cfg.sampler.get('coil_combine', 'sense'),
+        data_blind=cfg.sampler.get('data_blind', False),
+        residual_chans=cfg.sampler.get('residual_chans', 16),
+        residual_depth=cfg.sampler.get('residual_depth', 4),
+        residual_limit=cfg.sampler.get('residual_limit', 6.0),
+        residual_lr=cfg.sampler.get('residual_lr', 1e-4),
+        residual_checkpoint=cfg.sampler.get('residual_checkpoint', True),
+        data_channels=list(cfg.sampler.get('data_channels', None) or ['image', 'kspace']),
+        sampler_input=cfg.sampler.get('input', 'measured'),
+        input_recon_checkpoint=cfg.sampler.get('input_recon_checkpoint', None),
+        recon_steps=list(cfg.sampler.get('recon_steps', None) or [6, 9, 12, 14]),
+        virtual_coils=cfg.sampler.get('virtual_coils', 4),
+        seqmri_input_scale=cfg.sampler.get('seqmri_input_scale', 'raw'),
+        save_epochs=list(cfg.training.get('save_epochs', None) or []),
         sense_mask_method=cfg.sampler.get('sense_mask_method', 'pre_network'),
         with_recon=cfg.sampler.get('with_recon', False),
         with_gfactor=cfg.sampler.get('with_gfactor', False),
@@ -192,6 +205,8 @@ def build_manifest_loaders(cfg: DictConfig, image_shape: list, shuffle_seed=None
         limit_volumes=cfg.datasets.get('limit_volumes', None),
         val_anatomies=list(cfg.datasets.get('val_anatomies', None) or []),
         val_limit_volumes=cfg.datasets.get('val_limit_volumes', None),
+        val_half=cfg.datasets.get('val_half', 'all'),
+        train_slice_stride=cfg.datasets.get('train_slice_stride', 1),
     )
 
 

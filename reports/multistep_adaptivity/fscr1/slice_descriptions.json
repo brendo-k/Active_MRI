@@ -1,0 +1,35 @@
+{
+  "brain_q25": {
+    "volume": "file_brain_AXFLAIR_201_6002915.h5",
+    "short": "201_6002915",
+    "slice_id": 8,
+    "field": "3T",
+    "model": "Skyra",
+    "coils": 16,
+    "width": 320,
+    "volume_gap_tF": -0.10227924585342407,
+    "title": "AXFLAIR_201_6002915 slice 8: 3T Skyra, 16 coils, k-space 320 columns wide; this volume's F - L at tier F -0.10 dB"
+  },
+  "brain_q50": {
+    "volume": "file_brain_AXFLAIR_202_6000450.h5",
+    "short": "202_6000450",
+    "slice_id": 8,
+    "field": "1.5T",
+    "model": "Aera",
+    "coils": 20,
+    "width": 264,
+    "volume_gap_tF": 0.5513970255851746,
+    "title": "AXFLAIR_202_6000450 slice 8: 1.5T Aera, 20 coils, k-space 264 columns wide; this volume's F - L at tier F +0.55 dB"
+  },
+  "brain_q75": {
+    "volume": "file_brain_AXFLAIR_203_6000925.h5",
+    "short": "203_6000925",
+    "slice_id": 8,
+    "field": "3T",
+    "model": "TrioTim",
+    "coils": 4,
+    "width": 276,
+    "volume_gap_tF": -0.011408209800720215,
+    "title": "AXFLAIR_203_6000925 slice 8: 3T TrioTim, 4 coils, k-space 276 columns wide; this volume's F - L at tier F -0.01 dB"
+  }
+}

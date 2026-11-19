@@ -1,0 +1,6 @@
+== /home/bkadota/code/active_mri/SeqMRI
+reconstructions per forward: 4
+steps with gradient: [3]
+== /home/bkadota/code/active_mri/SeqMRI-worktrees/exp-multistep_adaptivity
+reconstructions per forward: 1
+steps with gradient: [0, 1, 2, 3]

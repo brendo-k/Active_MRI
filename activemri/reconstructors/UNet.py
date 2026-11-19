@@ -28,7 +28,8 @@ class LOUPEUNet(nn.Module):
                  depth,
                  drop_prob,
                  with_uncertainty=False,
-                 upsample_mode='conv'):
+                 upsample_mode='conv',
+                 input_skip=True):
         """
         Args:
             in_chans (int): Number of channels in the input to the U-Net model.
@@ -36,10 +37,13 @@ class LOUPEUNet(nn.Module):
             chans (int): Number of output channels of the first convolution layer.
             depth (int): Number of down-sampling and up-sampling layers.
             drop_prob (float): Dropout probability.
+            input_skip (bool): Add the input's first channels to the output. False returns the network's output alone,
+                so a zeroed final convolution makes the whole U-Net output zero.
         """
         super().__init__()
 
         self.with_uncertainty = with_uncertainty
+        self.input_skip = input_skip
 
         if with_uncertainty:
             out_chans = out_chans + 1
@@ -81,6 +85,8 @@ class LOUPEUNet(nn.Module):
 
         x = self.final_conv(x)
 
+        if not self.input_skip:
+            return x
         if self.with_uncertainty:
             x[:, :self.in_chans] = x[:, :self.in_chans] + input
         else:
