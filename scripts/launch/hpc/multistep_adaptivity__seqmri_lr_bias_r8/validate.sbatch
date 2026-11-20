@@ -1,6 +1,6 @@
 #!/bin/bash
-# The seqmri_lr_bias_r8 validation job (reports/seqmri_lr_bias_r8/proposal.md). Training jobs are submitted with
-# --dependency=afterok on it, so they start only if every check passes:
+# The multistep_adaptivity__seqmri_lr_bias_r8 validation job (reports/multistep_adaptivity__seqmri_lr_bias_r8/
+# proposal.md). Training jobs are submitted with --dependency=afterok on it, so they start only if every check passes:
 # - the shipped commit, clean, and the test suite;
 # - each resume arm resumes its fscr1 checkpoint for a quarter of epoch 101: every optimizer group (Muon included) must
 #   log lr 1e-4, and its training loss (a mean over a quarter of the epoch) must stay within 10% of the control's
@@ -8,10 +8,10 @@
 # - each new from-scratch arm trains for 10% of one epoch exactly as train.sbatch does and is scored with --limit 120:
 #   realised fraction, no draw outside the acquired region, the twins' swap nulls, the arms reading their data;
 # - every run recorded the shipped commit.
-# Submit from $EXP_DIR (~/scratch/seqmri_lr_bias_r8):
+# Submit from $EXP_DIR (~/scratch/multistep_adaptivity__seqmri_lr_bias_r8):
 #
 #   sbatch --gres=gpu:nvidia_rtx_pro_6000:1 --export=ALL,GPU_NAME='RTX PRO 6000',EXPECTED_COMMIT=<shipped hash> \
-#       code/scripts/launch/hpc/seqmri_lr_bias_r8/validate.sbatch
+#       code/scripts/launch/hpc/multistep_adaptivity__seqmri_lr_bias_r8/validate.sbatch
 #
 #SBATCH --job-name=seqmri_lrb_validate
 #SBATCH --partition=gpu
@@ -22,13 +22,15 @@
 #SBATCH --output=slurm_log/%x-%j.log
 
 set -uo pipefail
-source "${EXP_DIR:-$HOME/scratch/seqmri_lr_bias_r8}/code/scripts/launch/hpc/seqmri_lr_bias_r8/common.sh"
+TOPIC=multistep_adaptivity__seqmri_lr_bias_r8
+source "${EXP_DIR:-$HOME/scratch/$TOPIC}/code/scripts/launch/hpc/$TOPIC/common.sh"
 : "${EXPECTED_COMMIT:?submit with --export=ALL,GPU_NAME=<card>,EXPECTED_COMMIT=<hash>}"
 start_job
 OUT="$EXP_DIR/validate/${SLURM_JOB_ID:-local}"
 mkdir -p "$OUT"
 read -r -a RESUME_ARMS <<< "${RESUME_ARMS-F_4_s42_fscr1_tF_r150 Fb_4_s42_fscr1_tF_r150 L_1_s42_fscr1_tF_r150}"
-# The route arms (addendum_2026-11-19_route.md) are validated at run state 2 with RESUME_ARMS='' and
+# The route arms (addendum_2026-11-19_route.md) are validated in their own EXP_DIR
+# (~/scratch/multistep_adaptivity__seqmri_lr_bias_r8_rs2) with RESUME_ARMS='' and
 # SMOKE_ARMS='F_4_s42_route_tF Fb_4_s42_route_tF F_4_s42_routebias_tF Fb_4_s42_routebias_tF'.
 read -r -a SMOKE_ARMS <<< "${SMOKE_ARMS-F_4_s42_lrs_tF Fb_4_s42_lrs_tF}"
 CHECKS=()

@@ -18,10 +18,10 @@ Two fscr1 options (reports/multistep_adaptivity/addendum_2026-11-16_fscr1.md):
 - `data_blind` is the twin: a fixed tensor replaces the four data channels and the mask channel is kept, so spacing
   between steps stays open to it. It reads no reconstruction, so the loop runs none before its steps.
 
-seqmri_lr_bias_r8 (reports/seqmri_lr_bias_r8/proposal.md): `step_bias_steps=K` adds one learned logit map per step,
-[K, 1, H, W] and zero at the start, to the U-Net's output before the softplus. A convolutional network cannot place
-structure at fixed k-space positions; the maps can, and they condition each step on its index. At zero they change
-nothing, so a run with them starts identical to one without.
+seqmri_lr_bias_r8 (reports/multistep_adaptivity__seqmri_lr_bias_r8/proposal.md): `step_bias_steps=K` adds one learned
+logit map per step, [K, 1, H, W] and zero at the start, to the U-Net's output before the softplus. A convolutional
+network cannot place structure at fixed k-space positions; the maps can, and they condition each step on its index. At
+zero they change nothing, so a run with them starts identical to one without.
 """
 import math
 

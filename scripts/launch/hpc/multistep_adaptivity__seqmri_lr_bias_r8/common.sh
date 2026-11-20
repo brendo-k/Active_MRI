@@ -1,6 +1,7 @@
-# Settings for the seqmri_lr_bias_r8 CoreHPC jobs (reports/seqmri_lr_bias_r8/proposal.md). Sourced by the sbatch
-# scripts, never run on the login node. Every arm is an fscr1 tier-F arm (multistep_adaptivity's flair_arm_args, the
-# recipe the controls ran) with one setting replaced, so the recipes are not retyped:
+# Settings for the multistep_adaptivity__seqmri_lr_bias_r8 CoreHPC jobs
+# (reports/multistep_adaptivity__seqmri_lr_bias_r8/proposal.md). Sourced by the sbatch scripts, never run on the login
+# node. Every arm is an fscr1 tier-F arm (multistep_adaptivity's flair_arm_args, the recipe the controls ran) with one
+# setting replaced, so the recipes are not retyped:
 #   <F|Fb|L>_<K>_s42_fscr1_tF_r150  the fscr1 run resumed from its epoch-100 checkpoint (optimizer state included) to
 #                                   epoch 150, at the lr the step schedule gives after epoch 90 (1e-4), in a new run folder
 #   <F|Fb>_4_s42_lrs_tF             the sampler in its own Adam group at sampler.lr=1e-4 (1e-5 after the step at 90)
@@ -10,7 +11,7 @@
 # The frozen per-step-map arms under SeqMRI's routes (<F|Fb>_4_s42_bias_tF) were replaced: the twin's earlier maps get
 # no gradient there (scripts/diagnostics/seqmri_step_bias_gradients.py).
 
-EXP_DIR="${EXP_DIR:-$HOME/scratch/seqmri_lr_bias_r8}"
+EXP_DIR="${EXP_DIR:-$HOME/scratch/multistep_adaptivity__seqmri_lr_bias_r8}"
 FSCR1_RUNS="${FSCR1_RUNS:-$HOME/scratch/multistep_adaptivity/runs}"
 source "$(dirname "${BASH_SOURCE[0]}")/../multistep_adaptivity/common.sh"
 
@@ -42,7 +43,7 @@ lr_bias_arm_args() {
                        set_arg sampler.seqmri_step_bias=true ;;
         esac
     else
-        echo "unknown seqmri_lr_bias_r8 arm '$arm'" >&2
+        echo "unknown multistep_adaptivity__seqmri_lr_bias_r8 arm '$arm'" >&2
         exit 1
     fi
     set_arg "output.run_name=$arm"

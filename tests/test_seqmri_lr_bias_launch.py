@@ -1,5 +1,6 @@
-"""The seqmri_lr_bias_r8 launcher (scripts/launch/hpc/seqmri_lr_bias_r8/common.sh): each arm composes to its fscr1
-control's config with exactly the one change the proposal names, as train.sbatch builds them on CoreHPC.
+"""The multistep_adaptivity__seqmri_lr_bias_r8 launcher (scripts/launch/hpc/multistep_adaptivity__seqmri_lr_bias_r8/
+common.sh): each arm composes to its fscr1 control's config with exactly the one change the proposal names, as
+train.sbatch builds them on CoreHPC.
 
 Run with ``.venv/bin/python -m pytest tests/test_seqmri_lr_bias_launch.py`` from the repo root.
 """
@@ -17,7 +18,7 @@ sys.path.insert(0, str(REPO))
 from activemri.training.builders import build_train_config  # noqa: E402
 from tests.test_multistep_launch import composed, corehpc_arguments  # noqa: E402
 
-LAUNCH = REPO / 'scripts' / 'launch' / 'hpc' / 'seqmri_lr_bias_r8'
+LAUNCH = REPO / 'scripts' / 'launch' / 'hpc' / 'multistep_adaptivity__seqmri_lr_bias_r8'
 FSCR1_RUNS = '/fscr1/runs'
 NAMING = {'output.run_name', 'output.out_dir'}
 ARMS = {
@@ -72,7 +73,7 @@ def test_each_arm_is_its_fscr1_control_with_one_change(arm, tmp_path):
 @pytest.mark.parametrize('arm', ['F_4_s42_fscr1_tS5_r150', 'L_1_s42_lrs_tF', 'F_4_s42_bias_tF', 'F_4_s43_route_tF',
                                  'F_4_s42_fscr1_tF'])
 def test_other_names_are_refused(arm, tmp_path):
-    with pytest.raises(AssertionError, match='unknown seqmri_lr_bias_r8 arm'):
+    with pytest.raises(AssertionError, match='unknown multistep_adaptivity__seqmri_lr_bias_r8 arm'):
         lr_bias_arguments(arm, tmp_path)
 
 

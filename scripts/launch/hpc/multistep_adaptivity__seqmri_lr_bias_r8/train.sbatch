@@ -1,8 +1,9 @@
 #!/bin/bash
-# One seqmri_lr_bias_r8 run on CoreHPC, then its score on the same card. Arm names are in common.sh. Submit from
-# $EXP_DIR (~/scratch/seqmri_lr_bias_r8):
+# One multistep_adaptivity__seqmri_lr_bias_r8 run on CoreHPC, then its score on the same card. Arm names are in
+# common.sh. Submit from $EXP_DIR (~/scratch/multistep_adaptivity__seqmri_lr_bias_r8):
 #
-#   sbatch --gres=gpu:nvidia_rtx_pro_6000:1 --export=ALL,ARM=F_4_s42_lrs_tF,GPU_NAME='RTX PRO 6000' code/scripts/launch/hpc/seqmri_lr_bias_r8/train.sbatch
+#   sbatch --gres=gpu:nvidia_rtx_pro_6000:1 --export=ALL,ARM=F_4_s42_lrs_tF,GPU_NAME='RTX PRO 6000' \
+#       code/scripts/launch/hpc/multistep_adaptivity__seqmri_lr_bias_r8/train.sbatch
 #
 #SBATCH --job-name=seqmri_lrb
 #SBATCH --partition=gpu
@@ -13,7 +14,8 @@
 #SBATCH --output=slurm_log/%x-%j.log
 
 set -eo pipefail
-source "${EXP_DIR:-$HOME/scratch/seqmri_lr_bias_r8}/code/scripts/launch/hpc/seqmri_lr_bias_r8/common.sh"
+TOPIC=multistep_adaptivity__seqmri_lr_bias_r8
+source "${EXP_DIR:-$HOME/scratch/$TOPIC}/code/scripts/launch/hpc/$TOPIC/common.sh"
 : "${ARM:?submit with --export=ALL,ARM=<arm>,GPU_NAME=<card>}"
 start_job
 lr_bias_arm_args "$ARM"

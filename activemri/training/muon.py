@@ -64,6 +64,13 @@ class MuonAdam(torch.optim.Adam):
                 group.setdefault('ns_steps', 5)
         super().__init__(param_groups, lr, **adam_kwargs)
 
+    def __setstate__(self, state):
+        """Adam's __setstate__ (run by load_state_dict and unpickling) reads every parameter state's 'step', but a Muon
+        parameter keeps only its momentum buffer, so Adam sees only the Adam groups here, as in `step`."""
+        all_groups = state['param_groups']
+        super().__setstate__({**state, 'param_groups': [g for g in all_groups if not g.get('use_muon')]})
+        self.param_groups = all_groups
+
     @torch.no_grad()
     def step(self, closure=None):
         loss = None
