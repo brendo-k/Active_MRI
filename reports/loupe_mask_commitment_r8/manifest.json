@@ -1,0 +1,563 @@
+{
+  "schema": 1,
+  "generated_at": "2026-11-20T04:37:12+00:00",
+  "code": {
+    "produced_at": "287a06bfdf00341b8c74f73dbd7ae5345fb49b90",
+    "produced_at_subject": "loupe_mask_commitment_r8: mask band, criteria summary and recon figure scripts",
+    "head": "287a06bfdf00341b8c74f73dbd7ae5345fb49b90",
+    "branch": "exp/loupe_mask_commitment_r8",
+    "dirty_tracked_files": [],
+    "scripts": [
+      {
+        "path": "scripts/eval/varnet_loupe_lr_schedule_r8_eval.py",
+        "changed_since_produced_at": false
+      },
+      {
+        "path": "scripts/plots/loupe_mask_commitment_r8_masks.py",
+        "changed_since_produced_at": false
+      },
+      {
+        "path": "scripts/plots/loupe_mask_commitment_r8_recons.py",
+        "changed_since_produced_at": false
+      },
+      {
+        "path": "scripts/eval/loupe_mask_commitment_r8_summary.py",
+        "changed_since_produced_at": false
+      }
+    ]
+  },
+  "metric_mask": {
+    "version": "apodized",
+    "definition": "k-space-apodized per-anatomy mask (activemri/utils/metric_mask.py), the trainer metric since 2026-10-20",
+    "apodization_sigma": 16,
+    "params": {
+      "brain": {
+        "fraction": 0.15,
+        "radius": 6
+      },
+      "knee": {
+        "fraction": 0.06,
+        "radius": 12
+      }
+    }
+  },
+  "data": {
+    "config": {
+      "loader": "fastmri_manifest",
+      "manifest": "configs/datasets/fastmri_local_v1/manifest.csv",
+      "roots": {
+        "local_batch2": "/home/remote/bkadota/scratch/data/fastmri/knee/data",
+        "hpc": "/home/remote/bkadota/scratch/data/fastmri/{anatomy}/data"
+      },
+      "train_tier": "S",
+      "limit_volumes": 1,
+      "train_anatomies": [],
+      "val_anatomies": [],
+      "val_limit_volumes": null,
+      "condition_classes": [
+        "brain",
+        "knee-PD",
+        "knee-PDFS"
+      ],
+      "classes": [
+        "FLAIR",
+        "knee"
+      ],
+      "anatomy": [
+        "brain",
+        "knee"
+      ],
+      "num_coils": 20,
+      "num_workers": 8
+    },
+    "note": "full local v1 FLAIR + knee val: 80 volumes, 1,938 slices (brain 40/605, knee-PD 20/673, knee-PDFS 20/660); train 160 volumes"
+  },
+  "runs": [
+    {
+      "name": "lmc_anneal_s42",
+      "path": "checkpoints/lmc_anneal_s42",
+      "config_sha256": "bab4541c7cd99bbb",
+      "overrides": [
+        "recon=varnet",
+        "recon.num_cascades=12",
+        "datasets=fastmri_local_v1_flair_knee",
+        "datasets.roots.hpc=\"/home/remote/bkadota/scratch/data/fastmri/{anatomy}/data\"",
+        "datasets.roots.local_batch2=/home/remote/bkadota/scratch/data/fastmri/knee/data",
+        "datasets.limit_volumes=1",
+        "misc.resolution=[320,320]",
+        "sampler.accelerations=[8.0]",
+        "sampler.budget_over=acquired",
+        "sampler.sampler_type=loupe_2d",
+        "sampler.loupe_vd_init_power=0",
+        "sampler.anatomy_conditioning=false",
+        "sampler.lr=0.001",
+        "training.num_step=1",
+        "training.batch_size=16",
+        "training.num_epochs=100",
+        "training.lr=0.001",
+        "training.lr_scheduler=step",
+        "training.lr_step_size=90",
+        "training.lr_gamma=0.1",
+        "training.val_every=5",
+        "training.seed=42",
+        "sampler.slope_start=2.0",
+        "sampler.slope_anneal_epochs=20",
+        "output.out_dir=/home/remote/bkadota/scratch/loupe_mask_commitment_r8/runs/anneal_s42",
+        "output.run_name=lmc_anneal_s42"
+      ],
+      "wandb_run_id": "wkbbe2xb",
+      "trained_at_commit": "",
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 242376529,
+          "modified": "2026-11-19T04:22:00+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 242376529,
+          "modified": "2026-11-19T04:32:54+00:00"
+        }
+      }
+    },
+    {
+      "name": "lmc_anneal_s43",
+      "path": "checkpoints/lmc_anneal_s43",
+      "config_sha256": "8a95b092616ea147",
+      "overrides": [
+        "recon=varnet",
+        "recon.num_cascades=12",
+        "datasets=fastmri_local_v1_flair_knee",
+        "datasets.roots.hpc=\"/home/remote/bkadota/scratch/data/fastmri/{anatomy}/data\"",
+        "datasets.roots.local_batch2=/home/remote/bkadota/scratch/data/fastmri/knee/data",
+        "datasets.limit_volumes=1",
+        "misc.resolution=[320,320]",
+        "sampler.accelerations=[8.0]",
+        "sampler.budget_over=acquired",
+        "sampler.sampler_type=loupe_2d",
+        "sampler.loupe_vd_init_power=0",
+        "sampler.anatomy_conditioning=false",
+        "sampler.lr=0.001",
+        "training.num_step=1",
+        "training.batch_size=16",
+        "training.num_epochs=100",
+        "training.lr=0.001",
+        "training.lr_scheduler=step",
+        "training.lr_step_size=90",
+        "training.lr_gamma=0.1",
+        "training.val_every=5",
+        "training.seed=43",
+        "sampler.slope_start=2.0",
+        "sampler.slope_anneal_epochs=20",
+        "output.out_dir=/home/remote/bkadota/scratch/loupe_mask_commitment_r8/runs/anneal_s43",
+        "output.run_name=lmc_anneal_s43"
+      ],
+      "wandb_run_id": "8yyq7fs0",
+      "trained_at_commit": "",
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 242376529,
+          "modified": "2026-11-19T04:23:28+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 242376529,
+          "modified": "2026-11-19T04:34:29+00:00"
+        }
+      }
+    },
+    {
+      "name": "lmc_clamp_s42",
+      "path": "checkpoints/lmc_clamp_s42",
+      "config_sha256": "423aa0c46b992abb",
+      "overrides": [
+        "recon=varnet",
+        "recon.num_cascades=12",
+        "datasets=fastmri_local_v1_flair_knee",
+        "datasets.roots.hpc=\"/home/remote/bkadota/scratch/data/fastmri/{anatomy}/data\"",
+        "datasets.roots.local_batch2=/home/remote/bkadota/scratch/data/fastmri/knee/data",
+        "datasets.limit_volumes=1",
+        "misc.resolution=[320,320]",
+        "sampler.accelerations=[8.0]",
+        "sampler.budget_over=acquired",
+        "sampler.sampler_type=loupe_2d",
+        "sampler.loupe_vd_init_power=0",
+        "sampler.anatomy_conditioning=false",
+        "sampler.lr=0.001",
+        "training.num_step=1",
+        "training.batch_size=16",
+        "training.num_epochs=100",
+        "training.lr=0.001",
+        "training.lr_scheduler=step",
+        "training.lr_step_size=90",
+        "training.lr_gamma=0.1",
+        "training.val_every=5",
+        "training.seed=42",
+        "sampler.loupe_logit_limit=6.0",
+        "sampler.logit_leak=0.01",
+        "output.out_dir=/home/remote/bkadota/scratch/loupe_mask_commitment_r8/runs/clamp_s42",
+        "output.run_name=lmc_clamp_s42"
+      ],
+      "wandb_run_id": "wasj5py8",
+      "trained_at_commit": "",
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 242376529,
+          "modified": "2026-11-18T23:18:21+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 242376529,
+          "modified": "2026-11-19T00:02:01+00:00"
+        }
+      }
+    },
+    {
+      "name": "lmc_clamp_s43",
+      "path": "checkpoints/lmc_clamp_s43",
+      "config_sha256": "75117ba53a50608d",
+      "overrides": [
+        "recon=varnet",
+        "recon.num_cascades=12",
+        "datasets=fastmri_local_v1_flair_knee",
+        "datasets.roots.hpc=\"/home/remote/bkadota/scratch/data/fastmri/{anatomy}/data\"",
+        "datasets.roots.local_batch2=/home/remote/bkadota/scratch/data/fastmri/knee/data",
+        "datasets.limit_volumes=1",
+        "misc.resolution=[320,320]",
+        "sampler.accelerations=[8.0]",
+        "sampler.budget_over=acquired",
+        "sampler.sampler_type=loupe_2d",
+        "sampler.loupe_vd_init_power=0",
+        "sampler.anatomy_conditioning=false",
+        "sampler.lr=0.001",
+        "training.num_step=1",
+        "training.batch_size=16",
+        "training.num_epochs=100",
+        "training.lr=0.001",
+        "training.lr_scheduler=step",
+        "training.lr_step_size=90",
+        "training.lr_gamma=0.1",
+        "training.val_every=5",
+        "training.seed=43",
+        "sampler.loupe_logit_limit=6.0",
+        "sampler.logit_leak=0.01",
+        "output.out_dir=/home/remote/bkadota/scratch/loupe_mask_commitment_r8/runs/clamp_s43",
+        "output.run_name=lmc_clamp_s43"
+      ],
+      "wandb_run_id": "xv1d48de",
+      "trained_at_commit": "",
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 242376529,
+          "modified": "2026-11-19T02:38:51+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 242376529,
+          "modified": "2026-11-19T03:43:05+00:00"
+        }
+      }
+    },
+    {
+      "name": "lmc_control_s42",
+      "path": "checkpoints/lmc_control_s42",
+      "config_sha256": "a490f5d69f8fc448",
+      "overrides": [
+        "recon=varnet",
+        "recon.num_cascades=12",
+        "datasets=fastmri_local_v1_flair_knee",
+        "datasets.roots.hpc=\"/home/remote/bkadota/scratch/data/fastmri/{anatomy}/data\"",
+        "datasets.roots.local_batch2=/home/remote/bkadota/scratch/data/fastmri/knee/data",
+        "datasets.limit_volumes=1",
+        "misc.resolution=[320,320]",
+        "sampler.accelerations=[8.0]",
+        "sampler.budget_over=acquired",
+        "sampler.sampler_type=loupe_2d",
+        "sampler.loupe_vd_init_power=0",
+        "sampler.anatomy_conditioning=false",
+        "sampler.lr=0.001",
+        "training.num_step=1",
+        "training.batch_size=16",
+        "training.num_epochs=100",
+        "training.lr=0.001",
+        "training.lr_scheduler=step",
+        "training.lr_step_size=90",
+        "training.lr_gamma=0.1",
+        "training.val_every=5",
+        "training.seed=42",
+        "output.out_dir=/home/remote/bkadota/scratch/loupe_mask_commitment_r8/runs/control_s42",
+        "output.run_name=lmc_control_s42"
+      ],
+      "wandb_run_id": "i2h7j0ef",
+      "trained_at_commit": "",
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 242376529,
+          "modified": "2026-11-18T23:18:04+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 242376529,
+          "modified": "2026-11-19T00:01:46+00:00"
+        }
+      }
+    },
+    {
+      "name": "lmc_control_s43",
+      "path": "checkpoints/lmc_control_s43",
+      "config_sha256": "7f7f11661a8fc7e9",
+      "overrides": [
+        "recon=varnet",
+        "recon.num_cascades=12",
+        "datasets=fastmri_local_v1_flair_knee",
+        "datasets.roots.hpc=\"/home/remote/bkadota/scratch/data/fastmri/{anatomy}/data\"",
+        "datasets.roots.local_batch2=/home/remote/bkadota/scratch/data/fastmri/knee/data",
+        "datasets.limit_volumes=1",
+        "misc.resolution=[320,320]",
+        "sampler.accelerations=[8.0]",
+        "sampler.budget_over=acquired",
+        "sampler.sampler_type=loupe_2d",
+        "sampler.loupe_vd_init_power=0",
+        "sampler.anatomy_conditioning=false",
+        "sampler.lr=0.001",
+        "training.num_step=1",
+        "training.batch_size=16",
+        "training.num_epochs=100",
+        "training.lr=0.001",
+        "training.lr_scheduler=step",
+        "training.lr_step_size=90",
+        "training.lr_gamma=0.1",
+        "training.val_every=5",
+        "training.seed=43",
+        "output.out_dir=/home/remote/bkadota/scratch/loupe_mask_commitment_r8/runs/control_s43",
+        "output.run_name=lmc_control_s43"
+      ],
+      "wandb_run_id": "143f12kv",
+      "trained_at_commit": "",
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 242376529,
+          "modified": "2026-11-18T23:49:23+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 242376529,
+          "modified": "2026-11-19T00:00:09+00:00"
+        }
+      }
+    },
+    {
+      "name": "lmc_mix_s42",
+      "path": "checkpoints/lmc_mix_s42",
+      "config_sha256": "4dc1485e2e0dc2db",
+      "overrides": [
+        "recon=varnet",
+        "recon.num_cascades=12",
+        "datasets=fastmri_local_v1_flair_knee",
+        "datasets.roots.hpc=\"/home/remote/bkadota/scratch/data/fastmri/{anatomy}/data\"",
+        "datasets.roots.local_batch2=/home/remote/bkadota/scratch/data/fastmri/knee/data",
+        "datasets.limit_volumes=1",
+        "misc.resolution=[320,320]",
+        "sampler.accelerations=[8.0]",
+        "sampler.budget_over=acquired",
+        "sampler.sampler_type=loupe_2d",
+        "sampler.loupe_vd_init_power=0",
+        "sampler.anatomy_conditioning=false",
+        "sampler.lr=0.001",
+        "training.num_step=1",
+        "training.batch_size=16",
+        "training.num_epochs=100",
+        "training.lr=0.001",
+        "training.lr_scheduler=step",
+        "training.lr_step_size=90",
+        "training.lr_gamma=0.1",
+        "training.val_every=5",
+        "training.seed=42",
+        "sampler.flat_mask_fraction=0.25",
+        "output.out_dir=/home/remote/bkadota/scratch/loupe_mask_commitment_r8/runs/mix_s42",
+        "output.run_name=lmc_mix_s42"
+      ],
+      "wandb_run_id": "hm594olo",
+      "trained_at_commit": "",
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 242376465,
+          "modified": "2026-11-19T23:40:17+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 242376465,
+          "modified": "2026-11-19T23:40:16+00:00"
+        }
+      }
+    },
+    {
+      "name": "lmc_mix_s43",
+      "path": "checkpoints/lmc_mix_s43",
+      "config_sha256": "e83ebb36cb205e35",
+      "overrides": [
+        "recon=varnet",
+        "recon.num_cascades=12",
+        "datasets=fastmri_local_v1_flair_knee",
+        "datasets.roots.hpc=\"/home/remote/bkadota/scratch/data/fastmri/{anatomy}/data\"",
+        "datasets.roots.local_batch2=/home/remote/bkadota/scratch/data/fastmri/knee/data",
+        "datasets.limit_volumes=1",
+        "misc.resolution=[320,320]",
+        "sampler.accelerations=[8.0]",
+        "sampler.budget_over=acquired",
+        "sampler.sampler_type=loupe_2d",
+        "sampler.loupe_vd_init_power=0",
+        "sampler.anatomy_conditioning=false",
+        "sampler.lr=0.001",
+        "training.num_step=1",
+        "training.batch_size=16",
+        "training.num_epochs=100",
+        "training.lr=0.001",
+        "training.lr_scheduler=step",
+        "training.lr_step_size=90",
+        "training.lr_gamma=0.1",
+        "training.val_every=5",
+        "training.seed=43",
+        "sampler.flat_mask_fraction=0.25",
+        "output.out_dir=/home/remote/bkadota/scratch/loupe_mask_commitment_r8/runs/mix_s43",
+        "output.run_name=lmc_mix_s43"
+      ],
+      "wandb_run_id": "rvsaqqy2",
+      "trained_at_commit": "",
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 242376529,
+          "modified": "2026-11-20T03:53:40+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 242376529,
+          "modified": "2026-11-20T04:04:29+00:00"
+        }
+      }
+    },
+    {
+      "name": "vlls_full_lr1e3_step_s42",
+      "path": "checkpoints/vlls_full_lr1e3_step_s42",
+      "config_sha256": "3f7776c862dbebe1",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair_knee",
+        "datasets.roots.hpc=\"/home/remote/bkadota/scratch/data/fastmri/{anatomy}/data\"",
+        "datasets.roots.local_batch2=/home/remote/bkadota/scratch/data/fastmri/knee/data",
+        "datasets.limit_volumes=1",
+        "misc.resolution=[320,320]",
+        "sampler.accelerations=[8.0]",
+        "sampler.budget_over=acquired",
+        "sampler.sampler_type=loupe_2d",
+        "sampler.loupe_vd_init_power=0",
+        "sampler.anatomy_conditioning=false",
+        "sampler.lr=0.001",
+        "training.num_step=1",
+        "training.batch_size=16",
+        "training.num_epochs=100",
+        "training.lr=0.001",
+        "training.lr_scheduler=step",
+        "training.lr_step_size=90",
+        "training.lr_gamma=0.1",
+        "training.val_every=5",
+        "training.seed=42",
+        "output.out_dir=/home/remote/bkadota/scratch/varnet_loupe_lr_schedule_r8/runs_full/lr1e3_step_s42",
+        "output.run_name=vlls_full_lr1e3_step_s42"
+      ],
+      "wandb_run_id": "g58ghkjz",
+      "trained_at_commit": "",
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 242376401,
+          "modified": "2026-11-14T09:27:19+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 242376401,
+          "modified": "2026-11-14T10:56:15+00:00"
+        }
+      }
+    },
+    {
+      "name": "vlls_full_lr1e3_step_s43",
+      "path": "checkpoints/vlls_full_lr1e3_step_s43",
+      "config_sha256": "15a5d97ef50e28a0",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair_knee",
+        "datasets.roots.hpc=\"/home/remote/bkadota/scratch/data/fastmri/{anatomy}/data\"",
+        "datasets.roots.local_batch2=/home/remote/bkadota/scratch/data/fastmri/knee/data",
+        "datasets.limit_volumes=1",
+        "misc.resolution=[320,320]",
+        "sampler.accelerations=[8.0]",
+        "sampler.budget_over=acquired",
+        "sampler.sampler_type=loupe_2d",
+        "sampler.loupe_vd_init_power=0",
+        "sampler.anatomy_conditioning=false",
+        "sampler.lr=0.001",
+        "training.num_step=1",
+        "training.batch_size=16",
+        "training.num_epochs=100",
+        "training.lr=0.001",
+        "training.lr_scheduler=step",
+        "training.lr_step_size=90",
+        "training.lr_gamma=0.1",
+        "training.val_every=5",
+        "training.seed=43",
+        "output.out_dir=/home/remote/bkadota/scratch/varnet_loupe_lr_schedule_r8/runs_full/lr1e3_step_s43",
+        "output.run_name=vlls_full_lr1e3_step_s43"
+      ],
+      "wandb_run_id": "lnqglzvh",
+      "trained_at_commit": "",
+      "checkpoints": {
+        "best_model.pt": {
+          "bytes": 242376401,
+          "modified": "2026-11-14T10:24:33+00:00"
+        },
+        "last_model.pt": {
+          "bytes": 242376401,
+          "modified": "2026-11-14T11:30:04+00:00"
+        }
+      }
+    }
+  ],
+  "commands": [
+    "CUDA_VISIBLE_DEVICES=1 python scripts/eval/varnet_loupe_lr_schedule_r8_eval.py --runs-dir /export/scratch/bkadota/loupe_mask_commitment_r8/runs --control control --checkpoint last_model.pt --data-root '/export/scratch/bkadota/fastmri_raw/{anatomy}' --out reports/loupe_mask_commitment_r8/eval_last_model.json",
+    "python scripts/plots/loupe_mask_commitment_r8_masks.py --runs /export/scratch/bkadota/loupe_mask_commitment_r8/runs --reference /export/scratch/bkadota/varnet_loupe_lr_schedule_r8/runs_full --report reports/loupe_mask_commitment_r8",
+    "CUDA_VISIBLE_DEVICES=1 python scripts/plots/loupe_mask_commitment_r8_recons.py --runs /export/scratch/bkadota/loupe_mask_commitment_r8/runs --report reports/loupe_mask_commitment_r8 --data-root '/export/scratch/bkadota/fastmri_raw/{anatomy}'",
+    "python scripts/eval/loupe_mask_commitment_r8_summary.py --runs /export/scratch/bkadota/loupe_mask_commitment_r8/runs --report reports/loupe_mask_commitment_r8"
+  ],
+  "results": [
+    {
+      "path": "eval_last_model.json",
+      "bytes": 14461,
+      "sha256": "9878fa5c78795696"
+    },
+    {
+      "path": "eval_last_model.per_slice.npz",
+      "bytes": 3235482,
+      "sha256": "07d20ef9c5a80d42"
+    },
+    {
+      "path": "figures/curves.png",
+      "bytes": 207552,
+      "sha256": "e95b21b31823809e"
+    },
+    {
+      "path": "figures/masks.png",
+      "bytes": 970617,
+      "sha256": "222c095f3f3b1a92"
+    },
+    {
+      "path": "figures/recons_s43.png",
+      "bytes": 2783663,
+      "sha256": "ffe3f0a0f241a86f"
+    },
+    {
+      "path": "masks.json",
+      "bytes": 3873,
+      "sha256": "a7f0b409737d499d"
+    },
+    {
+      "path": "proposal.md",
+      "bytes": 4460,
+      "sha256": "2c1c143d2e281629"
+    },
+    {
+      "path": "summary.json",
+      "bytes": 18721,
+      "sha256": "c58d8417625a6726"
+    }
+  ]
+}

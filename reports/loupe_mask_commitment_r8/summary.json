@@ -1,0 +1,1086 @@
+{
+ "thresholds": {
+  "band_kept": 200,
+  "mean_gain_db": 0.1,
+  "condition_floor_db": -0.05,
+  "ssim_floor": -0.002
+ },
+ "control_band": {
+  "42": 5.767120838165283,
+  "43": 2.8526439666748047
+ },
+ "arms": {
+  "clamp": {
+   "band": {
+    "42": 24.430828094482422,
+    "43": 13.079870223999023
+   },
+   "band_kept": false,
+   "psnr_gain": {
+    "42": -0.020103149984889233,
+    "43": -0.06060957047469353
+   },
+   "mean_psnr_gain": -0.04035636022979138,
+   "worst_condition_gain": -0.08529415918775826,
+   "worst_ssim_gain": -0.0005587165198016729,
+   "fix_works": false,
+   "frac_volumes_better": {
+    "42": 0.1875,
+    "43": 0.0625
+   },
+   "condition_gain": {
+    "42": {
+     "brain": -0.012817955017089844,
+     "knee-PD": -0.03674584512016217,
+     "knee-PDFS": -0.009810739575010358
+    },
+    "43": {
+     "brain": -0.08529415918775826,
+     "knee-PD": -0.08452273194538361,
+     "knee-PDFS": -0.01359785253351385
+    }
+   }
+  },
+  "anneal": {
+   "band": {
+    "42": 88.55851745605469,
+    "43": 347.9647216796875
+   },
+   "band_kept": false,
+   "psnr_gain": {
+    "42": 0.004967342097200723,
+    "43": 0.06475482907211572
+   },
+   "mean_psnr_gain": 0.03486108558465822,
+   "worst_condition_gain": -0.011091547564041517,
+   "worst_ssim_gain": -0.0007738456484187322,
+   "fix_works": false,
+   "frac_volumes_better": {
+    "42": 0.3125,
+    "43": 0.9375
+   },
+   "condition_gain": {
+    "42": {
+     "brain": -0.011091547564041517,
+     "knee-PD": 0.0028582611197348336,
+     "knee-PDFS": 0.02183861443490693
+    },
+    "43": {
+     "brain": 0.07232828219074848,
+     "knee-PD": 0.07514987055649552,
+     "knee-PDFS": 0.04721270474520597
+    }
+   }
+  },
+  "mix": {
+   "band": {
+    "42": 539.0389404296875,
+    "43": 527.29541015625
+   },
+   "band_kept": true,
+   "psnr_gain": {
+    "42": -0.01838482422725335,
+    "43": 0.09539234183029002
+   },
+   "mean_psnr_gain": 0.03850375880151834,
+   "worst_condition_gain": -0.12240816544281959,
+   "worst_ssim_gain": 5.936425437553165e-05,
+   "fix_works": false,
+   "frac_volumes_better": {
+    "42": 0.5,
+    "43": 0.8875
+   },
+   "condition_gain": {
+    "42": {
+     "brain": 0.028901639260536384,
+     "knee-PD": -0.12240816544281959,
+     "knee-PDFS": 0.044341536724206175
+    },
+    "43": {
+     "brain": 0.17816207507425103,
+     "knee-PD": -0.017451973584927564,
+     "knee-PDFS": 0.13458709283308548
+    }
+   }
+  }
+ },
+ "reading": "inconclusive",
+ "trainer_val_curves": {
+  "control_s42": [
+   {
+    "epoch": 5,
+    "val_loss": 0.03323,
+    "brain_psnr": 35.82,
+    "knee_psnr": 30.97
+   },
+   {
+    "epoch": 10,
+    "val_loss": 0.03066,
+    "brain_psnr": 36.38,
+    "knee_psnr": 31.32
+   },
+   {
+    "epoch": 15,
+    "val_loss": 0.02947,
+    "brain_psnr": 36.77,
+    "knee_psnr": 31.7
+   },
+   {
+    "epoch": 20,
+    "val_loss": 0.02894,
+    "brain_psnr": 36.97,
+    "knee_psnr": 31.73
+   },
+   {
+    "epoch": 25,
+    "val_loss": 0.02872,
+    "brain_psnr": 37.01,
+    "knee_psnr": 31.84
+   },
+   {
+    "epoch": 30,
+    "val_loss": 0.02815,
+    "brain_psnr": 37.23,
+    "knee_psnr": 31.93
+   },
+   {
+    "epoch": 35,
+    "val_loss": 0.02795,
+    "brain_psnr": 37.33,
+    "knee_psnr": 32.08
+   },
+   {
+    "epoch": 40,
+    "val_loss": 0.02777,
+    "brain_psnr": 37.4,
+    "knee_psnr": 32.0
+   },
+   {
+    "epoch": 45,
+    "val_loss": 0.02796,
+    "brain_psnr": 37.44,
+    "knee_psnr": 31.98
+   },
+   {
+    "epoch": 50,
+    "val_loss": 0.02762,
+    "brain_psnr": 37.48,
+    "knee_psnr": 32.06
+   },
+   {
+    "epoch": 55,
+    "val_loss": 0.02755,
+    "brain_psnr": 37.51,
+    "knee_psnr": 32.18
+   },
+   {
+    "epoch": 60,
+    "val_loss": 0.02718,
+    "brain_psnr": 37.58,
+    "knee_psnr": 32.2
+   },
+   {
+    "epoch": 65,
+    "val_loss": 0.02749,
+    "brain_psnr": 37.59,
+    "knee_psnr": 32.21
+   },
+   {
+    "epoch": 70,
+    "val_loss": 0.02738,
+    "brain_psnr": 37.58,
+    "knee_psnr": 32.21
+   },
+   {
+    "epoch": 75,
+    "val_loss": 0.0277,
+    "brain_psnr": 37.57,
+    "knee_psnr": 32.06
+   },
+   {
+    "epoch": 80,
+    "val_loss": 0.02716,
+    "brain_psnr": 37.57,
+    "knee_psnr": 32.2
+   },
+   {
+    "epoch": 85,
+    "val_loss": 0.02801,
+    "brain_psnr": 37.53,
+    "knee_psnr": 32.12
+   },
+   {
+    "epoch": 90,
+    "val_loss": 0.02745,
+    "brain_psnr": 37.57,
+    "knee_psnr": 32.2
+   },
+   {
+    "epoch": 95,
+    "val_loss": 0.02733,
+    "brain_psnr": 37.61,
+    "knee_psnr": 32.19
+   },
+   {
+    "epoch": 100,
+    "val_loss": 0.02733,
+    "brain_psnr": 37.6,
+    "knee_psnr": 32.19
+   }
+  ],
+  "control_s43": [
+   {
+    "epoch": 5,
+    "val_loss": 0.03139,
+    "brain_psnr": 36.05,
+    "knee_psnr": 30.97
+   },
+   {
+    "epoch": 10,
+    "val_loss": 0.02927,
+    "brain_psnr": 36.78,
+    "knee_psnr": 31.5
+   },
+   {
+    "epoch": 15,
+    "val_loss": 0.02817,
+    "brain_psnr": 37.12,
+    "knee_psnr": 32.03
+   },
+   {
+    "epoch": 20,
+    "val_loss": 0.02849,
+    "brain_psnr": 37.18,
+    "knee_psnr": 31.91
+   },
+   {
+    "epoch": 25,
+    "val_loss": 0.02746,
+    "brain_psnr": 37.38,
+    "knee_psnr": 32.16
+   },
+   {
+    "epoch": 30,
+    "val_loss": 0.0272,
+    "brain_psnr": 37.47,
+    "knee_psnr": 32.22
+   },
+   {
+    "epoch": 35,
+    "val_loss": 0.02725,
+    "brain_psnr": 37.51,
+    "knee_psnr": 32.21
+   },
+   {
+    "epoch": 40,
+    "val_loss": 0.02715,
+    "brain_psnr": 37.59,
+    "knee_psnr": 32.19
+   },
+   {
+    "epoch": 45,
+    "val_loss": 0.027,
+    "brain_psnr": 37.61,
+    "knee_psnr": 32.27
+   },
+   {
+    "epoch": 50,
+    "val_loss": 0.02712,
+    "brain_psnr": 37.65,
+    "knee_psnr": 32.12
+   },
+   {
+    "epoch": 55,
+    "val_loss": 0.02692,
+    "brain_psnr": 37.67,
+    "knee_psnr": 32.19
+   },
+   {
+    "epoch": 60,
+    "val_loss": 0.02691,
+    "brain_psnr": 37.68,
+    "knee_psnr": 32.16
+   },
+   {
+    "epoch": 65,
+    "val_loss": 0.02694,
+    "brain_psnr": 37.62,
+    "knee_psnr": 32.18
+   },
+   {
+    "epoch": 70,
+    "val_loss": 0.02683,
+    "brain_psnr": 37.65,
+    "knee_psnr": 32.2
+   },
+   {
+    "epoch": 75,
+    "val_loss": 0.02674,
+    "brain_psnr": 37.65,
+    "knee_psnr": 32.26
+   },
+   {
+    "epoch": 80,
+    "val_loss": 0.02682,
+    "brain_psnr": 37.65,
+    "knee_psnr": 32.2
+   },
+   {
+    "epoch": 85,
+    "val_loss": 0.02692,
+    "brain_psnr": 37.63,
+    "knee_psnr": 32.26
+   },
+   {
+    "epoch": 90,
+    "val_loss": 0.02682,
+    "brain_psnr": 37.62,
+    "knee_psnr": 32.18
+   },
+   {
+    "epoch": 95,
+    "val_loss": 0.02672,
+    "brain_psnr": 37.62,
+    "knee_psnr": 32.22
+   },
+   {
+    "epoch": 100,
+    "val_loss": 0.02676,
+    "brain_psnr": 37.6,
+    "knee_psnr": 32.2
+   }
+  ],
+  "clamp_s42": [
+   {
+    "epoch": 5,
+    "val_loss": 0.03256,
+    "brain_psnr": 35.84,
+    "knee_psnr": 30.76
+   },
+   {
+    "epoch": 10,
+    "val_loss": 0.03105,
+    "brain_psnr": 36.41,
+    "knee_psnr": 31.26
+   },
+   {
+    "epoch": 15,
+    "val_loss": 0.02949,
+    "brain_psnr": 36.79,
+    "knee_psnr": 31.59
+   },
+   {
+    "epoch": 20,
+    "val_loss": 0.02921,
+    "brain_psnr": 37.0,
+    "knee_psnr": 31.71
+   },
+   {
+    "epoch": 25,
+    "val_loss": 0.0289,
+    "brain_psnr": 37.02,
+    "knee_psnr": 31.77
+   },
+   {
+    "epoch": 30,
+    "val_loss": 0.02809,
+    "brain_psnr": 37.2,
+    "knee_psnr": 32.05
+   },
+   {
+    "epoch": 35,
+    "val_loss": 0.02809,
+    "brain_psnr": 37.31,
+    "knee_psnr": 31.95
+   },
+   {
+    "epoch": 40,
+    "val_loss": 0.02796,
+    "brain_psnr": 37.34,
+    "knee_psnr": 31.94
+   },
+   {
+    "epoch": 45,
+    "val_loss": 0.02761,
+    "brain_psnr": 37.45,
+    "knee_psnr": 32.11
+   },
+   {
+    "epoch": 50,
+    "val_loss": 0.02753,
+    "brain_psnr": 37.48,
+    "knee_psnr": 32.2
+   },
+   {
+    "epoch": 55,
+    "val_loss": 0.02767,
+    "brain_psnr": 37.5,
+    "knee_psnr": 32.14
+   },
+   {
+    "epoch": 60,
+    "val_loss": 0.02746,
+    "brain_psnr": 37.56,
+    "knee_psnr": 32.13
+   },
+   {
+    "epoch": 65,
+    "val_loss": 0.02718,
+    "brain_psnr": 37.56,
+    "knee_psnr": 32.22
+   },
+   {
+    "epoch": 70,
+    "val_loss": 0.02727,
+    "brain_psnr": 37.57,
+    "knee_psnr": 32.19
+   },
+   {
+    "epoch": 75,
+    "val_loss": 0.02732,
+    "brain_psnr": 37.59,
+    "knee_psnr": 32.23
+   },
+   {
+    "epoch": 80,
+    "val_loss": 0.02714,
+    "brain_psnr": 37.58,
+    "knee_psnr": 32.23
+   },
+   {
+    "epoch": 85,
+    "val_loss": 0.02743,
+    "brain_psnr": 37.55,
+    "knee_psnr": 32.18
+   },
+   {
+    "epoch": 90,
+    "val_loss": 0.02734,
+    "brain_psnr": 37.59,
+    "knee_psnr": 32.19
+   },
+   {
+    "epoch": 95,
+    "val_loss": 0.02738,
+    "brain_psnr": 37.59,
+    "knee_psnr": 32.19
+   },
+   {
+    "epoch": 100,
+    "val_loss": 0.02736,
+    "brain_psnr": 37.58,
+    "knee_psnr": 32.19
+   }
+  ],
+  "clamp_s43": [
+   {
+    "epoch": 5,
+    "val_loss": 0.03071,
+    "brain_psnr": 36.21,
+    "knee_psnr": 31.29
+   },
+   {
+    "epoch": 10,
+    "val_loss": 0.02928,
+    "brain_psnr": 36.76,
+    "knee_psnr": 31.6
+   },
+   {
+    "epoch": 15,
+    "val_loss": 0.02834,
+    "brain_psnr": 37.12,
+    "knee_psnr": 31.96
+   },
+   {
+    "epoch": 20,
+    "val_loss": 0.02814,
+    "brain_psnr": 37.23,
+    "knee_psnr": 31.91
+   },
+   {
+    "epoch": 25,
+    "val_loss": 0.02779,
+    "brain_psnr": 37.32,
+    "knee_psnr": 32.11
+   },
+   {
+    "epoch": 30,
+    "val_loss": 0.02742,
+    "brain_psnr": 37.44,
+    "knee_psnr": 32.13
+   },
+   {
+    "epoch": 35,
+    "val_loss": 0.02737,
+    "brain_psnr": 37.53,
+    "knee_psnr": 32.16
+   },
+   {
+    "epoch": 40,
+    "val_loss": 0.02749,
+    "brain_psnr": 37.51,
+    "knee_psnr": 32.07
+   },
+   {
+    "epoch": 45,
+    "val_loss": 0.02695,
+    "brain_psnr": 37.59,
+    "knee_psnr": 32.22
+   },
+   {
+    "epoch": 50,
+    "val_loss": 0.02729,
+    "brain_psnr": 37.56,
+    "knee_psnr": 32.11
+   },
+   {
+    "epoch": 55,
+    "val_loss": 0.0269,
+    "brain_psnr": 37.58,
+    "knee_psnr": 32.21
+   },
+   {
+    "epoch": 60,
+    "val_loss": 0.02686,
+    "brain_psnr": 37.64,
+    "knee_psnr": 32.23
+   },
+   {
+    "epoch": 65,
+    "val_loss": 0.02697,
+    "brain_psnr": 37.61,
+    "knee_psnr": 32.15
+   },
+   {
+    "epoch": 70,
+    "val_loss": 0.02674,
+    "brain_psnr": 37.61,
+    "knee_psnr": 32.27
+   },
+   {
+    "epoch": 75,
+    "val_loss": 0.02686,
+    "brain_psnr": 37.59,
+    "knee_psnr": 32.19
+   },
+   {
+    "epoch": 80,
+    "val_loss": 0.02681,
+    "brain_psnr": 37.57,
+    "knee_psnr": 32.24
+   },
+   {
+    "epoch": 85,
+    "val_loss": 0.0269,
+    "brain_psnr": 37.57,
+    "knee_psnr": 32.22
+   },
+   {
+    "epoch": 90,
+    "val_loss": 0.02692,
+    "brain_psnr": 37.55,
+    "knee_psnr": 32.16
+   },
+   {
+    "epoch": 95,
+    "val_loss": 0.02681,
+    "brain_psnr": 37.53,
+    "knee_psnr": 32.2
+   },
+   {
+    "epoch": 100,
+    "val_loss": 0.02683,
+    "brain_psnr": 37.52,
+    "knee_psnr": 32.18
+   }
+  ],
+  "anneal_s42": [
+   {
+    "epoch": 5,
+    "val_loss": 0.03106,
+    "brain_psnr": 36.03,
+    "knee_psnr": 30.95
+   },
+   {
+    "epoch": 10,
+    "val_loss": 0.02879,
+    "brain_psnr": 36.84,
+    "knee_psnr": 31.77
+   },
+   {
+    "epoch": 15,
+    "val_loss": 0.02816,
+    "brain_psnr": 37.08,
+    "knee_psnr": 32.01
+   },
+   {
+    "epoch": 20,
+    "val_loss": 0.02795,
+    "brain_psnr": 37.25,
+    "knee_psnr": 32.01
+   },
+   {
+    "epoch": 25,
+    "val_loss": 0.02779,
+    "brain_psnr": 37.32,
+    "knee_psnr": 31.99
+   },
+   {
+    "epoch": 30,
+    "val_loss": 0.02772,
+    "brain_psnr": 37.38,
+    "knee_psnr": 32.06
+   },
+   {
+    "epoch": 35,
+    "val_loss": 0.02752,
+    "brain_psnr": 37.45,
+    "knee_psnr": 32.06
+   },
+   {
+    "epoch": 40,
+    "val_loss": 0.02707,
+    "brain_psnr": 37.54,
+    "knee_psnr": 32.17
+   },
+   {
+    "epoch": 45,
+    "val_loss": 0.02707,
+    "brain_psnr": 37.57,
+    "knee_psnr": 32.19
+   },
+   {
+    "epoch": 50,
+    "val_loss": 0.02698,
+    "brain_psnr": 37.57,
+    "knee_psnr": 32.27
+   },
+   {
+    "epoch": 55,
+    "val_loss": 0.02708,
+    "brain_psnr": 37.58,
+    "knee_psnr": 32.27
+   },
+   {
+    "epoch": 60,
+    "val_loss": 0.02732,
+    "brain_psnr": 37.58,
+    "knee_psnr": 32.1
+   },
+   {
+    "epoch": 65,
+    "val_loss": 0.02743,
+    "brain_psnr": 37.59,
+    "knee_psnr": 32.18
+   },
+   {
+    "epoch": 70,
+    "val_loss": 0.02692,
+    "brain_psnr": 37.63,
+    "knee_psnr": 32.28
+   },
+   {
+    "epoch": 75,
+    "val_loss": 0.02689,
+    "brain_psnr": 37.62,
+    "knee_psnr": 32.26
+   },
+   {
+    "epoch": 80,
+    "val_loss": 0.02702,
+    "brain_psnr": 37.57,
+    "knee_psnr": 32.21
+   },
+   {
+    "epoch": 85,
+    "val_loss": 0.02696,
+    "brain_psnr": 37.6,
+    "knee_psnr": 32.23
+   },
+   {
+    "epoch": 90,
+    "val_loss": 0.02682,
+    "brain_psnr": 37.62,
+    "knee_psnr": 32.28
+   },
+   {
+    "epoch": 95,
+    "val_loss": 0.02678,
+    "brain_psnr": 37.61,
+    "knee_psnr": 32.26
+   },
+   {
+    "epoch": 100,
+    "val_loss": 0.02682,
+    "brain_psnr": 37.59,
+    "knee_psnr": 32.25
+   }
+  ],
+  "anneal_s43": [
+   {
+    "epoch": 5,
+    "val_loss": 0.03121,
+    "brain_psnr": 36.09,
+    "knee_psnr": 30.94
+   },
+   {
+    "epoch": 10,
+    "val_loss": 0.02882,
+    "brain_psnr": 36.85,
+    "knee_psnr": 31.58
+   },
+   {
+    "epoch": 15,
+    "val_loss": 0.02755,
+    "brain_psnr": 37.24,
+    "knee_psnr": 32.07
+   },
+   {
+    "epoch": 20,
+    "val_loss": 0.02778,
+    "brain_psnr": 37.35,
+    "knee_psnr": 32.01
+   },
+   {
+    "epoch": 25,
+    "val_loss": 0.02702,
+    "brain_psnr": 37.43,
+    "knee_psnr": 32.16
+   },
+   {
+    "epoch": 30,
+    "val_loss": 0.02726,
+    "brain_psnr": 37.44,
+    "knee_psnr": 32.12
+   },
+   {
+    "epoch": 35,
+    "val_loss": 0.02679,
+    "brain_psnr": 37.58,
+    "knee_psnr": 32.28
+   },
+   {
+    "epoch": 40,
+    "val_loss": 0.02667,
+    "brain_psnr": 37.62,
+    "knee_psnr": 32.33
+   },
+   {
+    "epoch": 45,
+    "val_loss": 0.02693,
+    "brain_psnr": 37.61,
+    "knee_psnr": 32.33
+   },
+   {
+    "epoch": 50,
+    "val_loss": 0.02716,
+    "brain_psnr": 37.67,
+    "knee_psnr": 32.19
+   },
+   {
+    "epoch": 55,
+    "val_loss": 0.02666,
+    "brain_psnr": 37.67,
+    "knee_psnr": 32.31
+   },
+   {
+    "epoch": 60,
+    "val_loss": 0.02659,
+    "brain_psnr": 37.71,
+    "knee_psnr": 32.31
+   },
+   {
+    "epoch": 65,
+    "val_loss": 0.02666,
+    "brain_psnr": 37.73,
+    "knee_psnr": 32.27
+   },
+   {
+    "epoch": 70,
+    "val_loss": 0.02651,
+    "brain_psnr": 37.72,
+    "knee_psnr": 32.36
+   },
+   {
+    "epoch": 75,
+    "val_loss": 0.02669,
+    "brain_psnr": 37.67,
+    "knee_psnr": 32.25
+   },
+   {
+    "epoch": 80,
+    "val_loss": 0.02659,
+    "brain_psnr": 37.7,
+    "knee_psnr": 32.27
+   },
+   {
+    "epoch": 85,
+    "val_loss": 0.02654,
+    "brain_psnr": 37.7,
+    "knee_psnr": 32.3
+   },
+   {
+    "epoch": 90,
+    "val_loss": 0.02671,
+    "brain_psnr": 37.69,
+    "knee_psnr": 32.22
+   },
+   {
+    "epoch": 95,
+    "val_loss": 0.02648,
+    "brain_psnr": 37.69,
+    "knee_psnr": 32.31
+   },
+   {
+    "epoch": 100,
+    "val_loss": 0.02651,
+    "brain_psnr": 37.67,
+    "knee_psnr": 32.29
+   }
+  ],
+  "mix_s42": [
+   {
+    "epoch": 5,
+    "val_loss": 0.03367,
+    "brain_psnr": 35.41,
+    "knee_psnr": 30.3
+   },
+   {
+    "epoch": 10,
+    "val_loss": 0.03055,
+    "brain_psnr": 36.29,
+    "knee_psnr": 31.3
+   },
+   {
+    "epoch": 15,
+    "val_loss": 0.02978,
+    "brain_psnr": 36.58,
+    "knee_psnr": 31.59
+   },
+   {
+    "epoch": 20,
+    "val_loss": 0.02929,
+    "brain_psnr": 36.71,
+    "knee_psnr": 31.6
+   },
+   {
+    "epoch": 25,
+    "val_loss": 0.02903,
+    "brain_psnr": 36.81,
+    "knee_psnr": 31.61
+   },
+   {
+    "epoch": 30,
+    "val_loss": 0.02848,
+    "brain_psnr": 37.07,
+    "knee_psnr": 31.87
+   },
+   {
+    "epoch": 35,
+    "val_loss": 0.02868,
+    "brain_psnr": 37.12,
+    "knee_psnr": 31.71
+   },
+   {
+    "epoch": 40,
+    "val_loss": 0.02803,
+    "brain_psnr": 37.28,
+    "knee_psnr": 32.03
+   },
+   {
+    "epoch": 45,
+    "val_loss": 0.02835,
+    "brain_psnr": 37.29,
+    "knee_psnr": 32.01
+   },
+   {
+    "epoch": 50,
+    "val_loss": 0.02807,
+    "brain_psnr": 37.35,
+    "knee_psnr": 31.94
+   },
+   {
+    "epoch": 55,
+    "val_loss": 0.02784,
+    "brain_psnr": 37.43,
+    "knee_psnr": 32.08
+   },
+   {
+    "epoch": 60,
+    "val_loss": 0.02773,
+    "brain_psnr": 37.45,
+    "knee_psnr": 32.09
+   },
+   {
+    "epoch": 65,
+    "val_loss": 0.02765,
+    "brain_psnr": 37.5,
+    "knee_psnr": 32.15
+   },
+   {
+    "epoch": 70,
+    "val_loss": 0.0277,
+    "brain_psnr": 37.52,
+    "knee_psnr": 32.19
+   },
+   {
+    "epoch": 75,
+    "val_loss": 0.02761,
+    "brain_psnr": 37.53,
+    "knee_psnr": 32.21
+   },
+   {
+    "epoch": 80,
+    "val_loss": 0.02765,
+    "brain_psnr": 37.54,
+    "knee_psnr": 32.27
+   },
+   {
+    "epoch": 85,
+    "val_loss": 0.02785,
+    "brain_psnr": 37.54,
+    "knee_psnr": 32.1
+   },
+   {
+    "epoch": 90,
+    "val_loss": 0.02775,
+    "brain_psnr": 37.57,
+    "knee_psnr": 32.13
+   },
+   {
+    "epoch": 95,
+    "val_loss": 0.02746,
+    "brain_psnr": 37.65,
+    "knee_psnr": 32.2
+   },
+   {
+    "epoch": 100,
+    "val_loss": 0.02744,
+    "brain_psnr": 37.66,
+    "knee_psnr": 32.22
+   }
+  ],
+  "mix_s43": [
+   {
+    "epoch": 5,
+    "val_loss": 0.03216,
+    "brain_psnr": 35.87,
+    "knee_psnr": 30.68
+   },
+   {
+    "epoch": 10,
+    "val_loss": 0.02925,
+    "brain_psnr": 36.69,
+    "knee_psnr": 31.54
+   },
+   {
+    "epoch": 15,
+    "val_loss": 0.02905,
+    "brain_psnr": 36.86,
+    "knee_psnr": 31.47
+   },
+   {
+    "epoch": 20,
+    "val_loss": 0.02856,
+    "brain_psnr": 37.1,
+    "knee_psnr": 31.88
+   },
+   {
+    "epoch": 25,
+    "val_loss": 0.02775,
+    "brain_psnr": 37.25,
+    "knee_psnr": 31.94
+   },
+   {
+    "epoch": 30,
+    "val_loss": 0.02762,
+    "brain_psnr": 37.27,
+    "knee_psnr": 31.99
+   },
+   {
+    "epoch": 35,
+    "val_loss": 0.02786,
+    "brain_psnr": 37.26,
+    "knee_psnr": 32.1
+   },
+   {
+    "epoch": 40,
+    "val_loss": 0.02749,
+    "brain_psnr": 37.44,
+    "knee_psnr": 32.1
+   },
+   {
+    "epoch": 45,
+    "val_loss": 0.02749,
+    "brain_psnr": 37.42,
+    "knee_psnr": 32.1
+   },
+   {
+    "epoch": 50,
+    "val_loss": 0.02755,
+    "brain_psnr": 37.54,
+    "knee_psnr": 32.06
+   },
+   {
+    "epoch": 55,
+    "val_loss": 0.02723,
+    "brain_psnr": 37.58,
+    "knee_psnr": 32.11
+   },
+   {
+    "epoch": 60,
+    "val_loss": 0.02748,
+    "brain_psnr": 37.59,
+    "knee_psnr": 32.02
+   },
+   {
+    "epoch": 65,
+    "val_loss": 0.02702,
+    "brain_psnr": 37.63,
+    "knee_psnr": 32.18
+   },
+   {
+    "epoch": 70,
+    "val_loss": 0.02689,
+    "brain_psnr": 37.68,
+    "knee_psnr": 32.22
+   },
+   {
+    "epoch": 75,
+    "val_loss": 0.02701,
+    "brain_psnr": 37.64,
+    "knee_psnr": 32.18
+   },
+   {
+    "epoch": 80,
+    "val_loss": 0.02679,
+    "brain_psnr": 37.69,
+    "knee_psnr": 32.25
+   },
+   {
+    "epoch": 85,
+    "val_loss": 0.02687,
+    "brain_psnr": 37.72,
+    "knee_psnr": 32.19
+   },
+   {
+    "epoch": 90,
+    "val_loss": 0.02687,
+    "brain_psnr": 37.74,
+    "knee_psnr": 32.19
+   },
+   {
+    "epoch": 95,
+    "val_loss": 0.02662,
+    "brain_psnr": 37.8,
+    "knee_psnr": 32.29
+   },
+   {
+    "epoch": 100,
+    "val_loss": 0.02664,
+    "brain_psnr": 37.81,
+    "knee_psnr": 32.28
+   }
+  ]
+ }
+}
