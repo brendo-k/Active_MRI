@@ -1,6 +1,6 @@
-"""The loupe_loss_partial_fourier launcher (scripts/launch/hpc/loupe_loss_partial_fourier/common.sh): the RSS control
-is fscr1's tier-F LOUPE recipe, and every other arm is the control at its seed with only the loss and/or the map's
-symmetry changed, as train.sbatch builds them on CoreHPC.
+"""The loss_domain__loupe_loss_partial_fourier launcher (scripts/launch/hpc/loss_domain__loupe_loss_partial_fourier/
+common.sh): the RSS control is fscr1's tier-F LOUPE recipe, and every other arm is the control at its seed with only the
+loss and/or the map's symmetry changed, as train.sbatch builds them on CoreHPC.
 
 Run with ``.venv/bin/python -m pytest tests/test_loupe_loss_pf_launch.py`` from the repo root.
 """
@@ -17,7 +17,7 @@ sys.path.insert(0, str(REPO))
 
 from tests.test_multistep_launch import composed, corehpc_arguments  # noqa: E402
 
-LAUNCH = REPO / 'scripts' / 'launch' / 'hpc' / 'loupe_loss_partial_fourier'
+LAUNCH = REPO / 'scripts' / 'launch' / 'hpc' / 'loss_domain__loupe_loss_partial_fourier'
 NAMING = {'output.run_name', 'output.out_dir'}
 CHANGES = {'Lrss': {}, 'Lcplx': {'loss.loss_type': 'complex_l1'}, 'Lrsssym': {'sampler.loupe_point_symmetric': True},
            'Lcplxsym': {'loss.loss_type': 'complex_l1', 'sampler.loupe_point_symmetric': True}}
@@ -63,5 +63,5 @@ def test_each_arm_is_the_control_at_its_seed_with_only_its_changes(kind, seed, t
 
 @pytest.mark.parametrize('arm', ['Lrss_1_s44_tF', 'Lcplx_4_s42_tF', 'Lsym_1_s42_tF', 'Lrss_1_s42_tS5'])
 def test_other_names_are_refused(arm, tmp_path):
-    with pytest.raises(AssertionError, match='unknown loupe_loss_partial_fourier arm'):
+    with pytest.raises(AssertionError, match='unknown loss_domain__loupe_loss_partial_fourier arm'):
         arguments(arm, tmp_path)

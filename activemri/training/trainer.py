@@ -389,7 +389,8 @@ class Sequential_Trainer:
 
     def _peak_memory_gib(self) -> float:
         """Peak memory held by tensors on the training GPU so far, not the allocator's reserve that nvidia-smi shows."""
-        return torch.cuda.max_memory_allocated(self.device) / 2**30 if torch.cuda.is_available() else float('nan')
+        on_gpu = torch.device(self.device).type == 'cuda'
+        return torch.cuda.max_memory_allocated(self.device) / 2**30 if on_gpu else float('nan')
 
     def _is_every(self, every: int) -> bool:
         """Whether this epoch is one of every `every`-th epochs; the last epoch always is."""

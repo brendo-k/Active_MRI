@@ -1,15 +1,15 @@
 #!/bin/bash
-# The loupe_loss_partial_fourier validation job (reports/loupe_loss_partial_fourier/proposal.md). Training jobs are
-# submitted with --dependency=afterok on it, so they start only if every check passes:
+# The loss_domain__loupe_loss_partial_fourier validation job (reports/loss_domain__loupe_loss_partial_fourier/
+# proposal.md). Training jobs are submitted with --dependency=afterok on it, so they start only if every check passes:
 # - the shipped commit, clean, and the test suite;
 # - each arm kind trains for 10% of one epoch exactly as train.sbatch does (seed 42) and is scored with --limit 120:
 #   a finite loss, realised fraction 0.125 +/- 0.002, no draw outside the acquired region;
 # - the symmetric arms' learned maps are exactly point-symmetric and the free arms' are not;
 # - every run recorded the shipped commit.
-# Submit from $EXP_DIR (~/scratch/loupe_loss_partial_fourier):
+# Submit from $EXP_DIR (~/scratch/loss_domain__loupe_loss_partial_fourier):
 #
 #   sbatch --gres=gpu:nvidia_rtx_pro_6000:1 --export=ALL,GPU_NAME='RTX PRO 6000',EXPECTED_COMMIT=<shipped hash> \
-#       code/scripts/launch/hpc/loupe_loss_partial_fourier/validate.sbatch
+#       code/scripts/launch/hpc/loss_domain__loupe_loss_partial_fourier/validate.sbatch
 #
 #SBATCH --job-name=loupe_lpf_validate
 #SBATCH --partition=gpu
@@ -20,7 +20,8 @@
 #SBATCH --output=slurm_log/%x-%j.log
 
 set -uo pipefail
-source "${EXP_DIR:-$HOME/scratch/loupe_loss_partial_fourier}/code/scripts/launch/hpc/loupe_loss_partial_fourier/common.sh"
+TOPIC=loss_domain__loupe_loss_partial_fourier
+source "${EXP_DIR:-$HOME/scratch/$TOPIC}/code/scripts/launch/hpc/$TOPIC/common.sh"
 : "${EXPECTED_COMMIT:?submit with --export=ALL,GPU_NAME=<card>,EXPECTED_COMMIT=<hash>}"
 start_job
 OUT="$EXP_DIR/validate/${SLURM_JOB_ID:-local}"

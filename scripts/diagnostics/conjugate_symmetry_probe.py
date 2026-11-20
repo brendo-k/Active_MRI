@@ -9,7 +9,9 @@ reconstruction's k-space (the coil-combined complex image's spectrum), the part 
 answers linearly. Placebo points mirror k in one axis only, so they share its geometry but have no conjugate relation.
 
 Per run it reports, over every perturbation, the median antilinear fraction |anti|^2 / (|lin|^2 + |anti|^2) at -k and
-at the placebos, and each point's response |change| relative to the response at k itself.
+at the placebos, and each point's response |change| relative to the response at k itself. A response with no conjugate
+relation to d has an antilinear fraction near 0.5, so the readout is the median at -k minus each placebo's
+(`partner_minus_placebo_anti`; the bar of reports/loss_domain__loupe_loss_partial_fourier/addendum_2026-11-20_probe.md).
 
     CUDA_VISIBLE_DEVICES=0 python scripts/diagnostics/conjugate_symmetry_probe.py --run <run dir> [--run ...] --out <json>
 """
@@ -31,6 +33,14 @@ from activemri.utils.multistep import step_thresholds  # noqa: E402
 DRAW_SEED = 1234
 PERTURBATIONS = ((1, 1), (-1, 1), (1, 1j), (-1, 1j))
 POINTS = ('self', 'partner', 'placebo_rows', 'placebo_columns')
+PLACEBOS = ('placebo_rows', 'placebo_columns')
+
+
+def placebo_margins(summary):
+    """The median antilinear fraction at -k minus each placebo's, or None for a point that was never probed."""
+    partner = summary['partner']['anti_fraction_median']
+    return {name: None if partner is None or summary[name]['anti_fraction_median'] is None
+            else partner - summary[name]['anti_fraction_median'] for name in PLACEBOS}
 
 
 def val_data(run, args):
@@ -101,10 +111,13 @@ def probe_run(run, args):
                       'anti_fraction_median': float(np.median(values['anti_fraction'])) if values['response'] else None,
                       'response_median': float(np.median(values['response'])) if values['response'] else None}
                for name, values in results.items()}
+    margins = placebo_margins(summary)
     print(f"{run.name}: " + '; '.join(f"{name} anti {s['anti_fraction_median']:.4f} response {s['response_median']:.4f}"
-                                     for name, s in summary.items() if s['n']) + f" (n={summary['self']['n']})", flush=True)
+                                     for name, s in summary.items() if s['n']) + f" (n={summary['self']['n']}); "
+          + ', '.join(f"-k minus {name} {margin:.4f}" for name, margin in margins.items() if margin is not None),
+          flush=True)
     return {'sampler_type': options.sampler_type, 'num_step': int(options.num_step), 'slices': indices,
-            'summary': summary, 'values': results}
+            'summary': summary, 'partner_minus_placebo_anti': margins, 'values': results}
 
 
 def main():

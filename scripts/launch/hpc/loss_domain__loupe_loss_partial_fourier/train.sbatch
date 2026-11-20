@@ -1,8 +1,9 @@
 #!/bin/bash
-# One loupe_loss_partial_fourier run on CoreHPC, then its score on the same card. Arm names are in common.sh. Submit
-# from $EXP_DIR (~/scratch/loupe_loss_partial_fourier):
+# One loss_domain__loupe_loss_partial_fourier run on CoreHPC, then its score on the same card. Arm names are in
+# common.sh. Submit from $EXP_DIR (~/scratch/loss_domain__loupe_loss_partial_fourier):
 #
-#   sbatch --gres=gpu:nvidia_rtx_pro_6000:1 --export=ALL,ARM=Lcplx_1_s42_tF,GPU_NAME='RTX PRO 6000' code/scripts/launch/hpc/loupe_loss_partial_fourier/train.sbatch
+#   sbatch --gres=gpu:nvidia_rtx_pro_6000:1 --export=ALL,ARM=Lcplx_1_s42_tF,GPU_NAME='RTX PRO 6000' \
+#       code/scripts/launch/hpc/loss_domain__loupe_loss_partial_fourier/train.sbatch
 #
 #SBATCH --job-name=loupe_lpf
 #SBATCH --partition=gpu
@@ -13,7 +14,8 @@
 #SBATCH --output=slurm_log/%x-%j.log
 
 set -eo pipefail
-source "${EXP_DIR:-$HOME/scratch/loupe_loss_partial_fourier}/code/scripts/launch/hpc/loupe_loss_partial_fourier/common.sh"
+TOPIC=loss_domain__loupe_loss_partial_fourier
+source "${EXP_DIR:-$HOME/scratch/$TOPIC}/code/scripts/launch/hpc/$TOPIC/common.sh"
 : "${ARM:?submit with --export=ALL,ARM=<arm>,GPU_NAME=<card>}"
 start_job
 loss_pf_arm_args "$ARM"

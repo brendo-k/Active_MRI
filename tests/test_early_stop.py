@@ -4,6 +4,7 @@ from types import SimpleNamespace
 
 import numpy as np
 import pytest
+import torch
 
 from activemri.training import trainer as trainer_module
 from activemri.training.trainer import Sequential_Trainer
@@ -13,6 +14,7 @@ def stub_trainer(val_losses, num_epochs, val_every=1, patience=0):
     """A Sequential_Trainer whose epochs only return the given val losses, one per validated epoch."""
     t = Sequential_Trainer.__new__(Sequential_Trainer)
     t.options = SimpleNamespace(num_epochs=num_epochs, val_every=val_every, early_stop_patience=patience)
+    t.device = torch.device('cpu')
     t.start_epoch, t.end_epoch, t.epoch = 0, num_epochs, 0
     t.best_val_loss, t.validations_since_best = np.inf, 0
     t.logger = logging.getLogger('test_early_stop')
