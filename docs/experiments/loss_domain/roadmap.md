@@ -24,6 +24,17 @@ RSS image L1 is the baseline on every item. It is the production loss (`loss_typ
 
 Shared on every arm: LOUPE, VD p=4, VarNet R=8, `budget_over=acquired`, `coil_combine=sense`, `anatomy_conditioning=false`, `csme=false`, `mask_train_mode=straight_through`, seeds 42–44. True pair within an item, including the RSS twins. Do not use the existing `kspace_weight` path: that is an SSIM between the FFT of the RSS image and a coil-averaged measured k-space magnitude.
 
+## In flight
+
+- [ ] **LOUPE loss and partial Fourier (proposal B)** — branch `exp/loss_domain__loupe_loss_partial_fourier`
+  - Renamed from `exp/loupe_loss_partial_fourier` on 2026-11-20, with its report, launch and CoreHPC folders.
+  - Question: does LOUPE's learned map use partial Fourier differently under an RSS or a complex-image L1? RSS vs
+    complex L1 × free vs point-symmetric map, seeds 42 and 43, FLAIR tier F (fscr1's LOUPE recipe).
+  - Proposal: `reports/loss_domain__loupe_loss_partial_fourier/proposal.md`, on the branch
+  - Status: the 2026-11-19 CoreHPC validation failed on a test bug on `main` (fixed in 86b9a22). Resubmitted
+    2026-11-20 at run state 2 (24db7c7, which also adds the relative probe-bar addendum): validation 3161843, then the
+    8 arms 3161844–3161851.
+
 ## Next
 
 - [ ] **1. Image space: complex L1, mask on vs off, against RSS L1** — branch `exp/complex_image_mask`
@@ -67,4 +78,6 @@ Readout of items 1 and 2, not a separate run: if a loss pins the phase and leave
 
 ## Done
 
-None yet.
+- [x] **Loss domain: RSS, k-space and complex L1** — verdict: parked (2026-11-09); RSS-image L1 stays the default
+  - Report: `reports/loss_domain/`
+  - Branch: `exp/loss_domain` @ 8464558 (parked; report on main 9123f44)

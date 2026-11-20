@@ -67,6 +67,17 @@ These can co-exist. Each item measures one share.
 
 Frozen arms add `sampler.anatomy_conditioning=true sampler.fixed_mask_checkpoints='{brain: <ckpt>, knee-PD: <ckpt>, knee-PDFS: <ckpt>}'`. The VarNet stays label-blind.
 
+## Awaiting verdict
+
+- [ ] **Brain-only VarNet: frozen shared mask vs LOUPE** — branch `exp/brain_own_learned_mask__brain_static_vs_loupe`
+  - Renamed from `exp/brain_static_vs_loupe` on 2026-11-20; its report still names the old branch.
+  - Question: why does a shared mask match per-anatomy masks on brain? A brain-only VarNet with the shared mask frozen,
+    against LOUPE started from that mask and from uniform noise; 3 seeds, a quarter of local v1.
+  - Report: `reports/brain_static_vs_loupe/report.md`, on the branch. The follow-up and long-schedule results are not
+    committed yet.
+  - Result: the arms tie because the effects offset (the mask is better, the VarNet worse). A fresh VarNet on the frozen
+    learned mask shows no effect, and the 130-epoch schedule is inconclusive. The recommendation at writing is park.
+
 ## Next
 
 - [ ] **1. Matched sign-flip test** — branch `exp/brain_mask_recon_flip`
