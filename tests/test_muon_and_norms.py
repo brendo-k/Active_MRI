@@ -1,4 +1,5 @@
 import copy
+import io
 
 import pytest
 import torch
@@ -51,6 +52,43 @@ def test_muon_adam_updates_adam_groups_exactly_like_adam():
     for name in ('0.weight', '0.bias', '2.weight', '2.bias'):
         assert torch.equal(dict(model.named_parameters())[name], dict(reference.named_parameters())[name])
     assert not torch.allclose(model[1].weight, reference[1].weight)
+
+
+def test_a_resumed_muon_adam_continues_exactly_where_it_stopped():
+    torch.manual_seed(0)
+    model = nn.Sequential(nn.Conv2d(4, 8, 3), nn.Conv2d(8, 8, 3), nn.Conv2d(8, 4, 1))
+    resumed_model = copy.deepcopy(model)
+
+    def groups(net):
+        return [{'params': [p for p in net.parameters() if p is not net[1].weight]},
+                {'params': [net[1].weight], 'use_muon': True}]
+
+    def train_step(net, optimizer, x):
+        optimizer.zero_grad()
+        net(x).square().mean().backward()
+        optimizer.step()
+
+    batches = [torch.randn(2, 4, 12, 12) for _ in range(4)]
+    optimizer = MuonAdam(groups(model), lr=1e-3)
+    for x in batches[:2]:
+        train_step(model, optimizer, x)
+    assert 'step' not in optimizer.state[model[1].weight]
+    checkpoint = io.BytesIO()
+    torch.save({'model': model.state_dict(), 'optimizer': optimizer.state_dict()}, checkpoint)
+    checkpoint.seek(0)
+    saved = torch.load(checkpoint)
+    resumed_model.load_state_dict(saved['model'])
+    resumed = MuonAdam(groups(resumed_model), lr=1e-3)
+    resumed.load_state_dict(saved['optimizer'])
+    for original, restored in zip(model.parameters(), resumed_model.parameters()):
+        kept, loaded = optimizer.state[original], resumed.state[restored]
+        assert kept.keys() == loaded.keys()
+        assert all(torch.equal(kept[key], loaded[key]) for key in kept)
+    for x in batches[2:]:
+        train_step(model, optimizer, x)
+        train_step(resumed_model, resumed, x)
+    for original, restored in zip(model.parameters(), resumed_model.parameters()):
+        assert torch.equal(original, restored)
 
 
 def test_muon_step_is_rms_matched_to_adam():
