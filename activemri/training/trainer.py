@@ -297,6 +297,8 @@ class Sequential_Trainer:
         if 'flat_mask_fraction' in uses and (options.mask_train_mode != 'straight_through' or options.freeze_recon):
             raise ValueError("flat_mask_fraction trains the reconstructor on flat-mask batches, so it needs "
                              "mask_train_mode=straight_through and an unfrozen reconstructor")
+        if options.flat_mask_decay_epochs is not None and options.flat_mask_decay_epochs <= 0:
+            raise ValueError(f"flat_mask_decay_epochs must be > 0 or None, got {options.flat_mask_decay_epochs}")
         if 'slope_start' in uses and options.slope_anneal_epochs <= 0:
             raise ValueError(f"slope_anneal_epochs must be > 0 with slope_start, got {options.slope_anneal_epochs}")
 
@@ -313,11 +315,18 @@ class Sequential_Trainer:
         _unwrapped(self.model).sampler.mask_net.slope = slope
         return slope
 
-    def _draw_flat_mask_batch(self):
+    def _flat_mask_fraction(self, epoch):
+        """Share of training batches with a flat-mask draw at fractional `epoch`: constant, or falling linearly to 0 over
+        flat_mask_decay_epochs."""
+        if self.options.flat_mask_decay_epochs is None:
+            return self.options.flat_mask_fraction
+        return self.options.flat_mask_fraction * max(0.0, 1.0 - epoch / self.options.flat_mask_decay_epochs)
+
+    def _draw_flat_mask_batch(self, epoch):
         """Whether this training batch is masked by a flat-probability draw instead of the LOUPE mask (and set the sampler so)."""
         if self.options.flat_mask_fraction <= 0:
             return False
-        flat = bool(torch.rand((), generator=self.flat_mask_generator) < self.options.flat_mask_fraction)
+        flat = bool(torch.rand((), generator=self.flat_mask_generator) < self._flat_mask_fraction(epoch))
         _unwrapped(self.model).sampler.flat_draw = flat
         return flat
 
@@ -416,7 +425,7 @@ class Sequential_Trainer:
                 batch = self._replicate_for_reinforce(batch, self.options.reinforce_group_size)
             self._anneal_autosamp_kernel((self.epoch + iter_idx / max_batches) / self.options.num_epochs)
             loupe_slope = self._anneal_loupe_slope(self.epoch + iter_idx / max_batches)
-            flat_mask_batch = self._draw_flat_mask_batch()
+            flat_mask_batch = self._draw_flat_mask_batch(self.epoch + iter_idx / max_batches)
 
             kspace = self._load_kspace(batch)
             target = self._target(batch, kspace)

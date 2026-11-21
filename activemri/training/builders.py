@@ -84,6 +84,7 @@ def build_train_config(cfg: DictConfig) -> TrainConfig:
         slope_start=cfg.sampler.get('slope_start', None),
         slope_anneal_epochs=cfg.sampler.get('slope_anneal_epochs', 20.0),
         flat_mask_fraction=cfg.sampler.get('flat_mask_fraction', 0.0),
+        flat_mask_decay_epochs=cfg.sampler.get('flat_mask_decay_epochs', None),
         adapt_grid=cfg.sampler.get('adapt_grid', 16),
         adapt_hidden=cfg.sampler.get('adapt_hidden', 64),
         bank_size=cfg.sampler.get('bank_size', 8),

@@ -56,6 +56,7 @@ sampler:
   loupe_logit_limit: 0.0  # loupe_2d: >0 soft-clamps slope * logit to +/- this before the sigmoid, as conv_2d does (0 = unbounded)
   slope_start: null  # loupe_2d: anneal the sigmoid slope linearly from this to `slope` over slope_anneal_epochs (null = constant slope)
   slope_anneal_epochs: 20
+  flat_mask_decay_epochs: null  # flat_mask_fraction falls linearly to 0 over this many epochs (null = constant fraction)
   flat_mask_fraction: 0.0  # loupe_2d straight-through: this fraction of training batches draws its mask from a flat probability map at the same budget, updating the reconstructor only
   adapt_grid: 16  # smooth_adapt_2d: side of the coarse offset grid predicted from the calibration (0 = a bounded LOUPE mask)
   adapt_hidden: 64  # smooth_adapt_2d: width of the offset predictor (bank_adapt_2d: of the gate)

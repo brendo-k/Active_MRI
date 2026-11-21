@@ -72,6 +72,7 @@ class TrainConfig:
     loupe_logit_limit: float = 0.0  # loupe_2d: >0 soft-clamps slope * logit to +/- this before the sigmoid (0 = unbounded)
     slope_start: Optional[float] = None  # loupe_2d: the slope ramps linearly from this to `slope` over slope_anneal_epochs (None = constant)
     slope_anneal_epochs: float = 20.0
+    flat_mask_decay_epochs: Optional[float] = None  # flat_mask_fraction falls linearly to 0 over this many epochs (None = constant)
     flat_mask_fraction: float = 0.0  # loupe_2d straight-through: fraction of training batches masked by a flat-probability draw at the same budget (reconstructor-only update)
     adapt_grid: int = 16  # smooth_adapt_2d: side of the coarse offset grid (0 = no offset: a bounded LOUPE mask)
     adapt_hidden: int = 64  # smooth_adapt_2d / bank_adapt_2d: width of the offset predictor / gate
