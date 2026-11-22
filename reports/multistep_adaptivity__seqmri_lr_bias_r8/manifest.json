@@ -1,0 +1,862 @@
+{
+  "schema": 1,
+  "generated_at": "2026-11-22T08:37:23+00:00",
+  "code": {
+    "produced_at": "e8d6d3963d82d677284475bfc07288bd8afb695f",
+    "produced_at_subject": "multistep_adaptivity__seqmri_lr_bias_r8: the report's analysis script and run.sh",
+    "head": "e8d6d3963d82d677284475bfc07288bd8afb695f",
+    "branch": "exp/multistep_adaptivity__seqmri_lr_bias_r8",
+    "dirty_tracked_files": [],
+    "scripts": [
+      {
+        "path": "scripts/eval/eval_multistep_adaptivity.py",
+        "changed_since_produced_at": false
+      },
+      {
+        "path": "reports/multistep_adaptivity__seqmri_lr_bias_r8/analysis/summarise.py",
+        "changed_since_produced_at": false
+      }
+    ]
+  },
+  "metric_mask": {
+    "version": "apodized",
+    "definition": "k-space-apodized per-anatomy mask (activemri/utils/metric_mask.py), the trainer metric since 2026-10-20",
+    "apodization_sigma": 16,
+    "params": {
+      "brain": {
+        "fraction": 0.15,
+        "radius": 6
+      },
+      "knee": {
+        "fraction": 0.06,
+        "radius": 12
+      }
+    }
+  },
+  "data": {
+    "config": {
+      "loader": "fastmri_manifest",
+      "manifest": "configs/datasets/fastmri_local_v1/manifest.csv",
+      "roots": {
+        "local_batch2": "~/scratch/data/fastmri/knee/data",
+        "hpc": "~/scratch/data/fastmri/{anatomy}/data"
+      },
+      "train_tier": "F",
+      "limit_volumes": 1,
+      "train_anatomies": [],
+      "val_half": "dev",
+      "train_slice_stride": 1,
+      "condition_classes": [
+        "brain"
+      ],
+      "classes": [
+        "FLAIR"
+      ],
+      "anatomy": [
+        "brain"
+      ],
+      "num_coils": 20,
+      "num_workers": 8
+    },
+    "note": "FLAIR dev half of the local v1 val set (20 volumes, 307 slices, hash 1874f6fc), draw seeds 1234 and 4321; training on FLAIR tier F (339 volumes, 5,139 slices) on CoreHPC RTX PRO 6000"
+  },
+  "runs": [
+    {
+      "name": "F_4_s42_fscr1_tF",
+      "path": "checkpoints/F_4_s42_fscr1_tF",
+      "config_sha256": "20cf998e2eb31f15",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair",
+        "training.batch_size=16",
+        "training.seed=42",
+        "sampler.accelerations=[8.0]",
+        "training.num_step=4",
+        "training.num_epochs=100",
+        "training.lr_step_size=90",
+        "recon.num_cascades=6",
+        "recon.chans=18",
+        "recon.checkpoint_cascades=true",
+        "sampler.preselect_num=10",
+        "sampler.anatomy_conditioning=false",
+        "output.run_name=F_4_s42_fscr1_tF",
+        "sampler.sampler_type=seqmri_2d",
+        "sampler.seqmri_input_scale=signed_log",
+        "training.save_epochs=[10]",
+        "datasets.train_tier=F",
+        "misc.resolution=[320,320]",
+        "sampler.budget_over=acquired",
+        "datasets.limit_volumes=1",
+        "datasets.roots.hpc=\"~/scratch/data/fastmri/{anatomy}/data\"",
+        "datasets.roots.local_batch2=\"~/scratch/data/fastmri/knee/data\"",
+        "datasets.val_half=dev",
+        "output.out_dir=/home/remote/bkadota/scratch/multistep_adaptivity/runs/F_4_s42_fscr1_tF"
+      ],
+      "trained_at_commit": "d58087f50aa3a327fd02402061708ab953f5836a",
+      "checkpoints": {}
+    },
+    {
+      "name": "F_4_s42_fscr1_tF_r150",
+      "path": "checkpoints/F_4_s42_fscr1_tF_r150",
+      "config_sha256": "13c727fca6fe6204",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair",
+        "training.batch_size=16",
+        "training.seed=42",
+        "sampler.accelerations=[8.0]",
+        "training.num_step=4",
+        "training.num_epochs=150",
+        "training.lr_step_size=90",
+        "recon.num_cascades=6",
+        "recon.chans=18",
+        "recon.checkpoint_cascades=true",
+        "sampler.preselect_num=10",
+        "sampler.anatomy_conditioning=false",
+        "output.run_name=F_4_s42_fscr1_tF_r150",
+        "sampler.sampler_type=seqmri_2d",
+        "sampler.seqmri_input_scale=signed_log",
+        "training.save_epochs=[10]",
+        "datasets.train_tier=F",
+        "output.checkpoint=/home/remote/bkadota/scratch/multistep_adaptivity/runs/F_4_s42_fscr1_tF/last_model.pt",
+        "misc.resolution=[320,320]",
+        "sampler.budget_over=acquired",
+        "datasets.limit_volumes=1",
+        "datasets.roots.hpc=\"~/scratch/data/fastmri/{anatomy}/data\"",
+        "datasets.roots.local_batch2=\"~/scratch/data/fastmri/knee/data\"",
+        "datasets.val_half=dev",
+        "output.out_dir=/home/remote/bkadota/scratch/multistep_adaptivity__seqmri_lr_bias_r8/runs/F_4_s42_fscr1_tF_r150"
+      ],
+      "trained_at_commit": "49be6990c3905a5e25bb89146e7b467398650439",
+      "checkpoints": {}
+    },
+    {
+      "name": "F_4_s42_lrs_tF",
+      "path": "checkpoints/F_4_s42_lrs_tF",
+      "config_sha256": "07c544b11ba09214",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair",
+        "training.batch_size=16",
+        "training.seed=42",
+        "sampler.accelerations=[8.0]",
+        "training.num_step=4",
+        "training.num_epochs=100",
+        "training.lr_step_size=90",
+        "recon.num_cascades=6",
+        "recon.chans=18",
+        "recon.checkpoint_cascades=true",
+        "sampler.preselect_num=10",
+        "sampler.anatomy_conditioning=false",
+        "output.run_name=F_4_s42_lrs_tF",
+        "sampler.sampler_type=seqmri_2d",
+        "sampler.seqmri_input_scale=signed_log",
+        "training.save_epochs=[10]",
+        "datasets.train_tier=F",
+        "sampler.lr=1e-4",
+        "misc.resolution=[320,320]",
+        "sampler.budget_over=acquired",
+        "datasets.limit_volumes=1",
+        "datasets.roots.hpc=\"~/scratch/data/fastmri/{anatomy}/data\"",
+        "datasets.roots.local_batch2=\"~/scratch/data/fastmri/knee/data\"",
+        "datasets.val_half=dev",
+        "output.out_dir=/home/remote/bkadota/scratch/multistep_adaptivity__seqmri_lr_bias_r8/runs/F_4_s42_lrs_tF"
+      ],
+      "trained_at_commit": "49be6990c3905a5e25bb89146e7b467398650439",
+      "checkpoints": {}
+    },
+    {
+      "name": "F_4_s42_route_tF",
+      "path": "checkpoints/F_4_s42_route_tF",
+      "config_sha256": "7ed857511b24c07f",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair",
+        "training.batch_size=16",
+        "training.seed=42",
+        "sampler.accelerations=[8.0]",
+        "training.num_step=4",
+        "training.num_epochs=100",
+        "training.lr_step_size=90",
+        "recon.num_cascades=6",
+        "recon.chans=18",
+        "recon.checkpoint_cascades=true",
+        "sampler.preselect_num=10",
+        "sampler.anatomy_conditioning=false",
+        "output.run_name=F_4_s42_route_tF",
+        "sampler.sampler_type=seqmri_2d",
+        "sampler.seqmri_input_scale=signed_log",
+        "training.save_epochs=[10]",
+        "datasets.train_tier=F",
+        "sampler.seqmri_union_route=true",
+        "misc.resolution=[320,320]",
+        "sampler.budget_over=acquired",
+        "datasets.limit_volumes=1",
+        "datasets.roots.hpc=\"~/scratch/data/fastmri/{anatomy}/data\"",
+        "datasets.roots.local_batch2=\"~/scratch/data/fastmri/knee/data\"",
+        "datasets.val_half=dev",
+        "output.out_dir=/home/remote/bkadota/scratch/multistep_adaptivity__seqmri_lr_bias_r8_rs2/runs/F_4_s42_route_tF"
+      ],
+      "trained_at_commit": "49be6990c3905a5e25bb89146e7b467398650439",
+      "checkpoints": {}
+    },
+    {
+      "name": "F_4_s42_routebias_tF",
+      "path": "checkpoints/F_4_s42_routebias_tF",
+      "config_sha256": "057f854683ae9f95",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair",
+        "training.batch_size=16",
+        "training.seed=42",
+        "sampler.accelerations=[8.0]",
+        "training.num_step=4",
+        "training.num_epochs=100",
+        "training.lr_step_size=90",
+        "recon.num_cascades=6",
+        "recon.chans=18",
+        "recon.checkpoint_cascades=true",
+        "sampler.preselect_num=10",
+        "sampler.anatomy_conditioning=false",
+        "output.run_name=F_4_s42_routebias_tF",
+        "sampler.sampler_type=seqmri_2d",
+        "sampler.seqmri_input_scale=signed_log",
+        "training.save_epochs=[10]",
+        "datasets.train_tier=F",
+        "sampler.seqmri_union_route=true",
+        "sampler.seqmri_step_bias=true",
+        "misc.resolution=[320,320]",
+        "sampler.budget_over=acquired",
+        "datasets.limit_volumes=1",
+        "datasets.roots.hpc=\"~/scratch/data/fastmri/{anatomy}/data\"",
+        "datasets.roots.local_batch2=\"~/scratch/data/fastmri/knee/data\"",
+        "datasets.val_half=dev",
+        "output.out_dir=/home/remote/bkadota/scratch/multistep_adaptivity__seqmri_lr_bias_r8_rs2/runs/F_4_s42_routebias_tF"
+      ],
+      "trained_at_commit": "49be6990c3905a5e25bb89146e7b467398650439",
+      "checkpoints": {}
+    },
+    {
+      "name": "Fb_4_s42_fscr1_tF",
+      "path": "checkpoints/Fb_4_s42_fscr1_tF",
+      "config_sha256": "b3527c0e7f837686",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair",
+        "training.batch_size=16",
+        "training.seed=42",
+        "sampler.accelerations=[8.0]",
+        "training.num_step=4",
+        "training.num_epochs=100",
+        "training.lr_step_size=90",
+        "recon.num_cascades=6",
+        "recon.chans=18",
+        "recon.checkpoint_cascades=true",
+        "sampler.preselect_num=10",
+        "sampler.anatomy_conditioning=false",
+        "output.run_name=Fb_4_s42_fscr1_tF",
+        "sampler.sampler_type=seqmri_2d",
+        "sampler.seqmri_input_scale=signed_log",
+        "sampler.data_blind=true",
+        "training.save_epochs=[10]",
+        "datasets.train_tier=F",
+        "misc.resolution=[320,320]",
+        "sampler.budget_over=acquired",
+        "datasets.limit_volumes=1",
+        "datasets.roots.hpc=\"~/scratch/data/fastmri/{anatomy}/data\"",
+        "datasets.roots.local_batch2=\"~/scratch/data/fastmri/knee/data\"",
+        "datasets.val_half=dev",
+        "output.out_dir=/home/remote/bkadota/scratch/multistep_adaptivity/runs/Fb_4_s42_fscr1_tF"
+      ],
+      "trained_at_commit": "d58087f50aa3a327fd02402061708ab953f5836a",
+      "checkpoints": {}
+    },
+    {
+      "name": "Fb_4_s42_fscr1_tF_r150",
+      "path": "checkpoints/Fb_4_s42_fscr1_tF_r150",
+      "config_sha256": "e6d7cece613e9595",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair",
+        "training.batch_size=16",
+        "training.seed=42",
+        "sampler.accelerations=[8.0]",
+        "training.num_step=4",
+        "training.num_epochs=150",
+        "training.lr_step_size=90",
+        "recon.num_cascades=6",
+        "recon.chans=18",
+        "recon.checkpoint_cascades=true",
+        "sampler.preselect_num=10",
+        "sampler.anatomy_conditioning=false",
+        "output.run_name=Fb_4_s42_fscr1_tF_r150",
+        "sampler.sampler_type=seqmri_2d",
+        "sampler.seqmri_input_scale=signed_log",
+        "sampler.data_blind=true",
+        "training.save_epochs=[10]",
+        "datasets.train_tier=F",
+        "output.checkpoint=/home/remote/bkadota/scratch/multistep_adaptivity/runs/Fb_4_s42_fscr1_tF/last_model.pt",
+        "misc.resolution=[320,320]",
+        "sampler.budget_over=acquired",
+        "datasets.limit_volumes=1",
+        "datasets.roots.hpc=\"~/scratch/data/fastmri/{anatomy}/data\"",
+        "datasets.roots.local_batch2=\"~/scratch/data/fastmri/knee/data\"",
+        "datasets.val_half=dev",
+        "output.out_dir=/home/remote/bkadota/scratch/multistep_adaptivity__seqmri_lr_bias_r8/runs/Fb_4_s42_fscr1_tF_r150"
+      ],
+      "trained_at_commit": "49be6990c3905a5e25bb89146e7b467398650439",
+      "checkpoints": {}
+    },
+    {
+      "name": "Fb_4_s42_lrs_tF",
+      "path": "checkpoints/Fb_4_s42_lrs_tF",
+      "config_sha256": "39bd88cafd0699aa",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair",
+        "training.batch_size=16",
+        "training.seed=42",
+        "sampler.accelerations=[8.0]",
+        "training.num_step=4",
+        "training.num_epochs=100",
+        "training.lr_step_size=90",
+        "recon.num_cascades=6",
+        "recon.chans=18",
+        "recon.checkpoint_cascades=true",
+        "sampler.preselect_num=10",
+        "sampler.anatomy_conditioning=false",
+        "output.run_name=Fb_4_s42_lrs_tF",
+        "sampler.sampler_type=seqmri_2d",
+        "sampler.seqmri_input_scale=signed_log",
+        "sampler.data_blind=true",
+        "training.save_epochs=[10]",
+        "datasets.train_tier=F",
+        "sampler.lr=1e-4",
+        "misc.resolution=[320,320]",
+        "sampler.budget_over=acquired",
+        "datasets.limit_volumes=1",
+        "datasets.roots.hpc=\"~/scratch/data/fastmri/{anatomy}/data\"",
+        "datasets.roots.local_batch2=\"~/scratch/data/fastmri/knee/data\"",
+        "datasets.val_half=dev",
+        "output.out_dir=/home/remote/bkadota/scratch/multistep_adaptivity__seqmri_lr_bias_r8/runs/Fb_4_s42_lrs_tF"
+      ],
+      "trained_at_commit": "49be6990c3905a5e25bb89146e7b467398650439",
+      "checkpoints": {}
+    },
+    {
+      "name": "Fb_4_s42_route_tF",
+      "path": "checkpoints/Fb_4_s42_route_tF",
+      "config_sha256": "875fd26e0138f1ff",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair",
+        "training.batch_size=16",
+        "training.seed=42",
+        "sampler.accelerations=[8.0]",
+        "training.num_step=4",
+        "training.num_epochs=100",
+        "training.lr_step_size=90",
+        "recon.num_cascades=6",
+        "recon.chans=18",
+        "recon.checkpoint_cascades=true",
+        "sampler.preselect_num=10",
+        "sampler.anatomy_conditioning=false",
+        "output.run_name=Fb_4_s42_route_tF",
+        "sampler.sampler_type=seqmri_2d",
+        "sampler.seqmri_input_scale=signed_log",
+        "sampler.data_blind=true",
+        "training.save_epochs=[10]",
+        "datasets.train_tier=F",
+        "sampler.seqmri_union_route=true",
+        "misc.resolution=[320,320]",
+        "sampler.budget_over=acquired",
+        "datasets.limit_volumes=1",
+        "datasets.roots.hpc=\"~/scratch/data/fastmri/{anatomy}/data\"",
+        "datasets.roots.local_batch2=\"~/scratch/data/fastmri/knee/data\"",
+        "datasets.val_half=dev",
+        "output.out_dir=/home/remote/bkadota/scratch/multistep_adaptivity__seqmri_lr_bias_r8_rs2/runs/Fb_4_s42_route_tF"
+      ],
+      "trained_at_commit": "49be6990c3905a5e25bb89146e7b467398650439",
+      "checkpoints": {}
+    },
+    {
+      "name": "Fb_4_s42_routebias_tF",
+      "path": "checkpoints/Fb_4_s42_routebias_tF",
+      "config_sha256": "2c61963dfc1dd9a5",
+      "overrides": [
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair",
+        "training.batch_size=16",
+        "training.seed=42",
+        "sampler.accelerations=[8.0]",
+        "training.num_step=4",
+        "training.num_epochs=100",
+        "training.lr_step_size=90",
+        "recon.num_cascades=6",
+        "recon.chans=18",
+        "recon.checkpoint_cascades=true",
+        "sampler.preselect_num=10",
+        "sampler.anatomy_conditioning=false",
+        "output.run_name=Fb_4_s42_routebias_tF",
+        "sampler.sampler_type=seqmri_2d",
+        "sampler.seqmri_input_scale=signed_log",
+        "sampler.data_blind=true",
+        "training.save_epochs=[10]",
+        "datasets.train_tier=F",
+        "sampler.seqmri_union_route=true",
+        "sampler.seqmri_step_bias=true",
+        "misc.resolution=[320,320]",
+        "sampler.budget_over=acquired",
+        "datasets.limit_volumes=1",
+        "datasets.roots.hpc=\"~/scratch/data/fastmri/{anatomy}/data\"",
+        "datasets.roots.local_batch2=\"~/scratch/data/fastmri/knee/data\"",
+        "datasets.val_half=dev",
+        "output.out_dir=/home/remote/bkadota/scratch/multistep_adaptivity__seqmri_lr_bias_r8_rs2/runs/Fb_4_s42_routebias_tF"
+      ],
+      "trained_at_commit": "49be6990c3905a5e25bb89146e7b467398650439",
+      "checkpoints": {}
+    },
+    {
+      "name": "L_1_s42_fscr1_tF",
+      "path": "checkpoints/L_1_s42_fscr1_tF",
+      "config_sha256": "a5c9adf044e547ad",
+      "overrides": [
+        "sampler.sampler_type=loupe_2d",
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair",
+        "training.batch_size=16",
+        "training.seed=42",
+        "sampler.accelerations=[8.0]",
+        "training.num_step=1",
+        "training.num_epochs=100",
+        "training.lr_step_size=90",
+        "recon.num_cascades=6",
+        "recon.chans=18",
+        "recon.checkpoint_cascades=true",
+        "sampler.preselect_num=10",
+        "sampler.anatomy_conditioning=false",
+        "output.run_name=L_1_s42_fscr1_tF",
+        "datasets.train_tier=F",
+        "misc.resolution=[320,320]",
+        "sampler.budget_over=acquired",
+        "datasets.limit_volumes=1",
+        "datasets.roots.hpc=\"~/scratch/data/fastmri/{anatomy}/data\"",
+        "datasets.roots.local_batch2=\"~/scratch/data/fastmri/knee/data\"",
+        "datasets.val_half=dev",
+        "output.out_dir=/home/remote/bkadota/scratch/multistep_adaptivity/runs/L_1_s42_fscr1_tF"
+      ],
+      "trained_at_commit": "d58087f50aa3a327fd02402061708ab953f5836a",
+      "checkpoints": {}
+    },
+    {
+      "name": "L_1_s42_fscr1_tF_r150",
+      "path": "checkpoints/L_1_s42_fscr1_tF_r150",
+      "config_sha256": "b790b06e3b91615a",
+      "overrides": [
+        "sampler.sampler_type=loupe_2d",
+        "recon=varnet",
+        "datasets=fastmri_local_v1_flair",
+        "training.batch_size=16",
+        "training.seed=42",
+        "sampler.accelerations=[8.0]",
+        "training.num_step=1",
+        "training.num_epochs=150",
+        "training.lr_step_size=90",
+        "recon.num_cascades=6",
+        "recon.chans=18",
+        "recon.checkpoint_cascades=true",
+        "sampler.preselect_num=10",
+        "sampler.anatomy_conditioning=false",
+        "output.run_name=L_1_s42_fscr1_tF_r150",
+        "datasets.train_tier=F",
+        "output.checkpoint=/home/remote/bkadota/scratch/multistep_adaptivity/runs/L_1_s42_fscr1_tF/last_model.pt",
+        "misc.resolution=[320,320]",
+        "sampler.budget_over=acquired",
+        "datasets.limit_volumes=1",
+        "datasets.roots.hpc=\"~/scratch/data/fastmri/{anatomy}/data\"",
+        "datasets.roots.local_batch2=\"~/scratch/data/fastmri/knee/data\"",
+        "datasets.val_half=dev",
+        "output.out_dir=/home/remote/bkadota/scratch/multistep_adaptivity__seqmri_lr_bias_r8/runs/L_1_s42_fscr1_tF_r150"
+      ],
+      "trained_at_commit": "49be6990c3905a5e25bb89146e7b467398650439",
+      "checkpoints": {}
+    }
+  ],
+  "commands": [
+    "python scripts/eval/eval_multistep_adaptivity.py contrast --scores reports/multistep_adaptivity__seqmri_lr_bias_r8/scores --out reports/multistep_adaptivity__seqmri_lr_bias_r8/contrasts.json --pair 'R1=(F_4_s42_fscr1_tF_r150-L_1_s42_fscr1_tF_r150)-(F_4_s42_fscr1_tF-L_1_s42_fscr1_tF)' --pair S1=F_4_s42_lrs_tF-F_4_s42_fscr1_tF --pair B1=F_4_s42_routebias_tF-F_4_s42_route_tF --pair B2=F_4_s42_routebias_tF-Fb_4_s42_routebias_tF --pair B3=Fb_4_s42_routebias_tF-L_1_s42_fscr1_tF",
+    "python scripts/eval/eval_multistep_adaptivity.py contrast --scores reports/multistep_adaptivity__seqmri_lr_bias_r8/scores --out reports/multistep_adaptivity__seqmri_lr_bias_r8/contrasts_secondary.json --pair F150_minus_F100=F_4_s42_fscr1_tF_r150-F_4_s42_fscr1_tF --pair Fb150_minus_Fb100=Fb_4_s42_fscr1_tF_r150-Fb_4_s42_fscr1_tF --pair L150_minus_L100=L_1_s42_fscr1_tF_r150-L_1_s42_fscr1_tF --pair F150_minus_L150=F_4_s42_fscr1_tF_r150-L_1_s42_fscr1_tF_r150 --pair Flrs_minus_L=F_4_s42_lrs_tF-L_1_s42_fscr1_tF --pair Froutebias_minus_L=F_4_s42_routebias_tF-L_1_s42_fscr1_tF --pair Fblrs_minus_Fb=Fb_4_s42_lrs_tF-Fb_4_s42_fscr1_tF --pair Flrs_minus_Fblrs=F_4_s42_lrs_tF-Fb_4_s42_lrs_tF --pair Fblrs_minus_L=Fb_4_s42_lrs_tF-L_1_s42_fscr1_tF --pair route_F=F_4_s42_route_tF-F_4_s42_fscr1_tF --pair route_Fb=Fb_4_s42_route_tF-Fb_4_s42_fscr1_tF --pair maps_Fb=Fb_4_s42_routebias_tF-Fb_4_s42_route_tF --pair Froute_minus_Fbroute=F_4_s42_route_tF-Fb_4_s42_route_tF",
+    "python reports/multistep_adaptivity__seqmri_lr_bias_r8/analysis/summarise.py all"
+  ],
+  "results": [
+    {
+      "path": "addendum_2026-11-19_route.md",
+      "bytes": 3532,
+      "sha256": "65282658e29e1e6d"
+    },
+    {
+      "path": "analysis/summarise.py",
+      "bytes": 13041,
+      "sha256": "56b7b7d5665fe8bd"
+    },
+    {
+      "path": "by_scan_type.json",
+      "bytes": 6759,
+      "sha256": "21738328d3626cf2"
+    },
+    {
+      "path": "by_scan_type.txt",
+      "bytes": 1116,
+      "sha256": "69b9f3164f8b49f4"
+    },
+    {
+      "path": "contrasts.json",
+      "bytes": 9492,
+      "sha256": "d1e287cb2bce3f0c"
+    },
+    {
+      "path": "contrasts_secondary.json",
+      "bytes": 23922,
+      "sha256": "790d8e059d24ac64"
+    },
+    {
+      "path": "curves.json",
+      "bytes": 102713,
+      "sha256": "2a7c6b00b39bb0b6"
+    },
+    {
+      "path": "figures/contrasts.png",
+      "bytes": 78753,
+      "sha256": "b7bbdcf7c600bb3c"
+    },
+    {
+      "path": "figures/curves.png",
+      "bytes": 371220,
+      "sha256": "07669fbe236ab639"
+    },
+    {
+      "path": "figures/data_swap.png",
+      "bytes": 64872,
+      "sha256": "5ba3eae103f7d4d1"
+    },
+    {
+      "path": "figures/scorer/F_4_s42_fscr1_tF_r150/brain_q25.png",
+      "bytes": 353712,
+      "sha256": "b7028725729943fe"
+    },
+    {
+      "path": "figures/scorer/F_4_s42_fscr1_tF_r150/brain_q50.png",
+      "bytes": 362876,
+      "sha256": "2424214ebd8a4fdc"
+    },
+    {
+      "path": "figures/scorer/F_4_s42_fscr1_tF_r150/brain_q75.png",
+      "bytes": 338410,
+      "sha256": "e6d7cf86d2f2f7ba"
+    },
+    {
+      "path": "figures/scorer/F_4_s42_lrs_tF/brain_q25.png",
+      "bytes": 359782,
+      "sha256": "65294e0c7b6348a9"
+    },
+    {
+      "path": "figures/scorer/F_4_s42_lrs_tF/brain_q50.png",
+      "bytes": 369795,
+      "sha256": "e62aa4e53b8a4da7"
+    },
+    {
+      "path": "figures/scorer/F_4_s42_lrs_tF/brain_q75.png",
+      "bytes": 346181,
+      "sha256": "0c43783e362d3926"
+    },
+    {
+      "path": "figures/scorer/F_4_s42_route_tF/brain_q25.png",
+      "bytes": 326573,
+      "sha256": "fa239e3f395ac98c"
+    },
+    {
+      "path": "figures/scorer/F_4_s42_route_tF/brain_q50.png",
+      "bytes": 356564,
+      "sha256": "556acb1444a9a6a3"
+    },
+    {
+      "path": "figures/scorer/F_4_s42_route_tF/brain_q75.png",
+      "bytes": 323973,
+      "sha256": "553b30ad9ba1fbd0"
+    },
+    {
+      "path": "figures/scorer/F_4_s42_routebias_tF/brain_q25.png",
+      "bytes": 360659,
+      "sha256": "de77baa44db49434"
+    },
+    {
+      "path": "figures/scorer/F_4_s42_routebias_tF/brain_q50.png",
+      "bytes": 369363,
+      "sha256": "29ca05f5e898c72d"
+    },
+    {
+      "path": "figures/scorer/F_4_s42_routebias_tF/brain_q75.png",
+      "bytes": 338157,
+      "sha256": "2d2de1439e5c6ce5"
+    },
+    {
+      "path": "figures/scorer/Fb_4_s42_fscr1_tF_r150/brain_q25.png",
+      "bytes": 306372,
+      "sha256": "f52a6fd7f7e7f2a7"
+    },
+    {
+      "path": "figures/scorer/Fb_4_s42_fscr1_tF_r150/brain_q50.png",
+      "bytes": 311507,
+      "sha256": "ba31008ba5bd2271"
+    },
+    {
+      "path": "figures/scorer/Fb_4_s42_fscr1_tF_r150/brain_q75.png",
+      "bytes": 291833,
+      "sha256": "adfc8652fdeb7844"
+    },
+    {
+      "path": "figures/scorer/Fb_4_s42_lrs_tF/brain_q25.png",
+      "bytes": 315302,
+      "sha256": "17a0e0cd30ea514b"
+    },
+    {
+      "path": "figures/scorer/Fb_4_s42_lrs_tF/brain_q50.png",
+      "bytes": 319332,
+      "sha256": "a1a1b3eee164d343"
+    },
+    {
+      "path": "figures/scorer/Fb_4_s42_lrs_tF/brain_q75.png",
+      "bytes": 300163,
+      "sha256": "2961fae2b73f9af0"
+    },
+    {
+      "path": "figures/scorer/Fb_4_s42_route_tF/brain_q25.png",
+      "bytes": 341721,
+      "sha256": "fe7f5c30c797ec38"
+    },
+    {
+      "path": "figures/scorer/Fb_4_s42_route_tF/brain_q50.png",
+      "bytes": 349171,
+      "sha256": "6362aa55151cc9dd"
+    },
+    {
+      "path": "figures/scorer/Fb_4_s42_route_tF/brain_q75.png",
+      "bytes": 318887,
+      "sha256": "bae30a4d47325ade"
+    },
+    {
+      "path": "figures/scorer/Fb_4_s42_routebias_tF/brain_q25.png",
+      "bytes": 350094,
+      "sha256": "81b17a429ab7f9e1"
+    },
+    {
+      "path": "figures/scorer/Fb_4_s42_routebias_tF/brain_q50.png",
+      "bytes": 354174,
+      "sha256": "90351d0122d03fc9"
+    },
+    {
+      "path": "figures/scorer/Fb_4_s42_routebias_tF/brain_q75.png",
+      "bytes": 324107,
+      "sha256": "85dc7a18c87ee63b"
+    },
+    {
+      "path": "figures/scorer/L_1_s42_fscr1_tF_r150/brain_q25.png",
+      "bytes": 110258,
+      "sha256": "7f9558403d68a3cb"
+    },
+    {
+      "path": "figures/scorer/L_1_s42_fscr1_tF_r150/brain_q50.png",
+      "bytes": 110016,
+      "sha256": "d48e23404ed7a660"
+    },
+    {
+      "path": "figures/scorer/L_1_s42_fscr1_tF_r150/brain_q75.png",
+      "bytes": 104783,
+      "sha256": "d0b9d1b37a4b35d4"
+    },
+    {
+      "path": "jobs.txt",
+      "bytes": 2304,
+      "sha256": "90d73bb4defe2d82"
+    },
+    {
+      "path": "logs/seqmri_lrb-3161833.log",
+      "bytes": 58535,
+      "sha256": "a432d65c576be952"
+    },
+    {
+      "path": "logs/seqmri_lrb-3161834.log",
+      "bytes": 58491,
+      "sha256": "944dca793a7826e1"
+    },
+    {
+      "path": "logs/seqmri_lrb-3161835.log",
+      "bytes": 54384,
+      "sha256": "3a040ab9028b4df7"
+    },
+    {
+      "path": "logs/seqmri_lrb-3161836.log",
+      "bytes": 77106,
+      "sha256": "e41012529f169397"
+    },
+    {
+      "path": "logs/seqmri_lrb-3161837.log",
+      "bytes": 77193,
+      "sha256": "3c3e7898ace95476"
+    },
+    {
+      "path": "logs/seqmri_lrb-3161839.log",
+      "bytes": 76590,
+      "sha256": "0c0db0fe2454ee63"
+    },
+    {
+      "path": "logs/seqmri_lrb-3161840.log",
+      "bytes": 81748,
+      "sha256": "3efcf88d7e6e706a"
+    },
+    {
+      "path": "logs/seqmri_lrb-3161841.log",
+      "bytes": 76475,
+      "sha256": "038b1de07b37e1cd"
+    },
+    {
+      "path": "logs/seqmri_lrb-3161842.log",
+      "bytes": 81710,
+      "sha256": "b005afd034db636a"
+    },
+    {
+      "path": "proposal.md",
+      "bytes": 5083,
+      "sha256": "666e5e8d797eb8ff"
+    },
+    {
+      "path": "scores/F_4_s42_fscr1_tF.json",
+      "bytes": 5745,
+      "sha256": "921916c49422a13c"
+    },
+    {
+      "path": "scores/F_4_s42_fscr1_tF.npz",
+      "bytes": 62041,
+      "sha256": "6cb076caf79ece40"
+    },
+    {
+      "path": "scores/F_4_s42_fscr1_tF_r150.json",
+      "bytes": 5956,
+      "sha256": "2873a39bb41fb3ca"
+    },
+    {
+      "path": "scores/F_4_s42_fscr1_tF_r150.npz",
+      "bytes": 62039,
+      "sha256": "58f6c00d5a4c4e79"
+    },
+    {
+      "path": "scores/F_4_s42_lrs_tF.json",
+      "bytes": 5830,
+      "sha256": "d333bd7336d80321"
+    },
+    {
+      "path": "scores/F_4_s42_lrs_tF.npz",
+      "bytes": 61888,
+      "sha256": "55585b19d13bc939"
+    },
+    {
+      "path": "scores/F_4_s42_route_tF.json",
+      "bytes": 5866,
+      "sha256": "ea91274a86773033"
+    },
+    {
+      "path": "scores/F_4_s42_route_tF.npz",
+      "bytes": 61941,
+      "sha256": "c98af29613616170"
+    },
+    {
+      "path": "scores/F_4_s42_routebias_tF.json",
+      "bytes": 5928,
+      "sha256": "fe50a72c8ad69c70"
+    },
+    {
+      "path": "scores/F_4_s42_routebias_tF.npz",
+      "bytes": 62073,
+      "sha256": "eece7307d3c570a3"
+    },
+    {
+      "path": "scores/Fb_4_s42_fscr1_tF.json",
+      "bytes": 5029,
+      "sha256": "579adb494972dd4a"
+    },
+    {
+      "path": "scores/Fb_4_s42_fscr1_tF.npz",
+      "bytes": 29742,
+      "sha256": "08f7a37551b8ccdc"
+    },
+    {
+      "path": "scores/Fb_4_s42_fscr1_tF_r150.json",
+      "bytes": 5242,
+      "sha256": "121edba27d6cb563"
+    },
+    {
+      "path": "scores/Fb_4_s42_fscr1_tF_r150.npz",
+      "bytes": 29754,
+      "sha256": "0bf90710ca55ee3b"
+    },
+    {
+      "path": "scores/Fb_4_s42_lrs_tF.json",
+      "bytes": 5116,
+      "sha256": "e1ca4067481de69a"
+    },
+    {
+      "path": "scores/Fb_4_s42_lrs_tF.npz",
+      "bytes": 29792,
+      "sha256": "3499303ae49f65be"
+    },
+    {
+      "path": "scores/Fb_4_s42_route_tF.json",
+      "bytes": 5152,
+      "sha256": "9a8c90230a2932c8"
+    },
+    {
+      "path": "scores/Fb_4_s42_route_tF.npz",
+      "bytes": 29780,
+      "sha256": "d5d263e8dc9bdd22"
+    },
+    {
+      "path": "scores/Fb_4_s42_routebias_tF.json",
+      "bytes": 5209,
+      "sha256": "1b9442cde593630c"
+    },
+    {
+      "path": "scores/Fb_4_s42_routebias_tF.npz",
+      "bytes": 29777,
+      "sha256": "d47fb59fd37814d9"
+    },
+    {
+      "path": "scores/L_1_s42_fscr1_tF.json",
+      "bytes": 4316,
+      "sha256": "8575016c3f9548d6"
+    },
+    {
+      "path": "scores/L_1_s42_fscr1_tF.npz",
+      "bytes": 26457,
+      "sha256": "426b28f757086c00"
+    },
+    {
+      "path": "scores/L_1_s42_fscr1_tF_r150.json",
+      "bytes": 4524,
+      "sha256": "fcf3bc8b7522d1ff"
+    },
+    {
+      "path": "scores/L_1_s42_fscr1_tF_r150.npz",
+      "bytes": 26531,
+      "sha256": "325c3fe72037ec7f"
+    },
+    {
+      "path": "summary.json",
+      "bytes": 7841,
+      "sha256": "aa8de7c34ea4d7d2"
+    },
+    {
+      "path": "summary.txt",
+      "bytes": 1367,
+      "sha256": "f47807ecdc609141"
+    }
+  ]
+}

@@ -1,0 +1,238 @@
+{
+  "name": "F_4_s42_routebias_tF",
+  "run": "/home/remote/bkadota/scratch/multistep_adaptivity__seqmri_lr_bias_r8_rs2/runs/F_4_s42_routebias_tF",
+  "checkpoint": "last_model.pt",
+  "epoch": 99,
+  "training_code": {
+    "commit": "49be6990c3905a5e25bb89146e7b467398650439",
+    "branch": "exp/multistep_adaptivity__seqmri_lr_bias_r8",
+    "dirty_tracked_files": [],
+    "started_at": "2026-11-21T12:36:23+00:00",
+    "argv": [
+      "train.py",
+      "hydra.job.name=train_sequential",
+      "recon=varnet",
+      "datasets=fastmri_local_v1_flair",
+      "training.batch_size=16",
+      "training.seed=42",
+      "sampler.accelerations=[8.0]",
+      "training.num_step=4",
+      "training.num_epochs=100",
+      "training.lr_step_size=90",
+      "recon.num_cascades=6",
+      "recon.chans=18",
+      "recon.checkpoint_cascades=true",
+      "sampler.preselect_num=10",
+      "sampler.anatomy_conditioning=false",
+      "output.run_name=F_4_s42_routebias_tF",
+      "sampler.sampler_type=seqmri_2d",
+      "sampler.seqmri_input_scale=signed_log",
+      "training.save_epochs=[10]",
+      "datasets.train_tier=F",
+      "sampler.seqmri_union_route=true",
+      "sampler.seqmri_step_bias=true",
+      "misc.resolution=[320,320]",
+      "sampler.budget_over=acquired",
+      "datasets.limit_volumes=1",
+      "datasets.roots.hpc=\"~/scratch/data/fastmri/{anatomy}/data\"",
+      "datasets.roots.local_batch2=\"~/scratch/data/fastmri/knee/data\"",
+      "datasets.val_half=dev",
+      "output.out_dir=/home/remote/bkadota/scratch/multistep_adaptivity__seqmri_lr_bias_r8_rs2/runs/F_4_s42_routebias_tF"
+    ]
+  },
+  "eval_code": {
+    "commit": "49be6990c3905a5e25bb89146e7b467398650439",
+    "branch": "exp/multistep_adaptivity__seqmri_lr_bias_r8",
+    "dirty_tracked_files": []
+  },
+  "options": {
+    "sampler_type": "seqmri_2d",
+    "num_step": 4,
+    "data_blind": false,
+    "accelerations": [
+      8.0
+    ],
+    "budget_over": "acquired",
+    "seed": 42,
+    "residual_chans": 16,
+    "residual_depth": 4,
+    "residual_limit": 6.0,
+    "residual_lr": 0.0001,
+    "anatomy_conditioning": false,
+    "loss_type": "l1"
+  },
+  "draw_seeds": [
+    1234,
+    4321
+  ],
+  "slices": {
+    "count": 307,
+    "hash": "1874f6fc07ee779c8d4570f7cb7a72f8107a1a5f"
+  },
+  "means": {
+    "psnr": {
+      "brain": 33.38923834511822,
+      "all": 33.38923834511822
+    },
+    "ssim": {
+      "brain": 0.894081707964122,
+      "all": 0.894081707964122
+    },
+    "nmse": {
+      "brain": 0.004424988245515681,
+      "all": 0.004424988245515681
+    },
+    "realised_fraction": {
+      "brain": 0.12493457625762648,
+      "all": 0.12493457625762648
+    }
+  },
+  "by_step": {
+    "step_new": {
+      "brain": [
+        1962.8827361563517,
+        1962.1482084690554,
+        1964.9788273615636,
+        1963.1205211726385
+      ],
+      "all": [
+        1962.8827361563517,
+        1962.1482084690554,
+        1964.9788273615636,
+        1963.1205211726385
+      ]
+    },
+    "step_budget": {
+      "brain": [
+        1964.315960912052,
+        1964.315960912052,
+        1964.315960912052,
+        1964.315960912052
+      ],
+      "all": [
+        1964.315960912052,
+        1964.315960912052,
+        1964.315960912052,
+        1964.315960912052
+      ]
+    }
+  },
+  "donors": {
+    "matched": 245,
+    "unmatched": {
+      "brain": 62
+    }
+  },
+  "guards": {
+    "ssim_pooled": 0.894081707964122,
+    "ssim_at_least_0.80": true,
+    "realised_fraction_target": 0.125,
+    "realised_fraction_within_0.002": true,
+    "most_draws_outside_the_acquired_region": 0,
+    "no_draws_outside_the_acquired_region": true,
+    "failed_reconstructions_below_20dB": []
+  },
+  "swap_cost": {
+    "psnr": {
+      "brain": {
+        "mean": 0.07936066218784878,
+        "ci95": [
+          0.06141910917892603,
+          0.09724609182697086
+        ],
+        "n_slices": 245,
+        "n_volumes": 16,
+        "n_left_out": 62
+      },
+      "all": {
+        "mean": 0.07936066218784878,
+        "ci95": [
+          0.06141910917892603,
+          0.09724609182697086
+        ],
+        "n_slices": 245,
+        "n_volumes": 16,
+        "n_left_out": 62
+      }
+    },
+    "ssim": {
+      "brain": {
+        "mean": 0.0015026109661769767,
+        "ci95": [
+          0.0010948375936336316,
+          0.0018893251684844188
+        ],
+        "n_slices": 245,
+        "n_volumes": 16,
+        "n_left_out": 62
+      },
+      "all": {
+        "mean": 0.0015026109661769767,
+        "ci95": [
+          0.0010948375936336316,
+          0.0018893251684844188
+        ],
+        "n_slices": 245,
+        "n_volumes": 16,
+        "n_left_out": 62
+      }
+    },
+    "nmse": {
+      "brain": {
+        "mean": -7.091614142136306e-05,
+        "ci95": [
+          -9.115123469972249e-05,
+          -5.212258923012491e-05
+        ],
+        "n_slices": 245,
+        "n_volumes": 16,
+        "n_left_out": 62
+      },
+      "all": {
+        "mean": -7.091614142136306e-05,
+        "ci95": [
+          -9.115123469972249e-05,
+          -5.212258923012491e-05
+        ],
+        "n_slices": 245,
+        "n_volumes": 16,
+        "n_left_out": 62
+      }
+    }
+  },
+  "swap_null": {
+    "donor_final_mask_equals_own": 0.0,
+    "must_be_1_for_a_data_blind_twin": false
+  },
+  "counterfactual_with_own_data_reproduces_every_step": true,
+  "data_swap": {
+    "moved_by_step": {
+      "brain": [
+        0.20772774685938808,
+        0.13239511248511887,
+        0.25340454965572234,
+        0.21300753525502836
+      ],
+      "all": [
+        0.20772774685938808,
+        0.13239511248511887,
+        0.25340454965572234,
+        0.21300753525502836
+      ]
+    },
+    "zero_data_moved_by_step": {
+      "brain": [
+        0.5762011186154655,
+        0.5238749216730225,
+        0.5994869323703103,
+        0.8825031985209602
+      ],
+      "all": [
+        0.5762011186154655,
+        0.5238749216730225,
+        0.5994869323703103,
+        0.8825031985209602
+      ]
+    }
+  }
+}
