@@ -1,10 +1,10 @@
 {
   "schema": 1,
-  "generated_at": "2026-11-22T08:37:23+00:00",
+  "generated_at": "2026-11-22T20:08:10+00:00",
   "code": {
     "produced_at": "e8d6d3963d82d677284475bfc07288bd8afb695f",
     "produced_at_subject": "multistep_adaptivity__seqmri_lr_bias_r8: the report's analysis script and run.sh",
-    "head": "e8d6d3963d82d677284475bfc07288bd8afb695f",
+    "head": "9c4713185bf536d1763861622dfbb4a1f2622a07",
     "branch": "exp/multistep_adaptivity__seqmri_lr_bias_r8",
     "dirty_tracked_files": [],
     "scripts": [
@@ -540,138 +540,138 @@
     },
     {
       "path": "figures/scorer/F_4_s42_fscr1_tF_r150/brain_q25.png",
-      "bytes": 353712,
-      "sha256": "b7028725729943fe"
+      "bytes": 3126743,
+      "sha256": "100accaae4536415"
     },
     {
       "path": "figures/scorer/F_4_s42_fscr1_tF_r150/brain_q50.png",
-      "bytes": 362876,
-      "sha256": "2424214ebd8a4fdc"
+      "bytes": 3217532,
+      "sha256": "f59ca7822e46e475"
     },
     {
       "path": "figures/scorer/F_4_s42_fscr1_tF_r150/brain_q75.png",
-      "bytes": 338410,
-      "sha256": "e6d7cf86d2f2f7ba"
+      "bytes": 2996576,
+      "sha256": "a3266170cba18ff2"
     },
     {
       "path": "figures/scorer/F_4_s42_lrs_tF/brain_q25.png",
-      "bytes": 359782,
-      "sha256": "65294e0c7b6348a9"
+      "bytes": 3165320,
+      "sha256": "3c24ad1e36b2191b"
     },
     {
       "path": "figures/scorer/F_4_s42_lrs_tF/brain_q50.png",
-      "bytes": 369795,
-      "sha256": "e62aa4e53b8a4da7"
+      "bytes": 3227602,
+      "sha256": "e69ca469b739748e"
     },
     {
       "path": "figures/scorer/F_4_s42_lrs_tF/brain_q75.png",
-      "bytes": 346181,
-      "sha256": "0c43783e362d3926"
+      "bytes": 3025554,
+      "sha256": "a795fe4dd069d17f"
     },
     {
       "path": "figures/scorer/F_4_s42_route_tF/brain_q25.png",
-      "bytes": 326573,
-      "sha256": "fa239e3f395ac98c"
+      "bytes": 2985014,
+      "sha256": "c04be706e82eac8b"
     },
     {
       "path": "figures/scorer/F_4_s42_route_tF/brain_q50.png",
-      "bytes": 356564,
-      "sha256": "556acb1444a9a6a3"
+      "bytes": 3113295,
+      "sha256": "aa9c20e09d2b3ba4"
     },
     {
       "path": "figures/scorer/F_4_s42_route_tF/brain_q75.png",
-      "bytes": 323973,
-      "sha256": "553b30ad9ba1fbd0"
+      "bytes": 2789047,
+      "sha256": "630eeb5c8d9a5f4b"
     },
     {
       "path": "figures/scorer/F_4_s42_routebias_tF/brain_q25.png",
-      "bytes": 360659,
-      "sha256": "de77baa44db49434"
+      "bytes": 3211468,
+      "sha256": "683a9bc9784562ef"
     },
     {
       "path": "figures/scorer/F_4_s42_routebias_tF/brain_q50.png",
-      "bytes": 369363,
-      "sha256": "29ca05f5e898c72d"
+      "bytes": 3269468,
+      "sha256": "65784df8b5ab8a06"
     },
     {
       "path": "figures/scorer/F_4_s42_routebias_tF/brain_q75.png",
-      "bytes": 338157,
-      "sha256": "2d2de1439e5c6ce5"
+      "bytes": 2953235,
+      "sha256": "05c75cd2ea79edbc"
     },
     {
       "path": "figures/scorer/Fb_4_s42_fscr1_tF_r150/brain_q25.png",
-      "bytes": 306372,
-      "sha256": "f52a6fd7f7e7f2a7"
+      "bytes": 2672725,
+      "sha256": "24b0bc2190a7836f"
     },
     {
       "path": "figures/scorer/Fb_4_s42_fscr1_tF_r150/brain_q50.png",
-      "bytes": 311507,
-      "sha256": "ba31008ba5bd2271"
+      "bytes": 2702085,
+      "sha256": "4c32057d853b620e"
     },
     {
       "path": "figures/scorer/Fb_4_s42_fscr1_tF_r150/brain_q75.png",
-      "bytes": 291833,
-      "sha256": "adfc8652fdeb7844"
+      "bytes": 2512910,
+      "sha256": "8057bf73e32509d3"
     },
     {
       "path": "figures/scorer/Fb_4_s42_lrs_tF/brain_q25.png",
-      "bytes": 315302,
-      "sha256": "17a0e0cd30ea514b"
+      "bytes": 2740221,
+      "sha256": "781d6131143fc62d"
     },
     {
       "path": "figures/scorer/Fb_4_s42_lrs_tF/brain_q50.png",
-      "bytes": 319332,
-      "sha256": "a1a1b3eee164d343"
+      "bytes": 2758352,
+      "sha256": "e3c8162a1033a253"
     },
     {
       "path": "figures/scorer/Fb_4_s42_lrs_tF/brain_q75.png",
-      "bytes": 300163,
-      "sha256": "2961fae2b73f9af0"
+      "bytes": 2579644,
+      "sha256": "a8db674a47d2ae58"
     },
     {
       "path": "figures/scorer/Fb_4_s42_route_tF/brain_q25.png",
-      "bytes": 341721,
-      "sha256": "fe7f5c30c797ec38"
+      "bytes": 3042802,
+      "sha256": "8fa4888233e3ac7b"
     },
     {
       "path": "figures/scorer/Fb_4_s42_route_tF/brain_q50.png",
-      "bytes": 349171,
-      "sha256": "6362aa55151cc9dd"
+      "bytes": 3123311,
+      "sha256": "fda371c33c5cc0b1"
     },
     {
       "path": "figures/scorer/Fb_4_s42_route_tF/brain_q75.png",
-      "bytes": 318887,
-      "sha256": "bae30a4d47325ade"
+      "bytes": 2797615,
+      "sha256": "791bb66eb56aad59"
     },
     {
       "path": "figures/scorer/Fb_4_s42_routebias_tF/brain_q25.png",
-      "bytes": 350094,
-      "sha256": "81b17a429ab7f9e1"
+      "bytes": 3168822,
+      "sha256": "3f6c8a52df27ba56"
     },
     {
       "path": "figures/scorer/Fb_4_s42_routebias_tF/brain_q50.png",
-      "bytes": 354174,
-      "sha256": "90351d0122d03fc9"
+      "bytes": 3158665,
+      "sha256": "dedff96756219729"
     },
     {
       "path": "figures/scorer/Fb_4_s42_routebias_tF/brain_q75.png",
-      "bytes": 324107,
-      "sha256": "85dc7a18c87ee63b"
+      "bytes": 2904362,
+      "sha256": "5402dc9a13d3aa13"
     },
     {
       "path": "figures/scorer/L_1_s42_fscr1_tF_r150/brain_q25.png",
-      "bytes": 110258,
-      "sha256": "7f9558403d68a3cb"
+      "bytes": 944960,
+      "sha256": "e4e1a870a3b63ff5"
     },
     {
       "path": "figures/scorer/L_1_s42_fscr1_tF_r150/brain_q50.png",
-      "bytes": 110016,
-      "sha256": "d48e23404ed7a660"
+      "bytes": 928956,
+      "sha256": "9e07d5c007100ce3"
     },
     {
       "path": "figures/scorer/L_1_s42_fscr1_tF_r150/brain_q75.png",
-      "bytes": 104783,
-      "sha256": "d0b9d1b37a4b35d4"
+      "bytes": 874048,
+      "sha256": "e158b2d80b474536"
     },
     {
       "path": "jobs.txt",

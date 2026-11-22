@@ -179,6 +179,9 @@ epoch 100 and their training loss is higher and spikier than F's (F_route spikes
 - `figures/scorer/<run>/brain_q{25,50,75}.png`: the scorer's step grids on three dev slices (volumes at the 25th, 50th
   and 75th PSNR percentile, draw seed 1234): per step the data seen, the rescaled sampling probability, the loss
   gradient, the new draws, the mask, the zero-filled image, the reconstruction and its error map. Nine runs.
+  The first renders drew each 320 × 320 image at about 116 px, which blurred every column. These grids were re-rendered
+  at 360 px per panel (2026-11-22, `step_grid_figure` defaults raised) by re-scoring the same checkpoints on the lab
+  server's local copy of the data; every run's pooled PSNR matched its score file to within 0.002 dB.
 
 ## Next steps
 
