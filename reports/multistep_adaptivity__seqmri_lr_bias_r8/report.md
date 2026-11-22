@@ -22,10 +22,11 @@
   | B3: the twin no longer trails LOUPE | Fb_routebias − L | +0.013 [−0.048, +0.072] | yes (CI includes 0) |
   | Guards: pooled SSIM ≥ 0.80 and within 0.02 of the control; realised 0.125 ± 0.002; no draw outside the acquired region | | SSIM 0.889–0.897; realised 0.1249–0.1251; 0 draws outside | yes |
 
-- **Recommendation**: park. None of the three explanations is worth +0.10 dB on its own, so no arm earns seed 43. With
-  a twin that is credited at every step and has per-pixel maps, F's adaptive gain is zero (B2). The one large secondary
-  gap (F_lrs − Fb_lrs +0.14) is a twin that still trails LOUPE on full-width volumes, as in fscr1. The verdict is the
-  user's.
+- **Recommendation**: by the frozen rule, park: no row reaches +0.10 dB, so no arm earns seed 43, and under the route
+  with per-step maps F does not beat its twin (B2). One secondary contrast, not pre-registered, is the strongest
+  adaptivity signal so far: with the sampler at 1e-4, F beats a twin that matches LOUPE pooled by +0.138 [+0.100,
+  +0.174], and the gap holds in both width strata (narrower than the grid +0.19, full width +0.09). If a second seed is
+  spent, it should go to F_lrs and Fb_lrs. The verdict is the user's.
 
 ## Question
 
@@ -64,7 +65,8 @@ and that every run records the shipped commit. F_lrs's log shows three lr groups
 
 1. **Scores.** `scripts/eval/eval_multistep_adaptivity.py score --gradients` on the FLAIR dev half (20 volumes, 307
    slices, hash 1874f6fc), two draw seeds (1234, 4321), run by `train.sbatch` after training. The fscr1 controls' scores
-   (`d58087f`) are reused; the pre-launch check scored F_tF with run-state code bit-identically on 24 slices × 2 draws.
+   (`d58087f`) are reused; before launch, run state 1 (`14b30ef`) scored F_tF bit-identically to them on 24 slices × 2
+   draws.
 2. **Contrasts.** `contrast` subcommand: per-slice paired differences of pooled PSNR, 95% CI from resampling whole
    volumes (2,000 draws). R1 is a difference of differences. Decision rows in `contrasts.json`, secondary contrasts in
    `contrasts_secondary.json`.
@@ -112,7 +114,8 @@ less than half of that.
 
 Every F lead over LOUPE comes from the narrower-than-grid, mostly 1.5 T volumes; on full-width volumes F trails LOUPE by
 0.07–0.09 dB, as fscr1's F did (−0.10). On full width, F_lrs's +0.09 over its twin is the twin's 0.18 dB deficit to
-LOUPE less F's own 0.09.
+LOUPE less F's own 0.09. On the narrower volumes the twin beats LOUPE (+0.25) and F beats the twin by a further
++0.19.
 
 **Data swap and swap cost** (`summary.txt`, `figures/data_swap.png`):
 
@@ -136,7 +139,10 @@ epoch 100 and their training loss is higher and spikier than F's (F_route spikes
 - More epochs, a lower sampler rate, and per-step per-pixel maps each add 0.04–0.07 dB to F. None reaches the
   +0.10 dB bar, so none alone explains the gap the proposal asked about (R1, S1, B1).
 - Given per-pixel maps and credit at every step, the data-blind twin catches up with LOUPE (B3: +0.013) and F no longer
-  beats it (B2: +0.009). Pooled, there is no adaptive gain over a twin of equal strength at R = 8.
+  beats it (B2: +0.009).
+- With the sampler at 1e-4 the twin also matches LOUPE pooled (+0.013), yet F beats it by +0.138 [+0.100, +0.174], on
+  narrower-than-grid volumes (+0.19) and full-width ones (+0.09) alike. Whether F beats a LOUPE-strength twin depends
+  on how both are trained. One seed, and a secondary contrast.
 - The route alone costs F 0.15 dB at 100 epochs while F's curves are still rising. Hypothesis, untested: the route's
   extra gradient paths slow F's convergence rather than lower its ceiling.
 - The twin is sensitive to how it is trained: the lower sampler rate (+0.15, CI includes 0) and the per-step maps (+0.10)
@@ -154,8 +160,10 @@ epoch 100 and their training loss is higher and spikier than F's (F_route spikes
   where the route has cost F 0.15 dB. A longer schedule could change B1 and B2.
 - The scan-type split was chosen after looking (it repeats fscr1's post hoc split); with 6–9 volumes per group its CIs
   are wide.
-- The fscr1 controls were scored at `d58087f` and the new runs at `49be699`. The scorer is unchanged, and run-state code
-  scored F_tF bit-identically on a 24-slice subset before launch; the full 307 slices were not rescored.
+- The fscr1 controls were scored at `d58087f` and the new runs at `49be699`. The scorer is unchanged, and run state 1
+  (`14b30ef`) scored F_tF bit-identically on a 24-slice subset before launch. Run state 3 adds only the route and map
+  options (forward unchanged when off) and the Muon resume fix. The controls were not rescored at `49be699`; R1, S1
+  and B3 pair new scores with old ones.
 - The trainer's validation PSNR in the curves is about 1.4 dB above the scorer's (different data range); compare
   shapes, not levels, with the tables.
 - The proposal's other descriptive readouts (each map's high-frequency share and right-of-centre share) were not
@@ -174,6 +182,8 @@ epoch 100 and their training loss is higher and spikier than F's (F_route spikes
 
 ## Next steps
 
+- If a second seed is spent: F_lrs and Fb_lrs at seed 43 (with the seed-43 fscr1 L control), to test the +0.14 F − twin
+  gap.
 - Header-routed LOUPE: one map per k-space width or scanner, to test whether F's narrow-volume lead is scan-type
   routing (the cheapest explanation of the only place F wins).
 - If adaptivity is pursued further, use a twin trained like Fb_lrs or Fb_routebias, which matches LOUPE pooled, and
