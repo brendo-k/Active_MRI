@@ -27,3 +27,4 @@ probe_conjugate_symmetry_out/
 wandb/
 *.pt
 third_party/
+*.docx
