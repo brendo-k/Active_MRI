@@ -5,8 +5,9 @@
 | Code | results produced at `e8d6d39` (multistep_adaptivity__seqmri_lr_bias_r8: the report's analysis script and run.sh); branch `exp/multistep_adaptivity__seqmri_lr_bias_r8` |
 | Metric mask | **apodized**: k-space-apodized per-anatomy mask (activemri/utils/metric_mask.py), the trainer metric since 2026-10-20 |
 | Runs | 12 checkpoint directories under `checkpoints/` (untracked; names, overrides, wandb ids in `manifest.json`) |
-| Results | 74 files next to this report, hashed in `manifest.json` |
+| Results | 76 files next to this report, hashed in `manifest.json` |
 | Reproduce | `bash run.sh` from the repo root |
+| Code drift | changed after the results were produced: `reports/multistep_adaptivity__seqmri_lr_bias_r8/analysis/arm_b_figure.py` |
 
 - **Branch**: `exp/multistep_adaptivity__seqmri_lr_bias_r8` (renamed 2026-11-20 from `exp/seqmri_lr_bias_r8`). Proposal frozen at
   `c9d2206`; arm B replaced before it ran by `addendum_2026-11-19_route.md`. Every run trained at run state 3 (`49be699`,
@@ -176,6 +177,13 @@ epoch 100 and their training loss is higher and spikier than F's (F_route spikes
 - `figures/curves.png`: trainer validation PSNR and training loss per epoch for each arm against its fscr1 control.
 - `figures/contrasts.png`: the decision rows and secondary contrasts with CIs against the +0.10 dB bar.
 - `figures/data_swap.png`: the share of each step's draws a data swap moves, for each F run.
+- `figures/arm_b.png`: arm B in one figure (`reports/multistep_adaptivity__seqmri_lr_bias_r8/analysis/arm_b_figure.py`, needs the checkpoints and a GPU; `WITH_CHECKPOINTS=1` in `run.sh`). Top: the
+  gradient norm reaching each step's logit map without and with the route (the addendum's numbers), and every arm-B
+  run's pooled PSNR. Middle: F_routebias's and Fb_routebias's learned per-step maps (F against twin correlation
+  0.34, 0.44, 0.59, 0.67 at steps 0–3; step 0 weak; steps 1–2 lower sampling 10–30 px from the centre, step 3 raises it
+  within 30 px by about +0.2 logit and lowers it at 60–100 px by about −0.14, in both; measured inline, not in a
+  script). Bottom: final masks,
+  reconstructions and errors on one dev slice (AXFLAIR_203_6000925 slice 8, draw seed 1234).
 - `figures/scorer/<run>/brain_q{25,50,75}.png`: the scorer's step grids on three dev slices (volumes at the 25th, 50th
   and 75th PSNR percentile, draw seed 1234): per step the data seen, the rescaled sampling probability, the loss
   gradient, the new draws, the mask, the zero-filled image, the reconstruction and its error map. Nine runs.

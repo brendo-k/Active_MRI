@@ -1,13 +1,17 @@
 {
   "schema": 1,
-  "generated_at": "2026-11-22T20:08:10+00:00",
+  "generated_at": "2026-11-23T03:47:12+00:00",
   "code": {
     "produced_at": "e8d6d3963d82d677284475bfc07288bd8afb695f",
     "produced_at_subject": "multistep_adaptivity__seqmri_lr_bias_r8: the report's analysis script and run.sh",
-    "head": "9c4713185bf536d1763861622dfbb4a1f2622a07",
+    "head": "6e4c9d16668bd8c5f6d3a8ad5f72cab54ab7486c",
     "branch": "exp/multistep_adaptivity__seqmri_lr_bias_r8",
     "dirty_tracked_files": [],
     "scripts": [
+      {
+        "path": "reports/multistep_adaptivity__seqmri_lr_bias_r8/analysis/arm_b_figure.py",
+        "changed_since_produced_at": true
+      },
       {
         "path": "scripts/eval/eval_multistep_adaptivity.py",
         "changed_since_produced_at": false
@@ -485,13 +489,19 @@
   "commands": [
     "python scripts/eval/eval_multistep_adaptivity.py contrast --scores reports/multistep_adaptivity__seqmri_lr_bias_r8/scores --out reports/multistep_adaptivity__seqmri_lr_bias_r8/contrasts.json --pair 'R1=(F_4_s42_fscr1_tF_r150-L_1_s42_fscr1_tF_r150)-(F_4_s42_fscr1_tF-L_1_s42_fscr1_tF)' --pair S1=F_4_s42_lrs_tF-F_4_s42_fscr1_tF --pair B1=F_4_s42_routebias_tF-F_4_s42_route_tF --pair B2=F_4_s42_routebias_tF-Fb_4_s42_routebias_tF --pair B3=Fb_4_s42_routebias_tF-L_1_s42_fscr1_tF",
     "python scripts/eval/eval_multistep_adaptivity.py contrast --scores reports/multistep_adaptivity__seqmri_lr_bias_r8/scores --out reports/multistep_adaptivity__seqmri_lr_bias_r8/contrasts_secondary.json --pair F150_minus_F100=F_4_s42_fscr1_tF_r150-F_4_s42_fscr1_tF --pair Fb150_minus_Fb100=Fb_4_s42_fscr1_tF_r150-Fb_4_s42_fscr1_tF --pair L150_minus_L100=L_1_s42_fscr1_tF_r150-L_1_s42_fscr1_tF --pair F150_minus_L150=F_4_s42_fscr1_tF_r150-L_1_s42_fscr1_tF_r150 --pair Flrs_minus_L=F_4_s42_lrs_tF-L_1_s42_fscr1_tF --pair Froutebias_minus_L=F_4_s42_routebias_tF-L_1_s42_fscr1_tF --pair Fblrs_minus_Fb=Fb_4_s42_lrs_tF-Fb_4_s42_fscr1_tF --pair Flrs_minus_Fblrs=F_4_s42_lrs_tF-Fb_4_s42_lrs_tF --pair Fblrs_minus_L=Fb_4_s42_lrs_tF-L_1_s42_fscr1_tF --pair route_F=F_4_s42_route_tF-F_4_s42_fscr1_tF --pair route_Fb=Fb_4_s42_route_tF-Fb_4_s42_fscr1_tF --pair maps_Fb=Fb_4_s42_routebias_tF-Fb_4_s42_route_tF --pair Froute_minus_Fbroute=F_4_s42_route_tF-Fb_4_s42_route_tF",
-    "python reports/multistep_adaptivity__seqmri_lr_bias_r8/analysis/summarise.py all"
+    "python reports/multistep_adaptivity__seqmri_lr_bias_r8/analysis/summarise.py all",
+    "python reports/multistep_adaptivity__seqmri_lr_bias_r8/analysis/arm_b_figure.py --runs-dir \"$RUNS_DIR\" --fscr1-runs-dir \"$FSCR1_RUNS_DIR\" --data-root \"$DATA_ROOT\" --train-tier S"
   ],
   "results": [
     {
       "path": "addendum_2026-11-19_route.md",
       "bytes": 3532,
       "sha256": "65282658e29e1e6d"
+    },
+    {
+      "path": "analysis/arm_b_figure.py",
+      "bytes": 10503,
+      "sha256": "64f63b3ba9401138"
     },
     {
       "path": "analysis/summarise.py",
@@ -522,6 +532,11 @@
       "path": "curves.json",
       "bytes": 102713,
       "sha256": "2a7c6b00b39bb0b6"
+    },
+    {
+      "path": "figures/arm_b.png",
+      "bytes": 1418675,
+      "sha256": "6d80564bbc779d7a"
     },
     {
       "path": "figures/contrasts.png",

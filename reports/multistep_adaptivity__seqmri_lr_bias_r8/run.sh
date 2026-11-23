@@ -14,3 +14,10 @@ cd "$(dirname "$0")/../.."
 python scripts/eval/eval_multistep_adaptivity.py contrast --scores reports/multistep_adaptivity__seqmri_lr_bias_r8/scores --out reports/multistep_adaptivity__seqmri_lr_bias_r8/contrasts.json --pair 'R1=(F_4_s42_fscr1_tF_r150-L_1_s42_fscr1_tF_r150)-(F_4_s42_fscr1_tF-L_1_s42_fscr1_tF)' --pair S1=F_4_s42_lrs_tF-F_4_s42_fscr1_tF --pair B1=F_4_s42_routebias_tF-F_4_s42_route_tF --pair B2=F_4_s42_routebias_tF-Fb_4_s42_routebias_tF --pair B3=Fb_4_s42_routebias_tF-L_1_s42_fscr1_tF
 python scripts/eval/eval_multistep_adaptivity.py contrast --scores reports/multistep_adaptivity__seqmri_lr_bias_r8/scores --out reports/multistep_adaptivity__seqmri_lr_bias_r8/contrasts_secondary.json --pair F150_minus_F100=F_4_s42_fscr1_tF_r150-F_4_s42_fscr1_tF --pair Fb150_minus_Fb100=Fb_4_s42_fscr1_tF_r150-Fb_4_s42_fscr1_tF --pair L150_minus_L100=L_1_s42_fscr1_tF_r150-L_1_s42_fscr1_tF --pair F150_minus_L150=F_4_s42_fscr1_tF_r150-L_1_s42_fscr1_tF_r150 --pair Flrs_minus_L=F_4_s42_lrs_tF-L_1_s42_fscr1_tF --pair Froutebias_minus_L=F_4_s42_routebias_tF-L_1_s42_fscr1_tF --pair Fblrs_minus_Fb=Fb_4_s42_lrs_tF-Fb_4_s42_fscr1_tF --pair Flrs_minus_Fblrs=F_4_s42_lrs_tF-Fb_4_s42_lrs_tF --pair Fblrs_minus_L=Fb_4_s42_lrs_tF-L_1_s42_fscr1_tF --pair route_F=F_4_s42_route_tF-F_4_s42_fscr1_tF --pair route_Fb=Fb_4_s42_route_tF-Fb_4_s42_fscr1_tF --pair maps_Fb=Fb_4_s42_routebias_tF-Fb_4_s42_route_tF --pair Froute_minus_Fbroute=F_4_s42_route_tF-Fb_4_s42_route_tF
 python reports/multistep_adaptivity__seqmri_lr_bias_r8/analysis/summarise.py all
+
+# figures/arm_b.png needs the arm-B checkpoints, fscr1's F and Fb, and a GPU; skipped unless WITH_CHECKPOINTS=1.
+# On the lab server: RUNS_DIR=/export/scratch/bkadota/lrb_r8_sync/runs FSCR1_RUNS_DIR=/export/scratch/bkadota/multistep_adaptivity_sync/runs
+#   DATA_ROOT='hpc=/export/scratch/bkadota/fastmri_raw/{anatomy}'
+if [[ "${WITH_CHECKPOINTS:-0}" == 1 ]]; then
+  python reports/multistep_adaptivity__seqmri_lr_bias_r8/analysis/arm_b_figure.py --runs-dir "$RUNS_DIR" --fscr1-runs-dir "$FSCR1_RUNS_DIR" --data-root "$DATA_ROOT" --train-tier S
+fi
