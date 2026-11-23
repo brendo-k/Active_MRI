@@ -21,3 +21,11 @@ python reports/multistep_adaptivity__seqmri_lr_bias_r8/analysis/summarise.py all
 if [[ "${WITH_CHECKPOINTS:-0}" == 1 ]]; then
   python reports/multistep_adaptivity__seqmri_lr_bias_r8/analysis/arm_b_figure.py --runs-dir "$RUNS_DIR" --fscr1-runs-dir "$FSCR1_RUNS_DIR" --data-root "$DATA_ROOT" --train-tier S
 fi
+
+# Rotation probe (addendum_2026-11-22_rotation.md). Scoring needs the 12 checkpoints and a GPU (WITH_CHECKPOINTS=1, the
+# variables above); summarising and the figure read rotation/*.npz.
+if [[ "${WITH_CHECKPOINTS:-0}" == 1 ]]; then
+  python reports/multistep_adaptivity__seqmri_lr_bias_r8/analysis/rotation_probe.py score --runs-dir "$RUNS_DIR" --fscr1-runs-dir "$FSCR1_RUNS_DIR" --data-root "$DATA_ROOT" --train-tier S
+fi
+python reports/multistep_adaptivity__seqmri_lr_bias_r8/analysis/rotation_probe.py summarise
+python reports/multistep_adaptivity__seqmri_lr_bias_r8/analysis/rotation_probe.py figure
