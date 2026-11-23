@@ -70,6 +70,8 @@ class Sequential_Trainer:
         self.val_mask_generator = torch.Generator(device=device)
         self.model.sampler.eval_generator = self.val_mask_generator
         self.metric_mask_cache = {}  # (anatomy, fname, slice_id) -> [1, H, W] bool, filled by _metric_mask
+        self._check_flat_mask_options(options)
+        self.flat_mask_generator = torch.Generator().manual_seed(FLAT_MASK_SEED + (options.seed or 0))
 
         if options.pretrained_recon is not None:
             self._load_pretrained_recon(options.pretrained_recon)
@@ -324,6 +326,32 @@ class Sequential_Trainer:
             self.options.autosamp_anneal_fraction, progress,
         ) if annealing else 0.0
 
+    def _check_flat_mask_options(self, options):
+        if options.flat_mask_fraction <= 0:
+            return
+        if options.sampler_type != 'loupe_2d':
+            raise ValueError(f"flat_mask_fraction needs sampler_type=loupe_2d, got {options.sampler_type!r}")
+        if options.mask_train_mode != 'straight_through' or options.freeze_recon:
+            raise ValueError("flat_mask_fraction trains the reconstructor on flat-mask batches, so it needs "
+                             "mask_train_mode=straight_through and an unfrozen reconstructor")
+        if options.flat_mask_decay_epochs is not None and options.flat_mask_decay_epochs <= 0:
+            raise ValueError(f"flat_mask_decay_epochs must be > 0 or None, got {options.flat_mask_decay_epochs}")
+
+    def _flat_mask_fraction(self, epoch):
+        """Share of training batches with a flat-mask draw at fractional `epoch`: constant, or falling linearly to 0 over
+        flat_mask_decay_epochs."""
+        if self.options.flat_mask_decay_epochs is None:
+            return self.options.flat_mask_fraction
+        return self.options.flat_mask_fraction * max(0.0, 1.0 - epoch / self.options.flat_mask_decay_epochs)
+
+    def _draw_flat_mask_batch(self, epoch):
+        """Whether this training batch is masked by a flat-probability draw instead of the LOUPE mask (and set the sampler so)."""
+        if self.options.flat_mask_fraction <= 0:
+            return False
+        flat = bool(torch.rand((), generator=self.flat_mask_generator) < self._flat_mask_fraction(epoch))
+        _unwrapped(self.model).sampler.flat_draw = flat
+        return flat
+
     def _recon_modules(self):
         model = self.model.module if isinstance(self.model, torch.nn.DataParallel) else self.model
         return model.reconstructor, model.sensetivity_net
@@ -425,6 +453,7 @@ class Sequential_Trainer:
             if self.options.mask_train_mode == 'reinforce':
                 batch = self._replicate_for_reinforce(batch, self.options.reinforce_group_size)
             self._anneal_autosamp_kernel((self.epoch + iter_idx / max_batches) / self.options.num_epochs)
+            flat_mask_batch = self._draw_flat_mask_batch(self.epoch + iter_idx / max_batches)
 
             kspace = self._load_kspace(batch)
             target = self._target(batch, kspace)
@@ -502,6 +531,8 @@ class Sequential_Trainer:
                 anatomy_stats.update(anatomies, masked_output, masked_target, pred_dict['mask'].detach())
 
             step_log = {'train/loss': loss.item(), 'train/step': global_step_offset + iter_idx, **grad_log}
+            if self.options.flat_mask_fraction > 0:
+                step_log['train/flat_mask_batch'] = float(flat_mask_batch)
             if self.options.mask_train_mode == 'reinforce':
                 step_log['train/reinforce_reward'] = log_dict.get('Reinforce Reward', 0.0)
                 step_log['train/reinforce_loss'] = log_dict.get('Reinforce Loss', 0.0)
@@ -1162,6 +1193,7 @@ def _sampler_type(options: TrainConfig) -> str:
 # per-step move at ~lr whatever their scale.
 POSITION_ADAM_EPS = 1e-16
 GRADIENT_GROUPS = ('sampler', 'reconstructor', 'sensetivity_net')
+FLAT_MASK_SEED = 9_173  # offset of the flat-mask batch generator's seed from training.seed
 SATURATED_LOGIT = math.log(99)  # |slope * w| beyond this puts the mask probability outside [0.01, 0.99]
 
 

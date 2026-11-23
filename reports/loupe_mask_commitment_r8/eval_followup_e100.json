@@ -1,0 +1,399 @@
+{
+ "seeds": [
+  1234,
+  4321
+ ],
+ "control": "control",
+ "val": "full local v1 (limit_volumes=1)",
+ "checkpoint": "last_model.pt",
+ "per_run": {
+  "control_s42": {
+   "epochs": 100,
+   "all": {
+    "psnr_masked": 33.819866690227244,
+    "ssim_masked": 0.8633162730035578,
+    "n_slices": 1938
+   },
+   "brain": {
+    "psnr_masked": 32.966855443213596,
+    "ssim_masked": 0.8843606939863218,
+    "n_slices": 605
+   },
+   "knee-PD": {
+    "psnr_masked": 36.00149452101777,
+    "ssim_masked": 0.9216284132812932,
+    "n_slices": 673
+   },
+   "knee-PDFS": {
+    "psnr_masked": 32.377194378592755,
+    "ssim_masked": 0.784564841031606,
+    "n_slices": 660
+   }
+  },
+  "control_s43": {
+   "epochs": 100,
+   "all": {
+    "psnr_masked": 33.79899725357937,
+    "ssim_masked": 0.8620909528549731,
+    "n_slices": 1938
+   },
+   "brain": {
+    "psnr_masked": 32.940157756332525,
+    "ssim_masked": 0.8831401702103031,
+    "n_slices": 605
+   },
+   "knee-PD": {
+    "psnr_masked": 36.00154258166876,
+    "ssim_masked": 0.9210789271099882,
+    "n_slices": 673
+   },
+   "knee-PDFS": {
+    "psnr_masked": 32.340337996049364,
+    "ssim_masked": 0.7826459783495187,
+    "n_slices": 660
+   }
+  },
+  "control_s44": {
+   "epochs": 100,
+   "all": {
+    "psnr_masked": 33.823962886759126,
+    "ssim_masked": 0.8630423658644557,
+    "n_slices": 1938
+   },
+   "brain": {
+    "psnr_masked": 32.966015246682915,
+    "ssim_masked": 0.8840495341351654,
+    "n_slices": 605
+   },
+   "knee-PD": {
+    "psnr_masked": 36.013139121068356,
+    "ssim_masked": 0.9216591107047503,
+    "n_slices": 673
+   },
+   "knee-PDFS": {
+    "psnr_masked": 32.37811851790457,
+    "ssim_masked": 0.78401447786249,
+    "n_slices": 660
+   }
+  },
+  "mixdecay_s42": {
+   "epochs": 100,
+   "all": {
+    "psnr_masked": 33.88514251728668,
+    "ssim_masked": 0.8638288979051847,
+    "n_slices": 1938
+   },
+   "brain": {
+    "psnr_masked": 33.05441491465923,
+    "ssim_masked": 0.8854840696558339,
+    "n_slices": 605
+   },
+   "knee-PD": {
+    "psnr_masked": 36.05208120303558,
+    "ssim_masked": 0.9216569004681444,
+    "n_slices": 673
+   },
+   "knee-PDFS": {
+    "psnr_masked": 32.43702200831789,
+    "ssim_masked": 0.7850112848233444,
+    "n_slices": 660
+   }
+  },
+  "mixdecay_s43": {
+   "epochs": 100,
+   "all": {
+    "psnr_masked": 33.89572519217728,
+    "ssim_masked": 0.8638903850442058,
+    "n_slices": 1938
+   },
+   "brain": {
+    "psnr_masked": 33.05800547323936,
+    "ssim_masked": 0.8854684434537947,
+    "n_slices": 605
+   },
+   "knee-PD": {
+    "psnr_masked": 36.066292887456704,
+    "ssim_masked": 0.9218492561704846,
+    "n_slices": 673
+   },
+   "knee-PDFS": {
+    "psnr_masked": 32.450313633138485,
+    "ssim_masked": 0.7850100129142255,
+    "n_slices": 660
+   }
+  },
+  "mixdecay_s44": {
+   "epochs": 100,
+   "all": {
+    "psnr_masked": 33.85426361568203,
+    "ssim_masked": 0.8633542538146971,
+    "n_slices": 1938
+   },
+   "brain": {
+    "psnr_masked": 32.99094274379005,
+    "ssim_masked": 0.884646741132406,
+    "n_slices": 605
+   },
+   "knee-PD": {
+    "psnr_masked": 36.04215217238904,
+    "ssim_masked": 0.9214427688971373,
+    "n_slices": 673
+   },
+   "knee-PDFS": {
+    "psnr_masked": 32.414657750274195,
+    "ssim_masked": 0.7846034576363696,
+    "n_slices": 660
+   }
+  }
+ },
+ "paired": {
+  "mixdecay": {
+   "42": {
+    "all": {
+     "psnr": {
+      "mean": 0.06527582705943577,
+      "ci": [
+       0.0428835471818379,
+       0.08766810693703364
+      ],
+      "n_volumes": 80,
+      "frac_volumes_better": 0.9
+     },
+     "ssim": {
+      "mean": 0.0005126249016269272,
+      "ci": [
+       0.000235209524961375,
+       0.0007900402782924794
+      ],
+      "n_volumes": 80,
+      "frac_volumes_better": 0.75
+     }
+    },
+    "brain": {
+     "psnr": {
+      "mean": 0.08755947144563533,
+      "ci": [
+       0.04946790428979172,
+       0.12565103860147894
+      ],
+      "n_volumes": 40,
+      "frac_volumes_better": 0.875
+     },
+     "ssim": {
+      "mean": 0.0011233756695121,
+      "ci": [
+       0.0006480511541986139,
+       0.0015987001848255863
+      ],
+      "n_volumes": 40,
+      "frac_volumes_better": 0.875
+     }
+    },
+    "knee-PD": {
+     "psnr": {
+      "mean": 0.05058668201780957,
+      "ci": [
+       0.009166191373710185,
+       0.09200717266190894
+      ],
+      "n_volumes": 20,
+      "frac_volumes_better": 0.9
+     },
+     "ssim": {
+      "mean": 2.848718685124046e-05,
+      "ci": [
+       -0.0001912648960251283,
+       0.0002482392697276092
+      ],
+      "n_volumes": 20,
+      "frac_volumes_better": 0.5
+     }
+    },
+    "knee-PDFS": {
+     "psnr": {
+      "mean": 0.059827629725138345,
+      "ci": [
+       0.039183194190204995,
+       0.0804720652600717
+      ],
+      "n_volumes": 20,
+      "frac_volumes_better": 0.95
+     },
+     "ssim": {
+      "mean": 0.0004464437917383025,
+      "ci": [
+       9.423864290917106e-05,
+       0.0007986489405674339
+      ],
+      "n_volumes": 20,
+      "frac_volumes_better": 0.75
+     }
+    }
+   },
+   "43": {
+    "all": {
+     "psnr": {
+      "mean": 0.09672793859790846,
+      "ci": [
+       0.0752714632230953,
+       0.11818441397272161
+      ],
+      "n_volumes": 80,
+      "frac_volumes_better": 0.9625
+     },
+     "ssim": {
+      "mean": 0.0017994321892326624,
+      "ci": [
+       0.0013900015527129668,
+       0.0022088628257523582
+      ],
+      "n_volumes": 80,
+      "frac_volumes_better": 0.975
+     }
+    },
+    "brain": {
+     "psnr": {
+      "mean": 0.11784771690683916,
+      "ci": [
+       0.09167957336222136,
+       0.14401586045145698
+      ],
+      "n_volumes": 40,
+      "frac_volumes_better": 0.975
+     },
+     "ssim": {
+      "mean": 0.0023282732434914953,
+      "ci": [
+       0.0015929761565995418,
+       0.0030635703303834487
+      ],
+      "n_volumes": 40,
+      "frac_volumes_better": 1.0
+     }
+    },
+    "knee-PD": {
+     "psnr": {
+      "mean": 0.06475030578794663,
+      "ci": [
+       0.0026251458981882483,
+       0.12687546567770502
+      ],
+      "n_volumes": 20,
+      "frac_volumes_better": 0.9
+     },
+     "ssim": {
+      "mean": 0.0007703290604965926,
+      "ci": [
+       0.0004610787254091758,
+       0.0010795793955840093
+      ],
+      "n_volumes": 20,
+      "frac_volumes_better": 0.9
+     }
+    },
+    "knee-PDFS": {
+     "psnr": {
+      "mean": 0.10997563708912242,
+      "ci": [
+       0.08502672731405997,
+       0.13492454686418487
+      ],
+      "n_volumes": 20,
+      "frac_volumes_better": 1.0
+     },
+     "ssim": {
+      "mean": 0.0023640345647065733,
+      "ci": [
+       0.0020329450480362048,
+       0.0026951240813769418
+      ],
+      "n_volumes": 20,
+      "frac_volumes_better": 1.0
+     }
+    }
+   },
+   "44": {
+    "all": {
+     "psnr": {
+      "mean": 0.030300728922903968,
+      "ci": [
+       0.012486262665098929,
+       0.048115195180709
+      ],
+      "n_volumes": 80,
+      "frac_volumes_better": 0.6625
+     },
+     "ssim": {
+      "mean": 0.0003118879502413224,
+      "ci": [
+       -5.752217871276779e-05,
+       0.0006812980791954127
+      ],
+      "n_volumes": 80,
+      "frac_volumes_better": 0.4625
+     }
+    },
+    "brain": {
+     "psnr": {
+      "mean": 0.024927497107135363,
+      "ci": [
+       -0.0019388616696290502,
+       0.05179385588389977
+      ],
+      "n_volumes": 40,
+      "frac_volumes_better": 0.525
+     },
+     "ssim": {
+      "mean": 0.0005972069972405956,
+      "ci": [
+       -0.00011199316425797637,
+       0.0013064071587391675
+      ],
+      "n_volumes": 40,
+      "frac_volumes_better": 0.4
+     }
+    },
+    "knee-PD": {
+     "psnr": {
+      "mean": 0.02901305132068107,
+      "ci": [
+       -0.014998598540222077,
+       0.07302470118158422
+      ],
+      "n_volumes": 20,
+      "frac_volumes_better": 0.75
+     },
+     "ssim": {
+      "mean": -0.0002163418076130115,
+      "ci": [
+       -0.00042866068440963897,
+       -4.022930816384077e-06
+      ],
+      "n_volumes": 20,
+      "frac_volumes_better": 0.15
+     }
+    },
+    "knee-PDFS": {
+     "psnr": {
+      "mean": 0.03653923236962521,
+      "ci": [
+       0.01747214004855677,
+       0.055606324690693654
+      ],
+      "n_volumes": 20,
+      "frac_volumes_better": 0.85
+     },
+     "ssim": {
+      "mean": 0.000588979773879817,
+      "ci": [
+       0.0003319516219760409,
+       0.0008460079257835931
+      ],
+      "n_volumes": 20,
+      "frac_volumes_better": 0.9
+     }
+    }
+   }
+  }
+ }
+}

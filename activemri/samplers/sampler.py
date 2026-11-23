@@ -26,6 +26,7 @@ from activemri.utils.mask_binarization import (
 SAMPLER_TYPES = ("conv_2d", "conv_1d", "loupe_2d", "loupe_1d", "caipi_2d", "poisson_2d", "autosamp_2d", "mnet_2d", "smooth_adapt_2d", "bank_adapt_2d", "cnn_router_2d", "seq_adapt_2d", "seqmri_2d")
 CONTEXT_SAMPLERS = ("seq_adapt_2d", "seqmri_2d")  # samplers that read a StepContext
 MASK_TRAIN_MODES = ("straight_through", "reinforce", "random")
+FLAT_PROBABILITY = 0.5  # any constant below 1 rescales to the same uniform map; 1 makes RescaleProbMap divide by zero
 SELECTIONS = ("bernoulli", "dcm")
 
 
@@ -206,6 +207,9 @@ class Sampler(nn.Module):
         self.reinforce_eval = reinforce_eval
         # Set by the trainer and reseeded every val epoch, so eval draws repeat exactly.
         self.eval_generator: torch.Generator | None = None
+        # Set by the trainer per training batch (flat_mask_fraction): draw from a flat probability map at the same
+        # budget instead of the learned one, so the mask parameters stay out of the graph.
+        self.flat_draw = False
 
         if sampler_type == "caipi_2d":
             self.register_buffer("caipi_pattern", caipi_mask(shape, accel_y=caipi_accel_y, accel_z=caipi_accel_z, keep_fraction=caipi_keep_fraction)[None, None])
@@ -633,8 +637,11 @@ class Sampler(nn.Module):
                 old_mask, budget, valid_mask, anatomy_labels, uniform=True)
             return binary_mask, data_to_vis_sampler, None, None, None
 
-        samp_prob_unscaled, sampler_uncertainty, anatomy_logits = self.unscaled_probabilities(
-            observed_kspace, old_mask, recon_complex, gfactor, anatomy_labels, context, details)
+        if self.flat_draw and self.training:
+            samp_prob_unscaled, sampler_uncertainty, anatomy_logits = torch.full_like(old_mask, FLAT_PROBABILITY), None, None
+        else:
+            samp_prob_unscaled, sampler_uncertainty, anatomy_logits = self.unscaled_probabilities(
+                observed_kspace, old_mask, recon_complex, gfactor, anatomy_labels, context, details)
 
         samp_prob, binary_mask = self.select_locations(samp_prob_unscaled, old_mask, budget, valid_mask, threshold=threshold)
         if details is not None:

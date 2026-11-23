@@ -80,6 +80,8 @@ def build_train_config(cfg: DictConfig) -> TrainConfig:
         dcm_tau=cfg.sampler.get('dcm_tau', 5.0),
         logit_limit=cfg.sampler.get('logit_limit', 6.0),
         logit_leak=cfg.sampler.get('logit_leak', 0.01),
+        flat_mask_fraction=cfg.sampler.get('flat_mask_fraction', 0.0),
+        flat_mask_decay_epochs=cfg.sampler.get('flat_mask_decay_epochs', None),
         adapt_grid=cfg.sampler.get('adapt_grid', 16),
         adapt_hidden=cfg.sampler.get('adapt_hidden', 64),
         bank_size=cfg.sampler.get('bank_size', 8),

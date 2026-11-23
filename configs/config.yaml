@@ -66,6 +66,8 @@ sampler:
   dcm_tau: 5.0  # selection=dcm: softmax temperature of the straight-through backward
   logit_limit: 6.0  # conv_2d: scores soft-clamped to +/- this before the sigmoid (p floor = sigmoid(-limit))
   logit_leak: 0.01  # conv_2d: slope of the score beyond the clamp, the gradient kept for pinned locations
+  flat_mask_fraction: 0.0  # loupe_2d straight-through: this fraction of training batches draws its mask from a flat probability map at the same budget, updating the reconstructor only (0.25 = `mix` in reports/loupe_mask_commitment_r8)
+  flat_mask_decay_epochs: null  # flat_mask_fraction falls linearly to 0 over this many epochs (null = constant; 30 = `mixdecay`)
   adapt_grid: 16  # smooth_adapt_2d: side of the coarse offset grid predicted from the calibration (0 = a bounded LOUPE mask)
   adapt_hidden: 64  # smooth_adapt_2d: width of the offset predictor (bank_adapt_2d: of the gate)
   bank_size: 8  # bank_adapt_2d: number of learned masks the calibration-block gate blends

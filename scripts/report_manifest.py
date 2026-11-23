@@ -69,7 +69,7 @@ def describe_run(run_dir, hash_checkpoints):
     overrides = hydra_dir / 'overrides.yaml'
     if overrides.exists():
         entry['overrides'] = yaml.safe_load(overrides.read_text())
-    wandb_runs = sorted((run_dir / 'wandb').glob('run-*')) if (run_dir / 'wandb').exists() else []
+    wandb_runs = sorted((run_dir / 'wandb').glob('*run-*')) if (run_dir / 'wandb').exists() else []
     if wandb_runs:
         entry['wandb_run_id'] = wandb_runs[-1].name.rsplit('-', 1)[-1]
     run_info = run_dir / 'run_info.json'
