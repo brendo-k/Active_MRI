@@ -28,10 +28,16 @@ than its data-blind twin with the same budget? This is roadmap step 3 in `AGENTS
 - **Order-free multi-step adaptivity at R=8** — NULL: no multi-step sampler beat its matched data-blind twin by the
   frozen bars (fine-tuned G ≤ +0.018 dB; from scratch +0.06 to +0.08 dB, knee, one seed). On FLAIR tier F, SeqMRI's
   design minus one-step LOUPE is +0.11 dB with a CI that includes 0. Evidence: `reports/multistep_adaptivity/report.md`.
+- **Training and parametrisation of F (proposal A, seed 42)** — no frozen row passes: 50 more epochs +0.06, sampler
+  lr 1e-4 +0.04, per-step maps under the route +0.07 dB (bar +0.10); the route alone costs F 0.15 dB. fscr1's twin was
+  a weak control: twins trained like Fb_lrs or Fb_routebias match LOUPE. Post hoc, F_lrs − Fb_lrs +0.14 [+0.10, +0.17].
+  Evidence: `reports/multistep_adaptivity__seqmri_lr_bias_r8/report.md`.
+- **Rotation equivariance (post hoc)** — without augmentation, a 90° rotation moves every adaptive density more than its
+  twin's (w gap +0.13 to +0.27) but never past w = 0.5; LOUPE 0. Evidence: `addendum_2026-11-22_rotation.md` there.
 
 ## Open questions
 
-- Is F under-converged at epoch 100, or was its sampler lr (Adam 1e-3) too high until the step at 90? — roadmap item 1
+- Does training with exact 90° rotations and flips make F's density follow the scan, and does it help reconstruction? — roadmap item 3
 - Is F's fscr1 lead scan-type routing for the 1.5 T narrow-k-space scans? A header-routed LOUPE is the test. — roadmap item 2
 - Do the one-sided masks use conjugate symmetry (partial Fourier)? — run under the loss_domain line
 

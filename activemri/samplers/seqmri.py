@@ -17,6 +17,11 @@ Two fscr1 options (reports/multistep_adaptivity/addendum_2026-11-16_fscr1.md):
   values ('raw', kscr3) the U-Net read only the mask channel. 0 stays 0 and the peak maps to +/-1.
 - `data_blind` is the twin: a fixed tensor replaces the four data channels and the mask channel is kept, so spacing
   between steps stays open to it. It reads no reconstruction, so the loop runs none before its steps.
+
+seqmri_lr_bias_r8 (reports/multistep_adaptivity__seqmri_lr_bias_r8/proposal.md): `step_bias_steps=K` adds one learned
+logit map per step, [K, 1, H, W] and zero at the start, to the U-Net's output before the softplus. A convolutional
+network cannot place structure at fixed k-space positions; the maps can, and they condition each step on its index. At
+zero they change nothing, so a run with them starts identical to one without.
 """
 import math
 
@@ -57,10 +62,12 @@ class SeqMRISampler2D(nn.Module):
 
     reads_reconstruction = False
 
-    def __init__(self, shape, chans=64, num_pool_layers=4, checkpoint_network=True, input_scale='raw', data_blind=False):
+    def __init__(self, shape, chans=64, num_pool_layers=4, checkpoint_network=True, input_scale='raw', data_blind=False,
+                 step_bias_steps=0):
         """`checkpoint_network` recomputes the U-Net in the backward pass instead of keeping every step's activations.
-        `input_scale` and `data_blind` are the fscr1 options in the module docstring. The twin's fixed tensor comes from
-        its own generator, so an arm and its twin draw the same U-Net from the global random stream."""
+        `input_scale` and `data_blind` are the fscr1 options in the module docstring, `step_bias_steps` the per-step
+        logit maps (0 = none). The twin's fixed tensor comes from its own generator, so an arm and its twin draw the same
+        U-Net from the global random stream; the maps start at zero and draw nothing from it."""
         super().__init__()
         if input_scale not in INPUT_SCALES:
             raise ValueError(f"input_scale must be one of {INPUT_SCALES}, got {input_scale!r}")
@@ -84,14 +91,18 @@ class SeqMRISampler2D(nn.Module):
         self.up_sample_layers.append(_ConvBlock(ch * 2, ch))
         self.conv2 = nn.Sequential(nn.Conv2d(ch, ch // 2, kernel_size=1), nn.Conv2d(ch // 2, 1, kernel_size=1),
                                    nn.Conv2d(1, 1, kernel_size=1))
+        self.step_bias = nn.Parameter(torch.zeros(step_bias_steps, 1, *shape)) if step_bias_steps > 0 else None
 
     def forward(self, old_mask, context: StepContext, anatomy_labels=None, details=None):  # noqa: ARG002
-        """Scores [B, 1, H, W]: softplus of the network's output over its per-slice maximum, times 1 - M_i."""
+        """Scores [B, 1, H, W]: softplus of the network's output (plus this step's logit map) over its per-slice maximum,
+        times 1 - M_i."""
         inputs = self.inputs(old_mask, context)
         if self.checkpoint_network and torch.is_grad_enabled():
             raw = checkpoint(self.network, inputs, use_reentrant=False)
         else:
             raw = self.network(inputs)
+        if self.step_bias is not None:
+            raw = raw + self.step_bias[context.step].to(raw.dtype)
         scores = F.softplus(raw)
         scores = scores / scores.flatten(1).amax(dim=1).view(-1, 1, 1, 1)
         return scores * (1 - old_mask)

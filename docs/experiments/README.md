@@ -16,7 +16,7 @@ line yet: `exp/final_dc`, `exp/brain_varnet_scaling`, `exp/brain_varnet_width`, 
 
 | Line | Open branch | State (2026-11-20) |
 |---|---|---|
-| [multistep_adaptivity](multistep_adaptivity/) | `exp/multistep_adaptivity__seqmri_lr_bias_r8` | in flight: run state 3 (49be699) queued on CoreHPC |
+| [multistep_adaptivity](multistep_adaptivity/) | none | proposal A merged 2026-11-23; D4-augmentation follow-up being proposed |
 | [loss_domain](loss_domain/) | `exp/loss_domain__loupe_loss_partial_fourier` | in flight: run state 2 (24db7c7) queued on CoreHPC |
 | [loupe_training](loupe_training/) | `exp/loupe_training__loupe_mask_commitment_r8` | awaiting verdict |
 | [brain_own_learned_mask](brain_own_learned_mask/) | `exp/brain_own_learned_mask__brain_static_vs_loupe` | awaiting verdict |

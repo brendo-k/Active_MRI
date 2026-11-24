@@ -227,12 +227,13 @@ SHARED_SYMMETRIC = ('residual', 'grad')
 SYMMETRIC_PERCENTILE = 99.5  # a few near-DC gradients are orders above the rest; a max-based range would blank the map
 
 
-def step_grid_figure(panels, title, panel_inches=1.45, dpi=80):
+def step_grid_figure(panels, title, panel_inches=3.6, dpi=100):
     """One row per step and one column per quantity (STEP_COLUMNS), for `step_panels` output.
 
     The residual and gradient columns share one symmetric colour range over all steps (the 99.5th percentile of their
     magnitude, so a few outliers saturate instead of blanking the rest), so their size can be compared between steps;
-    the row label gives each step's new samples, gradient norm and reconstruction PSNR.
+    the row label gives each step's new samples, gradient norm and reconstruction PSNR. The default panel size draws a
+    320 x 320 image at its native resolution or finer, so the figure does not resample the reconstructions.
     """
     rows = panels['rows']
     columns = [column for column in STEP_COLUMNS if any(column[0] in row for row in rows)]
@@ -251,7 +252,7 @@ def step_grid_figure(panels, title, panel_inches=1.45, dpi=80):
             axis.set_xticks([])
             axis.set_yticks([])
             if r == 0:
-                axis.set_title(label, fontsize=6)
+                axis.set_title(label, fontsize=10)
             if key not in row:
                 axis.set_facecolor('0.92')
                 continue
@@ -267,7 +268,7 @@ def step_grid_figure(panels, title, panel_inches=1.45, dpi=80):
             label.append(f"|g| {np.linalg.norm(row['grad']):.2e}")
         if 'psnr' in row:
             label.append(f"{row['psnr']:.2f} dB")
-        axes[r, 0].set_ylabel('\n'.join(part for part in label if part), fontsize=6)
-    figure.suptitle(title, fontsize=7)
+        axes[r, 0].set_ylabel('\n'.join(part for part in label if part), fontsize=10)
+    figure.suptitle(title, fontsize=12)
     figure.tight_layout(rect=(0, 0, 1, 1 - 0.5 / (panel_inches * len(rows) + 0.9)))
     return figure

@@ -1,0 +1,37 @@
+# CoreHPC jobs, submitted 2026-11-19 from ~/scratch/seqmri_lr_bias_r8 at run state 1 (14b30ef); training waits on validation.
+# A first submission at 736a232 (validate 3132622, training 3132623-7) was cancelled before any job started, to widen the
+# validation's loss-continuity bar from 5% to 10% and add the trainer-options test; that commit was amended, never ran.
+validate 3132881
+F_4_s42_fscr1_tF_r150 3132882
+Fb_4_s42_fscr1_tF_r150 3132883
+L_1_s42_fscr1_tF_r150 3132884
+Fb_4_s42_lrs_tF 3132885
+F_4_s42_lrs_tF 3132886
+# Run state 2 (50414f3, addendum_2026-11-19_route.md), from ~/scratch/seqmri_lr_bias_r8_rs2 (EXP_DIR); training waits on validation
+validate_rs2 3133093
+F_4_s42_route_tF 3133094
+F_4_s42_routebias_tF 3133095
+Fb_4_s42_route_tF 3133096
+Fb_4_s42_routebias_tF 3133097
+# 2026-11-20: no job above trained. Both validations failed at the test step: four early-stop tests fail whenever CUDA
+# is visible. 3132881's resume arms also failed in optimizer.load_state_dict (KeyError: 'step' on the Muon states).
+# Every smoke and score check passed. The training jobs above never started and were cancelled on 11-20.
+# Renamed 11-20 to multistep_adaptivity__seqmri_lr_bias_r8. The CoreHPC folders are now
+# ~/scratch/multistep_adaptivity__seqmri_lr_bias_r8 and ~/scratch/multistep_adaptivity__seqmri_lr_bias_r8_rs2.
+# Run state 3 (49be699) carries the fix (86b9a22) and the rename. Every arm launches from it; training waits on validation.
+validate_rs3 3161832
+F_4_s42_fscr1_tF_r150 3161833
+Fb_4_s42_fscr1_tF_r150 3161834
+L_1_s42_fscr1_tF_r150 3161835
+Fb_4_s42_lrs_tF 3161836
+F_4_s42_lrs_tF 3161837
+# The route arms, from ~/scratch/multistep_adaptivity__seqmri_lr_bias_r8_rs2 at run state 3
+validate_rs3_route 3161838
+F_4_s42_route_tF 3161839
+F_4_s42_routebias_tF 3161840
+Fb_4_s42_route_tF 3161841
+Fb_4_s42_routebias_tF 3161842
+# 11-20: validate_rs3 3161832 passed every check (18:16-18:38, ggpu1-18, 367 tests). Each resume arm restarts at lr 1e-4
+# in both groups, its quarter-epoch train loss 1.6-1.7% above epoch 100's. Its five training jobs then queued.
+# 11-20: validate_rs3_route 3161838 passed every check (18:23-18:42, ggpu1-13, 367 tests). Its four training jobs then
+# queued. Every smoke run here and in 3161832 scores SSIM 0.72-0.75 after 10% of one epoch, as 11-19's 3133093 did.

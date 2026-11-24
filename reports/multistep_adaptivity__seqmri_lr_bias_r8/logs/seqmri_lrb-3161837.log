@@ -1,0 +1,961 @@
+host=ggpu1-13 gpu=NVIDIA RTX PRO 6000 Blackwell Server Edition commit=49be6990c3905a5e25bb89146e7b467398650439 python=3.14.0 torch=2.12.0+cu130
+arm=F_4_s42_lrs_tF run=/home/remote/bkadota/scratch/multistep_adaptivity__seqmri_lr_bias_r8/runs/F_4_s42_lrs_tF
+wandb: Tracking run with wandb version 0.27.0
+wandb: W&B syncing is set to `offline` in this directory. Run `wandb online` or set WANDB_MODE=online to enable cloud syncing.
+wandb: Run data is saved locally in /home/remote/bkadota/scratch/multistep_adaptivity__seqmri_lr_bias_r8/runs/F_4_s42_lrs_tF/wandb/offline-run-20261121_031919-6a9ji8s0
+recon:
+  recon_type: varnet
+  num_cascades: 6
+  chans: 18
+  pools: 4
+  anatomy_conditioning: false
+  film_conditioning: false
+  prompt_conditioning: false
+  label_blind: false
+  dc_mode: where
+  dc_weight_map: false
+  adaptive_input: false
+  momentum_history: 0
+  backbone: unet
+  csme: false
+  checkpoint_cascades: true
+  unet_precision: bf16
+  norm: layer
+  fused_coil_ops: true
+  restrict_to_extent: false
+  checkpoint_sense: true
+datasets:
+  loader: fastmri_manifest
+  manifest: configs/datasets/fastmri_local_v1/manifest.csv
+  roots:
+    local_batch2: ~/scratch/data/fastmri/knee/data
+    hpc: ~/scratch/data/fastmri/{anatomy}/data
+  train_tier: F
+  limit_volumes: 1
+  train_anatomies: []
+  val_anatomies: []
+  val_limit_volumes: null
+  val_half: dev
+  train_slice_stride: 1
+  condition_classes:
+  - brain
+  classes:
+  - FLAIR
+  anatomy:
+  - brain
+  num_coils: 20
+  num_workers: 8
+training:
+  num_step: 4
+  batch_size: 16
+  num_epochs: 100
+  lr: 0.001
+  lr_step_size: 90
+  lr_gamma: 0.1
+  lr_scheduler: step
+  lr_warmup_epochs: 2
+  weight_decay: 0.0
+  optimizer: muon
+  muon_lr: null
+  muon_momentum: 0.95
+  fused_adam: true
+  grad_clip_norm: 1.0
+  limit_batches: 1.0
+  data_parallel: false
+  compile_unets: true
+  channels_last_unets: sens
+  cudnn_benchmark: true
+  train_masked_metrics_every: 1
+  train_metrics_every: 10
+  val_every: 1
+  early_stop_patience: 0
+  ema_decay: 0.0
+  visualize_every: 10
+  save_epochs:
+  - 10
+  seed: 42
+loss:
+  loss_type: l1
+  uncertainty_loss: false
+  uncertainty_weight: 0.0
+  anatomy_weight: 0.0
+sampler:
+  model: SequentialSampling
+  accelerations:
+  - 8.0
+  budget_over: acquired
+  coil_combine: sense
+  data_blind: false
+  residual_chans: 16
+  residual_depth: 4
+  residual_limit: 6.0
+  residual_lr: 0.0001
+  input: measured
+  input_recon_checkpoint: null
+  recon_steps:
+  - 6
+  - 9
+  - 12
+  - 14
+  virtual_coils: 4
+  seqmri_union_route: false
+  seqmri_step_bias: false
+  seqmri_input_scale: signed_log
+  data_channels:
+  - image
+  - kspace
+  residual_checkpoint: true
+  sense_mask_method: null
+  sampler_type: seqmri_2d
+  slope: 10
+  mask_grad_floor: 0.0
+  ste_grad_floor: 0.0
+  mask_draws: 1
+  selection: bernoulli
+  dcm_vd_power: 4.0
+  dcm_tau: 5.0
+  logit_limit: 6.0
+  logit_leak: 0.01
+  adapt_grid: 16
+  adapt_hidden: 64
+  bank_size: 8
+  gate_temperature: 1.0
+  gate_lr: null
+  gate_logit_limit: 0.0
+  init_mask_checkpoint: null
+  loupe_vd_init_power: 0.0
+  loupe_same_start: false
+  lr: 0.0001
+  adapt_head_lr: 0.0001
+  chans: 64
+  depth: 4
+  head: none
+  head_mlp_lr: 0.0001
+  image_input: null
+  caipi_keep_fraction: 1.0
+  caipi_accel_y: 2
+  caipi_accel_z: 2
+  preselect_num: 10
+  mask_train_mode: straight_through
+  reinforce_weight: 1.0
+  reinforce_entropy_weight: 0.0
+  reinforce_normalize_advantages: false
+  reinforce_group_size: 0
+  reinforce_vd_power: 0.0
+  reinforce_eval: sample
+  reinforce_lr: null
+  autosamp_init: uniform
+  autosamp_lr: 0.01
+  autosamp_kernel_sigma_start: 0.0
+  autosamp_kernel_sigma_end: 1.0
+  autosamp_anneal_fraction: 0.8
+  ppo_policy: null
+  fixed_mask_path: null
+  mnet_accept: q_check
+  mnet_compare_random: true
+  mnet_rollback: true
+  mnet_degeneracy_fallback: true
+  mnet_label_binarize: threshold
+  mnet_random_retry: false
+  mnet_label_steps: 20
+  mnet_sampler_steps: 40
+  mnet_sparsity_weight: 2.0e-05
+  mnet_consistency_weight: 0.05
+  mnet_init_margin: 0.1
+  mnet_label_lr: 0.02
+  freeze_recon: false
+  fixed_mask_checkpoints: null
+  with_recon: false
+  with_gfactor: false
+  gfactor_replicas: 16
+  sens_upsample_method: conv
+  sens_conv_after_upsample: false
+  sens_resolution: null
+  sens_norm: layer
+  sens_precision: bf16
+  uncertainty_mode: none
+  anatomy_conditioning: false
+output:
+  out_dir: /home/remote/bkadota/scratch/multistep_adaptivity__seqmri_lr_bias_r8/runs/F_4_s42_lrs_tF
+  run_name: F_4_s42_lrs_tF
+  checkpoint: null
+  pretrained_recon: null
+misc:
+  random_rotate: false
+  phase_scramble_std: 0.0
+  phase_scramble_band:
+  - 6.0
+  - 16.0
+  resolution:
+  - 320
+  - 320
+
+val_half=dev (seed 20261111)
+Manifest train set (volumes, slices): {'brain': (339, 5139)}
+Manifest val set (volumes, slices): {'brain': (20, 307)}
+Sampler: seqmri_2d
+Number of sequential steps: 4
+Sparsity: 0.125
+[2026-11-21 03:19:20,054][activemri.training.trainer][INFO] - TrainConfig(model='SequentialSampling', num_step=4, batch_size=16, num_epochs=100, lr=0.001, lr_step_size=90, lr_gamma=0.1, lr_scheduler='step', lr_warmup_epochs=2, weight_decay=0.0, optimizer='muon', muon_lr=None, muon_momentum=0.95, grad_clip_norm=1.0, limit_batches=1.0, loss_type='l1', uncertainty_loss=False, uncertainty_weight=0.0, anatomy_weight=0.0, anatomy_classes=['brain'], condition_classes=['brain'], train_anatomies=[], anatomy_conditioning=False, device='cuda', data_parallel=False, compile_unets=True, channels_last_unets='sens', cudnn_benchmark=True, train_masked_metrics_every=1, train_metrics_every=10, val_every=1, early_stop_patience=0, fused_adam=True, ema_decay=0.0, visualize_every=10, out_dir=[PosixPath('/home/remote/bkadota/scratch/multistep_adaptivity__seqmri_lr_bias_r8/runs/F_4_s42_lrs_tF')], run_name='F_4_s42_lrs_tF', visualization_dir=None, checkpoint=None, pretrained_recon=None, accelerations=[8.0], sampler_type='seqmri_2d', slope=10, mask_grad_floor=0.0, ste_grad_floor=0.0, mask_draws=1, selection='bernoulli', dcm_vd_power=4.0, dcm_tau=5.0, logit_limit=6.0, logit_leak=0.01, adapt_grid=16, adapt_hidden=64, bank_size=8, gate_temperature=1.0, gate_lr=None, gate_logit_limit=0.0, init_mask_checkpoint=None, loupe_vd_init_power=0.0, loupe_same_start=False, sampler_lr=0.0001, adapt_head_lr=0.0001, sampler_chans=64, sampler_depth=4, sampler_head='none', sampler_head_mlp_lr=0.0001, sampler_image_input=False, caipi_keep_fraction=1.0, caipi_accel_y=2, caipi_accel_z=2, preselect_num=10, mask_train_mode='straight_through', reinforce_weight=1.0, reinforce_entropy_weight=0.0, reinforce_normalize_advantages=False, reinforce_group_size=0, reinforce_vd_power=0.0, reinforce_eval='sample', reinforce_lr=None, autosamp_init='uniform', autosamp_lr=0.01, autosamp_kernel_sigma_start=0.0, autosamp_kernel_sigma_end=1.0, autosamp_anneal_fraction=0.8, ppo_policy=None, fixed_mask_path=None, mnet_accept='q_check', mnet_compare_random=True, mnet_rollback=True, mnet_degeneracy_fallback=True, mnet_label_binarize='threshold', mnet_random_retry=False, mnet_label_steps=20, mnet_sampler_steps=40, mnet_sparsity_weight=2e-05, mnet_consistency_weight=0.05, mnet_init_margin=0.1, mnet_label_lr=0.02, freeze_recon=False, fixed_mask_checkpoints=None, budget_over='acquired', sampler_coil_combine='sense', data_blind=False, residual_chans=16, residual_depth=4, residual_limit=6.0, residual_lr=0.0001, residual_checkpoint=True, sampler_input='measured', input_recon_checkpoint=None, recon_steps=[6, 9, 12, 14], virtual_coils=4, seqmri_union_route=False, seqmri_step_bias=False, seqmri_input_scale='signed_log', data_channels=['image', 'kspace'], save_epochs=[10], sense_mask_method=None, with_recon=False, with_gfactor=False, gfactor_replicas=16, sens_upsample_method='conv', sens_conv_after_upsample=False, sens_resolution=None, sens_precision='bf16', sens_norm='layer', uncertainty_mode='none', min_energy_fraction=0.2, pseudo_target=False, ssdu=False, recon=VarNetReconConfig(recon_type='varnet', num_cascades=6, chans=18, pools=4, anatomy_conditioning=False, film_conditioning=False, prompt_conditioning=False, label_blind=False, dc_mode='where', dc_weight_map=False, adaptive_input=False, momentum_history=0, checkpoint_cascades=True, checkpoint_sense=True, backbone='unet', csme=False, unet_precision='bf16', restrict_to_extent=False, norm='layer', fused_coil_ops=True), resolution=[320, 320], random_rotate=False, phase_scramble_std=0.0, phase_scramble_band=[6.0, 16.0], fixed_input=False, seed=42)
+[2026-11-21 03:19:20,054][activemri.training.trainer][INFO] - SequentialSampling(
+  (reconstructor): VarNet(
+    (cascades): ModuleList(
+      (0-5): 6 x VarNetBlock(
+        (model): NormUnet(
+          (unet): FastMRIUnet(
+            (down_sample_layers): ModuleList(
+              (0): ConvBlock(
+                (layers): Sequential(
+                  (0): Conv2d(2, 18, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+                  (1): GroupNorm(1, 18, eps=1e-05, affine=True, bias=True)
+                  (2): LeakyReLU(negative_slope=0.2)
+                  (3): Dropout2d(p=0.0, inplace=False)
+                  (4): Conv2d(18, 18, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+                  (5): GroupNorm(1, 18, eps=1e-05, affine=True, bias=True)
+                  (6): LeakyReLU(negative_slope=0.2)
+                  (7): Dropout2d(p=0.0, inplace=False)
+                )
+              )
+              (1): ConvBlock(
+                (layers): Sequential(
+                  (0): Conv2d(18, 36, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+                  (1): GroupNorm(1, 36, eps=1e-05, affine=True, bias=True)
+                  (2): LeakyReLU(negative_slope=0.2)
+                  (3): Dropout2d(p=0.0, inplace=False)
+                  (4): Conv2d(36, 36, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+                  (5): GroupNorm(1, 36, eps=1e-05, affine=True, bias=True)
+                  (6): LeakyReLU(negative_slope=0.2)
+                  (7): Dropout2d(p=0.0, inplace=False)
+                )
+              )
+              (2): ConvBlock(
+                (layers): Sequential(
+                  (0): Conv2d(36, 72, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+                  (1): GroupNorm(1, 72, eps=1e-05, affine=True, bias=True)
+                  (2): LeakyReLU(negative_slope=0.2)
+                  (3): Dropout2d(p=0.0, inplace=False)
+                  (4): Conv2d(72, 72, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+                  (5): GroupNorm(1, 72, eps=1e-05, affine=True, bias=True)
+                  (6): LeakyReLU(negative_slope=0.2)
+                  (7): Dropout2d(p=0.0, inplace=False)
+                )
+              )
+              (3): ConvBlock(
+                (layers): Sequential(
+                  (0): Conv2d(72, 144, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+                  (1): GroupNorm(1, 144, eps=1e-05, affine=True, bias=True)
+                  (2): LeakyReLU(negative_slope=0.2)
+                  (3): Dropout2d(p=0.0, inplace=False)
+                  (4): Conv2d(144, 144, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+                  (5): GroupNorm(1, 144, eps=1e-05, affine=True, bias=True)
+                  (6): LeakyReLU(negative_slope=0.2)
+                  (7): Dropout2d(p=0.0, inplace=False)
+                )
+              )
+            )
+            (conv): ConvBlock(
+              (layers): Sequential(
+                (0): Conv2d(144, 288, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+                (1): GroupNorm(1, 288, eps=1e-05, affine=True, bias=True)
+                (2): LeakyReLU(negative_slope=0.2)
+                (3): Dropout2d(p=0.0, inplace=False)
+                (4): Conv2d(288, 288, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+                (5): GroupNorm(1, 288, eps=1e-05, affine=True, bias=True)
+                (6): LeakyReLU(negative_slope=0.2)
+                (7): Dropout2d(p=0.0, inplace=False)
+              )
+            )
+            (up_conv): ModuleList(
+              (0): ConvBlock(
+                (layers): Sequential(
+                  (0): Conv2d(288, 144, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+                  (1): GroupNorm(1, 144, eps=1e-05, affine=True, bias=True)
+                  (2): LeakyReLU(negative_slope=0.2)
+                  (3): Dropout2d(p=0.0, inplace=False)
+                  (4): Conv2d(144, 144, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+                  (5): GroupNorm(1, 144, eps=1e-05, affine=True, bias=True)
+                  (6): LeakyReLU(negative_slope=0.2)
+                  (7): Dropout2d(p=0.0, inplace=False)
+                )
+              )
+              (1): ConvBlock(
+                (layers): Sequential(
+                  (0): Conv2d(144, 72, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+                  (1): GroupNorm(1, 72, eps=1e-05, affine=True, bias=True)
+                  (2): LeakyReLU(negative_slope=0.2)
+                  (3): Dropout2d(p=0.0, inplace=False)
+                  (4): Conv2d(72, 72, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+                  (5): GroupNorm(1, 72, eps=1e-05, affine=True, bias=True)
+                  (6): LeakyReLU(negative_slope=0.2)
+                  (7): Dropout2d(p=0.0, inplace=False)
+                )
+              )
+              (2): ConvBlock(
+                (layers): Sequential(
+                  (0): Conv2d(72, 36, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+                  (1): GroupNorm(1, 36, eps=1e-05, affine=True, bias=True)
+                  (2): LeakyReLU(negative_slope=0.2)
+                  (3): Dropout2d(p=0.0, inplace=False)
+                  (4): Conv2d(36, 36, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+                  (5): GroupNorm(1, 36, eps=1e-05, affine=True, bias=True)
+                  (6): LeakyReLU(negative_slope=0.2)
+                  (7): Dropout2d(p=0.0, inplace=False)
+                )
+              )
+              (3): Sequential(
+                (0): ConvBlock(
+                  (layers): Sequential(
+                    (0): Conv2d(36, 18, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+                    (1): GroupNorm(1, 18, eps=1e-05, affine=True, bias=True)
+                    (2): LeakyReLU(negative_slope=0.2)
+                    (3): Dropout2d(p=0.0, inplace=False)
+                    (4): Conv2d(18, 18, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+                    (5): GroupNorm(1, 18, eps=1e-05, affine=True, bias=True)
+                    (6): LeakyReLU(negative_slope=0.2)
+                    (7): Dropout2d(p=0.0, inplace=False)
+                  )
+                )
+                (1): Conv2d(18, 2, kernel_size=(1, 1), stride=(1, 1))
+              )
+            )
+            (up_transpose_conv): ModuleList(
+              (0): TransposeConvBlock(
+                (layers): Sequential(
+                  (0): ConvTranspose2d(288, 144, kernel_size=(2, 2), stride=(2, 2), bias=False)
+                  (1): GroupNorm(1, 144, eps=1e-05, affine=True, bias=True)
+                  (2): LeakyReLU(negative_slope=0.2)
+                )
+              )
+              (1): TransposeConvBlock(
+                (layers): Sequential(
+                  (0): ConvTranspose2d(144, 72, kernel_size=(2, 2), stride=(2, 2), bias=False)
+                  (1): GroupNorm(1, 72, eps=1e-05, affine=True, bias=True)
+                  (2): LeakyReLU(negative_slope=0.2)
+                )
+              )
+              (2): TransposeConvBlock(
+                (layers): Sequential(
+                  (0): ConvTranspose2d(72, 36, kernel_size=(2, 2), stride=(2, 2), bias=False)
+                  (1): GroupNorm(1, 36, eps=1e-05, affine=True, bias=True)
+                  (2): LeakyReLU(negative_slope=0.2)
+                )
+              )
+              (3): TransposeConvBlock(
+                (layers): Sequential(
+                  (0): ConvTranspose2d(36, 18, kernel_size=(2, 2), stride=(2, 2), bias=False)
+                  (1): GroupNorm(1, 18, eps=1e-05, affine=True, bias=True)
+                  (2): LeakyReLU(negative_slope=0.2)
+                )
+              )
+            )
+          )
+        )
+      )
+    )
+  )
+  (sensetivity_net): SensetivityModel_mc(
+    (model): Unet(
+      (down_sample_layers): ModuleList(
+        (0): double_conv(
+          (layers): Sequential(
+            (0): Conv2d(2, 8, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+            (1): GroupNorm(1, 8, eps=1e-05, affine=True, bias=True)
+            (2): LeakyReLU(negative_slope=0.2)
+            (3): Dropout2d(p=0.0, inplace=False)
+            (4): Conv2d(8, 8, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+            (5): GroupNorm(1, 8, eps=1e-05, affine=True, bias=True)
+            (6): LeakyReLU(negative_slope=0.2)
+            (7): Dropout2d(p=0.0, inplace=False)
+          )
+        )
+        (1): Unet_down(
+          (down): down(
+            (max_pool): AvgPool2d(kernel_size=2, stride=(2, 2), padding=0)
+          )
+          (conv): double_conv(
+            (layers): Sequential(
+              (0): Conv2d(8, 16, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+              (1): GroupNorm(1, 16, eps=1e-05, affine=True, bias=True)
+              (2): LeakyReLU(negative_slope=0.2)
+              (3): Dropout2d(p=0.0, inplace=False)
+              (4): Conv2d(16, 16, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+              (5): GroupNorm(1, 16, eps=1e-05, affine=True, bias=True)
+              (6): LeakyReLU(negative_slope=0.2)
+              (7): Dropout2d(p=0.0, inplace=False)
+            )
+          )
+        )
+        (2): Unet_down(
+          (down): down(
+            (max_pool): AvgPool2d(kernel_size=2, stride=(2, 2), padding=0)
+          )
+          (conv): double_conv(
+            (layers): Sequential(
+              (0): Conv2d(16, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+              (1): GroupNorm(1, 32, eps=1e-05, affine=True, bias=True)
+              (2): LeakyReLU(negative_slope=0.2)
+              (3): Dropout2d(p=0.0, inplace=False)
+              (4): Conv2d(32, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+              (5): GroupNorm(1, 32, eps=1e-05, affine=True, bias=True)
+              (6): LeakyReLU(negative_slope=0.2)
+              (7): Dropout2d(p=0.0, inplace=False)
+            )
+          )
+        )
+        (3): Unet_down(
+          (down): down(
+            (max_pool): AvgPool2d(kernel_size=2, stride=(2, 2), padding=0)
+          )
+          (conv): double_conv(
+            (layers): Sequential(
+              (0): Conv2d(32, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+              (1): GroupNorm(1, 64, eps=1e-05, affine=True, bias=True)
+              (2): LeakyReLU(negative_slope=0.2)
+              (3): Dropout2d(p=0.0, inplace=False)
+              (4): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+              (5): GroupNorm(1, 64, eps=1e-05, affine=True, bias=True)
+              (6): LeakyReLU(negative_slope=0.2)
+              (7): Dropout2d(p=0.0, inplace=False)
+            )
+          )
+        )
+        (4): Unet_down(
+          (down): down(
+            (max_pool): AvgPool2d(kernel_size=2, stride=(2, 2), padding=0)
+          )
+          (conv): double_conv(
+            (layers): Sequential(
+              (0): Conv2d(64, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+              (1): GroupNorm(1, 128, eps=1e-05, affine=True, bias=True)
+              (2): LeakyReLU(negative_slope=0.2)
+              (3): Dropout2d(p=0.0, inplace=False)
+              (4): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+              (5): GroupNorm(1, 128, eps=1e-05, affine=True, bias=True)
+              (6): LeakyReLU(negative_slope=0.2)
+              (7): Dropout2d(p=0.0, inplace=False)
+            )
+          )
+        )
+      )
+      (up_sample_layers): ModuleList(
+        (0): Unet_up(
+          (up): up(
+            (layers): Sequential(
+              (0): ConvTranspose2d(128, 64, kernel_size=(2, 2), stride=(2, 2), bias=False)
+              (1): GroupNorm(1, 64, eps=1e-05, affine=True, bias=True)
+              (2): LeakyReLU(negative_slope=0.2)
+            )
+          )
+          (concat): concat()
+          (conv): double_conv(
+            (layers): Sequential(
+              (0): Conv2d(128, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+              (1): GroupNorm(1, 64, eps=1e-05, affine=True, bias=True)
+              (2): LeakyReLU(negative_slope=0.2)
+              (3): Dropout2d(p=0.0, inplace=False)
+              (4): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+              (5): GroupNorm(1, 64, eps=1e-05, affine=True, bias=True)
+              (6): LeakyReLU(negative_slope=0.2)
+              (7): Dropout2d(p=0.0, inplace=False)
+            )
+          )
+        )
+        (1): Unet_up(
+          (up): up(
+            (layers): Sequential(
+              (0): ConvTranspose2d(64, 32, kernel_size=(2, 2), stride=(2, 2), bias=False)
+              (1): GroupNorm(1, 32, eps=1e-05, affine=True, bias=True)
+              (2): LeakyReLU(negative_slope=0.2)
+            )
+          )
+          (concat): concat()
+          (conv): double_conv(
+            (layers): Sequential(
+              (0): Conv2d(64, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+              (1): GroupNorm(1, 32, eps=1e-05, affine=True, bias=True)
+              (2): LeakyReLU(negative_slope=0.2)
+              (3): Dropout2d(p=0.0, inplace=False)
+              (4): Conv2d(32, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+              (5): GroupNorm(1, 32, eps=1e-05, affine=True, bias=True)
+              (6): LeakyReLU(negative_slope=0.2)
+              (7): Dropout2d(p=0.0, inplace=False)
+            )
+          )
+        )
+        (2): Unet_up(
+          (up): up(
+            (layers): Sequential(
+              (0): ConvTranspose2d(32, 16, kernel_size=(2, 2), stride=(2, 2), bias=False)
+              (1): GroupNorm(1, 16, eps=1e-05, affine=True, bias=True)
+              (2): LeakyReLU(negative_slope=0.2)
+            )
+          )
+          (concat): concat()
+          (conv): double_conv(
+            (layers): Sequential(
+              (0): Conv2d(32, 16, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+              (1): GroupNorm(1, 16, eps=1e-05, affine=True, bias=True)
+              (2): LeakyReLU(negative_slope=0.2)
+              (3): Dropout2d(p=0.0, inplace=False)
+              (4): Conv2d(16, 16, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+              (5): GroupNorm(1, 16, eps=1e-05, affine=True, bias=True)
+              (6): LeakyReLU(negative_slope=0.2)
+              (7): Dropout2d(p=0.0, inplace=False)
+            )
+          )
+        )
+        (3): Unet_up(
+          (up): up(
+            (layers): Sequential(
+              (0): ConvTranspose2d(16, 8, kernel_size=(2, 2), stride=(2, 2), bias=False)
+              (1): GroupNorm(1, 8, eps=1e-05, affine=True, bias=True)
+              (2): LeakyReLU(negative_slope=0.2)
+            )
+          )
+          (concat): concat()
+          (conv): double_conv(
+            (layers): Sequential(
+              (0): Conv2d(16, 8, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+              (1): GroupNorm(1, 8, eps=1e-05, affine=True, bias=True)
+              (2): LeakyReLU(negative_slope=0.2)
+              (3): Dropout2d(p=0.0, inplace=False)
+              (4): Conv2d(8, 8, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+              (5): GroupNorm(1, 8, eps=1e-05, affine=True, bias=True)
+              (6): LeakyReLU(negative_slope=0.2)
+              (7): Dropout2d(p=0.0, inplace=False)
+            )
+          )
+        )
+      )
+      (conv1d): Conv2d(8, 2, kernel_size=(1, 1), stride=(1, 1), bias=False)
+    )
+  )
+  (sampler): Sampler(
+    (mask_net): SeqMRISampler2D(
+      (down_sample_layers): ModuleList(
+        (0): _ConvBlock(
+          (0): Conv2d(5, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): InstanceNorm2d(64, eps=1e-05, momentum=0.1, affine=False, bias=False, track_running_stats=False)
+          (2): ReLU()
+          (3): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (4): InstanceNorm2d(64, eps=1e-05, momentum=0.1, affine=False, bias=False, track_running_stats=False)
+          (5): ReLU()
+        )
+        (1): _ConvBlock(
+          (0): Conv2d(64, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): InstanceNorm2d(128, eps=1e-05, momentum=0.1, affine=False, bias=False, track_running_stats=False)
+          (2): ReLU()
+          (3): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (4): InstanceNorm2d(128, eps=1e-05, momentum=0.1, affine=False, bias=False, track_running_stats=False)
+          (5): ReLU()
+        )
+        (2): _ConvBlock(
+          (0): Conv2d(128, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): InstanceNorm2d(256, eps=1e-05, momentum=0.1, affine=False, bias=False, track_running_stats=False)
+          (2): ReLU()
+          (3): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (4): InstanceNorm2d(256, eps=1e-05, momentum=0.1, affine=False, bias=False, track_running_stats=False)
+          (5): ReLU()
+        )
+        (3): _ConvBlock(
+          (0): Conv2d(256, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): InstanceNorm2d(512, eps=1e-05, momentum=0.1, affine=False, bias=False, track_running_stats=False)
+          (2): ReLU()
+          (3): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (4): InstanceNorm2d(512, eps=1e-05, momentum=0.1, affine=False, bias=False, track_running_stats=False)
+          (5): ReLU()
+        )
+      )
+      (conv): _ConvBlock(
+        (0): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        (1): InstanceNorm2d(512, eps=1e-05, momentum=0.1, affine=False, bias=False, track_running_stats=False)
+        (2): ReLU()
+        (3): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        (4): InstanceNorm2d(512, eps=1e-05, momentum=0.1, affine=False, bias=False, track_running_stats=False)
+        (5): ReLU()
+      )
+      (up_sample_layers): ModuleList(
+        (0): _ConvBlock(
+          (0): Conv2d(1024, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): InstanceNorm2d(256, eps=1e-05, momentum=0.1, affine=False, bias=False, track_running_stats=False)
+          (2): ReLU()
+          (3): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (4): InstanceNorm2d(256, eps=1e-05, momentum=0.1, affine=False, bias=False, track_running_stats=False)
+          (5): ReLU()
+        )
+        (1): _ConvBlock(
+          (0): Conv2d(512, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): InstanceNorm2d(128, eps=1e-05, momentum=0.1, affine=False, bias=False, track_running_stats=False)
+          (2): ReLU()
+          (3): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (4): InstanceNorm2d(128, eps=1e-05, momentum=0.1, affine=False, bias=False, track_running_stats=False)
+          (5): ReLU()
+        )
+        (2): _ConvBlock(
+          (0): Conv2d(256, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): InstanceNorm2d(64, eps=1e-05, momentum=0.1, affine=False, bias=False, track_running_stats=False)
+          (2): ReLU()
+          (3): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (4): InstanceNorm2d(64, eps=1e-05, momentum=0.1, affine=False, bias=False, track_running_stats=False)
+          (5): ReLU()
+        )
+        (3): _ConvBlock(
+          (0): Conv2d(128, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): InstanceNorm2d(64, eps=1e-05, momentum=0.1, affine=False, bias=False, track_running_stats=False)
+          (2): ReLU()
+          (3): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (4): InstanceNorm2d(64, eps=1e-05, momentum=0.1, affine=False, bias=False, track_running_stats=False)
+          (5): ReLU()
+        )
+      )
+      (conv2): Sequential(
+        (0): Conv2d(64, 32, kernel_size=(1, 1), stride=(1, 1))
+        (1): Conv2d(32, 1, kernel_size=(1, 1), stride=(1, 1))
+        (2): Conv2d(1, 1, kernel_size=(1, 1), stride=(1, 1))
+      )
+    )
+  )
+)
+/mnt/scratch/user/bkadota/multistep_adaptivity__seqmri_lr_bias_r8/code/activemri/training/trainer.py:380: UserWarning: Detected call of `lr_scheduler.step()` before `optimizer.step()`. In PyTorch 1.1.0 and later, you should call them in the opposite order: `optimizer.step()` before `lr_scheduler.step()`.  Failure to do this will result in PyTorch skipping the first value of the learning rate schedule. See more details at https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate
+  self.scheduler.step(epoch)
+/mnt/scratch/user/bkadota/multistep_adaptivity__seqmri_lr_bias_r8/code/activemri/training/trainer.py:380: UserWarning: The epoch parameter in `scheduler.step()` was not necessary and is being deprecated where possible. Please use `scheduler.step()` to step the scheduler. During the deprecation, if epoch is different from None, the closed form is used instead of the new chainable form, where available. Please open an issue if you are unable to replicate your use case: https://github.com/pytorch/pytorch/issues/new/choose.
+  self.scheduler.step(epoch)
+/scratch/user/bkadota/conda/envs/dl/lib/python3.14/site-packages/torch/nn/functional.py:3855: UserWarning: size_average and reduce args will be deprecated, please use reduction='mean' instead.
+  reduction = _Reduction.legacy_get_string(size_average, reduce)
+/scratch/user/bkadota/conda/envs/dl/lib/python3.14/site-packages/torch/nn/functional.py:3855: UserWarning: size_average and reduce args will be deprecated, please use reduction='mean' instead.
+  reduction = _Reduction.legacy_get_string(size_average, reduce)
+/scratch/user/bkadota/conda/envs/dl/lib/python3.14/site-packages/torch/nn/functional.py:3855: UserWarning: size_average and reduce args will be deprecated, please use reduction='mean' instead.
+  reduction = _Reduction.legacy_get_string(size_average, reduce)
+/scratch/user/bkadota/conda/envs/dl/lib/python3.14/site-packages/torch/nn/functional.py:3855: UserWarning: size_average and reduce args will be deprecated, please use reduction='mean' instead.
+  reduction = _Reduction.legacy_get_string(size_average, reduce)
+[2026-11-21 03:32:46,549][activemri.training.trainer][INFO] - [brain] MSE=0.001725 NMSE=0.009213 PSNR=31.35 SSIM=0.9491 Sparsity=0.07772 (n=307)
+[2026-11-21 03:32:48,120][activemri.training.trainer][INFO] - Epoch = [   1/ 100] TrainLoss = 0.04634 ValLoss = 0.0373 MeanSparsity = 0.0781 TrainTime = 763.5773s ValTime = 42.9030s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+/mnt/scratch/user/bkadota/multistep_adaptivity__seqmri_lr_bias_r8/code/activemri/training/trainer.py:380: UserWarning: The epoch parameter in `scheduler.step()` was not necessary and is being deprecated where possible. Please use `scheduler.step()` to step the scheduler. During the deprecation, if epoch is different from None, the closed form is used instead of the new chainable form, where available. Please open an issue if you are unable to replicate your use case: https://github.com/pytorch/pytorch/issues/new/choose.
+  self.scheduler.step(epoch)
+[2026-11-21 03:44:07,868][activemri.training.trainer][INFO] - [brain] MSE=0.0013 NMSE=0.007148 PSNR=32.58 SSIM=0.9548 Sparsity=0.07773 (n=307)
+[2026-11-21 03:44:08,633][activemri.training.trainer][INFO] - Epoch = [   2/ 100] TrainLoss = 0.03253 ValLoss = 0.03188 MeanSparsity = 0.07815 TrainTime = 666.2120s ValTime = 13.5296s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 03:55:27,550][activemri.training.trainer][INFO] - [brain] MSE=0.001225 NMSE=0.006743 PSNR=32.84 SSIM=0.9572 Sparsity=0.07768 (n=307)
+[2026-11-21 03:55:28,231][activemri.training.trainer][INFO] - Epoch = [   3/ 100] TrainLoss = 0.02998 ValLoss = 0.03106 MeanSparsity = 0.07809 TrainTime = 665.4978s ValTime = 13.4133s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 04:06:45,269][activemri.training.trainer][INFO] - [brain] MSE=0.001098 NMSE=0.006079 PSNR=33.31 SSIM=0.9589 Sparsity=0.07762 (n=307)
+[2026-11-21 04:06:45,973][activemri.training.trainer][INFO] - Epoch = [   4/ 100] TrainLoss = 0.02869 ValLoss = 0.02864 MeanSparsity = 0.07801 TrainTime = 663.4313s ValTime = 13.6004s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 04:18:02,327][activemri.training.trainer][INFO] - [brain] MSE=0.00111 NMSE=0.006106 PSNR=33.27 SSIM=0.9599 Sparsity=0.07766 (n=307)
+[2026-11-21 04:18:02,744][activemri.training.trainer][INFO] - Epoch = [   5/ 100] TrainLoss = 0.02781 ValLoss = 0.03197 MeanSparsity = 0.07808 TrainTime = 662.7800s ValTime = 13.5689s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 04:29:18,192][activemri.training.trainer][INFO] - [brain] MSE=0.001022 NMSE=0.005697 PSNR=33.63 SSIM=0.9611 Sparsity=0.07764 (n=307)
+[2026-11-21 04:29:18,844][activemri.training.trainer][INFO] - Epoch = [   6/ 100] TrainLoss = 0.0272 ValLoss = 0.02779 MeanSparsity = 0.07806 TrainTime = 661.9326s ValTime = 13.5097s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 04:40:34,090][activemri.training.trainer][INFO] - [brain] MSE=0.001009 NMSE=0.005624 PSNR=33.68 SSIM=0.9614 Sparsity=0.07771 (n=307)
+[2026-11-21 04:40:34,504][activemri.training.trainer][INFO] - Epoch = [   7/ 100] TrainLoss = 0.0268 ValLoss = 0.02811 MeanSparsity = 0.07812 TrainTime = 661.8076s ValTime = 13.4316s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 04:51:49,175][activemri.training.trainer][INFO] - [brain] MSE=0.0009817 NMSE=0.005466 PSNR=33.8 SSIM=0.9626 Sparsity=0.07765 (n=307)
+[2026-11-21 04:51:49,870][activemri.training.trainer][INFO] - Epoch = [   8/ 100] TrainLoss = 0.02644 ValLoss = 0.0267 MeanSparsity = 0.07804 TrainTime = 661.3517s ValTime = 13.3131s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 05:03:06,098][activemri.training.trainer][INFO] - [brain] MSE=0.0009755 NMSE=0.005451 PSNR=33.83 SSIM=0.9629 Sparsity=0.07773 (n=307)
+[2026-11-21 05:03:06,773][activemri.training.trainer][INFO] - Epoch = [   9/ 100] TrainLoss = 0.02605 ValLoss = 0.02647 MeanSparsity = 0.07812 TrainTime = 662.8399s ValTime = 13.3814s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+/mnt/scratch/user/bkadota/multistep_adaptivity__seqmri_lr_bias_r8/code/activemri/training/trainer.py:923: RuntimeWarning: divide by zero encountered in log
+  ax[0, 1].imshow(np.log(np.abs(data_for_vis[step]['kspace'][0])))
+/scratch/user/bkadota/conda/envs/dl/lib/python3.14/site-packages/torch/nn/functional.py:3855: UserWarning: size_average and reduce args will be deprecated, please use reduction='mean' instead.
+  reduction = _Reduction.legacy_get_string(size_average, reduce)
+/mnt/scratch/user/bkadota/multistep_adaptivity__seqmri_lr_bias_r8/code/activemri/training/trainer.py:923: RuntimeWarning: divide by zero encountered in log
+  ax[0, 1].imshow(np.log(np.abs(data_for_vis[step]['kspace'][0])))
+[2026-11-21 05:14:43,897][activemri.training.trainer][INFO] - [brain] MSE=0.0009451 NMSE=0.005277 PSNR=33.97 SSIM=0.9635 Sparsity=0.07771 (n=307)
+[2026-11-21 05:14:44,426][activemri.training.trainer][INFO] - Epoch = [  10/ 100] TrainLoss = 0.02583 ValLoss = 0.02648 MeanSparsity = 0.07811 TrainTime = 672.4161s ValTime = 24.7014s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+/mnt/scratch/user/bkadota/multistep_adaptivity__seqmri_lr_bias_r8/code/activemri/training/trainer.py:380: UserWarning: The epoch parameter in `scheduler.step()` was not necessary and is being deprecated where possible. Please use `scheduler.step()` to step the scheduler. During the deprecation, if epoch is different from None, the closed form is used instead of the new chainable form, where available. Please open an issue if you are unable to replicate your use case: https://github.com/pytorch/pytorch/issues/new/choose.
+  self.scheduler.step(epoch)
+/scratch/user/bkadota/conda/envs/dl/lib/python3.14/site-packages/torch/nn/functional.py:3855: UserWarning: size_average and reduce args will be deprecated, please use reduction='mean' instead.
+  reduction = _Reduction.legacy_get_string(size_average, reduce)
+[2026-11-21 05:26:04,086][activemri.training.trainer][INFO] - [brain] MSE=0.0009333 NMSE=0.005219 PSNR=34.02 SSIM=0.9636 Sparsity=0.0777 (n=307)
+[2026-11-21 05:26:04,751][activemri.training.trainer][INFO] - Epoch = [  11/ 100] TrainLoss = 0.02557 ValLoss = 0.02644 MeanSparsity = 0.07809 TrainTime = 666.3188s ValTime = 13.3358s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 05:37:25,040][activemri.training.trainer][INFO] - [brain] MSE=0.000927 NMSE=0.005183 PSNR=34.05 SSIM=0.9638 Sparsity=0.07778 (n=307)
+[2026-11-21 05:37:25,470][activemri.training.trainer][INFO] - Epoch = [  12/ 100] TrainLoss = 0.02546 ValLoss = 0.02677 MeanSparsity = 0.07816 TrainTime = 667.0185s ValTime = 13.2641s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 05:48:46,064][activemri.training.trainer][INFO] - [brain] MSE=0.0009182 NMSE=0.005137 PSNR=34.09 SSIM=0.9642 Sparsity=0.07759 (n=307)
+[2026-11-21 05:48:46,744][activemri.training.trainer][INFO] - Epoch = [  13/ 100] TrainLoss = 0.02527 ValLoss = 0.02618 MeanSparsity = 0.07798 TrainTime = 667.3394s ValTime = 13.2480s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 06:00:07,230][activemri.training.trainer][INFO] - [brain] MSE=0.0009117 NMSE=0.005113 PSNR=34.12 SSIM=0.9645 Sparsity=0.07785 (n=307)
+[2026-11-21 06:00:07,724][activemri.training.trainer][INFO] - Epoch = [  14/ 100] TrainLoss = 0.02514 ValLoss = 0.02686 MeanSparsity = 0.07824 TrainTime = 667.2077s ValTime = 13.2727s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 06:11:31,308][activemri.training.trainer][INFO] - [brain] MSE=0.0009074 NMSE=0.005073 PSNR=34.14 SSIM=0.9645 Sparsity=0.07766 (n=307)
+[2026-11-21 06:11:31,731][activemri.training.trainer][INFO] - Epoch = [  15/ 100] TrainLoss = 0.02506 ValLoss = 0.02618 MeanSparsity = 0.07808 TrainTime = 670.4182s ValTime = 13.1598s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 06:22:54,805][activemri.training.trainer][INFO] - [brain] MSE=0.0009002 NMSE=0.005055 PSNR=34.18 SSIM=0.9648 Sparsity=0.07767 (n=307)
+[2026-11-21 06:22:55,308][activemri.training.trainer][INFO] - Epoch = [  16/ 100] TrainLoss = 0.02498 ValLoss = 0.02651 MeanSparsity = 0.07806 TrainTime = 669.8379s ValTime = 13.2303s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 06:34:15,457][activemri.training.trainer][INFO] - [brain] MSE=0.0008917 NMSE=0.005 PSNR=34.22 SSIM=0.9648 Sparsity=0.07777 (n=307)
+[2026-11-21 06:34:16,200][activemri.training.trainer][INFO] - Epoch = [  17/ 100] TrainLoss = 0.02488 ValLoss = 0.02602 MeanSparsity = 0.07819 TrainTime = 666.8617s ValTime = 13.2799s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 06:45:36,814][activemri.training.trainer][INFO] - [brain] MSE=0.0008894 NMSE=0.004996 PSNR=34.23 SSIM=0.9652 Sparsity=0.07765 (n=307)
+[2026-11-21 06:45:37,564][activemri.training.trainer][INFO] - Epoch = [  18/ 100] TrainLoss = 0.02475 ValLoss = 0.026 MeanSparsity = 0.07806 TrainTime = 667.3648s ValTime = 13.2420s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 06:57:05,536][activemri.training.trainer][INFO] - [brain] MSE=0.0008817 NMSE=0.004941 PSNR=34.27 SSIM=0.9652 Sparsity=0.07772 (n=307)
+[2026-11-21 06:57:06,301][activemri.training.trainer][INFO] - Epoch = [  19/ 100] TrainLoss = 0.02472 ValLoss = 0.02581 MeanSparsity = 0.07812 TrainTime = 674.6889s ValTime = 13.2763s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+/mnt/scratch/user/bkadota/multistep_adaptivity__seqmri_lr_bias_r8/code/activemri/training/trainer.py:923: RuntimeWarning: divide by zero encountered in log
+  ax[0, 1].imshow(np.log(np.abs(data_for_vis[step]['kspace'][0])))
+[2026-11-21 07:08:31,967][activemri.training.trainer][INFO] - [brain] MSE=0.0008793 NMSE=0.004936 PSNR=34.28 SSIM=0.9654 Sparsity=0.07772 (n=307)
+[2026-11-21 07:08:32,454][activemri.training.trainer][INFO] - Epoch = [  20/ 100] TrainLoss = 0.02461 ValLoss = 0.02655 MeanSparsity = 0.0781 TrainTime = 669.4190s ValTime = 16.2403s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 07:19:57,817][activemri.training.trainer][INFO] - [brain] MSE=0.0008695 NMSE=0.004892 PSNR=34.33 SSIM=0.9658 Sparsity=0.07771 (n=307)
+[2026-11-21 07:19:58,261][activemri.training.trainer][INFO] - Epoch = [  21/ 100] TrainLoss = 0.02453 ValLoss = 0.02583 MeanSparsity = 0.07809 TrainTime = 672.1985s ValTime = 13.1578s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 07:31:22,567][activemri.training.trainer][INFO] - [brain] MSE=0.0008493 NMSE=0.004784 PSNR=34.43 SSIM=0.9663 Sparsity=0.0777 (n=307)
+[2026-11-21 07:31:23,284][activemri.training.trainer][INFO] - Epoch = [  22/ 100] TrainLoss = 0.02448 ValLoss = 0.02551 MeanSparsity = 0.07809 TrainTime = 671.0337s ValTime = 13.2659s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 07:42:43,954][activemri.training.trainer][INFO] - [brain] MSE=0.0008505 NMSE=0.004785 PSNR=34.42 SSIM=0.9664 Sparsity=0.07777 (n=307)
+[2026-11-21 07:42:44,423][activemri.training.trainer][INFO] - Epoch = [  23/ 100] TrainLoss = 0.02438 ValLoss = 0.02595 MeanSparsity = 0.07818 TrainTime = 667.4073s ValTime = 13.2560s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 07:54:05,057][activemri.training.trainer][INFO] - [brain] MSE=0.0008447 NMSE=0.004757 PSNR=34.45 SSIM=0.9666 Sparsity=0.07771 (n=307)
+[2026-11-21 07:54:05,569][activemri.training.trainer][INFO] - Epoch = [  24/ 100] TrainLoss = 0.02434 ValLoss = 0.02555 MeanSparsity = 0.07812 TrainTime = 667.4007s ValTime = 13.2273s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 08:05:31,910][activemri.training.trainer][INFO] - [brain] MSE=0.0008404 NMSE=0.004743 PSNR=34.48 SSIM=0.9664 Sparsity=0.07772 (n=307)
+[2026-11-21 08:05:32,672][activemri.training.trainer][INFO] - Epoch = [  25/ 100] TrainLoss = 0.02423 ValLoss = 0.02535 MeanSparsity = 0.07811 TrainTime = 673.0962s ValTime = 13.2366s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 08:16:57,729][activemri.training.trainer][INFO] - [brain] MSE=0.0008302 NMSE=0.004678 PSNR=34.53 SSIM=0.9669 Sparsity=0.07775 (n=307)
+[2026-11-21 08:16:58,274][activemri.training.trainer][INFO] - Epoch = [  26/ 100] TrainLoss = 0.02424 ValLoss = 0.0254 MeanSparsity = 0.07817 TrainTime = 671.8430s ValTime = 13.2075s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 08:28:21,741][activemri.training.trainer][INFO] - [brain] MSE=0.0008385 NMSE=0.004728 PSNR=34.49 SSIM=0.9666 Sparsity=0.0777 (n=307)
+[2026-11-21 08:28:22,194][activemri.training.trainer][INFO] - Epoch = [  27/ 100] TrainLoss = 0.0242 ValLoss = 0.02552 MeanSparsity = 0.07811 TrainTime = 670.2004s ValTime = 13.2593s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 08:39:45,017][activemri.training.trainer][INFO] - [brain] MSE=0.0008252 NMSE=0.004652 PSNR=34.55 SSIM=0.967 Sparsity=0.07772 (n=307)
+[2026-11-21 08:39:45,790][activemri.training.trainer][INFO] - Epoch = [  28/ 100] TrainLoss = 0.02416 ValLoss = 0.0252 MeanSparsity = 0.07811 TrainTime = 669.5664s ValTime = 13.2480s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 08:51:08,446][activemri.training.trainer][INFO] - [brain] MSE=0.0008279 NMSE=0.004674 PSNR=34.54 SSIM=0.9669 Sparsity=0.07763 (n=307)
+[2026-11-21 08:51:08,914][activemri.training.trainer][INFO] - Epoch = [  29/ 100] TrainLoss = 0.02416 ValLoss = 0.02547 MeanSparsity = 0.07802 TrainTime = 669.3978s ValTime = 13.2503s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 09:02:40,628][activemri.training.trainer][INFO] - [brain] MSE=0.0008376 NMSE=0.004731 PSNR=34.49 SSIM=0.9667 Sparsity=0.07772 (n=307)
+[2026-11-21 09:02:41,141][activemri.training.trainer][INFO] - Epoch = [  30/ 100] TrainLoss = 0.02419 ValLoss = 0.02587 MeanSparsity = 0.07814 TrainTime = 675.6784s ValTime = 16.0273s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 09:14:00,787][activemri.training.trainer][INFO] - [brain] MSE=0.0008267 NMSE=0.004658 PSNR=34.55 SSIM=0.9671 Sparsity=0.07767 (n=307)
+[2026-11-21 09:14:01,369][activemri.training.trainer][INFO] - Epoch = [  31/ 100] TrainLoss = 0.02408 ValLoss = 0.0255 MeanSparsity = 0.07805 TrainTime = 666.3889s ValTime = 13.2502s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 09:25:24,764][activemri.training.trainer][INFO] - [brain] MSE=0.0008108 NMSE=0.004582 PSNR=34.63 SSIM=0.9672 Sparsity=0.07765 (n=307)
+[2026-11-21 09:25:25,515][activemri.training.trainer][INFO] - Epoch = [  32/ 100] TrainLoss = 0.02408 ValLoss = 0.02494 MeanSparsity = 0.07804 TrainTime = 670.1423s ValTime = 13.2463s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 09:36:51,736][activemri.training.trainer][INFO] - [brain] MSE=0.0008211 NMSE=0.004637 PSNR=34.58 SSIM=0.9672 Sparsity=0.07768 (n=307)
+[2026-11-21 09:36:52,195][activemri.training.trainer][INFO] - Epoch = [  33/ 100] TrainLoss = 0.02395 ValLoss = 0.0252 MeanSparsity = 0.07807 TrainTime = 673.0433s ValTime = 13.1718s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 09:48:19,025][activemri.training.trainer][INFO] - [brain] MSE=0.0008235 NMSE=0.004642 PSNR=34.56 SSIM=0.9672 Sparsity=0.07767 (n=307)
+[2026-11-21 09:48:19,506][activemri.training.trainer][INFO] - Epoch = [  34/ 100] TrainLoss = 0.02405 ValLoss = 0.02586 MeanSparsity = 0.07809 TrainTime = 673.6710s ValTime = 13.1533s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 09:59:40,162][activemri.training.trainer][INFO] - [brain] MSE=0.0008115 NMSE=0.004571 PSNR=34.63 SSIM=0.9674 Sparsity=0.07771 (n=307)
+[2026-11-21 09:59:40,649][activemri.training.trainer][INFO] - Epoch = [  35/ 100] TrainLoss = 0.02394 ValLoss = 0.02538 MeanSparsity = 0.07812 TrainTime = 667.4505s ValTime = 13.1992s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 10:11:00,969][activemri.training.trainer][INFO] - [brain] MSE=0.0008124 NMSE=0.004589 PSNR=34.62 SSIM=0.9672 Sparsity=0.07772 (n=307)
+[2026-11-21 10:11:01,461][activemri.training.trainer][INFO] - Epoch = [  36/ 100] TrainLoss = 0.02397 ValLoss = 0.02569 MeanSparsity = 0.07809 TrainTime = 667.1107s ValTime = 13.2012s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 10:22:21,751][activemri.training.trainer][INFO] - [brain] MSE=0.0008224 NMSE=0.00463 PSNR=34.57 SSIM=0.9673 Sparsity=0.07768 (n=307)
+[2026-11-21 10:22:22,222][activemri.training.trainer][INFO] - Epoch = [  37/ 100] TrainLoss = 0.0239 ValLoss = 0.02525 MeanSparsity = 0.0781 TrainTime = 667.0574s ValTime = 13.2263s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 10:33:48,583][activemri.training.trainer][INFO] - [brain] MSE=0.0008003 NMSE=0.004522 PSNR=34.69 SSIM=0.9673 Sparsity=0.0777 (n=307)
+[2026-11-21 10:33:49,137][activemri.training.trainer][INFO] - Epoch = [  38/ 100] TrainLoss = 0.0239 ValLoss = 0.02514 MeanSparsity = 0.07813 TrainTime = 673.1457s ValTime = 13.2092s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 10:45:10,417][activemri.training.trainer][INFO] - [brain] MSE=0.0008019 NMSE=0.00453 PSNR=34.68 SSIM=0.9674 Sparsity=0.07774 (n=307)
+[2026-11-21 10:45:10,906][activemri.training.trainer][INFO] - Epoch = [  39/ 100] TrainLoss = 0.02381 ValLoss = 0.02511 MeanSparsity = 0.07812 TrainTime = 668.0421s ValTime = 13.2321s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 10:56:39,181][activemri.training.trainer][INFO] - [brain] MSE=0.0007918 NMSE=0.004475 PSNR=34.73 SSIM=0.9677 Sparsity=0.07766 (n=307)
+[2026-11-21 10:56:39,683][activemri.training.trainer][INFO] - Epoch = [  40/ 100] TrainLoss = 0.0238 ValLoss = 0.0252 MeanSparsity = 0.07808 TrainTime = 672.0870s ValTime = 16.1821s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 11:08:02,303][activemri.training.trainer][INFO] - [brain] MSE=0.0007993 NMSE=0.00452 PSNR=34.69 SSIM=0.9675 Sparsity=0.0777 (n=307)
+[2026-11-21 11:08:02,772][activemri.training.trainer][INFO] - Epoch = [  41/ 100] TrainLoss = 0.02388 ValLoss = 0.02503 MeanSparsity = 0.07811 TrainTime = 669.4603s ValTime = 13.1537s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 11:19:24,828][activemri.training.trainer][INFO] - [brain] MSE=0.0008017 NMSE=0.004535 PSNR=34.68 SSIM=0.9676 Sparsity=0.07774 (n=307)
+[2026-11-21 11:19:25,598][activemri.training.trainer][INFO] - Epoch = [  42/ 100] TrainLoss = 0.02382 ValLoss = 0.02494 MeanSparsity = 0.07814 TrainTime = 668.8168s ValTime = 13.2330s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 11:30:52,998][activemri.training.trainer][INFO] - [brain] MSE=0.0008176 NMSE=0.004614 PSNR=34.59 SSIM=0.9672 Sparsity=0.07766 (n=307)
+[2026-11-21 11:30:53,431][activemri.training.trainer][INFO] - Epoch = [  43/ 100] TrainLoss = 0.02379 ValLoss = 0.02523 MeanSparsity = 0.07807 TrainTime = 674.1525s ValTime = 13.2408s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 11:42:16,075][activemri.training.trainer][INFO] - [brain] MSE=0.0008025 NMSE=0.004536 PSNR=34.68 SSIM=0.9675 Sparsity=0.07773 (n=307)
+[2026-11-21 11:42:16,552][activemri.training.trainer][INFO] - Epoch = [  44/ 100] TrainLoss = 0.02386 ValLoss = 0.02527 MeanSparsity = 0.07812 TrainTime = 669.4769s ValTime = 13.1618s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 11:53:44,793][activemri.training.trainer][INFO] - [brain] MSE=0.0007918 NMSE=0.004468 PSNR=34.73 SSIM=0.9677 Sparsity=0.07768 (n=307)
+[2026-11-21 11:53:45,522][activemri.training.trainer][INFO] - Epoch = [  45/ 100] TrainLoss = 0.02375 ValLoss = 0.02482 MeanSparsity = 0.07808 TrainTime = 674.9861s ValTime = 13.2489s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 12:05:03,599][activemri.training.trainer][INFO] - [brain] MSE=0.0007846 NMSE=0.004437 PSNR=34.77 SSIM=0.9679 Sparsity=0.0777 (n=307)
+[2026-11-21 12:05:04,366][activemri.training.trainer][INFO] - Epoch = [  46/ 100] TrainLoss = 0.0237 ValLoss = 0.02463 MeanSparsity = 0.07808 TrainTime = 664.9011s ValTime = 13.1695s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 12:16:24,710][activemri.training.trainer][INFO] - [brain] MSE=0.000786 NMSE=0.004448 PSNR=34.77 SSIM=0.9677 Sparsity=0.07772 (n=307)
+[2026-11-21 12:16:25,157][activemri.training.trainer][INFO] - Epoch = [  47/ 100] TrainLoss = 0.02366 ValLoss = 0.02467 MeanSparsity = 0.07813 TrainTime = 667.0101s ValTime = 13.3252s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 12:27:43,714][activemri.training.trainer][INFO] - [brain] MSE=0.0007867 NMSE=0.004443 PSNR=34.76 SSIM=0.9679 Sparsity=0.07776 (n=307)
+[2026-11-21 12:27:44,221][activemri.training.trainer][INFO] - Epoch = [  48/ 100] TrainLoss = 0.02375 ValLoss = 0.02478 MeanSparsity = 0.07815 TrainTime = 665.3481s ValTime = 13.2030s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 12:39:04,361][activemri.training.trainer][INFO] - [brain] MSE=0.0007837 NMSE=0.004424 PSNR=34.78 SSIM=0.9681 Sparsity=0.07779 (n=307)
+[2026-11-21 12:39:04,868][activemri.training.trainer][INFO] - Epoch = [  49/ 100] TrainLoss = 0.02375 ValLoss = 0.02478 MeanSparsity = 0.07817 TrainTime = 666.9291s ValTime = 13.2046s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 12:50:31,339][activemri.training.trainer][INFO] - [brain] MSE=0.0007851 NMSE=0.004433 PSNR=34.77 SSIM=0.9679 Sparsity=0.07772 (n=307)
+[2026-11-21 12:50:31,865][activemri.training.trainer][INFO] - Epoch = [  50/ 100] TrainLoss = 0.02368 ValLoss = 0.02485 MeanSparsity = 0.07809 TrainTime = 670.4150s ValTime = 16.0478s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 13:01:58,928][activemri.training.trainer][INFO] - [brain] MSE=0.0008056 NMSE=0.004555 PSNR=34.66 SSIM=0.9676 Sparsity=0.0777 (n=307)
+[2026-11-21 13:01:59,374][activemri.training.trainer][INFO] - Epoch = [  51/ 100] TrainLoss = 0.02385 ValLoss = 0.02522 MeanSparsity = 0.07809 TrainTime = 673.8274s ValTime = 13.2288s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 13:13:20,654][activemri.training.trainer][INFO] - [brain] MSE=0.0007939 NMSE=0.004481 PSNR=34.72 SSIM=0.9676 Sparsity=0.07779 (n=307)
+[2026-11-21 13:13:21,267][activemri.training.trainer][INFO] - Epoch = [  52/ 100] TrainLoss = 0.02383 ValLoss = 0.02485 MeanSparsity = 0.07818 TrainTime = 667.9904s ValTime = 13.2821s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 13:24:45,733][activemri.training.trainer][INFO] - [brain] MSE=0.0007867 NMSE=0.004445 PSNR=34.76 SSIM=0.968 Sparsity=0.07763 (n=307)
+[2026-11-21 13:24:46,216][activemri.training.trainer][INFO] - Epoch = [  53/ 100] TrainLoss = 0.02369 ValLoss = 0.02497 MeanSparsity = 0.07804 TrainTime = 671.3055s ValTime = 13.1528s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 13:36:05,556][activemri.training.trainer][INFO] - [brain] MSE=0.0007873 NMSE=0.004447 PSNR=34.76 SSIM=0.9678 Sparsity=0.07766 (n=307)
+[2026-11-21 13:36:06,031][activemri.training.trainer][INFO] - Epoch = [  54/ 100] TrainLoss = 0.02368 ValLoss = 0.02502 MeanSparsity = 0.07805 TrainTime = 666.2018s ValTime = 13.1310s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 13:47:29,732][activemri.training.trainer][INFO] - [brain] MSE=0.0008026 NMSE=0.004536 PSNR=34.68 SSIM=0.9675 Sparsity=0.07765 (n=307)
+[2026-11-21 13:47:30,226][activemri.training.trainer][INFO] - Epoch = [  55/ 100] TrainLoss = 0.02371 ValLoss = 0.02551 MeanSparsity = 0.07805 TrainTime = 670.5152s ValTime = 13.1792s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 13:58:49,173][activemri.training.trainer][INFO] - [brain] MSE=0.0007976 NMSE=0.004504 PSNR=34.7 SSIM=0.9674 Sparsity=0.07765 (n=307)
+[2026-11-21 13:58:49,676][activemri.training.trainer][INFO] - Epoch = [  56/ 100] TrainLoss = 0.02378 ValLoss = 0.02495 MeanSparsity = 0.07804 TrainTime = 665.7797s ValTime = 13.1603s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 14:10:09,193][activemri.training.trainer][INFO] - [brain] MSE=0.0008039 NMSE=0.004547 PSNR=34.67 SSIM=0.9673 Sparsity=0.07763 (n=307)
+[2026-11-21 14:10:09,762][activemri.training.trainer][INFO] - Epoch = [  57/ 100] TrainLoss = 0.02373 ValLoss = 0.0249 MeanSparsity = 0.07801 TrainTime = 666.2706s ValTime = 13.2407s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 14:21:29,047][activemri.training.trainer][INFO] - [brain] MSE=0.0007853 NMSE=0.004437 PSNR=34.77 SSIM=0.9676 Sparsity=0.07762 (n=307)
+[2026-11-21 14:21:29,525][activemri.training.trainer][INFO] - Epoch = [  58/ 100] TrainLoss = 0.02372 ValLoss = 0.025 MeanSparsity = 0.07802 TrainTime = 665.9616s ValTime = 13.3178s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 14:32:50,494][activemri.training.trainer][INFO] - [brain] MSE=0.0007978 NMSE=0.004494 PSNR=34.7 SSIM=0.9677 Sparsity=0.07774 (n=307)
+[2026-11-21 14:32:50,927][activemri.training.trainer][INFO] - Epoch = [  59/ 100] TrainLoss = 0.02361 ValLoss = 0.02499 MeanSparsity = 0.07814 TrainTime = 667.7909s ValTime = 13.1721s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 14:44:14,502][activemri.training.trainer][INFO] - [brain] MSE=0.0007859 NMSE=0.004438 PSNR=34.77 SSIM=0.9677 Sparsity=0.07768 (n=307)
+[2026-11-21 14:44:14,938][activemri.training.trainer][INFO] - Epoch = [  60/ 100] TrainLoss = 0.02369 ValLoss = 0.02479 MeanSparsity = 0.07811 TrainTime = 667.6814s ValTime = 15.8856s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 14:55:32,505][activemri.training.trainer][INFO] - [brain] MSE=0.0007835 NMSE=0.004428 PSNR=34.78 SSIM=0.9677 Sparsity=0.07772 (n=307)
+[2026-11-21 14:55:32,976][activemri.training.trainer][INFO] - Epoch = [  61/ 100] TrainLoss = 0.02362 ValLoss = 0.02481 MeanSparsity = 0.07813 TrainTime = 664.4238s ValTime = 13.1369s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 15:06:49,893][activemri.training.trainer][INFO] - [brain] MSE=0.0008033 NMSE=0.004545 PSNR=34.67 SSIM=0.9674 Sparsity=0.0777 (n=307)
+[2026-11-21 15:06:50,395][activemri.training.trainer][INFO] - Epoch = [  62/ 100] TrainLoss = 0.02377 ValLoss = 0.0251 MeanSparsity = 0.07812 TrainTime = 663.7693s ValTime = 13.1398s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 15:18:11,861][activemri.training.trainer][INFO] - [brain] MSE=0.0007889 NMSE=0.004456 PSNR=34.75 SSIM=0.9677 Sparsity=0.07779 (n=307)
+[2026-11-21 15:18:12,312][activemri.training.trainer][INFO] - Epoch = [  63/ 100] TrainLoss = 0.02368 ValLoss = 0.0249 MeanSparsity = 0.07819 TrainTime = 668.2505s ValTime = 13.2089s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 15:29:28,813][activemri.training.trainer][INFO] - [brain] MSE=0.0007869 NMSE=0.004447 PSNR=34.76 SSIM=0.9679 Sparsity=0.07771 (n=307)
+[2026-11-21 15:29:29,297][activemri.training.trainer][INFO] - Epoch = [  64/ 100] TrainLoss = 0.02366 ValLoss = 0.02494 MeanSparsity = 0.07811 TrainTime = 663.2385s ValTime = 13.2560s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 15:40:50,617][activemri.training.trainer][INFO] - [brain] MSE=0.000787 NMSE=0.004442 PSNR=34.76 SSIM=0.9678 Sparsity=0.07774 (n=307)
+[2026-11-21 15:40:51,067][activemri.training.trainer][INFO] - Epoch = [  65/ 100] TrainLoss = 0.0236 ValLoss = 0.02472 MeanSparsity = 0.07812 TrainTime = 668.1333s ValTime = 13.1795s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 15:52:10,662][activemri.training.trainer][INFO] - [brain] MSE=0.0007806 NMSE=0.004414 PSNR=34.8 SSIM=0.9682 Sparsity=0.0778 (n=307)
+[2026-11-21 15:52:11,107][activemri.training.trainer][INFO] - Epoch = [  66/ 100] TrainLoss = 0.02354 ValLoss = 0.02482 MeanSparsity = 0.0782 TrainTime = 666.4180s ValTime = 13.1707s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 16:03:28,234][activemri.training.trainer][INFO] - [brain] MSE=0.0007896 NMSE=0.00445 PSNR=34.75 SSIM=0.9679 Sparsity=0.07775 (n=307)
+[2026-11-21 16:03:28,697][activemri.training.trainer][INFO] - Epoch = [  67/ 100] TrainLoss = 0.02354 ValLoss = 0.02487 MeanSparsity = 0.07818 TrainTime = 663.9407s ValTime = 13.1800s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 16:14:45,712][activemri.training.trainer][INFO] - [brain] MSE=0.0007828 NMSE=0.004422 PSNR=34.78 SSIM=0.9679 Sparsity=0.07767 (n=307)
+[2026-11-21 16:14:46,274][activemri.training.trainer][INFO] - Epoch = [  68/ 100] TrainLoss = 0.02352 ValLoss = 0.02471 MeanSparsity = 0.07806 TrainTime = 663.7240s ValTime = 13.2836s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 16:26:07,820][activemri.training.trainer][INFO] - [brain] MSE=0.000796 NMSE=0.004497 PSNR=34.71 SSIM=0.9675 Sparsity=0.07768 (n=307)
+[2026-11-21 16:26:08,331][activemri.training.trainer][INFO] - Epoch = [  69/ 100] TrainLoss = 0.02377 ValLoss = 0.02497 MeanSparsity = 0.07807 TrainTime = 668.3150s ValTime = 13.2238s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 16:37:31,824][activemri.training.trainer][INFO] - [brain] MSE=0.0008065 NMSE=0.004546 PSNR=34.65 SSIM=0.9672 Sparsity=0.07773 (n=307)
+[2026-11-21 16:37:32,402][activemri.training.trainer][INFO] - Epoch = [  70/ 100] TrainLoss = 0.02373 ValLoss = 0.02542 MeanSparsity = 0.07815 TrainTime = 667.3557s ValTime = 16.1313s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 16:48:58,392][activemri.training.trainer][INFO] - [brain] MSE=0.0008467 NMSE=0.00479 PSNR=34.44 SSIM=0.9668 Sparsity=0.07775 (n=307)
+[2026-11-21 16:48:58,861][activemri.training.trainer][INFO] - Epoch = [  71/ 100] TrainLoss = 0.02373 ValLoss = 0.02626 MeanSparsity = 0.07815 TrainTime = 672.7588s ValTime = 13.2245s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 17:00:17,647][activemri.training.trainer][INFO] - [brain] MSE=0.0007998 NMSE=0.004521 PSNR=34.69 SSIM=0.9673 Sparsity=0.07764 (n=307)
+[2026-11-21 17:00:18,139][activemri.training.trainer][INFO] - Epoch = [  72/ 100] TrainLoss = 0.02451 ValLoss = 0.02506 MeanSparsity = 0.07803 TrainTime = 665.5911s ValTime = 13.1892s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 17:11:36,894][activemri.training.trainer][INFO] - [brain] MSE=0.0008035 NMSE=0.004541 PSNR=34.67 SSIM=0.9672 Sparsity=0.0777 (n=307)
+[2026-11-21 17:11:37,349][activemri.training.trainer][INFO] - Epoch = [  73/ 100] TrainLoss = 0.02411 ValLoss = 0.02497 MeanSparsity = 0.07805 TrainTime = 665.5781s ValTime = 13.1710s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 17:23:01,589][activemri.training.trainer][INFO] - [brain] MSE=0.0007915 NMSE=0.004466 PSNR=34.74 SSIM=0.9676 Sparsity=0.07772 (n=307)
+[2026-11-21 17:23:02,351][activemri.training.trainer][INFO] - Epoch = [  74/ 100] TrainLoss = 0.02371 ValLoss = 0.0248 MeanSparsity = 0.0781 TrainTime = 670.9996s ValTime = 13.2345s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 17:34:24,170][activemri.training.trainer][INFO] - [brain] MSE=0.0007881 NMSE=0.004448 PSNR=34.75 SSIM=0.9677 Sparsity=0.07771 (n=307)
+[2026-11-21 17:34:24,630][activemri.training.trainer][INFO] - Epoch = [  75/ 100] TrainLoss = 0.02362 ValLoss = 0.02479 MeanSparsity = 0.07813 TrainTime = 668.5660s ValTime = 13.2463s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 17:45:42,383][activemri.training.trainer][INFO] - [brain] MSE=0.0007877 NMSE=0.004448 PSNR=34.76 SSIM=0.9678 Sparsity=0.07764 (n=307)
+[2026-11-21 17:45:42,849][activemri.training.trainer][INFO] - Epoch = [  76/ 100] TrainLoss = 0.02389 ValLoss = 0.02487 MeanSparsity = 0.07808 TrainTime = 664.5899s ValTime = 13.1571s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 17:56:59,986][activemri.training.trainer][INFO] - [brain] MSE=0.0007944 NMSE=0.004488 PSNR=34.72 SSIM=0.9677 Sparsity=0.07775 (n=307)
+[2026-11-21 17:57:00,492][activemri.training.trainer][INFO] - Epoch = [  77/ 100] TrainLoss = 0.02392 ValLoss = 0.02503 MeanSparsity = 0.07815 TrainTime = 663.8844s ValTime = 13.2465s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 18:08:16,854][activemri.training.trainer][INFO] - [brain] MSE=0.0007974 NMSE=0.004503 PSNR=34.7 SSIM=0.9675 Sparsity=0.07772 (n=307)
+[2026-11-21 18:08:17,321][activemri.training.trainer][INFO] - Epoch = [  78/ 100] TrainLoss = 0.024 ValLoss = 0.0249 MeanSparsity = 0.0781 TrainTime = 663.0941s ValTime = 13.2608s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 18:19:33,896][activemri.training.trainer][INFO] - [brain] MSE=0.0008017 NMSE=0.004516 PSNR=34.68 SSIM=0.9675 Sparsity=0.07776 (n=307)
+[2026-11-21 18:19:34,377][activemri.training.trainer][INFO] - Epoch = [  79/ 100] TrainLoss = 0.02386 ValLoss = 0.02505 MeanSparsity = 0.07816 TrainTime = 663.3679s ValTime = 13.2014s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 18:30:57,638][activemri.training.trainer][INFO] - [brain] MSE=0.0007924 NMSE=0.004473 PSNR=34.73 SSIM=0.9675 Sparsity=0.07774 (n=307)
+[2026-11-21 18:30:58,110][activemri.training.trainer][INFO] - Epoch = [  80/ 100] TrainLoss = 0.02372 ValLoss = 0.02503 MeanSparsity = 0.07816 TrainTime = 667.3166s ValTime = 15.9384s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 18:42:12,455][activemri.training.trainer][INFO] - [brain] MSE=0.0007918 NMSE=0.004464 PSNR=34.73 SSIM=0.9678 Sparsity=0.07775 (n=307)
+[2026-11-21 18:42:12,931][activemri.training.trainer][INFO] - Epoch = [  81/ 100] TrainLoss = 0.02365 ValLoss = 0.02491 MeanSparsity = 0.07815 TrainTime = 661.2115s ValTime = 13.1268s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 18:53:27,633][activemri.training.trainer][INFO] - [brain] MSE=0.0007881 NMSE=0.00445 PSNR=34.75 SSIM=0.9677 Sparsity=0.07773 (n=307)
+[2026-11-21 18:53:28,095][activemri.training.trainer][INFO] - Epoch = [  82/ 100] TrainLoss = 0.0237 ValLoss = 0.02492 MeanSparsity = 0.07807 TrainTime = 661.5558s ValTime = 13.1389s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 19:04:45,460][activemri.training.trainer][INFO] - [brain] MSE=0.0007858 NMSE=0.004434 PSNR=34.77 SSIM=0.9678 Sparsity=0.07767 (n=307)
+[2026-11-21 19:04:45,946][activemri.training.trainer][INFO] - Epoch = [  83/ 100] TrainLoss = 0.02361 ValLoss = 0.02495 MeanSparsity = 0.07802 TrainTime = 664.2255s ValTime = 13.1336s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 19:16:01,146][activemri.training.trainer][INFO] - [brain] MSE=0.0007887 NMSE=0.004452 PSNR=34.75 SSIM=0.9677 Sparsity=0.07767 (n=307)
+[2026-11-21 19:16:01,607][activemri.training.trainer][INFO] - Epoch = [  84/ 100] TrainLoss = 0.02359 ValLoss = 0.02487 MeanSparsity = 0.07807 TrainTime = 662.0618s ValTime = 13.1317s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 19:27:20,546][activemri.training.trainer][INFO] - [brain] MSE=0.0007772 NMSE=0.004393 PSNR=34.81 SSIM=0.968 Sparsity=0.07769 (n=307)
+[2026-11-21 19:27:21,000][activemri.training.trainer][INFO] - Epoch = [  85/ 100] TrainLoss = 0.02358 ValLoss = 0.02472 MeanSparsity = 0.0781 TrainTime = 665.7935s ValTime = 13.1396s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 19:38:35,199][activemri.training.trainer][INFO] - [brain] MSE=0.0007826 NMSE=0.004417 PSNR=34.78 SSIM=0.968 Sparsity=0.07772 (n=307)
+[2026-11-21 19:38:35,665][activemri.training.trainer][INFO] - Epoch = [  86/ 100] TrainLoss = 0.02351 ValLoss = 0.02491 MeanSparsity = 0.07815 TrainTime = 661.0094s ValTime = 13.1834s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 19:49:50,511][activemri.training.trainer][INFO] - [brain] MSE=0.000799 NMSE=0.004509 PSNR=34.7 SSIM=0.9675 Sparsity=0.07773 (n=307)
+[2026-11-21 19:49:51,009][activemri.training.trainer][INFO] - Epoch = [  87/ 100] TrainLoss = 0.02366 ValLoss = 0.02522 MeanSparsity = 0.07814 TrainTime = 661.6122s ValTime = 13.2286s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 20:01:08,011][activemri.training.trainer][INFO] - [brain] MSE=0.0007783 NMSE=0.004397 PSNR=34.81 SSIM=0.9678 Sparsity=0.07773 (n=307)
+[2026-11-21 20:01:08,474][activemri.training.trainer][INFO] - Epoch = [  88/ 100] TrainLoss = 0.02373 ValLoss = 0.02464 MeanSparsity = 0.07812 TrainTime = 663.7972s ValTime = 13.1986s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 20:12:26,389][activemri.training.trainer][INFO] - [brain] MSE=0.0008137 NMSE=0.004588 PSNR=34.62 SSIM=0.9669 Sparsity=0.07769 (n=307)
+[2026-11-21 20:12:26,872][activemri.training.trainer][INFO] - Epoch = [  89/ 100] TrainLoss = 0.02365 ValLoss = 0.02516 MeanSparsity = 0.07807 TrainTime = 664.7271s ValTime = 13.1809s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 20:23:48,527][activemri.training.trainer][INFO] - [brain] MSE=0.0007706 NMSE=0.004357 PSNR=34.85 SSIM=0.9682 Sparsity=0.07774 (n=307)
+[2026-11-21 20:23:49,008][activemri.training.trainer][INFO] - Epoch = [  90/ 100] TrainLoss = 0.0236 ValLoss = 0.02467 MeanSparsity = 0.07815 TrainTime = 665.1337s ValTime = 16.5148s PeakMemory = 35.78GiB LR = 0.001,0.001,0.0001
+[2026-11-21 20:35:03,934][activemri.training.trainer][INFO] - [brain] MSE=0.0007667 NMSE=0.004335 PSNR=34.87 SSIM=0.9683 Sparsity=0.07774 (n=307)
+[2026-11-21 20:35:04,641][activemri.training.trainer][INFO] - Epoch = [  91/ 100] TrainLoss = 0.02335 ValLoss = 0.02455 MeanSparsity = 0.07812 TrainTime = 661.7362s ValTime = 13.1843s PeakMemory = 35.78GiB LR = 0.0001,0.0001,1e-05
+[2026-11-21 20:46:23,374][activemri.training.trainer][INFO] - [brain] MSE=0.0007653 NMSE=0.004328 PSNR=34.88 SSIM=0.9683 Sparsity=0.07772 (n=307)
+[2026-11-21 20:46:24,049][activemri.training.trainer][INFO] - Epoch = [  92/ 100] TrainLoss = 0.02332 ValLoss = 0.02448 MeanSparsity = 0.07811 TrainTime = 665.5717s ValTime = 13.1551s PeakMemory = 35.78GiB LR = 0.0001,0.0001,1e-05
+[2026-11-21 20:57:45,128][activemri.training.trainer][INFO] - [brain] MSE=0.0007658 NMSE=0.00433 PSNR=34.88 SSIM=0.9683 Sparsity=0.07765 (n=307)
+[2026-11-21 20:57:45,567][activemri.training.trainer][INFO] - Epoch = [  93/ 100] TrainLoss = 0.02329 ValLoss = 0.02451 MeanSparsity = 0.07807 TrainTime = 667.8909s ValTime = 13.1817s PeakMemory = 35.78GiB LR = 0.0001,0.0001,1e-05
+[2026-11-21 21:09:02,984][activemri.training.trainer][INFO] - [brain] MSE=0.0007653 NMSE=0.004327 PSNR=34.88 SSIM=0.9683 Sparsity=0.07775 (n=307)
+[2026-11-21 21:09:03,469][activemri.training.trainer][INFO] - Epoch = [  94/ 100] TrainLoss = 0.02328 ValLoss = 0.0245 MeanSparsity = 0.07815 TrainTime = 664.2376s ValTime = 13.1737s PeakMemory = 35.78GiB LR = 0.0001,0.0001,1e-05
+[2026-11-21 21:20:22,321][activemri.training.trainer][INFO] - [brain] MSE=0.0007657 NMSE=0.004329 PSNR=34.88 SSIM=0.9683 Sparsity=0.07765 (n=307)
+[2026-11-21 21:20:22,775][activemri.training.trainer][INFO] - Epoch = [  95/ 100] TrainLoss = 0.02328 ValLoss = 0.02453 MeanSparsity = 0.07803 TrainTime = 665.6830s ValTime = 13.1635s PeakMemory = 35.78GiB LR = 0.0001,0.0001,1e-05
+[2026-11-21 21:31:39,183][activemri.training.trainer][INFO] - [brain] MSE=0.0007648 NMSE=0.004324 PSNR=34.88 SSIM=0.9683 Sparsity=0.07771 (n=307)
+[2026-11-21 21:31:39,632][activemri.training.trainer][INFO] - Epoch = [  96/ 100] TrainLoss = 0.02326 ValLoss = 0.02453 MeanSparsity = 0.07812 TrainTime = 663.2165s ValTime = 13.1857s PeakMemory = 35.78GiB LR = 0.0001,0.0001,1e-05
+[2026-11-21 21:42:54,944][activemri.training.trainer][INFO] - [brain] MSE=0.0007624 NMSE=0.004311 PSNR=34.9 SSIM=0.9684 Sparsity=0.07778 (n=307)
+[2026-11-21 21:42:55,425][activemri.training.trainer][INFO] - Epoch = [  97/ 100] TrainLoss = 0.02326 ValLoss = 0.0245 MeanSparsity = 0.07816 TrainTime = 662.1242s ValTime = 13.1820s PeakMemory = 35.78GiB LR = 0.0001,0.0001,1e-05
+[2026-11-21 21:54:14,479][activemri.training.trainer][INFO] - [brain] MSE=0.0007641 NMSE=0.004321 PSNR=34.89 SSIM=0.9684 Sparsity=0.07767 (n=307)
+[2026-11-21 21:54:14,961][activemri.training.trainer][INFO] - Epoch = [  98/ 100] TrainLoss = 0.02326 ValLoss = 0.02454 MeanSparsity = 0.07805 TrainTime = 665.8823s ValTime = 13.1657s PeakMemory = 35.78GiB LR = 0.0001,0.0001,1e-05
+[2026-11-21 22:05:31,159][activemri.training.trainer][INFO] - [brain] MSE=0.0007627 NMSE=0.004315 PSNR=34.9 SSIM=0.9684 Sparsity=0.07777 (n=307)
+[2026-11-21 22:05:31,615][activemri.training.trainer][INFO] - Epoch = [  99/ 100] TrainLoss = 0.02323 ValLoss = 0.0245 MeanSparsity = 0.07816 TrainTime = 662.9667s ValTime = 13.2246s PeakMemory = 35.78GiB LR = 0.0001,0.0001,1e-05
+[2026-11-21 22:16:52,190][activemri.training.trainer][INFO] - [brain] MSE=0.0007618 NMSE=0.004306 PSNR=34.9 SSIM=0.9684 Sparsity=0.07775 (n=307)
+[2026-11-21 22:16:52,650][activemri.training.trainer][INFO] - Epoch = [ 100/ 100] TrainLoss = 0.02324 ValLoss = 0.02452 MeanSparsity = 0.07814 TrainTime = 664.9783s ValTime = 15.5899s PeakMemory = 35.78GiB LR = 0.0001,0.0001,1e-05
+wandb: 
+wandb: Run history:
+wandb:                  data/zero_coil_frac ▇▅▇▇▇▇▅▆▅▄█▄▃▆█▅▅▄▄▇▃▇▄▅█▂▅▆▄▇▆▆▁▆▃▄▆▄▆▇
+wandb:                                epoch ▁▁▁▁▁▂▂▂▂▂▂▂▂▂▃▃▃▃▃▃▄▄▄▄▄▄▅▅▅▅▅▆▆▆▇▇▇▇██
+wandb:                         grad/clipped ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:                       grad/nonfinite ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:           grad/reconstructor_max_abs ▆▃▂▃▇█▅▂▂▂▃▂▂▃▁▂▂▃▂▄▃▁▂▂▂▂▂▃▁▂▂▂▁▁▁▁▁▁▂▁
+wandb: grad/reconstructor_nonfinite_tensors ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:              grad/reconstructor_norm █▅▄▄▆▂▄▁▃▁▂▂▃▂▃▂▂▂▂▁▁▁▂▂▁▂▁▁▂▂▁▂▁▁▁▁▁▁▁▁
+wandb:                 grad/sampler_clipped ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:                 grad/sampler_max_abs ▄▃▂▅▂▃▄▂▂▃▃▆▃▂▄▂▂▂▂▃▂▂▂▄▂▃▃▂▁▃▃▃▂█▃▁▃▂▁▂
+wandb:       grad/sampler_nonfinite_tensors ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:                                  +49 ...
+wandb: 
+wandb: Run summary:
+wandb:                  data/zero_coil_frac 0.06667
+wandb:                                epoch 99
+wandb:                         grad/clipped 0
+wandb:                       grad/nonfinite 0
+wandb:           grad/reconstructor_max_abs 0.00545
+wandb: grad/reconstructor_nonfinite_tensors 0
+wandb:              grad/reconstructor_norm 0.01471
+wandb:                 grad/sampler_clipped 0
+wandb:                 grad/sampler_max_abs 0.00012
+wandb:       grad/sampler_nonfinite_tensors 0
+wandb:                                  +49 ...
+wandb: 
+wandb: You can sync this run to the cloud by running:
+wandb: wandb sync /home/remote/bkadota/scratch/multistep_adaptivity__seqmri_lr_bias_r8/runs/F_4_s42_lrs_tF/wandb/offline-run-20261121_031919-6a9ji8s0
+wandb: Find logs at: /home/remote/bkadota/scratch/multistep_adaptivity__seqmri_lr_bias_r8/runs/F_4_s42_lrs_tF/wandb/offline-run-20261121_031919-6a9ji8s0/logs
+Sampler: seqmri_2d
+Number of sequential steps: 4
+Sparsity: 0.125
+val_half=dev (seed 20261111)
+Manifest train set (volumes, slices): {'brain': (339, 5139)}
+Manifest val set (volumes, slices): {'brain': (20, 307)}
+F_4_s42_lrs_tF: /home/remote/bkadota/scratch/multistep_adaptivity__seqmri_lr_bias_r8/runs/F_4_s42_lrs_tF/last_model.pt epoch 99, seqmri_2d, K=4, data_blind=False, 307 slices
+  scored 8/307 slices
+  scored 16/307 slices
+  scored 24/307 slices
+  scored 32/307 slices
+  scored 40/307 slices
+  scored 48/307 slices
+  scored 56/307 slices
+  scored 64/307 slices
+  scored 72/307 slices
+  scored 80/307 slices
+  scored 88/307 slices
+  scored 96/307 slices
+  scored 104/307 slices
+  scored 112/307 slices
+  scored 120/307 slices
+  scored 128/307 slices
+  scored 136/307 slices
+  scored 144/307 slices
+  scored 152/307 slices
+  scored 160/307 slices
+  scored 168/307 slices
+  scored 176/307 slices
+  scored 184/307 slices
+  scored 192/307 slices
+  scored 200/307 slices
+  scored 208/307 slices
+  scored 216/307 slices
+  scored 224/307 slices
+  scored 232/307 slices
+  scored 240/307 slices
+  scored 248/307 slices
+  scored 256/307 slices
+  scored 264/307 slices
+  scored 272/307 slices
+  scored 280/307 slices
+  scored 288/307 slices
+  scored 296/307 slices
+  scored 304/307 slices
+  scored 307/307 slices
+  PSNR_Masked brain 33.518  all 33.518
+  donors: {"matched": 245, "unmatched": {"brain": 62}}
+  swap_null: {"donor_final_mask_equals_own": 0.0, "must_be_1_for_a_data_blind_twin": false}
+  counterfactual_with_own_data_reproduces_every_step: true
+  guards: {"ssim_pooled": 0.8969231216293984, "ssim_at_least_0.80": true, "realised_fraction_target": 0.125, "realised_fraction_within_0.002": true, "most_draws_outside_the_acquired_region": 0, "no_draws_outside_the_acquired_region": true}
+  data-swap moved by step (all): 0.334 0.306 0.305 0.354
+/scratch/user/bkadota/conda/envs/dl/lib/python3.14/site-packages/torch/nn/functional.py:3855: UserWarning: size_average and reduce args will be deprecated, please use reduction='mean' instead.
+  reduction = _Reduction.legacy_get_string(size_average, reduce)
+wandb: Tracking run with wandb version 0.27.0
+wandb: W&B syncing is set to `offline` in this directory. Run `wandb online` or set WANDB_MODE=online to enable cloud syncing.
+wandb: Run data is saved locally in /home/remote/bkadota/scratch/multistep_adaptivity__seqmri_lr_bias_r8/scores/wandb/offline-run-20261121_222132-54lvamv8
+wandb: 
+wandb: Run history:
+wandb:   eval/by_step/step_budget/all/0 ▁
+wandb:   eval/by_step/step_budget/all/1 ▁
+wandb:   eval/by_step/step_budget/all/2 ▁
+wandb:   eval/by_step/step_budget/all/3 ▁
+wandb: eval/by_step/step_budget/brain/0 ▁
+wandb: eval/by_step/step_budget/brain/1 ▁
+wandb: eval/by_step/step_budget/brain/2 ▁
+wandb: eval/by_step/step_budget/brain/3 ▁
+wandb:      eval/by_step/step_new/all/0 ▁
+wandb:      eval/by_step/step_new/all/1 ▁
+wandb:                              +76 ...
+wandb: 
+wandb: Run summary:
+wandb:   eval/by_step/step_budget/all/0 1964.31596
+wandb:   eval/by_step/step_budget/all/1 1964.31596
+wandb:   eval/by_step/step_budget/all/2 1964.31596
+wandb:   eval/by_step/step_budget/all/3 1964.31596
+wandb: eval/by_step/step_budget/brain/0 1964.31596
+wandb: eval/by_step/step_budget/brain/1 1964.31596
+wandb: eval/by_step/step_budget/brain/2 1964.31596
+wandb: eval/by_step/step_budget/brain/3 1964.31596
+wandb:      eval/by_step/step_new/all/0 1963.94788
+wandb:      eval/by_step/step_new/all/1 1964.65635
+wandb:                              +76 ...
+wandb: 
+wandb: You can sync this run to the cloud by running:
+wandb: wandb sync /home/remote/bkadota/scratch/multistep_adaptivity__seqmri_lr_bias_r8/scores/wandb/offline-run-20261121_222132-54lvamv8
+wandb: Find logs at: /home/remote/bkadota/scratch/multistep_adaptivity__seqmri_lr_bias_r8/scores/wandb/offline-run-20261121_222132-54lvamv8/logs

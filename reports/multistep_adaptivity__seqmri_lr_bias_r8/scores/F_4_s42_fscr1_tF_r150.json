@@ -1,0 +1,237 @@
+{
+  "name": "F_4_s42_fscr1_tF_r150",
+  "run": "/home/remote/bkadota/scratch/multistep_adaptivity__seqmri_lr_bias_r8/runs/F_4_s42_fscr1_tF_r150",
+  "checkpoint": "last_model.pt",
+  "epoch": 149,
+  "training_code": {
+    "commit": "49be6990c3905a5e25bb89146e7b467398650439",
+    "branch": "exp/multistep_adaptivity__seqmri_lr_bias_r8",
+    "dirty_tracked_files": [],
+    "started_at": "2026-11-21T02:51:54+00:00",
+    "argv": [
+      "train.py",
+      "hydra.job.name=train_sequential",
+      "recon=varnet",
+      "datasets=fastmri_local_v1_flair",
+      "training.batch_size=16",
+      "training.seed=42",
+      "sampler.accelerations=[8.0]",
+      "training.num_step=4",
+      "training.num_epochs=150",
+      "training.lr_step_size=90",
+      "recon.num_cascades=6",
+      "recon.chans=18",
+      "recon.checkpoint_cascades=true",
+      "sampler.preselect_num=10",
+      "sampler.anatomy_conditioning=false",
+      "output.run_name=F_4_s42_fscr1_tF_r150",
+      "sampler.sampler_type=seqmri_2d",
+      "sampler.seqmri_input_scale=signed_log",
+      "training.save_epochs=[10]",
+      "datasets.train_tier=F",
+      "output.checkpoint=/home/remote/bkadota/scratch/multistep_adaptivity/runs/F_4_s42_fscr1_tF/last_model.pt",
+      "misc.resolution=[320,320]",
+      "sampler.budget_over=acquired",
+      "datasets.limit_volumes=1",
+      "datasets.roots.hpc=\"~/scratch/data/fastmri/{anatomy}/data\"",
+      "datasets.roots.local_batch2=\"~/scratch/data/fastmri/knee/data\"",
+      "datasets.val_half=dev",
+      "output.out_dir=/home/remote/bkadota/scratch/multistep_adaptivity__seqmri_lr_bias_r8/runs/F_4_s42_fscr1_tF_r150"
+    ]
+  },
+  "eval_code": {
+    "commit": "49be6990c3905a5e25bb89146e7b467398650439",
+    "branch": "exp/multistep_adaptivity__seqmri_lr_bias_r8",
+    "dirty_tracked_files": []
+  },
+  "options": {
+    "sampler_type": "seqmri_2d",
+    "num_step": 4,
+    "data_blind": false,
+    "accelerations": [
+      8.0
+    ],
+    "budget_over": "acquired",
+    "seed": 42,
+    "residual_chans": 16,
+    "residual_depth": 4,
+    "residual_limit": 6.0,
+    "residual_lr": 0.0001,
+    "anatomy_conditioning": false,
+    "loss_type": "l1"
+  },
+  "draw_seeds": [
+    1234,
+    4321
+  ],
+  "slices": {
+    "count": 307,
+    "hash": "1874f6fc07ee779c8d4570f7cb7a72f8107a1a5f"
+  },
+  "means": {
+    "psnr": {
+      "brain": 33.51189407696553,
+      "all": 33.51189407696553
+    },
+    "ssim": {
+      "brain": 0.897155767984962,
+      "all": 0.897155767984962
+    },
+    "nmse": {
+      "brain": 0.004314123206174286,
+      "all": 0.004314123206174286
+    },
+    "realised_fraction": {
+      "brain": 0.12500157696270786,
+      "all": 0.12500157696270786
+    }
+  },
+  "by_step": {
+    "step_new": {
+      "brain": [
+        1963.413680781759,
+        1963.3322475570033,
+        1965.7166123778502,
+        1965.5342019543973
+      ],
+      "all": [
+        1963.413680781759,
+        1963.3322475570033,
+        1965.7166123778502,
+        1965.5342019543973
+      ]
+    },
+    "step_budget": {
+      "brain": [
+        1964.315960912052,
+        1964.315960912052,
+        1964.315960912052,
+        1964.315960912052
+      ],
+      "all": [
+        1964.315960912052,
+        1964.315960912052,
+        1964.315960912052,
+        1964.315960912052
+      ]
+    }
+  },
+  "donors": {
+    "matched": 245,
+    "unmatched": {
+      "brain": 62
+    }
+  },
+  "guards": {
+    "ssim_pooled": 0.897155767984962,
+    "ssim_at_least_0.80": true,
+    "realised_fraction_target": 0.125,
+    "realised_fraction_within_0.002": true,
+    "most_draws_outside_the_acquired_region": 0,
+    "no_draws_outside_the_acquired_region": true,
+    "failed_reconstructions_below_20dB": []
+  },
+  "swap_cost": {
+    "psnr": {
+      "brain": {
+        "mean": 0.19046759313466596,
+        "ci95": [
+          0.13449118204481425,
+          0.24831329177143752
+        ],
+        "n_slices": 245,
+        "n_volumes": 16,
+        "n_left_out": 62
+      },
+      "all": {
+        "mean": 0.19046759313466596,
+        "ci95": [
+          0.13449118204481425,
+          0.24831329177143752
+        ],
+        "n_slices": 245,
+        "n_volumes": 16,
+        "n_left_out": 62
+      }
+    },
+    "ssim": {
+      "brain": {
+        "mean": 0.0030959036039144025,
+        "ci95": [
+          0.002282146640330123,
+          0.0038626590182179415
+        ],
+        "n_slices": 245,
+        "n_volumes": 16,
+        "n_left_out": 62
+      },
+      "all": {
+        "mean": 0.0030959036039144025,
+        "ci95": [
+          0.002282146640330123,
+          0.0038626590182179415
+        ],
+        "n_slices": 245,
+        "n_volumes": 16,
+        "n_left_out": 62
+      }
+    },
+    "nmse": {
+      "brain": {
+        "mean": -0.00015164925099103426,
+        "ci95": [
+          -0.00019264621399343014,
+          -0.00011225215634244361
+        ],
+        "n_slices": 245,
+        "n_volumes": 16,
+        "n_left_out": 62
+      },
+      "all": {
+        "mean": -0.00015164925099103426,
+        "ci95": [
+          -0.00019264621399343014,
+          -0.00011225215634244361
+        ],
+        "n_slices": 245,
+        "n_volumes": 16,
+        "n_left_out": 62
+      }
+    }
+  },
+  "swap_null": {
+    "donor_final_mask_equals_own": 0.0,
+    "must_be_1_for_a_data_blind_twin": false
+  },
+  "counterfactual_with_own_data_reproduces_every_step": true,
+  "data_swap": {
+    "moved_by_step": {
+      "brain": [
+        0.22525043891226829,
+        0.2461983823366681,
+        0.3325246610631075,
+        0.4014062212910992
+      ],
+      "all": [
+        0.22525043891226829,
+        0.2461983823366681,
+        0.3325246610631075,
+        0.4014062212910992
+      ]
+    },
+    "zero_data_moved_by_step": {
+      "brain": [
+        0.37482607193560685,
+        0.4765464514896962,
+        0.6660683621827292,
+        0.7606965224667962
+      ],
+      "all": [
+        0.37482607193560685,
+        0.4765464514896962,
+        0.6660683621827292,
+        0.7606965224667962
+      ]
+    }
+  }
+}
