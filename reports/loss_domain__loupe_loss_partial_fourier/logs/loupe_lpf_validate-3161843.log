@@ -1,0 +1,27 @@
+host=ggpu1-14 gpu=NVIDIA RTX PRO 6000 Blackwell Server Edition commit=24db7c7e56a0ef19f5e222f29477a0265a39a4b7 python=3.14.0 torch=2.12.0+cu130
+18:26:10 commit: pass
+18:26:49 tests: pass
+18:30:10 smoke_Lrss_1_s42_tF: pass
+18:30:38 score_Lrss_1_s42_tF: pass
+18:32:49 smoke_Lcplx_1_s42_tF: pass
+18:33:17 score_Lcplx_1_s42_tF: pass
+18:35:28 smoke_Lrsssym_1_s42_tF: pass
+18:35:56 score_Lrsssym_1_s42_tF: pass
+18:38:08 smoke_Lcplxsym_1_s42_tF: pass
+18:38:36 score_Lcplxsym_1_s42_tF: pass
+18:38:37 arms: pass
+18:38:37 run_info: pass
+
+  commit                       pass
+  tests                        pass
+  smoke_Lrss_1_s42_tF          pass
+  score_Lrss_1_s42_tF          pass
+  smoke_Lcplx_1_s42_tF         pass
+  score_Lcplx_1_s42_tF         pass
+  smoke_Lrsssym_1_s42_tF       pass
+  score_Lrsssym_1_s42_tF       pass
+  smoke_Lcplxsym_1_s42_tF      pass
+  score_Lcplxsym_1_s42_tF      pass
+  arms                         pass
+  run_info                     pass
+logs: /home/remote/bkadota/scratch/loss_domain__loupe_loss_partial_fourier/validate/3161843

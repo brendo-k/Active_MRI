@@ -1,0 +1,313 @@
+{
+  "pooled": {
+    "Lrss_s42": {
+      "psnr": 33.37069677918276,
+      "ssim": 0.8907005711029622,
+      "nmse": 0.004576513738256154,
+      "realised_fraction": 0.12502338061357943
+    },
+    "Lrss_s43": {
+      "psnr": 33.35243888631317,
+      "ssim": 0.890781271848358,
+      "nmse": 0.0045906576357936605,
+      "realised_fraction": 0.1250473681703841
+    },
+    "Lcplx_s42": {
+      "psnr": 31.364611141068153,
+      "ssim": 0.8810899826632087,
+      "nmse": 0.009011434846184541,
+      "realised_fraction": 0.1250258954029518
+    },
+    "Lcplx_s43": {
+      "psnr": 31.43495734273805,
+      "ssim": 0.8813335201919691,
+      "nmse": 0.008931264615161132,
+      "realised_fraction": 0.12503880107053328
+    },
+    "Lrsssym_s42": {
+      "psnr": 33.01590218994439,
+      "ssim": 0.8864329100898259,
+      "nmse": 0.004779269357199753,
+      "realised_fraction": 0.1250077901644699
+    },
+    "Lrsssym_s43": {
+      "psnr": 33.03624797410996,
+      "ssim": 0.8868123151573721,
+      "nmse": 0.004767066322446039,
+      "realised_fraction": 0.1250196456156841
+    },
+    "Lcplxsym_s42": {
+      "psnr": 31.009171072745556,
+      "ssim": 0.8760922284352208,
+      "nmse": 0.009266019565226201,
+      "realised_fraction": 0.12504594609238426
+    },
+    "Lcplxsym_s43": {
+      "psnr": 31.006661685359596,
+      "ssim": 0.8754885573889235,
+      "nmse": 0.009406275249955454,
+      "realised_fraction": 0.12511519038085053
+    }
+  },
+  "guards": {
+    "s42": {
+      "ssim_at_least_0.80": true,
+      "rsssym_within_0.03_of_rss": true,
+      "cplxsym_within_0.03_of_cplx": true,
+      "cplx_within_0.03_of_rss": true,
+      "realised_fraction_within_0.002": true,
+      "reconstructions_below_20dB": {
+        "Lrss": 0,
+        "Lcplx": 2,
+        "Lrsssym": 0,
+        "Lcplxsym": 2
+      }
+    },
+    "s43": {
+      "ssim_at_least_0.80": true,
+      "rsssym_within_0.03_of_rss": true,
+      "cplxsym_within_0.03_of_cplx": true,
+      "cplx_within_0.03_of_rss": true,
+      "realised_fraction_within_0.002": true,
+      "reconstructions_below_20dB": {
+        "Lrss": 0,
+        "Lcplx": 2,
+        "Lrsssym": 0,
+        "Lcplxsym": 2
+      }
+    }
+  },
+  "right_share": {
+    "Lrss_s42": 0.04552895203232765,
+    "Lrss_s43": 0.04051333665847778,
+    "Lcplx_s42": 0.07282645255327225,
+    "Lcplx_s43": 0.10246257483959198,
+    "Lrsssym_s42": 0.5,
+    "Lrsssym_s43": 0.5000000596046448,
+    "Lcplxsym_s42": 0.5000000596046448,
+    "Lcplxsym_s43": 0.5
+  },
+  "value_of_half": {
+    "rss_s42": {
+      "mean": 0.3547945892383687,
+      "ci95": [
+        0.09757290524505659,
+        0.5616679469122324
+      ],
+      "n_slices": 307,
+      "n_volumes": 20,
+      "n_left_out": 0
+    },
+    "rss_s43": {
+      "mean": 0.31619091220321405,
+      "ci95": [
+        0.06747724815813995,
+        0.5186560033053355
+      ],
+      "n_slices": 307,
+      "n_volumes": 20,
+      "n_left_out": 0
+    },
+    "cplx_s42": {
+      "mean": 0.35544006832259484,
+      "ci95": [
+        0.16371542961366717,
+        0.5300612175962389
+      ],
+      "n_slices": 307,
+      "n_volumes": 20,
+      "n_left_out": 0
+    },
+    "cplx_s43": {
+      "mean": 0.42829565737845454,
+      "ci95": [
+        0.25899370961485996,
+        0.5817175982270666
+      ],
+      "n_slices": 307,
+      "n_volumes": 20,
+      "n_left_out": 0
+    }
+  },
+  "probe": {
+    "Lrss_1_s42_tF": {
+      "partner_anti": 0.9467515627508734,
+      "partner_response": 0.8375072290293744,
+      "placebo_rows_anti": 0.4633826962693449,
+      "placebo_columns_anti": 0.42239797399289664,
+      "margins": {
+        "placebo_rows": 0.48336886648152844,
+        "placebo_columns": 0.5243535887579767
+      }
+    },
+    "Lrss_1_s43_tF": {
+      "partner_anti": 0.9431480704814348,
+      "partner_response": 0.8192812151124182,
+      "placebo_rows_anti": 0.4976052911255334,
+      "placebo_columns_anti": 0.514686073748853,
+      "margins": {
+        "placebo_rows": 0.44554277935590136,
+        "placebo_columns": 0.4284619967325818
+      }
+    },
+    "Lcplx_1_s42_tF": {
+      "partner_anti": 0.7168924368966332,
+      "partner_response": 0.28943977878651406,
+      "placebo_rows_anti": 0.48762871419607356,
+      "placebo_columns_anti": 0.5065756249812845,
+      "margins": {
+        "placebo_rows": 0.2292637227005596,
+        "placebo_columns": 0.21031681191534868
+      }
+    },
+    "Lcplx_1_s43_tF": {
+      "partner_anti": 0.5958028301195485,
+      "partner_response": 0.3558929796657531,
+      "placebo_rows_anti": 0.47821497112910644,
+      "placebo_columns_anti": 0.5133092383026996,
+      "margins": {
+        "placebo_rows": 0.11758785899044205,
+        "placebo_columns": 0.0824935918168489
+      }
+    },
+    "Lrsssym_1_s42_tF": {
+      "partner_anti": 0.9531209897936986,
+      "partner_response": 0.8464955126376994,
+      "placebo_rows_anti": 0.45630777952197377,
+      "placebo_columns_anti": 0.5038768829983588,
+      "margins": {
+        "placebo_rows": 0.49681321027172487,
+        "placebo_columns": 0.4492441067953399
+      }
+    },
+    "Lrsssym_1_s43_tF": {
+      "partner_anti": 0.8803564018522628,
+      "partner_response": 0.758518806713441,
+      "placebo_rows_anti": 0.4865345277861905,
+      "placebo_columns_anti": 0.502323101995078,
+      "margins": {
+        "placebo_rows": 0.39382187406607233,
+        "placebo_columns": 0.3780332998571848
+      }
+    },
+    "Lcplxsym_1_s42_tF": {
+      "partner_anti": 0.6879361604303246,
+      "partner_response": 0.3198810915453624,
+      "placebo_rows_anti": 0.4583846453363172,
+      "placebo_columns_anti": 0.4058029461284719,
+      "margins": {
+        "placebo_rows": 0.2295515150940074,
+        "placebo_columns": 0.2821332143018527
+      }
+    },
+    "Lcplxsym_1_s43_tF": {
+      "partner_anti": 0.6306455151060586,
+      "partner_response": 0.4144918259067791,
+      "placebo_rows_anti": 0.5724799664734572,
+      "placebo_columns_anti": 0.499172135636356,
+      "margins": {
+        "placebo_rows": 0.05816554863260137,
+        "placebo_columns": 0.1314733794697026
+      }
+    },
+    "L_1_s42_fscr1_tF": {
+      "partner_anti": 0.9273534241039033,
+      "partner_response": 0.8238471314360662,
+      "placebo_rows_anti": 0.4746921807419371,
+      "placebo_columns_anti": 0.49068784785151637,
+      "margins": {
+        "placebo_rows": 0.4526612433619662,
+        "placebo_columns": 0.43666557625238694
+      }
+    },
+    "F_4_s42_fscr1_tF": {
+      "partner_anti": 0.9723910541726142,
+      "partner_response": 0.7590130666750995,
+      "placebo_rows_anti": 0.4710370694898631,
+      "placebo_columns_anti": 0.5194635087909877,
+      "margins": {
+        "placebo_rows": 0.501353984682751,
+        "placebo_columns": 0.4529275453816265
+      }
+    },
+    "Fb_4_s42_fscr1_tF": {
+      "partner_anti": 0.9849458346860069,
+      "partner_response": 0.9228943720369651,
+      "placebo_rows_anti": 0.5626789918499036,
+      "placebo_columns_anti": 0.5473236969030977,
+      "margins": {
+        "placebo_rows": 0.4222668428361034,
+        "placebo_columns": 0.43762213778290926
+      }
+    }
+  },
+  "criteria": {
+    "layout": {
+      "rule": "Lrss <= 0.15 and Lcplx >= 0.30 in both seeds: loss decides; Lcplx <= 0.15 in both: it does not",
+      "Lrss": [
+        0.04552895203232765,
+        0.04051333665847778
+      ],
+      "Lcplx": [
+        0.07282645255327225,
+        0.10246257483959198
+      ],
+      "verdict": "the loss does not decide the layout"
+    },
+    "value_of_half_rss": {
+      "rule": "Lrss - Lrsssym >= +0.10 dB, CI above 0, both seeds",
+      "values": [
+        {
+          "mean": 0.3547945892383687,
+          "ci95": [
+            0.09757290524505659,
+            0.5616679469122324
+          ],
+          "n_slices": 307,
+          "n_volumes": 20,
+          "n_left_out": 0
+        },
+        {
+          "mean": 0.31619091220321405,
+          "ci95": [
+            0.06747724815813995,
+            0.5186560033053355
+          ],
+          "n_slices": 307,
+          "n_volumes": 20,
+          "n_left_out": 0
+        }
+      ],
+      "met": true
+    },
+    "value_of_half_cplx": {
+      "rule": "reported; expected to include 0",
+      "values": [
+        {
+          "mean": 0.35544006832259484,
+          "ci95": [
+            0.16371542961366717,
+            0.5300612175962389
+          ],
+          "n_slices": 307,
+          "n_volumes": 20,
+          "n_left_out": 0
+        },
+        {
+          "mean": 0.42829565737845454,
+          "ci95": [
+            0.25899370961485996,
+            0.5817175982270666
+          ],
+          "n_slices": 307,
+          "n_volumes": 20,
+          "n_left_out": 0
+        }
+      ]
+    },
+    "mechanism": {
+      "rule": "Lrss both seeds: -k antilinear >= 0.90, response >= 0.10, >= 0.30 above each placebo",
+      "met": true
+    }
+  }
+}

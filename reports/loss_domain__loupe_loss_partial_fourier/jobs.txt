@@ -1,0 +1,25 @@
+# CoreHPC jobs, submitted 2026-11-19 from ~/scratch/loupe_loss_partial_fourier at run state 1 (9dfb8c3); training waits on validation
+validate 3132816
+Lrss_1_s42_tF 3132817
+Lcplx_1_s42_tF 3132818
+Lrsssym_1_s42_tF 3132819
+Lcplxsym_1_s42_tF 3132820
+Lrss_1_s43_tF 3132822
+Lcplx_1_s43_tF 3132823
+Lrsssym_1_s43_tF 3132824
+Lcplxsym_1_s43_tF 3132825
+# 2026-11-20: no job above trained. The validation failed at the test step: four early-stop tests fail whenever CUDA is
+# visible. Every smoke, score and arms check passed. The training jobs above never started and were cancelled on 11-20.
+# Renamed 11-20 to loss_domain__loupe_loss_partial_fourier; the CoreHPC folder is now
+# ~/scratch/loss_domain__loupe_loss_partial_fourier.
+# Run state 2 (24db7c7) carries the fix (86b9a22), the probe addendum and the rename; training waits on validation.
+validate_rs2 3161843
+Lrss_1_s42_tF 3161844
+Lcplx_1_s42_tF 3161845
+Lrsssym_1_s42_tF 3161846
+Lcplxsym_1_s42_tF 3161847
+Lrss_1_s43_tF 3161848
+Lcplx_1_s43_tF 3161849
+Lrsssym_1_s43_tF 3161850
+Lcplxsym_1_s43_tF 3161851
+# 11-20: validate_rs2 3161843 passed every check (18:26-18:38, ggpu1-14, 348 tests). Its eight training jobs then queued.

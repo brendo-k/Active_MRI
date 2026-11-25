@@ -1,0 +1,191 @@
+{
+  "name": "Lrss_1_s43_tF",
+  "run": "/home/remote/bkadota/scratch/loss_domain__loupe_loss_partial_fourier/runs/Lrss_1_s43_tF",
+  "checkpoint": "last_model.pt",
+  "epoch": 99,
+  "training_code": {
+    "commit": "24db7c7e56a0ef19f5e222f29477a0265a39a4b7",
+    "branch": "exp/loss_domain__loupe_loss_partial_fourier",
+    "dirty_tracked_files": [],
+    "started_at": "2026-11-22T15:57:26+00:00",
+    "argv": [
+      "train.py",
+      "sampler.sampler_type=loupe_2d",
+      "hydra.job.name=train_sequential",
+      "recon=varnet",
+      "datasets=fastmri_local_v1_flair",
+      "training.batch_size=16",
+      "training.seed=43",
+      "sampler.accelerations=[8.0]",
+      "training.num_step=1",
+      "training.num_epochs=100",
+      "training.lr_step_size=90",
+      "recon.num_cascades=6",
+      "recon.chans=18",
+      "recon.checkpoint_cascades=true",
+      "sampler.preselect_num=10",
+      "sampler.anatomy_conditioning=false",
+      "output.run_name=Lrss_1_s43_tF",
+      "datasets.train_tier=F",
+      "misc.resolution=[320,320]",
+      "sampler.budget_over=acquired",
+      "datasets.limit_volumes=1",
+      "datasets.roots.hpc=\"~/scratch/data/fastmri/{anatomy}/data\"",
+      "datasets.roots.local_batch2=\"~/scratch/data/fastmri/knee/data\"",
+      "datasets.val_half=dev",
+      "output.out_dir=/home/remote/bkadota/scratch/loss_domain__loupe_loss_partial_fourier/runs/Lrss_1_s43_tF"
+    ]
+  },
+  "eval_code": {
+    "commit": "24db7c7e56a0ef19f5e222f29477a0265a39a4b7",
+    "branch": "exp/loss_domain__loupe_loss_partial_fourier",
+    "dirty_tracked_files": []
+  },
+  "options": {
+    "sampler_type": "loupe_2d",
+    "num_step": 1,
+    "data_blind": false,
+    "accelerations": [
+      8.0
+    ],
+    "budget_over": "acquired",
+    "seed": 43,
+    "residual_chans": 16,
+    "residual_depth": 4,
+    "residual_limit": 6.0,
+    "residual_lr": 0.0001,
+    "anatomy_conditioning": false,
+    "loss_type": "l1"
+  },
+  "draw_seeds": [
+    1234,
+    4321
+  ],
+  "slices": {
+    "count": 307,
+    "hash": "1874f6fc07ee779c8d4570f7cb7a72f8107a1a5f"
+  },
+  "means": {
+    "psnr": {
+      "brain": 33.35243888631317,
+      "all": 33.35243888631317
+    },
+    "ssim": {
+      "brain": 0.890781271848358,
+      "all": 0.890781271848358
+    },
+    "nmse": {
+      "brain": 0.0045906576357936605,
+      "all": 0.0045906576357936605
+    },
+    "realised_fraction": {
+      "brain": 0.1250473681703841,
+      "all": 0.1250473681703841
+    }
+  },
+  "by_step": {
+    "step_new": {
+      "brain": [
+        7859.913680781759
+      ],
+      "all": [
+        7859.913680781759
+      ]
+    },
+    "step_budget": {
+      "brain": [
+        7857.263843648208
+      ],
+      "all": [
+        7857.263843648208
+      ]
+    }
+  },
+  "donors": {
+    "matched": 245,
+    "unmatched": {
+      "brain": 62
+    }
+  },
+  "guards": {
+    "ssim_pooled": 0.890781271848358,
+    "ssim_at_least_0.80": true,
+    "realised_fraction_target": 0.125,
+    "realised_fraction_within_0.002": true,
+    "most_draws_outside_the_acquired_region": 0,
+    "no_draws_outside_the_acquired_region": true,
+    "failed_reconstructions_below_20dB": []
+  },
+  "swap_cost": {
+    "psnr": {
+      "brain": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 245,
+        "n_volumes": 16,
+        "n_left_out": 62
+      },
+      "all": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 245,
+        "n_volumes": 16,
+        "n_left_out": 62
+      }
+    },
+    "ssim": {
+      "brain": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 245,
+        "n_volumes": 16,
+        "n_left_out": 62
+      },
+      "all": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 245,
+        "n_volumes": 16,
+        "n_left_out": 62
+      }
+    },
+    "nmse": {
+      "brain": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 245,
+        "n_volumes": 16,
+        "n_left_out": 62
+      },
+      "all": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_slices": 245,
+        "n_volumes": 16,
+        "n_left_out": 62
+      }
+    }
+  },
+  "swap_null": {
+    "donor_final_mask_equals_own": 1.0,
+    "must_be_1_for_a_data_blind_twin": false
+  }
+}

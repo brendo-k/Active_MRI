@@ -1,0 +1,24 @@
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+val_half=dev (seed 20261111)
+val_half=dev (seed 20261111)
+Manifest train set (volumes, slices): {'brain': (80, 1211)}
+Manifest val set (volumes, slices): {'brain': (20, 307)}
+L_1_s42_fscr1_tF: self anti 0.0450 response 1.0000; partner anti 0.9274 response 0.8238; placebo_rows anti 0.4747 response 0.3627; placebo_columns anti 0.4907 response 0.3406 (n=144)
+Sampler: seqmri_2d
+Number of sequential steps: 4
+Sparsity: 0.125
+val_half=dev (seed 20261111)
+val_half=dev (seed 20261111)
+Manifest train set (volumes, slices): {'brain': (80, 1211)}
+Manifest val set (volumes, slices): {'brain': (20, 307)}
+F_4_s42_fscr1_tF: self anti 0.0114 response 1.0000; partner anti 0.9724 response 0.7590; placebo_rows anti 0.4710 response 0.1755; placebo_columns anti 0.5195 response 0.1752 (n=144)
+Sampler: seqmri_2d
+Number of sequential steps: 4
+Sparsity: 0.125
+val_half=dev (seed 20261111)
+val_half=dev (seed 20261111)
+Manifest train set (volumes, slices): {'brain': (80, 1211)}
+Manifest val set (volumes, slices): {'brain': (20, 307)}
+Fb_4_s42_fscr1_tF: self anti 0.0103 response 1.0000; partner anti 0.9849 response 0.9229; placebo_rows anti 0.5627 response 0.1551; placebo_columns anti 0.5473 response 0.1668 (n=144)

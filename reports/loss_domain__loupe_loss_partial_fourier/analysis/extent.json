@@ -1,0 +1,32 @@
+{
+  "dev": {
+    "slices": 307,
+    "mean_share_acquired": {
+      "left": 0.9622732996940613,
+      "right": 0.9586271047592163
+    },
+    "min_share_acquired": {
+      "left": 0.8059701323509216,
+      "right": 0.7910447716712952
+    },
+    "slices_fully_acquired": {
+      "left": 232,
+      "right": 232
+    }
+  },
+  "train_tier_S": {
+    "slices": 1211,
+    "mean_share_acquired": {
+      "left": 0.983620285987854,
+      "right": 0.9819318056106567
+    },
+    "min_share_acquired": {
+      "left": 0.8059701323509216,
+      "right": 0.7910447716712952
+    },
+    "slices_fully_acquired": {
+      "left": 1059,
+      "right": 1059
+    }
+  }
+}

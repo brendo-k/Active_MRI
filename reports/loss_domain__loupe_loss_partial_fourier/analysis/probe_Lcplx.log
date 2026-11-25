@@ -1,0 +1,16 @@
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+val_half=dev (seed 20261111)
+val_half=dev (seed 20261111)
+Manifest train set (volumes, slices): {'brain': (80, 1211)}
+Manifest val set (volumes, slices): {'brain': (20, 307)}
+Lcplx_1_s42_tF: self anti 0.0098 response 1.0000; partner anti 0.7169 response 0.2894; placebo_rows anti 0.4876 response 0.1813; placebo_columns anti 0.5066 response 0.2352 (n=144); -k minus placebo_rows 0.2293, -k minus placebo_columns 0.2103
+Sampler: loupe_2d
+Number of sequential steps: 1
+Sparsity: 0.125
+val_half=dev (seed 20261111)
+val_half=dev (seed 20261111)
+Manifest train set (volumes, slices): {'brain': (80, 1211)}
+Manifest val set (volumes, slices): {'brain': (20, 307)}
+Lcplx_1_s43_tF: self anti 0.0279 response 1.0000; partner anti 0.5958 response 0.3559; placebo_rows anti 0.4782 response 0.2869; placebo_columns anti 0.5133 response 0.2638 (n=144); -k minus placebo_rows 0.1176, -k minus placebo_columns 0.0825
